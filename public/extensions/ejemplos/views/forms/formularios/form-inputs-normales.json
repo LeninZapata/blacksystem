@@ -1,0 +1,75 @@
+{
+  "id": "inputs-demo",
+  "title": "Demostración de Inputs",
+  "description": "Todos los tipos de inputs disponibles en el sistema",
+  "fields": [
+    {
+      "name": "text",
+      "label": "Input Text",
+      "type": "text",
+      "placeholder": "Escribe algo..."
+    },
+    {
+      "name": "email",
+      "label": "Input Email",
+      "type": "email",
+      "placeholder": "tu@email.com",
+      "required": true
+    },
+    {
+      "name": "password",
+      "label": "Input Password",
+      "type": "password",
+      "placeholder": "Contraseña segura"
+    },
+    {
+      "name": "number",
+      "label": "Input Number",
+      "type": "number",
+      "placeholder": "123",
+      "min": 0,
+      "step": 1
+    },
+    {
+      "name": "date",
+      "label": "Input Date",
+      "type": "date"
+    },
+    {
+      "name": "select",
+      "label": "Select",
+      "type": "select",
+      "options": [
+        { "value": "op1", "label": "Opción 1" },
+        { "value": "op2", "label": "Opción 2" },
+        { "value": "op3", "label": "Opción 3" }
+      ]
+    },
+    {
+      "name": "textarea",
+      "label": "Textarea",
+      "type": "textarea",
+      "placeholder": "Texto largo..."
+    },
+    {
+      "name": "checkbox",
+      "label": "Acepto términos y condiciones",
+      "type": "checkbox"
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "✅ Enviar",
+      "action": "submit"
+    },
+    {
+      "name": "reset",
+      "type": "button",
+      "label": "🔄 Limpiar",
+      "style": "secondary",
+      "action": "reset"
+    }
+  ]
+}

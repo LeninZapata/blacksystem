@@ -1,0 +1,26 @@
+{
+  "id": "ejemplos-toast",
+  "title": "🔔 Toast Notifications",
+  "content": [
+    {
+      "type": "html",
+      "order": 1,
+      "content": "<h3>🔔 Sistema de Notificaciones Toast</h3><p>Notificaciones minimalistas con diferentes tipos y posiciones</p>"
+    },
+    {
+      "type": "html",
+      "order": 5,
+      "content": "<div style='background:white;padding:2rem;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);'><h4 style='margin:0 0 1rem;'>Tipos de Toast</h4><div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:2rem;'><button class='btn btn-success' onclick=\"toast.success('Operación exitosa')\">✓ Success</button><button class='btn btn-danger' onclick=\"toast.error('Error al procesar')\">✕ Error</button><button class='btn' style='background:#f59e0b;color:white;' onclick=\"toast.warning('Advertencia importante')\">⚠ Warning</button><button class='btn btn-primary' onclick=\"toast.info('Información útil')\">ℹ Info</button></div><h4 style='margin:2rem 0 1rem;'>🔥 Múltiples Toasts (hasta 5 visibles)</h4><div style='display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:2rem;'><button class='btn btn-primary' onclick=\"for(let i=1;i<=3;i++){toast.info('Toast ' + i, {duration:4000})}\">Mostrar 3</button><button class='btn btn-primary' onclick=\"for(let i=1;i<=5;i++){toast.success('Toast ' + i, {duration:5000})}\">Mostrar 5</button><button class='btn btn-primary' onclick=\"for(let i=1;i<=10;i++){toast.warning('Toast ' + i, {duration:3000})}\">Mostrar 10 (cola)</button></div><h4 style='margin:2rem 0 1rem;'>Posiciones</h4><div style='display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:2rem;'><button class='btn btn-secondary btn-sm' onclick=\"toast.show('Top Left', {position:'top-left'})\">↖ Top Left</button><button class='btn btn-secondary btn-sm' onclick=\"toast.show('Top Center', {position:'top-center'})\">↑ Top Center</button><button class='btn btn-secondary btn-sm' onclick=\"toast.show('Top Right', {position:'top-right'})\">↗ Top Right</button><button class='btn btn-secondary btn-sm' onclick=\"toast.show('Bottom Left', {position:'bottom-left'})\">↙ Bottom Left</button><button class='btn btn-secondary btn-sm' onclick=\"toast.show('Bottom Center', {position:'bottom-center'})\">↓ Bottom Center</button><button class='btn btn-secondary btn-sm' onclick=\"toast.show('Bottom Right', {position:'bottom-right'})\">↘ Bottom Right</button></div><h4 style='margin:2rem 0 1rem;'>Duraciones</h4><div style='display:flex;gap:1rem;flex-wrap:wrap;'><button class='btn btn-secondary' onclick=\"toast.info('Toast rápido (1s)', {duration:1000})\">1 segundo</button><button class='btn btn-secondary' onclick=\"toast.info('Toast normal (3s)', {duration:3000})\">3 segundos</button><button class='btn btn-secondary' onclick=\"toast.info('Toast largo (5s)', {duration:5000})\">5 segundos</button></div></div>"
+    },
+    {
+      "type": "html",
+      "order": 10,
+      "content": "<div style='margin-top:2rem;padding:1.5rem;background:#f0f9ff;border-radius:8px;border-left:4px solid #3b82f6;'><h4 style='margin:0 0 1rem;color:#1e40af;'>📝 Uso en Código</h4><pre style='background:#1e293b;color:#e2e8f0;padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.875rem;margin:0;'><code>// Tipos básicos\ntoast.success('¡Guardado correctamente!');\ntoast.error('Error al conectar con el servidor');\ntoast.warning('Revisa los campos requeridos');\ntoast.info('Nueva versión disponible');\n\n// Con opciones\ntoast.show('Mensaje personalizado', {\n  type: 'success',\n  duration: 5000,\n  position: 'top-center'\n});\n\n// Múltiples toasts simultáneos (hasta 5)\ntoast.success('Primer mensaje');\ntoast.info('Segundo mensaje');\ntoast.warning('Tercer mensaje');\n// Los primeros 5 se muestran, el resto en cola\n\n// Posiciones disponibles\n// top-left, top-center, top-right\n// bottom-left, bottom-center, bottom-right</code></pre></div>"
+    },
+    {
+      "type": "html",
+      "order": 15,
+      "content": "<div style='margin-top:2rem;padding:1rem;background:#f0fdf4;border-radius:8px;'><h4 style='margin:0 0 0.5rem;color:#15803d;'>✨ Características</h4><ul style='margin:0;padding-left:1.5rem;color:#166534;'><li>4 tipos de notificaciones (success, error, warning, info)</li><li>6 posiciones diferentes</li><li>Hasta 5 toasts visibles simultáneamente</li><li>Cola automática para toasts adicionales</li><li>Los nuevos empujan a los anteriores hacia abajo</li><li>Duración configurable</li><li>Animaciones suaves</li><li>Botón de cierre manual</li><li>~90 líneas JS + ~120 líneas CSS</li></ul></div>"
+    }
+  ]
+}

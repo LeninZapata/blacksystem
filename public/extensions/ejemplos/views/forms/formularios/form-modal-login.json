@@ -1,0 +1,41 @@
+{
+  "id": "login-form",
+  "title": "Iniciar Sesión",
+  "description": "Ingresa tus credenciales para acceder al sistema",
+  "fields": [
+    {
+      "name": "email",
+      "label": "Correo Electrónico..",
+      "type": "email",
+      "required": true,
+      "placeholder": "tu@email.com"
+    },
+    {
+      "name": "password",
+      "label": "Contraseña",
+      "type": "password",
+      "required": true,
+      "placeholder": "Ingresa tu contraseña"
+    },
+    {
+      "name": "remember",
+      "label": "Recordar sesión",
+      "type": "checkbox"
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "🚀 Ingresar.",
+      "action": "submit"
+    },
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "Cancelar",
+      "style": "secondary",
+      "onclick": "modal.closeAll()"
+    }
+  ]
+}

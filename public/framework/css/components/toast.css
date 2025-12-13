@@ -1,0 +1,158 @@
+.toast-container {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+
+  &.toast-top-right {
+    top: 1rem;
+    right: 1rem;
+  }
+
+  &.toast-top-center {
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &.toast-top-left {
+    top: 1rem;
+    left: 1rem;
+  }
+
+  &.toast-bottom-right {
+    bottom: 1rem;
+    right: 1rem;
+  }
+
+  &.toast-bottom-center {
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &.toast-bottom-left {
+    bottom: 1rem;
+    left: 1rem;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  min-width: 300px;
+  max-width: 500px;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
+
+  &.toast-show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  &.toast-success {
+    border-left: 4px solid #10b981;
+    
+    .toast-icon {
+      color: #10b981;
+      background: #d1fae5;
+    }
+  }
+
+  &.toast-error {
+    border-left: 4px solid #ef4444;
+    
+    .toast-icon {
+      color: #ef4444;
+      background: #fee2e2;
+    }
+  }
+
+  &.toast-warning {
+    border-left: 4px solid #f59e0b;
+    
+    .toast-icon {
+      color: #f59e0b;
+      background: #fef3c7;
+    }
+  }
+
+  &.toast-info {
+    border-left: 4px solid #3b82f6;
+    
+    .toast-icon {
+      color: #3b82f6;
+      background: #dbeafe;
+    }
+  }
+}
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  color: #374151;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+}
+
+/* Animación para top-center y bottom-center */
+.toast-container.toast-top-center .toast,
+.toast-container.toast-bottom-center .toast {
+  transform: translateY(-100%);
+
+  &.toast-show {
+    transform: translateY(0);
+  }
+}
+
+/* Animación para left positions */
+.toast-container.toast-top-left .toast,
+.toast-container.toast-bottom-left .toast {
+  transform: translateX(-100%);
+
+  &.toast-show {
+    transform: translateX(0);
+  }
+}

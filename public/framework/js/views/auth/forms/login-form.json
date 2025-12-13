@@ -1,0 +1,39 @@
+{
+  "id": "login-form",
+  "title": "i18n:auth.login.title",
+  "description": "i18n:auth.login.description",
+  "fields": [
+    {
+      "name": "user",
+      "label": "i18n:auth.field.user",
+      "type": "text",
+      "validation": "required|min:3",
+      "placeholder": "i18n:auth.field.user.placeholder",
+      "autocomplete": "username"
+    },
+    {
+      "name": "pass",
+      "label": "i18n:auth.field.password",
+      "type": "password",
+      "validation": "required|min:3",
+      "placeholder": "i18n:auth.field.password.placeholder",
+      "autocomplete": "current-password"
+    },
+    {
+      "name": "remember",
+      "label": "i18n:auth.remember",
+      "type": "checkbox"
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "i18n:auth.login.submit",
+      "action": "submit:auth.login",
+      "props": {
+        "type": "submit"
+      }
+    }
+  ]
+}

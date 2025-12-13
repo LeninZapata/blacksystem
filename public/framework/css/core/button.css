@@ -1,0 +1,170 @@
+/* Estilos base para botones (button, submit, reset) */
+.btn,
+button[type="submit"],
+button[type="reset"],
+input[type="submit"],
+input[type="reset"] {
+  display: inline-block;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 1rem;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  
+  /* Por defecto: primary */
+  background: #3b82f6;
+  color: white;
+  
+  &:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* Variantes de color */
+.btn-primary,
+button.btn-primary {
+  background: #3b82f6;
+  color: white;
+  
+  &:hover {
+    background: #2563eb;
+  }
+}
+
+.btn-secondary,
+button.btn-secondary {
+  background: #6b7280;
+  color: white;
+  
+  &:hover {
+    background: #4b5563;
+  }
+}
+
+.btn-danger,
+button.btn-danger {
+  background: #ef4444;
+  color: white;
+  
+  &:hover {
+    background: #dc2626;
+  }
+}
+
+.btn-success,
+button.btn-success {
+  background: #10b981;
+  color: white;
+  
+  &:hover {
+    background: #059669;
+  }
+}
+
+.btn-warning,
+button.btn-warning {
+  background: #f59e0b;
+  color: white;
+  
+  &:hover {
+    background: #d97706;
+  }
+}
+
+.btn-info,
+button.btn-info {
+  background: #06b6d4;
+  color: white;
+  
+  &:hover {
+    background: #0891b2;
+  }
+}
+
+/* Variantes de tamaño */
+.btn-sm,
+button.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+.btn-lg,
+button.btn-lg {
+  padding: 12px 20px;
+  font-size: 1.125rem;
+}
+
+/* Variante outline */
+.btn-outline,
+button.btn-outline {
+  background: transparent;
+  border: 2px solid #3b82f6;
+  color: #3b82f6;
+  
+  &:hover {
+    background: #3b82f6;
+    color: white;
+  }
+}
+
+.btn-outline.btn-secondary {
+  border-color: #6b7280;
+  color: #6b7280;
+  
+  &:hover {
+    background: #6b7280;
+    color: white;
+  }
+}
+
+/* Estados */
+.btn:disabled,
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  
+  &:hover {
+    transform: none;
+  }
+}
+
+.btn:focus,
+button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Botones en grupos (statusbar) */
+.form-statusbar {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  
+  button {
+    min-width: 100px;
+  }
+}
+
+/* Botones de acciones en tablas */
+.table-actions {
+  display: flex;
+  gap: 4px;
+  
+  button {
+    padding: 4px 8px;
+    font-size: 0.875rem;
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "proyectos": [
+    {
+      "nombre_proyecto": "Sistema de Gestión Hospitalaria",
+      "presupuesto": 50000,
+      "tareas": [
+        {
+          "nombre_tarea": "Diseño de arquitectura",
+          "responsable": "Juan Pérez",
+          "prioridad": "alta",
+          "subtareas": [
+            {
+              "descripcion_subtarea": "Definir stack tecnológico (Node.js, React, PostgreSQL)",
+              "completada": true
+            },
+            {
+              "descripcion_subtarea": "Crear diagramas UML de clases y secuencia",
+              "completada": true
+            },
+            {
+              "descripcion_subtarea": "Documentar APIs REST y WebSocket",
+              "completada": false
+            }
+          ]
+        },
+        {
+          "nombre_tarea": "Desarrollo del backend",
+          "responsable": "María González",
+          "prioridad": "urgente",
+          "subtareas": [
+            {
+              "descripcion_subtarea": "Configurar servidor Express con TypeScript",
+              "completada": true
+            },
+            {
+              "descripcion_subtarea": "Implementar autenticación JWT",
+              "completada": false
+            },
+            {
+              "descripcion_subtarea": "Crear módulos de pacientes y citas",
+              "completada": false
+            }
+          ]
+        }
+      ],
+      "miembros": [
+        {
+          "nombre_miembro": "Juan Pérez",
+          "rol": "pm",
+          "email_miembro": "juan.perez@hospital.com"
+        },
+        {
+          "nombre_miembro": "María González",
+          "rol": "dev",
+          "email_miembro": "maria.gonzalez@hospital.com"
+        }
+      ]
+    },
+    {
+      "nombre_proyecto": "App Móvil de Telemedicina",
+      "presupuesto": 35000,
+      "tareas": [
+        {
+          "nombre_tarea": "Diseño UI/UX",
+          "responsable": "Carlos Ramírez",
+          "prioridad": "media",
+          "subtareas": [
+            {
+              "descripcion_subtarea": "Crear mockups de pantallas principales",
+              "completada": true
+            },
+            {
+              "descripcion_subtarea": "Prototipar flujo de videoconsulta en Figma",
+              "completada": false
+            }
+          ]
+        }
+      ],
+      "miembros": [
+        {
+          "nombre_miembro": "Carlos Ramírez",
+          "rol": "designer",
+          "email_miembro": "carlos.ramirez@telemedicina.com"
+        },
+        {
+          "nombre_miembro": "Ana López",
+          "rol": "dev",
+          "email_miembro": "ana.lopez@telemedicina.com"
+        },
+        {
+          "nombre_miembro": "Pedro Silva",
+          "rol": "qa",
+          "email_miembro": "pedro.silva@telemedicina.com"
+        }
+      ]
+    }
+  ]
+}

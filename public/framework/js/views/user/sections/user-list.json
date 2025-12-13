@@ -1,0 +1,40 @@
+{
+  "id": "user-list",
+  "title": "👥 Gestión de Usuarios",
+  "content": [
+    {
+      "type": "html",
+      "content": "<div class='view-header'><h2>👥 Usuarios del Sistema</h2><p>Administra los usuarios y sus permisos</p></div>"
+    },
+    {
+      "type": "html",
+      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"modal.open('user/user-form', {title: '👤 Nuevo Usuario', width: '90%', maxWidth: '900px'})\">➕ Nuevo Usuario</button><button class='btn btn-secondary' onclick='location.reload()'>🔄 Actualizar</button></div>"
+    },
+    {
+      "type": "component",
+      "component": "datatable",
+      "config": {
+        "source": "js/views/user/mock-users.json",
+        "columns": ["id", "username", "email", "role", "created_at"],
+        "actions": {
+          "edit": {
+            "name": "✏️ Editar",
+            "onclick": "modal.open('user/user-form', {title: '✏️ Editar Usuario', width: '90%', maxWidth: '900px', onLoad: () => user.loadUser({id})})"
+          },
+          "permissions": {
+            "name": "🔐 Permisos",
+            "onclick": "modal.open('user/user-form', {title: '🔐 Permisos de {username}', width: '90%', maxWidth: '900px', onLoad: () => user.loadUser({id})})"
+          },
+          "delete": {
+            "name": "🗑️ Eliminar",
+            "onclick": "if(confirm('¿Eliminar usuario {username}?')) { user.deleteUser({id}) }"
+          }
+        }
+      }
+    },
+    {
+      "type": "html",
+      "content": "<div class='view-footer' style='margin-top: 2rem; padding: 1rem; background: #f9fafb; border-radius: 4px;'><strong>💡 Guía Rápida:</strong><ul style='margin: 0.5rem 0 0; padding-left: 1.5rem;'><li><strong>Nuevo Usuario:</strong> Crea un nuevo usuario con permisos personalizados</li><li><strong>Editar:</strong> Modifica datos básicos del usuario</li><li><strong>Permisos:</strong> Abre directamente el tab de permisos</li><li><strong>Eliminar:</strong> Elimina el usuario del sistema</li></ul></div>"
+    }
+  ]
+}

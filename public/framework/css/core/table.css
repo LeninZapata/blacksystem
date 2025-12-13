@@ -1,0 +1,162 @@
+/* Wrapper responsive - DEBE envolver la tabla */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  position: relative;
+  
+  /* Scrollbar delgado */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  
+  /* Smooth scroll */
+  scroll-behavior: smooth;
+  
+  /* Sombra degradada a la derecha cuando hay scroll */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to left, rgba(255,255,255,0.9) 0%, transparent 100%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10; /* Por encima del contenido */
+  }
+  
+  /* Mostrar sombra cuando hay overflow */
+  &.has-overflow::after {
+    opacity: 1;
+  }
+}
+
+/* Scrollbar personalizado en Chrome/Safari */
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  /* Ancho mínimo para que no colapse */
+  min-width: 1024px;
+
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    
+    /* Evitar que el header se rompa */
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #4b5563;
+    
+    /* Limitar ancho y truncar texto largo */
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  tbody {
+    tr {
+      &:nth-child(even) {
+        background: #fafafa;
+      }
+
+      &:hover {
+        background: #f8f9fa;
+      }
+
+      &:last-child {
+        td {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+
+  /* Variantes */
+  &.table-sm {
+    min-width: 1024px;
+    
+    th, td {
+      padding: 8px 12px;
+      font-size: 0.8125rem;
+    }
+  }
+
+  &.table-bordered {
+    border: 1px solid #e5e7eb;
+    
+    th, td {
+      border: 1px solid #e5e7eb;
+    }
+  }
+
+  &.table-striped {
+    tbody tr:nth-child(odd) {
+      background: #f8f9fa;
+    }
+  }
+  
+  /* Tabla sin min-width (usa ancho natural) */
+  &.table-compact {
+    min-width: auto;
+    
+    th, td {
+      white-space: normal;
+    }
+  }
+}
+
+/* Mobile: reducir tamaños */
+@media (max-width: 768px) {
+  .table {
+    font-size: 0.8125rem;
+    min-width: 1024px;
+    
+    th, td {
+      padding: 8px 10px;
+    }
+    
+    /* Botones más pequeños */
+    .btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+  }
+  
+  /* Scrollbar más visible en mobile */
+  .table-responsive::-webkit-scrollbar {
+    height: 8px;
+  }
+}

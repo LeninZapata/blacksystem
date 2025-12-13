@@ -1,0 +1,16 @@
+{
+  "proyectos": [
+    {
+      "nombre_proyecto": "Sistema de Gestión Hospitalaria",
+      "presupuesto": 50000
+    },
+    {
+      "nombre_proyecto": "App Móvil de Telemedicina",
+      "presupuesto": 35000
+    },
+    {
+      "nombre_proyecto": "Portal de Pacientes",
+      "presupuesto": 25000
+    }
+  ]
+}

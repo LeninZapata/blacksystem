@@ -1,0 +1,65 @@
+{
+  "id": "conditions-multiple",
+  "title": "Condiciones Múltiples (AND)",
+  "description": "Campo aparece solo si TODAS las condiciones se cumplen",
+  "fields": [
+    {
+      "name": "acepta_terminos",
+      "label": "✅ Acepto términos y condiciones",
+      "type": "checkbox"
+    },
+    {
+      "name": "mayor_edad",
+      "label": "✅ Soy mayor de 18 años",
+      "type": "checkbox"
+    },
+    {
+      "name": "pais",
+      "label": "⭐ País (selecciona uno)",
+      "type": "select",
+      "options": [
+        { "value": "EC", "label": "🇪🇨 Ecuador" },
+        { "value": "CO", "label": "🇨🇴 Colombia" },
+        { "value": "PE", "label": "🇵🇪 Perú" },
+        { "value": "MX", "label": "🇲🇽 México" }
+      ]
+    },
+    {
+      "name": "datos_envio",
+      "label": "📦 Dirección de Envío",
+      "type": "textarea",
+      "placeholder": "Ingresa tu dirección completa",
+      "condition": [
+        { "field": "acepta_terminos", "operator": "==", "value": true },
+        { "field": "mayor_edad", "operator": "==", "value": true },
+        { "field": "pais", "operator": "!=", "value": "" }
+      ],
+      "conditionLogic": "AND"
+    },
+    {
+      "name": "observaciones",
+      "label": "💬 Observaciones Especiales (Solo para Ecuador)",
+      "type": "textarea",
+      "placeholder": "Instrucciones adicionales",
+      "condition": [
+        { "field": "pais", "operator": "==", "value": "EC" },
+        { "field": "datos_envio", "operator": "not-empty", "value": "" }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "debug",
+      "type": "button",
+      "label": "🔍 Ver Datos",
+      "onclick": "event.preventDefault(); const data = form.getData(this.closest('form').id); console.log('📋 Datos del formulario:', data); toast.info('Ver consola del navegador');"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "✅ Enviar",
+      "action": "submit",
+      "onclick": "event.preventDefault(); toast.success('Formulario enviado correctamente');"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"highlightLine.borderColor" : "#9457EB",
+		"highlightLine.borderWidth": "1px",
+
+		// The number of spaces a tab is equal to. This setting is overridden
+    // based on the file contents when `editor.detectIndentation` is true.
+		"editor.tabSize": 2,
+		// Insert spaces when pressing Tab. This setting is overriden
+    // based on the file contents when `editor.detectIndentation` is true.
+    "editor.insertSpaces": true,
+		// When opening a file, `editor.tabSize` and `editor.insertSpaces`
+    // will be detected based on the file contents. Set to false to keep
+    // the values you've explicitly set, above.
+    "editor.detectIndentation": false,
+
+    //"workbench.colorTheme": "Sonokai Atlantis",
+    "workbench.colorTheme": "Pop N' Lock Theme by Luxcium ✨",
+
+		// "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'",
+    "editor.lineHeight": 17,
+    "powermode.combo.counterEnabled": "show",
+    "powermode.enabled": true,
+    "powermode.explosions.enabled": true,
+    "powermode.shake.enabled": false,
+    "powermode.shake.intensity": 7,
+    "powermode.explosions.frequency": 3,
+    "powermode.combo.counterSize": 5,
+    "powermode.combo.threshold": 1,
+
+    "chat.editor.fontSize": 10,
+
+    "intelephense.diagnostics.undefinedConstants": false,
+    "window.density.editorTabHeight": "compact",
+
+
+		"javascript.inlayHints.parameterNames.enabled": "all",
+		"javascript.inlayHints.variableTypes.enabled": true,
+		"javascript.inlayHints.propertyDeclarationTypes.enabled": true,
+		"javascript.inlayHints.parameterTypes.enabled": true,
+		"javascript.inlayHints.functionLikeReturnTypes.enabled": true,
+		"javascript.inlayHints.enumMemberValues.enabled": true,
+		//"editor.inlayHints.enabled": "on"
+
+		//"editor.fontFamily": "Fira Code",
+		// "editor.fontFamily": "'Monaspace Xenon Var', Fira Code, Monaco, monospace",
+		//"editor.fontFamily": "'Anonymous Pro', 'Fira Code'",
+		"editor.fontFamily": "'Fira Code'",
+		"editor.fontLigatures": true,
+		"editor.fontVariations": "'wght' 100",
+		//"editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'",
+		"editor.fontSize": 11,
+
+		"terminal.integrated.fontFamily": "'Monaspace Neon Var', Fira Code, Monaco, monospace",
+		"terminal.integrated.fontSize": 11,
+		"terminal.integrated.fontWeight": 450,
+		"terminal.integrated.fontWeightBold": 800,
+
+		"sortEditors.sortEditorsAutomatically" : true,
+		"sortEditors.sortEditorsOrder": "alphabetical"
+	}
+}

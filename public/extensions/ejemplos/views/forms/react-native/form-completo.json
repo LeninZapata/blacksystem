@@ -1,0 +1,207 @@
+{
+  "id": "form-completo-rn",
+  "title": "Formulario Completo - React Native Style",
+  "description": "Todos los tipos usando nomenclatura de React Native",
+  "fields": [
+    {
+      "type": "html",
+      "content": "<h3>📝 Información Personal</h3>"
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "name": "nombre",
+          "label": "Nombre",
+          "type": "TextInput",
+          "placeholder": "Tu nombre",
+          "required": true
+        },
+        {
+          "name": "apellido",
+          "label": "Apellido",
+          "type": "TextInput",
+          "placeholder": "Tu apellido",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "TextInput",
+          "placeholder": "tu@email.com",
+          "inputType": "email",
+          "required": true
+        },
+        {
+          "name": "telefono",
+          "label": "Teléfono",
+          "type": "TextInput",
+          "placeholder": "+593 999 999 999"
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<h3>📍 Ubicación</h3>"
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "name": "pais",
+          "label": "País",
+          "type": "Picker",
+          "required": true,
+          "options": [
+            {"value": "ec", "label": "Ecuador"},
+            {"value": "pe", "label": "Perú"},
+            {"value": "co", "label": "Colombia"}
+          ]
+        },
+        {
+          "name": "ciudad",
+          "label": "Ciudad",
+          "type": "Picker",
+          "options": [
+            {"value": "gye", "label": "Guayaquil"},
+            {"value": "uio", "label": "Quito"},
+            {"value": "cuenca", "label": "Cuenca"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "direccion",
+      "label": "Dirección Completa",
+      "type": "TextInput",
+      "multiline": true,
+      "numberOfLines": 3,
+      "placeholder": "Calle, número, sector..."
+    },
+    {
+      "type": "html",
+      "content": "<h3>⚙️ Preferencias</h3>"
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "fields": [
+        {
+          "name": "notificaciones",
+          "label": "Notificaciones",
+          "type": "Switch"
+        },
+        {
+          "name": "newsletter",
+          "label": "Newsletter",
+          "type": "Switch"
+        },
+        {
+          "name": "modo_oscuro",
+          "label": "Modo Oscuro",
+          "type": "Switch"
+        }
+      ]
+    },
+    {
+      "name": "idioma",
+      "label": "Idioma Preferido",
+      "type": "Picker",
+      "options": [
+        {"value": "es", "label": "Español"},
+        {"value": "en", "label": "English"},
+        {"value": "pt", "label": "Português"}
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<h3>💼 Información Profesional</h3>"
+    },
+    {
+      "name": "empresa",
+      "label": "Empresa",
+      "type": "TextInput",
+      "placeholder": "Nombre de tu empresa"
+    },
+    {
+      "name": "cargo",
+      "label": "Cargo",
+      "type": "TextInput",
+      "placeholder": "Tu cargo actual"
+    },
+    {
+      "name": "experiencia",
+      "label": "Años de Experiencia",
+      "type": "TextInput",
+      "inputType": "number",
+      "placeholder": "0"
+    },
+    {
+      "name": "habilidades",
+      "label": "Habilidades y Experiencia",
+      "type": "TextInput",
+      "multiline": true,
+      "numberOfLines": 5,
+      "placeholder": "Describe tus habilidades y experiencia..."
+    },
+    {
+      "type": "html",
+      "content": "<h3>📋 Sector y Especialidad</h3>"
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "name": "sector",
+          "label": "Sector",
+          "type": "Picker",
+          "options": [
+            {"value": "tech", "label": "Tecnología"},
+            {"value": "finance", "label": "Finanzas"},
+            {"value": "health", "label": "Salud"},
+            {"value": "education", "label": "Educación"},
+            {"value": "retail", "label": "Retail"}
+          ]
+        },
+        {
+          "name": "nivel",
+          "label": "Nivel",
+          "type": "Picker",
+          "options": [
+            {"value": "junior", "label": "Junior"},
+            {"value": "mid", "label": "Mid"},
+            {"value": "senior", "label": "Senior"},
+            {"value": "lead", "label": "Lead"}
+          ]
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin: 2rem 0;'><div style='background:#e3f2fd;padding:1rem;border-radius:8px;'><h4 style='margin:0 0 0.5rem;'>✅ Verificación</h4><p style='margin:0;'>Si todos los campos se ven correctamente, la normalización funciona perfecto.</p></div>"
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "💾 Guardar Perfil",
+      "action": "submit",
+      "style": "primary"
+    },
+    {
+      "type": "button",
+      "label": "🔄 Limpiar",
+      "action": "reset",
+      "style": "secondary"
+    }
+  ]
+}

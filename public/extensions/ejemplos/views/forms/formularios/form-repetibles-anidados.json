@@ -1,0 +1,131 @@
+{
+  "id": "repetibles-anidados",
+  "title": "Campos Repetibles Anidados",
+  "description": "Ejemplo de repetibles dentro de otros repetibles (multinivel)",
+  "fields": [
+    {
+      "name": "proyectos",
+      "label": "📁 Proyectos",
+      "type": "repeatable",
+      "addText": "➕ Agregar Proyecto",
+      "removeText": "🗑️ Eliminar Proyecto",
+      "fields": [
+        {
+          "name": "nombre_proyecto",
+          "label": "Nombre del Proyecto",
+          "type": "text",
+          "required": true,
+          "placeholder": "Ej: Sistema de Inventario"
+        },
+        {
+          "name": "presupuesto",
+          "label": "Presupuesto",
+          "type": "number",
+          "placeholder": "0.00",
+          "min": 0,
+          "step": 0.01
+        },
+        {
+          "name": "tareas",
+          "label": "📋 Tareas del Proyecto",
+          "type": "repeatable",
+          "addText": "➕ Agregar Tarea",
+          "removeText": "❌ Eliminar Tarea",
+          "fields": [
+            {
+              "name": "nombre_tarea",
+              "label": "Nombre de la Tarea",
+              "type": "text",
+              "required": true,
+              "placeholder": "Ej: Diseño de base de datos"
+            },
+            {
+              "name": "responsable",
+              "label": "Responsable",
+              "type": "text",
+              "placeholder": "Nombre del responsable"
+            },
+            {
+              "name": "prioridad",
+              "label": "Prioridad",
+              "type": "select",
+              "options": [
+                { "value": "baja", "label": "🟢 Baja" },
+                { "value": "media", "label": "🟡 Media" },
+                { "value": "alta", "label": "🔴 Alta" },
+                { "value": "urgente", "label": "🚨 Urgente" }
+              ]
+            },
+            {
+              "name": "subtareas",
+              "label": "📝 Subtareas",
+              "type": "repeatable",
+              "addText": "➕ Agregar Subtarea",
+              "removeText": "🗑️ Quitar",
+              "fields": [
+                {
+                  "name": "descripcion_subtarea",
+                  "label": "Descripción",
+                  "type": "textarea",
+                  "placeholder": "Describe la subtarea..."
+                },
+                {
+                  "name": "completada",
+                  "label": "✅ Completada",
+                  "type": "checkbox"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "miembros",
+          "label": "👥 Miembros del Equipo",
+          "type": "repeatable",
+          "addText": "➕ Agregar Miembro",
+          "removeText": "❌ Quitar",
+          "fields": [
+            {
+              "name": "nombre_miembro",
+              "label": "Nombre",
+              "type": "text",
+              "placeholder": "Nombre completo"
+            },
+            {
+              "name": "rol",
+              "label": "Rol",
+              "type": "select",
+              "options": [
+                { "value": "dev", "label": "Desarrollador" },
+                { "value": "designer", "label": "Diseñador" },
+                { "value": "pm", "label": "Project Manager" },
+                { "value": "qa", "label": "QA Tester" }
+              ]
+            },
+            {
+              "name": "email_miembro",
+              "label": "Email",
+              "type": "email",
+              "placeholder": "email@ejemplo.com"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "💾 Guardar Proyectos",
+      "action": "submit"
+    },
+    {
+      "name": "reset",
+      "type": "button",
+      "label": "🔄 Limpiar",
+      "style": "secondary",
+      "action": "reset"
+    }
+  ]
+}

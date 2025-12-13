@@ -1,0 +1,200 @@
+{
+  "id": "form-grouped-fields-test",
+  "title": "Prueba de Agrupación de Campos",
+  "description": "Ejemplos de grupos con diferentes cantidades de columnas y campos (incluyendo overflow)",
+  "fields": [
+    {
+      "type": "group",
+      "name": "grupo_2_cols_con_3_items",
+      "columns": 2,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "campo1_2cols",
+          "label": "Campo 1 (2 cols)",
+          "type": "text",
+          "placeholder": "Primera columna"
+        },
+        {
+          "name": "campo2_2cols",
+          "label": "Campo 2 (2 cols)",
+          "type": "text",
+          "placeholder": "Segunda columna"
+        },
+        {
+          "name": "campo3_2cols",
+          "label": "Campo 3 (2 cols) - Debe bajar",
+          "type": "text",
+          "placeholder": "Este campo debe estar solo en la segunda fila"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "grupo_3_cols_con_4_items",
+      "columns": 3,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "campo1_3cols",
+          "label": "Campo 1 (3 cols)",
+          "type": "text",
+          "placeholder": "Primera columna"
+        },
+        {
+          "name": "campo2_3cols",
+          "label": "Campo 2 (3 cols)",
+          "type": "text",
+          "placeholder": "Segunda columna"
+        },
+        {
+          "name": "campo3_3cols",
+          "label": "Campo 3 (3 cols)",
+          "type": "text",
+          "placeholder": "Tercera columna"
+        },
+        {
+          "name": "campo4_3cols",
+          "label": "🔽 Campo 4 (3 cols) - Debe bajar",
+          "type": "text",
+          "placeholder": "Este campo debe bajar a la segunda fila"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "grupo_3_cols_con_5_items",
+      "columns": 3,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "campo1_3cols_5",
+          "label": "Campo 1 (3 cols)",
+          "type": "text",
+          "placeholder": "Primera columna"
+        },
+        {
+          "name": "campo2_3cols_5",
+          "label": "Campo 2 (3 cols)",
+          "type": "text",
+          "placeholder": "Segunda columna"
+        },
+        {
+          "name": "campo3_3cols_5",
+          "label": "Campo 3 (3 cols)",
+          "type": "text",
+          "placeholder": "Tercera columna"
+        },
+        {
+          "name": "campo4_3cols_5",
+          "label": "🔽 Campo 4 (3 cols)",
+          "type": "text",
+          "placeholder": "Segunda fila, columna 1"
+        },
+        {
+          "name": "campo5_3cols_5",
+          "label": "🔽 Campo 5 (3 cols)",
+          "type": "text",
+          "placeholder": "Segunda fila, columna 2"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "grupo_4_cols_con_6_items",
+      "columns": 4,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "campo1_4cols",
+          "label": "Campo 1",
+          "type": "text",
+          "placeholder": "Col 1"
+        },
+        {
+          "name": "campo2_4cols",
+          "label": "Campo 2",
+          "type": "text",
+          "placeholder": "Col 2"
+        },
+        {
+          "name": "campo3_4cols",
+          "label": "Campo 3",
+          "type": "text",
+          "placeholder": "Col 3"
+        },
+        {
+          "name": "campo4_4cols",
+          "label": "Campo 4",
+          "type": "text",
+          "placeholder": "Col 4"
+        },
+        {
+          "name": "campo5_4cols",
+          "label": "🔽 Campo 5",
+          "type": "text",
+          "placeholder": "Fila 2, Col 1"
+        },
+        {
+          "name": "campo6_4cols",
+          "label": "🔽 Campo 6",
+          "type": "text",
+          "placeholder": "Fila 2, Col 2"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "grupo_3_cols_diferentes_tipos",
+      "columns": 3,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "texto",
+          "label": "Texto",
+          "type": "text"
+        },
+        {
+          "name": "numero",
+          "label": "Número",
+          "type": "number"
+        },
+        {
+          "name": "fecha",
+          "label": "Fecha",
+          "type": "date"
+        },
+        {
+          "name": "email",
+          "label": "🔽 Email",
+          "type": "email"
+        },
+        {
+          "name": "selector",
+          "label": "🔽 Selector",
+          "type": "select",
+          "options": [
+            { "value": "1", "label": "Opción 1" },
+            { "value": "2", "label": "Opción 2" }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit",
+      "onclick": "event.preventDefault(); const data = form.getData(this.closest('form').id); console.log('Datos:', data); alert('Datos guardados (ver consola)');"
+    },
+    {
+      "name": "reset",
+      "type": "button",
+      "label": "🔄 Limpiar",
+      "style": "secondary",
+      "onclick": "event.preventDefault(); this.closest('form').reset();"
+    }
+  ]
+}

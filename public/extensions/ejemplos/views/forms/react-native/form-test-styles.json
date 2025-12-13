@@ -1,0 +1,87 @@
+{
+  "id": "form-test-styles",
+  "title": "🎨 Test de Estilos Abstractos",
+  "description": "Probando design tokens",
+  "fields": [
+    {
+      "type": "html",
+      "content": "<div style='background:#e3f2fd;padding:1rem;border-radius:8px;margin-bottom:1rem;'><h3>🎨 Design Tokens</h3><p>Sistema de tokens que funcionan en web y React Native</p></div>"
+    },
+    {
+      "name": "campo_normal",
+      "label": "Campo Normal",
+      "type": "TextInput",
+      "placeholder": "Sin estilo custom"
+    },
+    {
+      "name": "campo_primary",
+      "label": "Background Primary",
+      "type": "TextInput",
+      "placeholder": "Azul primario",
+      "style": {
+        "backgroundColor": "primary",
+        "color": "white",
+        "padding": "md",
+        "borderRadius": "md"
+      }
+    },
+    {
+      "name": "campo_warning",
+      "label": "Background Warning",
+      "type": "TextInput",
+      "placeholder": "Amarillo",
+      "style": {
+        "backgroundColor": "warning",
+        "padding": "lg",
+        "borderRadius": "lg",
+        "fontWeight": "bold"
+      }
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "fields": [
+        {
+          "name": "success",
+          "label": "Success",
+          "type": "TextInput",
+          "style": {
+            "backgroundColor": "success",
+            "color": "white",
+            "padding": "md",
+            "borderRadius": "md"
+          }
+        },
+        {
+          "name": "danger",
+          "label": "Danger",
+          "type": "TextInput",
+          "style": {
+            "backgroundColor": "danger",
+            "color": "white",
+            "padding": "md",
+            "borderRadius": "md"
+          }
+        },
+        {
+          "name": "info",
+          "label": "Info",
+          "type": "TextInput",
+          "style": {
+            "backgroundColor": "info",
+            "color": "white",
+            "padding": "md",
+            "borderRadius": "md"
+          }
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "✅ Test",
+      "action": "call:toast.success:Estilos funcionando"
+    }
+  ]
+}

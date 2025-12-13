@@ -1,0 +1,184 @@
+{
+  "id": "form-grouped-fields",
+  "title": "Ejemplos de Campos Agrupados",
+  "description": "Demostración de agrupación de campos en 2, 3 y 4 columnas con diseño responsive",
+  "fields": [
+    {
+      "type": "group",
+      "columns": 2,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "firstName",
+          "type": "text",
+          "label": "Nombre",
+          "required": true,
+          "placeholder": "Juan"
+        },
+        {
+          "name": "lastName",
+          "type": "text",
+          "label": "Apellido",
+          "required": true,
+          "placeholder": "Pérez"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "email",
+          "type": "email",
+          "label": "Correo Electrónico",
+          "required": true,
+          "placeholder": "juan@ejemplo.com"
+        },
+        {
+          "name": "phone",
+          "type": "tel",
+          "label": "Teléfono",
+          "placeholder": "+593 999 999 999"
+        },
+        {
+          "name": "birthdate",
+          "type": "date",
+          "label": "Fecha de Nacimiento"
+        }
+      ]
+    },
+    {
+      "name": "address",
+      "type": "text",
+      "label": "Dirección Completa",
+      "placeholder": "Calle, número, referencias"
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "city",
+          "type": "text",
+          "label": "Ciudad",
+          "placeholder": "Guayaquil"
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "label": "Provincia",
+          "placeholder": "Guayas"
+        },
+        {
+          "name": "zipcode",
+          "type": "text",
+          "label": "Código Postal",
+          "placeholder": "090101"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "columns": 4,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "cardNumber",
+          "type": "text",
+          "label": "Número de Tarjeta",
+          "placeholder": "1234 5678 9012 3456"
+        },
+        {
+          "name": "expiryMonth",
+          "type": "select",
+          "label": "Mes",
+          "options": [
+            { "value": "01", "label": "01" },
+            { "value": "02", "label": "02" },
+            { "value": "03", "label": "03" },
+            { "value": "04", "label": "04" },
+            { "value": "05", "label": "05" },
+            { "value": "06", "label": "06" },
+            { "value": "07", "label": "07" },
+            { "value": "08", "label": "08" },
+            { "value": "09", "label": "09" },
+            { "value": "10", "label": "10" },
+            { "value": "11", "label": "11" },
+            { "value": "12", "label": "12" }
+          ]
+        },
+        {
+          "name": "expiryYear",
+          "type": "select",
+          "label": "Año",
+          "options": [
+            { "value": "2024", "label": "2024" },
+            { "value": "2025", "label": "2025" },
+            { "value": "2026", "label": "2026" },
+            { "value": "2027", "label": "2027" },
+            { "value": "2028", "label": "2028" },
+            { "value": "2029", "label": "2029" },
+            { "value": "2030", "label": "2030" }
+          ]
+        },
+        {
+          "name": "cvv",
+          "type": "text",
+          "label": "CVV",
+          "placeholder": "123",
+          "maxlength": 3
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "gap": "large",
+      "fields": [
+        {
+          "name": "username",
+          "type": "text",
+          "label": "Nombre de Usuario",
+          "required": true,
+          "placeholder": "usuario123"
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "label": "Contraseña",
+          "required": true,
+          "placeholder": "********"
+        }
+      ]
+    },
+    {
+      "name": "comments",
+      "type": "textarea",
+      "label": "Comentarios Adicionales",
+      "placeholder": "Escribe aquí cualquier comentario o nota adicional..."
+    },
+    {
+      "name": "acceptTerms",
+      "type": "checkbox",
+      "label": "Acepto los términos y condiciones",
+      "required": true
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "submit",
+      "label": "Guardar Información",
+      "class": "btn-primary"
+    },
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "Cancelar",
+      "class": "btn-secondary"
+    }
+  ]
+}

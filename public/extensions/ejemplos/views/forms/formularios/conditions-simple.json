@@ -1,0 +1,58 @@
+{
+  "id": "conditions-simple",
+  "title": "Condiciones Simples",
+  "description": "Ejemplo de condiciones básicas show/hide",
+  "fields": [
+    {
+      "name": "tiene_telefono",
+      "label": "¿Tienes teléfono?",
+      "type": "checkbox"
+    },
+    {
+      "name": "telefono",
+      "label": "Teléfono",
+      "type": "tel",
+      "placeholder": "+593 99 999 9999",
+      "condition": [
+        { "field": "tiene_telefono", "operator": "==", "value": true }
+      ]
+    },
+    {
+      "name": "tipo_contacto",
+      "label": "Tipo de Contacto",
+      "type": "select",
+      "options": [
+        { "value": "email", "label": "📧 Email" },
+        { "value": "telefono", "label": "📞 Teléfono" },
+        { "value": "whatsapp", "label": "💬 WhatsApp" }
+      ]
+    },
+    {
+      "name": "email",
+      "label": "Email",
+      "type": "email",
+      "placeholder": "tu@email.com",
+      "condition": [
+        { "field": "tipo_contacto", "operator": "==", "value": "email" }
+      ]
+    },
+    {
+      "name": "whatsapp",
+      "label": "Número de WhatsApp",
+      "type": "tel",
+      "placeholder": "+593 99 999 9999",
+      "condition": [
+        { "field": "tipo_contacto", "operator": "==", "value": "whatsapp" }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit",
+      "onclick": "event.preventDefault(); const data = form.getData(this.closest('form').id); console.log('Datos:', data); toast.success('✅ Formulario enviado');"
+    }
+  ]
+}

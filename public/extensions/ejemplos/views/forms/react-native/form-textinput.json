@@ -1,0 +1,63 @@
+{
+  "id": "form-textinput-rn",
+  "title": "TextInput - React Native Style",
+  "description": "Usando type: TextInput",
+  "fields": [
+    {
+      "name": "nombre",
+      "label": "Nombre Completo",
+      "type": "TextInput",
+      "placeholder": "Ingresa tu nombre",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "Email",
+      "type": "TextInput",
+      "placeholder": "tu@email.com",
+      "required": true
+    },
+    {
+      "name": "edad",
+      "label": "Edad",
+      "type": "TextInput",
+      "placeholder": "Tu edad",
+      "inputType": "number"
+    },
+    {
+      "name": "telefono",
+      "label": "Teléfono",
+      "type": "TextInput",
+      "placeholder": "+593 999 999 999"
+    },
+    {
+      "name": "biografia",
+      "label": "Biografía",
+      "type": "TextInput",
+      "multiline": true,
+      "numberOfLines": 4,
+      "placeholder": "Cuéntanos sobre ti..."
+    },
+    {
+      "name": "password",
+      "label": "Contraseña",
+      "type": "TextInput",
+      "placeholder": "Tu contraseña",
+      "inputType": "password"
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit",
+      "style": "primary"
+    },
+    {
+      "type": "button",
+      "label": "🔄 Limpiar",
+      "action": "reset",
+      "style": "secondary"
+    }
+  ]
+}

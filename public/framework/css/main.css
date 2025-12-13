@@ -1,0 +1,28 @@
+/* Core */
+@import url('./core/vars.css');
+@import url('./core/reset.css');
+@import url('./core/layout.css');
+@import url('./core/form.css');
+@import url('./core/sidebar.css');
+@import url('./core/view.css');
+@import url('./core/table.css');
+@import url('./core/button.css');
+@import url('./core/auth.css');
+@import url('./core/table.css');
+
+
+/* Components */
+@import url('./components/tabs.css');
+@import url('./components/modal.css');
+@import url('./components/dataTable.css');
+@import url('./components/widget.css');
+@import url('./components/toast.css');
+@import url('./components/langSelector.css');
+@import url('./components/grouper.css');
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f5f5f5;
+}

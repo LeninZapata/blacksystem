@@ -1,0 +1,83 @@
+{
+  "id": "conditions-demo",
+  "title": "🎯 Sistema de Condiciones Dinámicas",
+  "type": "tabs",
+  "tabs": [
+    {
+      "id": "tab-intro",
+      "title": "📖 Introducción",
+      "content": [
+        {
+          "type": "html",
+          "content": "<div style='background:white;padding:2rem;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);'><h2 style='margin:0 0 1rem;color:#2c3e50;'>🎯 Sistema de Condiciones Dinámicas</h2><p style='font-size:1.1rem;color:#555;line-height:1.6;'>Un potente motor de condiciones para mostrar/ocultar campos dinámicamente basado en el valor de otros campos.</p><h3 style='margin:2rem 0 1rem;color:#3b82f6;'>✨ Características</h3><ul style='line-height:1.8;color:#555;'><li><strong>Múltiples operadores:</strong> ==, !=, >, <, >=, <=, any, not-any, empty, not-empty, contains</li><li><strong>Lógica AND/OR:</strong> Combina múltiples condiciones</li><li><strong>Contextos:</strong> form, view, repeatable, group</li><li><strong>Tiempo real:</strong> Evaluación instantánea al cambiar campos</li><li><strong>Minimalista:</strong> ~200 líneas de código, sin dependencias</li></ul><h3 style='margin:2rem 0 1rem;color:#10b981;'>📋 Operadores Disponibles</h3><table class='table table-sm table-bordered' style='margin-bottom:2rem;'><thead><tr><th>Operador</th><th>Descripción</th><th>Ejemplo</th></tr></thead><tbody><tr><td><code>==</code></td><td>Igual a</td><td><code>{\"field\": \"pais\", \"operator\": \"==\", \"value\": \"EC\"}</code></td></tr><tr><td><code>!=</code></td><td>Diferente de</td><td><code>{\"field\": \"email\", \"operator\": \"!=\", \"value\": \"\"}</code></td></tr><tr><td><code>></code></td><td>Mayor que</td><td><code>{\"field\": \"edad\", \"operator\": \">\", \"value\": 18}</code></td></tr><tr><td><code><</code></td><td>Menor que</td><td><code>{\"field\": \"precio\", \"operator\": \"<\", \"value\": 100}</code></td></tr><tr><td><code>>=</code></td><td>Mayor o igual</td><td><code>{\"field\": \"nota\", \"operator\": \">=\", \"value\": 7}</code></td></tr><tr><td><code><=</code></td><td>Menor o igual</td><td><code>{\"field\": \"stock\", \"operator\": \"<=\", \"value\": 5}</code></td></tr><tr><td><code>any</code></td><td>Está en la lista</td><td><code>{\"field\": \"color\", \"operator\": \"any\", \"value\": \"rojo,verde,azul\"}</code></td></tr><tr><td><code>not-any</code></td><td>NO está en la lista</td><td><code>{\"field\": \"rol\", \"operator\": \"not-any\", \"value\": \"admin,root\"}</code></td></tr><tr><td><code>empty</code></td><td>Campo vacío</td><td><code>{\"field\": \"comentario\", \"operator\": \"empty\", \"value\": \"\"}</code></td></tr><tr><td><code>not-empty</code></td><td>Campo NO vacío</td><td><code>{\"field\": \"nombre\", \"operator\": \"not-empty\", \"value\": \"\"}</code></td></tr><tr><td><code>contains</code></td><td>Contiene texto</td><td><code>{\"field\": \"descripcion\", \"operator\": \"contains\", \"value\": \"urgente\"}</code></td></tr><tr><td><code>not-contains</code></td><td>NO contiene texto</td><td><code>{\"field\": \"titulo\", \"operator\": \"not-contains\", \"value\": \"borrador\"}</code></td></tr></tbody></table><h3 style='margin:2rem 0 1rem;color:#f59e0b;'>🔧 Ejemplo de Uso en JSON</h3><pre style='background:#1e293b;color:#e2e8f0;padding:1.5rem;border-radius:6px;overflow-x:auto;'><code>{\n  \"name\": \"direccion_envio\",\n  \"label\": \"Dirección de Envío\",\n  \"type\": \"textarea\",\n  \"condition\": [\n    { \"field\": \"requiere_envio\", \"operator\": \"==\", \"value\": true },\n    { \"field\": \"pais\", \"operator\": \"!=\", \"value\": \"\" }\n  ],\n  \"conditionLogic\": \"AND\",\n  \"conditionContext\": \"form\"\n}</code></pre><h3 style='margin:2rem 0 1rem;color:#8b5cf6;'>🎮 Prueba los Ejemplos</h3><p style='color:#555;'>Navega por las pestañas siguientes para ver ejemplos interactivos de cada tipo de condición.</p></div>"
+        }
+      ]
+    },
+    {
+      "id": "tab-simple",
+      "title": "🎯 Simples",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>🎯 Condiciones Simples</h3><p>Mostrar/ocultar campos basados en un solo valor.</p>"
+        },
+        {
+          "type": "form",
+          "form_json": "ejemplos/conditions-simple"
+        }
+      ]
+    },
+    {
+      "id": "tab-multiple",
+      "title": "🔗 Múltiples (AND)",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>🔗 Condiciones Múltiples</h3><p>El campo aparece solo si <strong>TODAS</strong> las condiciones se cumplen (lógica AND).</p>"
+        },
+        {
+          "type": "form",
+          "form_json": "ejemplos/conditions-multiple"
+        }
+      ]
+    },
+    {
+      "id": "tab-advanced",
+      "title": "⚡ Avanzados",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>⚡ Operadores Avanzados</h3><p>Ejemplos de operadores: <code>any</code>, <code>not-any</code>, <code>></code>, <code><</code>, <code>contains</code>, etc.</p>"
+        },
+        {
+          "type": "form",
+          "form_json": "ejemplos/conditions-advanced"
+        }
+      ]
+    },
+    {
+      "id": "tab-repeatable",
+      "title": "🔄 Repetibles",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>🔄 Condiciones en Campos Repetibles</h3><p>Las condiciones funcionan dentro de cada instancia del repeatable usando <code>conditionContext: 'repeatable'</code>.</p>"
+        },
+        {
+          "type": "form",
+          "form_json": "ejemplos/conditions-repeatable"
+        }
+      ]
+    },
+    {
+      "id": "tab-docs",
+      "title": "📚 Documentación",
+      "content": [
+        {
+          "type": "html",
+          "content": "<div style='background:white;padding:2rem;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);'><h2 style='margin:0 0 1.5rem;color:#2c3e50;'>📚 Documentación Técnica</h2><h3 style='color:#3b82f6;'>🔧 Integración en Formularios</h3><p>Para usar condiciones en tus formularios, agrega el atributo <code>condition</code> a cualquier campo:</p><pre style='background:#1e293b;color:#e2e8f0;padding:1.5rem;border-radius:6px;overflow-x:auto;margin:1rem 0;'><code>{\n  \"name\": \"campo_condicional\",\n  \"label\": \"Este campo es condicional\",\n  \"type\": \"text\",\n  \"condition\": [\n    { \"field\": \"otro_campo\", \"operator\": \"==\", \"value\": \"valor\" }\n  ]\n}</code></pre><h3 style='color:#10b981;margin-top:2rem;'>🎛️ Parámetros de Condición</h3><table class='table table-bordered table-sm' style='margin:1rem 0;'><thead><tr><th>Parámetro</th><th>Tipo</th><th>Descripción</th><th>Por Defecto</th></tr></thead><tbody><tr><td><code>condition</code></td><td>Array</td><td>Array de objetos con las condiciones</td><td>-</td></tr><tr><td><code>conditionLogic</code></td><td>String</td><td>Lógica: <code>AND</code> o <code>OR</code></td><td><code>AND</code></td></tr><tr><td><code>conditionContext</code></td><td>String</td><td>Contexto: <code>form</code>, <code>view</code>, <code>repeatable</code>, <code>group</code></td><td><code>form</code></td></tr></tbody></table><h3 style='color:#f59e0b;margin-top:2rem;'>🌍 Contextos Disponibles</h3><ul style='line-height:1.8;'><li><strong><code>form</code></strong> (default): Busca el campo dentro del mismo formulario</li><li><strong><code>view</code></strong>: Busca el campo en toda la vista (útil para múltiples formularios)</li><li><strong><code>repeatable</code></strong>: Busca el campo dentro del mismo item repeatable</li><li><strong><code>group</code></strong>: Busca el campo dentro del mismo grupo</li></ul><h3 style='color:#8b5cf6;margin-top:2rem;'>💡 Ejemplos de Lógica</h3><h4 style='margin:1.5rem 0 0.5rem;'>Lógica AND (todas deben cumplirse):</h4><pre style='background:#1e293b;color:#e2e8f0;padding:1.5rem;border-radius:6px;overflow-x:auto;'><code>\"condition\": [\n  { \"field\": \"activo\", \"operator\": \"==\", \"value\": true },\n  { \"field\": \"edad\", \"operator\": \">=\", \"value\": 18 },\n  { \"field\": \"pais\", \"operator\": \"!=\", \"value\": \"\" }\n],\n\"conditionLogic\": \"AND\"</code></pre><h4 style='margin:1.5rem 0 0.5rem;'>Lógica OR (al menos una debe cumplirse):</h4><pre style='background:#1e293b;color:#e2e8f0;padding:1.5rem;border-radius:6px;overflow-x:auto;'><code>\"condition\": [\n  { \"field\": \"metodo_pago\", \"operator\": \"==\", \"value\": \"tarjeta\" },\n  { \"field\": \"metodo_pago\", \"operator\": \"==\", \"value\": \"paypal\" }\n],\n\"conditionLogic\": \"OR\"</code></pre><h3 style='color:#ef4444;margin-top:2rem;'>🐛 Debug</h3><p>Para depurar las condiciones de un formulario, abre la consola y ejecuta:</p><pre style='background:#1e293b;color:#e2e8f0;padding:1.5rem;border-radius:6px;overflow-x:auto;'><code>// Ver todas las reglas del formulario\nconditions.debug('id-del-formulario');\n\n// Ver todas las reglas activas\nconsole.log(conditions.rules);</code></pre></div>"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "id": "form-test-actions",
+  "title": "⚡ Test de Acciones Abstractas",
+  "description": "Probando action: navigate, modal, api, custom",
+  "fields": [
+    {
+      "type": "html",
+      "content": "<div style='background:#e3f2fd;padding:1rem;border-radius:8px;margin-bottom:1rem;'><h3>💡 Tipos de Acciones</h3><ul><li><code>navigate:screen</code> - Navegación</li><li><code>modal:extension|path</code> - Modal</li><li><code>api:endpoint</code> - API call</li><li><code>custom:function</code> - Función custom</li></ul></div>"
+    },
+    {
+      "name": "producto",
+      "label": "Producto",
+      "type": "TextInput",
+      "placeholder": "Nombre del producto"
+    },
+    {
+      "name": "precio",
+      "label": "Precio",
+      "type": "TextInput",
+      "inputType": "number",
+      "placeholder": "0.00"
+    },
+    {
+      "name": "descripcion",
+      "label": "Descripción",
+      "type": "TextInput",
+      "multiline": true,
+      "numberOfLines": 3,
+      "placeholder": "Descripción del producto..."
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "✅ Toast Success",
+      "action": "call:toast.success:Operación exitosa",
+      "style": "primary"
+    },
+    {
+      "type": "button",
+      "label": "ℹ️ Toast Info",
+      "action": "call:toast.info:Información importante:5000",
+      "style": "secondary"
+    },
+    {
+      "type": "button",
+      "label": "⚠️ Toast Warning",
+      "action": "call:toast.warning:Advertencia",
+      "style": "secondary"
+    },
+    {
+      "type": "button",
+      "label": "🏠 Navigate",
+      "action": "navigate:dashboard/dashboard",
+      "style": "secondary"
+    },
+    {
+      "type": "button",
+      "label": "📋 Modal",
+      "action": "modal:ejemplos|forms/formularios/form-modal-login",
+      "style": "primary"
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "id": "form-grouper-linear",
+  "title": "Grouper - Modo Linear (Acordeón)",
+  "description": "Agrupa campos visualmente con acordeón colapsable",
+  "fields": [
+    {
+      "type": "grouper",
+      "mode": "linear",
+      "collapsible": true,
+      "openFirst": true,
+      "groups": [
+        {
+          "title": "👤 Información Personal",
+          "fields": [
+            {
+              "name": "nombre",
+              "label": "Nombre Completo",
+              "type": "text",
+              "required": true,
+              "placeholder": "Juan Pérez"
+            },
+            {
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "email",
+                  "label": "Email",
+                  "type": "email",
+                  "required": true,
+                  "placeholder": "juan@ejemplo.com"
+                },
+                {
+                  "name": "telefono",
+                  "label": "Teléfono",
+                  "type": "tel",
+                  "placeholder": "+593 999 999 999"
+                }
+              ]
+            },
+            {
+              "name": "fecha_nacimiento",
+              "label": "Fecha de Nacimiento",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "title": "🏠 Dirección",
+          "fields": [
+            {
+              "name": "calle",
+              "label": "Calle y Número",
+              "type": "text",
+              "placeholder": "Av. Principal 123"
+            },
+            {
+              "type": "group",
+              "columns": 3,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "ciudad",
+                  "label": "Ciudad",
+                  "type": "text",
+                  "placeholder": "Guayaquil"
+                },
+                {
+                  "name": "provincia",
+                  "label": "Provincia",
+                  "type": "text",
+                  "placeholder": "Guayas"
+                },
+                {
+                  "name": "codigo_postal",
+                  "label": "Código Postal",
+                  "type": "text",
+                  "placeholder": "090101"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "💳 Información de Pago",
+          "fields": [
+            {
+              "name": "numero_tarjeta",
+              "label": "Número de Tarjeta",
+              "type": "text",
+              "placeholder": "1234 5678 9012 3456"
+            },
+            {
+              "type": "group",
+              "columns": 3,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "mes_expiracion",
+                  "label": "Mes",
+                  "type": "select",
+                  "options": [
+                    { "value": "01", "label": "01" },
+                    { "value": "02", "label": "02" },
+                    { "value": "03", "label": "03" },
+                    { "value": "04", "label": "04" },
+                    { "value": "05", "label": "05" },
+                    { "value": "06", "label": "06" },
+                    { "value": "07", "label": "07" },
+                    { "value": "08", "label": "08" },
+                    { "value": "09", "label": "09" },
+                    { "value": "10", "label": "10" },
+                    { "value": "11", "label": "11" },
+                    { "value": "12", "label": "12" }
+                  ]
+                },
+                {
+                  "name": "anio_expiracion",
+                  "label": "Año",
+                  "type": "select",
+                  "options": [
+                    { "value": "2024", "label": "2024" },
+                    { "value": "2025", "label": "2025" },
+                    { "value": "2026", "label": "2026" },
+                    { "value": "2027", "label": "2027" },
+                    { "value": "2028", "label": "2028" }
+                  ]
+                },
+                {
+                  "name": "cvv",
+                  "label": "CVV",
+                  "type": "text",
+                  "placeholder": "123",
+                  "maxlength": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "📝 Observaciones",
+          "fields": [
+            {
+              "name": "comentarios",
+              "label": "Comentarios Adicionales",
+              "type": "textarea",
+              "placeholder": "Escribe cualquier información adicional..."
+            },
+            {
+              "name": "acepta_terminos",
+              "label": "Acepto los términos y condiciones",
+              "type": "checkbox",
+              "required": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit",
+      "onclick": "event.preventDefault(); const data = form.getData(this.closest('form').id); console.log('Datos:', data); toast.success('✅ Formulario guardado');"
+    },
+    {
+      "name": "reset",
+      "type": "button",
+      "label": "🔄 Limpiar",
+      "style": "secondary",
+      "onclick": "event.preventDefault(); this.closest('form').reset();"
+    }
+  ]
+}

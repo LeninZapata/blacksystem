@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema</title>
+  <link rel="stylesheet" href="framework/css/main.css" />
+</head>
+<body>
+<div id="app"></div>
+<script>
+  // ============================================
+  // DETECCIÓN AUTOMÁTICA DE RUTAS
+  // ============================================
+  // Como .htaccess redirige internamente a public/,
+  // BASE_URL NO debe incluir /public/
+
+  var pathname = window.location.pathname;
+
+  // Remover index.html si está al final
+  if (pathname.endsWith('/index.html')) {
+    pathname = pathname.replace('/index.html', '/');
+  }
+
+  // Remover /public/ si está en la ruta (no debería estar por .htaccess)
+  pathname = pathname.replace('/public/', '/');
+
+  // Si termina en /, perfecto. Si no, agregar /
+  if (!pathname.endsWith('/')) {
+    pathname += '/';
+  }
+
+  var BASE_URL = pathname;
+  var FRAMEWORK_URL = BASE_URL + 'framework/';
+
+  var IS_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) || 
+              ['3000', '5173', '8080'].includes(window.location.port);
+
+  var VERSION = IS_DEV ? `dev-${Date.now()}` : '1.0.0';
+  console.log(`App Version: ${VERSION}`);
+
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src = `${FRAMEWORK_URL}js/main.js?v=${VERSION}`;
+  document.head.appendChild(script);
+</script>
+</body>
+</html>

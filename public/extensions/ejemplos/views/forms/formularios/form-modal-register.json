@@ -1,0 +1,63 @@
+{
+  "id": "register-form",
+  "title": "Crear Cuenta",
+  "description": "Complete todos los campos para registrarse",
+  "fields": [
+    {
+      "name": "firstName",
+      "label": "Nombre",
+      "type": "text",
+      "required": true,
+      "placeholder": "Tu nombre"
+    },
+    {
+      "name": "lastName",
+      "label": "Apellido",
+      "type": "text",
+      "required": true,
+      "placeholder": "Tu apellido"
+    },
+    {
+      "name": "email",
+      "label": "Correo Electrónico",
+      "type": "email",
+      "required": true,
+      "placeholder": "tu@email.com"
+    },
+    {
+      "name": "password",
+      "label": "Contraseña",
+      "type": "password",
+      "required": true,
+      "placeholder": "Mínimo 8 caracteres"
+    },
+    {
+      "name": "confirmPassword",
+      "label": "Confirmar Contraseña",
+      "type": "password",
+      "required": true,
+      "placeholder": "Repite tu contraseña"
+    },
+    {
+      "name": "terms",
+      "label": "Acepto los términos y condiciones",
+      "type": "checkbox",
+      "required": true
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "✅ Registrarse",
+      "action": "submit"
+    },
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "Cancelar",
+      "style": "secondary",
+      "onclick": "modal.closeAll()"
+    }
+  ]
+}

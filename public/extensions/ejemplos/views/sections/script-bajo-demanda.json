@@ -1,0 +1,25 @@
+{
+  "id": "ejemplos-graficos",
+  "title": "Gráficos con Scripts Bajo Demanda",
+  "scripts": [
+    "extensions/ejemplos/assets/js/chart.js"
+  ],
+  "content": [
+    {
+      "type": "html",
+      "content": "<div style='background: #e0f2fe; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #0284c7;'><h3 style='margin: 0 0 1rem; color: #0369a1;'>⚡ Cómo Funciona la Carga de Scripts</h3><p style='margin: 0 0 0.5rem;'><strong>1. Vista carga</strong> → Se renderiza el HTML (los divs vacíos aparecen)</p><p style='margin: 0 0 0.5rem;'><strong>2. Script se descarga</strong> → <code>chart.js</code> se carga, se crea <code>window.ejemploChart</code></p><p style='margin: 0 0 0.5rem;'><strong>3. Auto-ejecución</strong> → <code>view.js</code> llama automáticamente a <code>ejemploChart.init()</code></p><p style='margin: 0 0 0.5rem;'><strong>4. Gráficos se crean</strong> → Los divs se llenan con los gráficos</p><hr style='margin: 1rem 0; border: none; border-top: 1px solid #0284c7;'><p style='margin: 0; font-size: 0.9rem; color: #0369a1;'><strong>💡 Clave:</strong> El script NO se ejecuta al cargar la app, solo cuando abres esta vista (lazy loading). El método <code>init()</code> es llamado automáticamente por el sistema.</p></div>"
+    },
+    {
+      "type": "html",
+      "content": "<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;'><div id='chart1'></div><div id='chart2'></div></div>"
+    },
+    {
+      "type": "html",
+      "content": "<div style='margin-top: 2rem;'><button class='btn btn-primary' onclick='ejemploChart.randomize()'>🎲 Datos Aleatorios</button> <button class='btn btn-secondary' onclick='ejemploChart.reset()'>🔄 Reset</button></div>"
+    },
+    {
+      "type": "html",
+      "content": "<div style='background: #fef3c7; padding: 1.5rem; border-radius: 8px; margin-top: 2rem; border-left: 4px solid #f59e0b;'><h4 style='margin: 0 0 1rem; color: #d97706;'>📝 Estructura del Script (chart.js)</h4><pre style='background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem;'><code>class ejemploChart {\n  // ✅ Método que view.js ejecuta automáticamente\n  static init() {\n    const chart1 = document.getElementById('chart1');\n    const chart2 = document.getElementById('chart2');\n    \n    if (chart1) this.createChart('chart1', {...});\n    if (chart2) this.createChart('chart2', {...});\n  }\n  \n  static createChart(id, config) {\n    // Crea el HTML del gráfico\n  }\n}\n\n// ✅ Exportar al scope global\nwindow.ejemploChart = ejemploChart;</code></pre><p style='margin: 1rem 0 0; font-size: 0.9rem; color: #d97706;'><strong>Requisitos:</strong> 1) Tener método <code>init()</code>, 2) Exportar a <code>window</code>, 3) Nombre del archivo coincide con el objeto</p></div>"
+    }
+  ]
+}

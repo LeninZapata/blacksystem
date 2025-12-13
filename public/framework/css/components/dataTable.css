@@ -1,0 +1,4 @@
+/* DataTable actions */
+.table td button + button {
+  margin-left: 0.5rem;
+}

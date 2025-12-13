@@ -1,0 +1,23 @@
+{
+  "resource": "client",
+  "table": "client",
+  "timestamps": true,
+
+  "middleware": ["auth", "throttle:100,1"],
+
+  "routes": {
+    "list": { "method": "GET", "path": "/api/client", "middleware": [] },
+    "show": { "method": "GET", "path": "/api/client/{id}", "middleware": [] },
+    "create": { "method": "POST", "path": "/api/client", "middleware": ["json"] },
+    "update": { "method": "PUT", "path": "/api/client/{id}", "middleware": ["json"] },
+    "delete": { "method": "DELETE", "path": "/api/client/{id}", "middleware": [] }
+  },
+
+  "fields": [
+    { "name": "number", "type": "string", "required": true, "unique": true },
+    { "name": "name", "type": "string", "maxLength": 200 },
+    { "name": "country_code", "type": "string", "required": true },
+    { "name": "total_purchases", "type": "int", "default": 0 },
+    { "name": "amount_spent", "type": "decimal", "default": 0.00 }
+  ]
+}

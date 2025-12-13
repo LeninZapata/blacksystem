@@ -1,0 +1,70 @@
+{
+  "id": "form-switch-rn",
+  "title": "Switch - React Native Style",
+  "description": "Usando type: Switch",
+  "fields": [
+    {
+      "name": "notificaciones",
+      "label": "Activar Notificaciones",
+      "type": "Switch"
+    },
+    {
+      "name": "newsletter",
+      "label": "Suscribirse a Newsletter",
+      "type": "Switch"
+    },
+    {
+      "name": "modo_oscuro",
+      "label": "Modo Oscuro",
+      "type": "Switch"
+    },
+    {
+      "name": "notif_email",
+      "label": "Notificaciones por Email",
+      "type": "Switch"
+    },
+    {
+      "name": "notif_push",
+      "label": "Notificaciones Push",
+      "type": "Switch"
+    },
+    {
+      "name": "compartir_ubicacion",
+      "label": "Compartir Ubicación",
+      "type": "Switch"
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin: 1.5rem 0;'><h4>Comparación</h4><p>Los siguientes 3 campos deben verse idénticos:</p>"
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "fields": [
+        {
+          "name": "test_checkbox",
+          "label": "type: checkbox",
+          "type": "checkbox"
+        },
+        {
+          "name": "test_switch_lower",
+          "label": "type: switch",
+          "type": "switch"
+        },
+        {
+          "name": "test_Switch",
+          "label": "type: Switch (RN)",
+          "type": "Switch"
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "💾 Guardar Preferencias",
+      "action": "submit",
+      "style": "primary"
+    }
+  ]
+}

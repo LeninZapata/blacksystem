@@ -1,0 +1,136 @@
+{
+  "id": "conditions-advanced",
+  "title": "Operadores Avanzados",
+  "description": "Ejemplos de operadores: any, not-any, >, <, contains, empty",
+  "fields": [
+    {
+      "name": "edad",
+      "label": "Edad",
+      "type": "number",
+      "placeholder": "Ingresa tu edad",
+      "min": 0,
+      "step": 1
+    },
+    {
+      "name": "mensaje_menor",
+      "label": "⚠️ Eres menor de edad",
+      "type": "text",
+      "value": "No puedes continuar",
+      "readonly": true,
+      "condition": [
+        { "field": "edad", "operator": "<", "value": 18 }
+      ]
+    },
+    {
+      "name": "mensaje_adulto",
+      "label": "✅ Eres adulto",
+      "type": "text",
+      "value": "Puedes continuar con el registro",
+      "readonly": true,
+      "condition": [
+        { "field": "edad", "operator": ">=", "value": 18 }
+      ]
+    },
+    {
+      "name": "idiomas",
+      "label": "Idiomas que hablas (selecciona varios)",
+      "type": "select",
+      "multiple": true,
+      "options": [
+        { "value": "es", "label": "Español" },
+        { "value": "en", "label": "English" },
+        { "value": "pt", "label": "Português" },
+        { "value": "fr", "label": "Français" },
+        { "value": "de", "label": "Deutsch" }
+      ]
+    },
+    {
+      "name": "nivel_ingles",
+      "label": "Nivel de Inglés",
+      "type": "select",
+      "options": [
+        { "value": "", "label": "Selecciona..." },
+        { "value": "basico", "label": "Básico" },
+        { "value": "intermedio", "label": "Intermedio" },
+        { "value": "avanzado", "label": "Avanzado" },
+        { "value": "nativo", "label": "Nativo" }
+      ],
+      "condition": [
+        { "field": "idiomas", "operator": "any", "value": "en" }
+      ]
+    },
+    {
+      "name": "certificacion_ingles",
+      "label": "Certificación de Inglés",
+      "type": "text",
+      "placeholder": "Ej: TOEFL, IELTS, Cambridge",
+      "condition": [
+        { "field": "nivel_ingles", "operator": "any", "value": "avanzado,nativo" }
+      ]
+    },
+    {
+      "name": "pais_residencia",
+      "label": "País de Residencia",
+      "type": "select",
+      "options": [
+        { "value": "", "label": "Selecciona..." },
+        { "value": "Ecuador", "label": "Ecuador" },
+        { "value": "Colombia", "label": "Colombia" },
+        { "value": "Perú", "label": "Perú" },
+        { "value": "México", "label": "México" },
+        { "value": "USA", "label": "Estados Unidos" },
+        { "value": "España", "label": "España" }
+      ]
+    },
+    {
+      "name": "mensaje_latinoamerica",
+      "label": "🌎 Eres de Latinoamérica",
+      "type": "text",
+      "value": "Descuentos especiales para tu región",
+      "readonly": true,
+      "condition": [
+        { "field": "pais_residencia", "operator": "any", "value": "Ecuador,Colombia,Perú,México" }
+      ]
+    },
+    {
+      "name": "mensaje_extranjero",
+      "label": "🌍 Eres extranjero",
+      "type": "text",
+      "value": "Envíos internacionales disponibles",
+      "readonly": true,
+      "condition": [
+        { "field": "pais_residencia", "operator": "not-any", "value": "Ecuador,Colombia,Perú,México" }
+      ]
+    },
+    {
+      "name": "buscar_texto",
+      "label": "Buscar (escribe 'admin' para ver campo oculto)",
+      "type": "text",
+      "placeholder": "Escribe algo..."
+    },
+    {
+      "name": "campo_secreto",
+      "label": "🔐 Campo Secreto (aparece si buscas 'admin')",
+      "type": "text",
+      "placeholder": "Solo admins ven esto",
+      "condition": [
+        { "field": "buscar_texto", "operator": "contains", "value": "admin" }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "debug_conditions",
+      "type": "button",
+      "label": "🐛 Debug Condiciones",
+      "onclick": "event.preventDefault(); conditions.debug(this.closest('form').id);"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit",
+      "onclick": "event.preventDefault(); const data = form.getData(this.closest('form').id); console.log('Datos:', data); toast.success('✅ Guardado');"
+    }
+  ]
+}

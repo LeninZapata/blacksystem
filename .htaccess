@@ -1,0 +1,39 @@
+# ============================================
+# .htaccess - Configuración Principal
+# Separación Frontend/Backend
+# ============================================
+
+# Configuraciones básicas
+Options -Indexes
+DirectoryIndex public/index.html
+
+# Habilitar mod_rewrite
+RewriteEngine On
+
+# ============================================
+# RUTAS API - Máxima prioridad
+# ============================================
+# Capturar TODAS las rutas que empiecen con /api/
+# NO usar query string, mantener la URL limpia
+RewriteRule ^api/(.*)$ backend/api.php [QSA,L]
+
+# ============================================
+# ARCHIVOS ESTÁTICOS EXISTENTES
+# ============================================
+# Si el archivo existe físicamente, servirlo directamente
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Si el directorio existe físicamente, servirlo directamente
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Permitir acceso a archivos compartidos
+RewriteRule ^shared/(.*)$ shared/$1 [L]
+
+# ============================================
+# FRONTEND - Redirigir a public/
+# ============================================
+# Todo lo demás va a public/
+RewriteCond %{REQUEST_URI} !^/backend/
+RewriteRule ^(.*)$ public/$1 [L]

@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "name": "Juan Pérez",
+    "email": "juan.perez@email.com",
+    "role": "admin",
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "name": "María García",
+    "email": "maria.garcia@email.com",
+    "role": "user",
+    "status": "active"
+  },
+  {
+    "id": 3,
+    "name": "Carlos López",
+    "email": "carlos.lopez@email.com",
+    "role": "user",
+    "status": "inactive"
+  },
+  {
+    "id": 4,
+    "name": "Ana Martínez",
+    "email": "ana.martinez@email.com",
+    "role": "editor",
+    "status": "active"
+  },
+  {
+    "id": 5,
+    "name": "Pedro Sánchez",
+    "email": "pedro.sanchez@email.com",
+    "role": "user",
+    "status": "active"
+  }
+]

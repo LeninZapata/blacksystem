@@ -1,0 +1,205 @@
+{
+  "id": "form-grouper-tabs",
+  "title": "Grouper - Modo Tabs",
+  "description": "Agrupa campos visualmente con pestañas (tabs)",
+  "fields": [
+    {
+      "type": "grouper",
+      "mode": "tabs",
+      "activeIndex": 0,
+      "groups": [
+        {
+          "title": "⚙️ General",
+          "fields": [
+            {
+              "name": "nombre_empresa",
+              "label": "Nombre de la Empresa",
+              "type": "text",
+              "required": true,
+              "placeholder": "Mi Empresa S.A."
+            },
+            {
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "ruc",
+                  "label": "RUC",
+                  "type": "text",
+                  "placeholder": "0123456789001"
+                },
+                {
+                  "name": "telefono_empresa",
+                  "label": "Teléfono",
+                  "type": "tel",
+                  "placeholder": "+593 4 123 4567"
+                }
+              ]
+            },
+            {
+              "name": "direccion_empresa",
+              "label": "Dirección",
+              "type": "textarea",
+              "placeholder": "Dirección completa de la empresa..."
+            }
+          ]
+        },
+        {
+          "title": "🎨 Apariencia",
+          "fields": [
+            {
+              "name": "tema",
+              "label": "Tema del Sistema",
+              "type": "select",
+              "options": [
+                { "value": "light", "label": "☀️ Claro" },
+                { "value": "dark", "label": "🌙 Oscuro" },
+                { "value": "auto", "label": "🔄 Automático" }
+              ]
+            },
+            {
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "color_primario",
+                  "label": "Color Primario",
+                  "type": "color",
+                  "value": "#667eea"
+                },
+                {
+                  "name": "color_secundario",
+                  "label": "Color Secundario",
+                  "type": "color",
+                  "value": "#764ba2"
+                }
+              ]
+            },
+            {
+              "name": "logo_url",
+              "label": "URL del Logo",
+              "type": "text",
+              "placeholder": "https://ejemplo.com/logo.png"
+            }
+          ]
+        },
+        {
+          "title": "🔔 Notificaciones",
+          "fields": [
+            {
+              "name": "notif_email",
+              "label": "Notificaciones por Email",
+              "type": "checkbox"
+            },
+            {
+              "name": "notif_push",
+              "label": "Notificaciones Push",
+              "type": "checkbox"
+            },
+            {
+              "name": "notif_sms",
+              "label": "Notificaciones por SMS",
+              "type": "checkbox"
+            },
+            {
+              "name": "frecuencia",
+              "label": "Frecuencia de Resumen",
+              "type": "select",
+              "options": [
+                { "value": "daily", "label": "Diario" },
+                { "value": "weekly", "label": "Semanal" },
+                { "value": "monthly", "label": "Mensual" }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "🔒 Seguridad",
+          "fields": [
+            {
+              "name": "autenticacion_dos_factores",
+              "label": "Autenticación de Dos Factores",
+              "type": "checkbox"
+            },
+            {
+              "name": "sesiones_simultaneas",
+              "label": "Máximo de Sesiones Simultáneas",
+              "type": "number",
+              "min": 1,
+              "max": 10,
+              "value": 3
+            },
+            {
+              "name": "cambio_password_obligatorio",
+              "label": "Días para cambio obligatorio de contraseña",
+              "type": "number",
+              "min": 30,
+              "max": 365,
+              "placeholder": "90"
+            },
+            {
+              "name": "registrar_intentos_fallidos",
+              "label": "Registrar intentos fallidos de inicio de sesión",
+              "type": "checkbox"
+            }
+          ]
+        },
+        {
+          "title": "📊 Reportes",
+          "fields": [
+            {
+              "name": "generar_reportes_automaticos",
+              "label": "Generar reportes automáticos",
+              "type": "checkbox"
+            },
+            {
+              "name": "tipo_reporte",
+              "label": "Tipo de Reporte",
+              "type": "select",
+              "options": [
+                { "value": "ventas", "label": "Ventas" },
+                { "value": "inventario", "label": "Inventario" },
+                { "value": "clientes", "label": "Clientes" },
+                { "value": "financiero", "label": "Financiero" }
+              ]
+            },
+            {
+              "name": "formato_reporte",
+              "label": "Formato de Exportación",
+              "type": "select",
+              "options": [
+                { "value": "pdf", "label": "PDF" },
+                { "value": "excel", "label": "Excel" },
+                { "value": "csv", "label": "CSV" }
+              ]
+            },
+            {
+              "name": "email_reportes",
+              "label": "Enviar reportes a",
+              "type": "email",
+              "placeholder": "reportes@empresa.com"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "💾 Guardar Configuración",
+      "action": "submit",
+      "onclick": "event.preventDefault(); const data = form.getData(this.closest('form').id); console.log('Configuración:', data); toast.success('✅ Configuración guardada');"
+    },
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "❌ Cancelar",
+      "style": "secondary",
+      "onclick": "event.preventDefault(); toast.info('Cambios cancelados');"
+    }
+  ]
+}

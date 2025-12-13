@@ -1,0 +1,31 @@
+{
+  "proyectos": [
+    {
+      "nombre_proyecto": "Sistema de Gestión Hospitalaria",
+      "presupuesto": 50000,
+      "tareas": [
+        {
+          "nombre_tarea": "Diseño de arquitectura",
+          "responsable": "Juan Pérez",
+          "prioridad": "alta"
+        },
+        {
+          "nombre_tarea": "Desarrollo del backend",
+          "responsable": "María González",
+          "prioridad": "urgente"
+        }
+      ]
+    },
+    {
+      "nombre_proyecto": "App Móvil de Telemedicina",
+      "presupuesto": 35000,
+      "tareas": [
+        {
+          "nombre_tarea": "Diseño UI/UX",
+          "responsable": "Carlos Ramírez",
+          "prioridad": "media"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "id": "form-picker-rn",
+  "title": "Picker - React Native Style",
+  "description": "Usando type: Picker",
+  "fields": [
+    {
+      "name": "pais",
+      "label": "País",
+      "type": "Picker",
+      "required": true,
+      "options": [
+        {"value": "ec", "label": "🇪🇨 Ecuador"},
+        {"value": "pe", "label": "🇵🇪 Perú"},
+        {"value": "co", "label": "🇨🇴 Colombia"},
+        {"value": "cl", "label": "🇨🇱 Chile"},
+        {"value": "ar", "label": "🇦🇷 Argentina"},
+        {"value": "mx", "label": "🇲🇽 México"}
+      ]
+    },
+    {
+      "name": "ciudad",
+      "label": "Ciudad",
+      "type": "Picker",
+      "options": [
+        {"value": "gye", "label": "Guayaquil"},
+        {"value": "uio", "label": "Quito"},
+        {"value": "cuenca", "label": "Cuenca"},
+        {"value": "manta", "label": "Manta"}
+      ]
+    },
+    {
+      "name": "idioma",
+      "label": "Idioma Preferido",
+      "type": "Picker",
+      "options": [
+        {"value": "es", "label": "Español"},
+        {"value": "en", "label": "English"},
+        {"value": "pt", "label": "Português"}
+      ]
+    },
+    {
+      "name": "nivel_experiencia",
+      "label": "Nivel de Experiencia",
+      "type": "Picker",
+      "options": [
+        {"value": "junior", "label": "Junior (0-2 años)"},
+        {"value": "mid", "label": "Mid (3-5 años)"},
+        {"value": "senior", "label": "Senior (5+ años)"},
+        {"value": "lead", "label": "Lead / Architect"}
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin: 1.5rem 0;'><h4>Comparación</h4><p>Los siguientes 2 campos deben verse idénticos:</p>"
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "name": "test_select",
+          "label": "type: select",
+          "type": "select",
+          "options": [
+            {"value": "opt1", "label": "Opción 1"},
+            {"value": "opt2", "label": "Opción 2"}
+          ]
+        },
+        {
+          "name": "test_Picker",
+          "label": "type: Picker (RN)",
+          "type": "Picker",
+          "options": [
+            {"value": "opt1", "label": "Opción 1"},
+            {"value": "opt2", "label": "Opción 2"}
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit",
+      "style": "primary"
+    }
+  ]
+}

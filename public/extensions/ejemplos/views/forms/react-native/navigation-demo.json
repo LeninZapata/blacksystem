@@ -1,0 +1,154 @@
+{
+  "id": "navigation-demo",
+  "title": "🧭 Navegación",
+  "description": "Sistema de navegación genérico - Compatible Web y React Native",
+  "fields": [
+    {
+      "type": "html",
+      "content": "<div style='background:#e3f2fd;padding:1.5rem;border-radius:8px;margin-bottom:1.5rem;'><h2 style='margin:0 0 1rem;'>🧭 Sistema de Navegación</h2><p style='margin:0;'>Navegación simple con historial en memoria. Sin URLs, sin complicaciones.</p></div>"
+    },
+    {
+      "type": "html",
+      "content": "<h3>📋 Vistas del Core</h3><p>Navegar a vistas del framework (en <code>/views</code>)</p>"
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "fields": [
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-primary' onclick=\"actionProxy.handle('navigate:dashboard/dashboard', {}, {button: this, event: event})\">🏠 Dashboard</button>"
+        },
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-primary' onclick=\"actionProxy.handle('navigate:user/sections/user-list', {}, {button: this, event: event})\">👥 Lista Usuarios</button>"
+        },
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-primary' onclick=\"actionProxy.handle('navigate:auth/login', {}, {button: this, event: event})\">🔐 Login</button>"
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin:2rem 0;'><h3>🔌 Vistas de Extensiones</h3><p>Navegar a vistas de plugins (en <code>/extensions/{nombre}</code>)</p>"
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-success' onclick=\"view.loadView('sections/admin-panel', null, 'admin')\">⚙️ Admin Panel</button>"
+        },
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-success' onclick=\"view.loadView('sections/toast-demo', null, 'ejemplos')\">🍞 Toast Demo</button>"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-success' onclick=\"view.loadView('sections/tabs-demo', null, 'ejemplos')\">📑 Tabs Demo</button>"
+        },
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-success' onclick=\"view.loadView('sections/widgets-demo', null, 'ejemplos')\">📊 Widgets Demo</button>"
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin:2rem 0;'><h3>🔙 Navegación con Historial</h3><p>El sistema guarda automáticamente el historial de navegación</p>"
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "fields": [
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-secondary' onclick=\"if(navigation.goBack()){toast.success('Volviendo atrás')}else{toast.warning('No hay historial')}\">◀️ Atrás</button>"
+        },
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-secondary' onclick=\"toast.info('Historial: ' + navigation.history.length + ' páginas')\">📋 Ver Historial</button>"
+        },
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-secondary' onclick=\"console.log('Pantalla actual:', navigation.getCurrentScreen())\">📍 Pantalla Actual</button>"
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin:2rem 0;'><h3>🔄 Replace y Reset</h3><p>Navegación sin agregar al historial</p>"
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-warning' onclick=\"navigation.replace('dashboard/dashboard'); toast.info('Dashboard (sin historial)')\">🔄 Replace Dashboard</button>"
+        },
+        {
+          "type": "html",
+          "content": "<button type='button' class='btn btn-danger' onclick=\"navigation.reset('dashboard/dashboard'); toast.success('Navegación reseteada')\">🔥 Reset (Logout)</button>"
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin:2rem 0;'><h3>💻 Ejemplos de Código</h3>"
+    },
+    {
+      "type": "html",
+      "content": "<div style='background:#1e293b;color:#f1f5f9;padding:1.5rem;border-radius:8px;font-family:monospace;font-size:0.9rem;line-height:1.6;overflow-x:auto;'><div style='color:#38bdf8;margin-bottom:1rem;'>// Navegación básica</div>navigation.navigate('dashboard/dashboard')<br>navigation.navigate('user/sections/user-list')<br><br><div style='color:#38bdf8;margin-bottom:1rem;'>// Con extensión</div>view.loadView('sections/admin-panel', null, 'admin')<br><br><div style='color:#38bdf8;margin-bottom:1rem;'>// Desde JSON (action)</div>{<br>&nbsp;&nbsp;\"action\": \"navigate:dashboard/dashboard\"<br>}<br><br><div style='color:#38bdf8;margin-bottom:1rem;'>// Volver atrás</div>navigation.goBack()<br><br><div style='color:#38bdf8;margin-bottom:1rem;'>// Resetear (logout)</div>navigation.reset('auth/login')</div>"
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin:2rem 0;'><h3>📱 Compatible React Native</h3>"
+    },
+    {
+      "type": "html",
+      "content": "<div style='background:#dcfce7;padding:1.5rem;border-radius:8px;border-left:4px solid #16a34a;'><h4 style='margin:0 0 0.5rem;'>✅ Mismo JSON, Diferente Implementación</h4><p style='margin:0;'><strong>Web:</strong> Usa <code>view.loadView()</code> para cargar vistas HTML<br><strong>React Native:</strong> Usará <code>navigation.navigate()</code> del stack navigator<br><br>Tu código JSON no cambia, solo la implementación interna.</p></div>"
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin:2rem 0;'><h3>🎯 Ventajas del Sistema</h3>"
+    },
+    {
+      "type": "html",
+      "content": "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;'><div style='background:#f0f9ff;padding:1rem;border-radius:8px;border-left:3px solid #0ea5e9;'><strong>✅ Sin URLs</strong><br>No complica con routing</div><div style='background:#f0fdf4;padding:1rem;border-radius:8px;border-left:3px solid #22c55e;'><strong>📋 Historial</strong><br>Guarda navegación en memoria</div><div style='background:#fef3c7;padding:1rem;border-radius:8px;border-left:3px solid #eab308;'><strong>🔄 Flexible</strong><br>navigate, replace, reset, goBack</div><div style='background:#fce7f3;padding:1rem;border-radius:8px;border-left:3px solid #ec4899;'><strong>📱 RN Ready</strong><br>Preparado para React Native</div></div>"
+    },
+    {
+      "type": "html",
+      "content": "<hr style='margin:2rem 0;'><h3>🧪 Prueba Interactiva</h3><p>Navega a diferentes vistas y usa el botón \"Atrás\" para volver. El historial se guarda automáticamente.</p>"
+    },
+    {
+      "type": "group",
+      "columns": 2,
+      "fields": [
+        {
+          "type": "html",
+          "content": "<div style='background:#f8fafc;padding:1rem;border-radius:8px;border:2px solid #e2e8f0;'><strong>Paso 1:</strong> Navega a varias vistas<br><button type='button' class='btn btn-sm btn-primary' style='margin-top:0.5rem;' onclick=\"actionProxy.handle('navigate:dashboard/dashboard', {}, {button: this, event: event})\">Dashboard</button> <button type='button' class='btn btn-sm btn-primary' style='margin-top:0.5rem;' onclick=\"view.loadView(ejemplos/sections/toast-demo', null, 'ejemplos')\">Toast Demo</button></div>"
+        },
+        {
+          "type": "html",
+          "content": "<div style='background:#f8fafc;padding:1rem;border-radius:8px;border:2px solid #e2e8f0;'><strong>Paso 2:</strong> Vuelve atrás<br><button type='button' class='btn btn-sm btn-secondary' style='margin-top:0.5rem;' onclick=\"if(navigation.goBack()){toast.success('Volviendo')}else{toast.warning('No hay historial')}\">◀️ Atrás</button> <button type='button' class='btn btn-sm btn-secondary' style='margin-top:0.5rem;' onclick=\"console.log(navigation.getHistory())\">Ver Historial</button></div>"
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "🏠 Volver al Dashboard",
+      "action": "navigate:dashboard/dashboard"
+    }
+  ]
+}

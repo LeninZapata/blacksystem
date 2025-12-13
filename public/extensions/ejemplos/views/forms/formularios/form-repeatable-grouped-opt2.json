@@ -1,0 +1,129 @@
+{
+  "id": "form-repeatable-grouped-opt2",
+  "title": "Opción 2: Group dentro de Repeatable",
+  "description": "Usar type 'group' dentro del repeatable (más flexible)",
+  "fields": [
+    {
+      "type": "repeatable",
+      "name": "employees",
+      "label": "Empleados (Grupo mixto)",
+      "addText": "+ Agregar Empleado",
+      "fields": [
+        {
+          "name": "fullName",
+          "type": "text",
+          "label": "Nombre Completo (campo normal, full width)",
+          "required": true,
+          "placeholder": "Juan Pérez García"
+        },
+        {
+          "type": "group",
+          "columns": 3,
+          "gap": "normal",
+          "fields": [
+            {
+              "name": "email",
+              "type": "email",
+              "label": "Email",
+              "required": true
+            },
+            {
+              "name": "phone",
+              "type": "tel",
+              "label": "Teléfono"
+            },
+            {
+              "name": "birthdate",
+              "type": "date",
+              "label": "Fecha Nac."
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "columns": 2,
+          "gap": "normal",
+          "fields": [
+            {
+              "name": "position",
+              "type": "text",
+              "label": "Cargo"
+            },
+            {
+              "name": "salary",
+              "type": "number",
+              "label": "Salario"
+            }
+          ]
+        },
+        {
+          "name": "notes",
+          "type": "textarea",
+          "label": "Notas (campo normal, full width)",
+          "placeholder": "Observaciones adicionales..."
+        }
+      ]
+    },
+    {
+      "type": "repeatable",
+      "name": "products",
+      "label": "Productos (Solo grupos)",
+      "addText": "+ Agregar Producto",
+      "fields": [
+        {
+          "type": "group",
+          "columns": 2,
+          "gap": "normal",
+          "fields": [
+            {
+              "name": "code",
+              "type": "text",
+              "label": "Código"
+            },
+            {
+              "name": "name",
+              "type": "text",
+              "label": "Nombre"
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "columns": 3,
+          "gap": "normal",
+          "fields": [
+            {
+              "name": "price",
+              "type": "number",
+              "label": "Precio",
+              "step": "0.01"
+            },
+            {
+              "name": "stock",
+              "type": "number",
+              "label": "Stock"
+            },
+            {
+              "name": "category",
+              "type": "select",
+              "label": "Categoría",
+              "options": [
+                { "value": "electronics", "label": "Electrónica" },
+                { "value": "clothing", "label": "Ropa" },
+                { "value": "food", "label": "Alimentos" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "submit",
+      "type": "submit",
+      "label": "Guardar",
+      "class": "btn-primary"
+    }
+  ]
+}

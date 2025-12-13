@@ -1,0 +1,79 @@
+{
+  "id": "ejemplos-grouper",
+  "title": "Grouper - Agrupación Visual",
+  "type": "tabs",
+  "tabs": [
+    {
+      "id": "grouper-intro",
+      "title": "📖 Introducción",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h2>📦 Componente Grouper</h2><p>El componente <strong>Grouper</strong> permite agrupar campos visualmente con dos modos diferentes:</p><div style='display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;'><div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px;'><h3 style='margin: 0 0 1rem;'>📋 Modo Linear</h3><ul style='margin: 0; padding-left: 1.5rem;'><li>Grupos uno debajo del otro</li><li>Estilo acordeón colapsable</li><li>Ideal para formularios largos</li><li>Organiza por secciones</li></ul></div><div style='background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 1.5rem; border-radius: 8px;'><h3 style='margin: 0 0 1rem;'>📑 Modo Tabs</h3><ul style='margin: 0; padding-left: 1.5rem;'><li>Grupos en pestañas</li><li>Solo uno visible a la vez</li><li>Ideal para configuraciones</li><li>Ahorra espacio vertical</li></ul></div></div><div style='background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0; border-radius: 4px;'><strong>💡 Diferencia con tabs.js:</strong><br>El componente <code>grouper</code> es puramente <strong>visual</strong>, NO maneja vistas ni fetch de contenido. Solo agrupa campos del formulario.</div><div style='background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 1rem; margin: 1rem 0; border-radius: 4px;'><strong>🎯 Uso en JSON:</strong><br>Se declara dentro de <code>fields</code> con <code>type: \"grouper\"</code>, similar a los repetibles o grupos de columnas.</div>"
+        }
+      ]
+    },
+    {
+      "id": "grouper-linear",
+      "title": "📋 Linear (Acordeón)",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>Modo Linear - Acordeón Colapsable</h3><p>Cada grupo es una sección independiente que se puede abrir/cerrar:</p><ul><li>✅ <strong>Collapsible:</strong> Permite colapsar las secciones</li><li>✅ <strong>Open First:</strong> Abre la primera sección por defecto</li><li>✅ <strong>Títulos con iconos:</strong> Personalizables con emojis</li><li>✅ <strong>Combina con grupos de columnas:</strong> Puedes usar <code>type: \"group\"</code> dentro</li></ul>"
+        },
+        {
+          "type": "form",
+          "form_json": "ejemplos/form-grouper-linear"
+        }
+      ]
+    },
+    {
+      "id": "grouper-tabs",
+      "title": "📑 Tabs",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>Modo Tabs - Pestañas</h3><p>Cada grupo es una pestaña, ideal para configuraciones o formularios con muchas categorías:</p><ul><li>✅ <strong>Navegación por tabs:</strong> Click para cambiar de grupo</li><li>✅ <strong>Active Index:</strong> Define qué tab está activo inicialmente</li><li>✅ <strong>Ahorra espacio:</strong> Solo un grupo visible a la vez</li><li>✅ <strong>Responsive:</strong> En móvil los tabs se apilan verticalmente</li></ul>"
+        },
+        {
+          "type": "form",
+          "form_json": "ejemplos/form-grouper-tabs"
+        }
+      ]
+    },
+    {
+      "id": "grouper-anidado",
+      "title": "🎭 Anidado",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>Grouper Anidado - Niveles Múltiples</h3><p>¡Sí, puedes anidar groupers! Un grouper dentro de otro grouper:</p><div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1.5rem 0;'><div style='background: #e0f2fe; padding: 1rem; border-radius: 8px; border-left: 4px solid #0284c7;'><h4 style='margin: 0 0 0.5rem;'>🎯 Tabs → Linear</h4><p style='margin: 0; font-size: 0.9rem;'>Grouper en modo <strong>tabs</strong> que contiene groupers en modo <strong>linear</strong> dentro de cada tab.</p></div><div style='background: #fef3c7; padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b;'><h4 style='margin: 0 0 0.5rem;'>🎯 Tabs → Tabs</h4><p style='margin: 0; font-size: 0.9rem;'>Grouper en modo <strong>tabs</strong> que contiene otro grouper en modo <strong>tabs</strong> dentro.</p></div><div style='background: #dcfce7; padding: 1rem; border-radius: 8px; border-left: 4px solid #16a34a;'><h4 style='margin: 0 0 0.5rem;'>🎯 Linear → Tabs</h4><p style='margin: 0; font-size: 0.9rem;'>Grouper en modo <strong>linear</strong> que contiene groupers en modo <strong>tabs</strong> en cada sección.</p></div><div style='background: #fce7f3; padding: 1rem; border-radius: 8px; border-left: 4px solid #db2777;'><h4 style='margin: 0 0 0.5rem;'>🎯 Linear → Linear</h4><p style='margin: 0; font-size: 0.9rem;'>Grouper en modo <strong>linear</strong> con groupers en modo <strong>linear</strong> anidados.</p></div></div><div style='background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0; border-radius: 4px;'><strong>💡 Tip:</strong> No abuses de la anidación. Máximo 2-3 niveles para no confundir al usuario.</div><h4>🎪 Ejemplo Completo</h4><p>Este ejemplo contiene <strong>3 combinaciones diferentes</strong> de anidación:</p><ul><li>📑 <strong>Tab 1:</strong> Tabs → Linear (no colapsable)</li><li>📑 <strong>Tab 2:</strong> Tabs → Linear (acordeón)</li><li>📑 <strong>Tab 3:</strong> Tabs → Tabs (tabs dentro de tabs)</li><li>📑 <strong>Tab 4:</strong> Sin anidación (solo campos normales)</li></ul>"
+        },
+        {
+          "type": "form",
+          "form_json": "ejemplos/form-grouper-anidado"
+        }
+      ]
+    },
+    {
+      "id": "grouper-json",
+      "title": "💻 Código JSON",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>📝 Estructura JSON</h3><h4>Modo Linear:</h4><pre style='background: #f5f5f5; padding: 1rem; border-radius: 8px; overflow-x: auto;'>{\n  \"type\": \"grouper\",\n  \"mode\": \"linear\",\n  \"collapsible\": true,\n  \"openFirst\": true,\n  \"groups\": [\n    {\n      \"title\": \"👤 Información Personal\",\n      \"fields\": [\n        {\n          \"name\": \"nombre\",\n          \"label\": \"Nombre\",\n          \"type\": \"text\"\n        },\n        {\n          \"type\": \"group\",\n          \"columns\": 2,\n          \"fields\": [...]\n        }\n      ]\n    },\n    {\n      \"title\": \"🏠 Dirección\",\n      \"fields\": [...]\n    }\n  ]\n}</pre><h4>Modo Tabs:</h4><pre style='background: #f5f5f5; padding: 1rem; border-radius: 8px; overflow-x: auto;'>{\n  \"type\": \"grouper\",\n  \"mode\": \"tabs\",\n  \"activeIndex\": 0,\n  \"groups\": [\n    {\n      \"title\": \"⚙️ General\",\n      \"fields\": [...]\n    },\n    {\n      \"title\": \"🎨 Apariencia\",\n      \"fields\": [...]\n    }\n  ]\n}</pre><h4>Parámetros:</h4><table class='table'><thead><tr><th>Parámetro</th><th>Tipo</th><th>Descripción</th><th>Default</th></tr></thead><tbody><tr><td><code>mode</code></td><td>string</td><td>'linear' o 'tabs'</td><td>linear</td></tr><tr><td><code>collapsible</code></td><td>boolean</td><td>Permite colapsar (solo linear)</td><td>true</td></tr><tr><td><code>openFirst</code></td><td>boolean</td><td>Abre el primer grupo (solo linear)</td><td>true</td></tr><tr><td><code>activeIndex</code></td><td>number</td><td>Tab activo inicial (solo tabs)</td><td>0</td></tr><tr><td><code>groups</code></td><td>array</td><td>Array de grupos con title y fields</td><td>required</td></tr></tbody></table>"
+        }
+      ]
+    },
+    {
+      "id": "grouper-tips",
+      "title": "💡 Tips",
+      "content": [
+        {
+          "type": "html",
+          "content": "<h3>🎯 Cuándo usar cada modo</h3><div style='display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;'><div><h4>📋 Linear (Acordeón)</h4><ul><li>✅ Formularios largos con secciones lógicas</li><li>✅ Cuando el usuario necesita ver varias secciones a la vez</li><li>✅ Información relacionada que puede compararse</li><li>✅ Procesos paso a paso donde se puede volver atrás</li></ul><strong>Ejemplos:</strong><ul><li>Registro de usuario completo</li><li>Formulario de producto con detalles, precios, stock</li><li>Datos del empleado con personal, laboral, contactos</li></ul></div><div><h4>📑 Tabs</h4><ul><li>✅ Configuraciones por categorías</li><li>✅ Cuando hay muchos campos y quieres ahorrar espacio</li><li>✅ Información independiente entre grupos</li><li>✅ Dashboard de ajustes del sistema</li></ul><strong>Ejemplos:</strong><ul><li>Configuración de la aplicación</li><li>Preferencias del usuario</li><li>Panel de administración multi-sección</li></ul></div></div><h3>🔧 Tips de Uso</h3><div style='background: #e7f3ff; border-left: 4px solid #2196F3; padding: 1rem; margin: 1rem 0;'><strong>1. Combina con grupos de columnas:</strong><pre style='background: white; padding: 0.5rem; margin: 0.5rem 0; border-radius: 4px;'>{\n  \"title\": \"Datos\",\n  \"fields\": [\n    {\n      \"type\": \"group\",\n      \"columns\": 3,\n      \"fields\": [...]\n    }\n  ]\n}</pre></div><div style='background: #fff3e0; border-left: 4px solid #ff9800; padding: 1rem; margin: 1rem 0;'><strong>2. Usa emojis en títulos:</strong><p>Los emojis ayudan a identificar rápidamente cada sección: 👤 📍 💳 🔒 📊</p></div><div style='background: #f3e5f5; border-left: 4px solid #9c27b0; padding: 1rem; margin: 1rem 0;'><strong>3. No abuses de los grupos:</strong><p>Máximo 5-7 grupos por formulario. Si necesitas más, considera dividir en múltiples formularios.</p></div><div style='background: #e8f5e9; border-left: 4px solid #4caf50; padding: 1rem; margin: 1rem 0;'><strong>4. Títulos descriptivos:</strong><p>Usa títulos claros que describan el contenido: \"Información Personal\" en lugar de \"Datos 1\"</p></div>"
+        }
+      ]
+    }
+  ]
+}

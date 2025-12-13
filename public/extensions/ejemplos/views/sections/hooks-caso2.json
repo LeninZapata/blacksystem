@@ -1,0 +1,38 @@
+{
+  "id": "hooksCaso2",
+  "title": "🎯 Caso 2: Hooks en Content y Formularios",
+  "description": "Demuestra hooks mezclados con content y fields de formularios",
+  "type": "content",
+  "content": [
+    {
+      "type": "html",
+      "order": 5,
+      "content": "<div style='padding:1rem;background:#ede9fe;border-radius:6px;margin:0.5rem 0;border-left:4px solid #7c3aed;'><strong>ℹ️ Caso 2: Hooks en Content</strong><p style='margin:0.5rem 0 0 0;'>Este caso demuestra cómo los hooks se mezclan con items de content usando el campo <code>order</code>.</p></div>"
+    },
+    {
+      "type": "html",
+      "order": 10,
+      "content": "<div style='padding:1rem;background:#e0f2fe;border-radius:6px;margin:0.5rem 0;border-left:4px solid #0284c7;'><strong>📄 Contenido - Order 10</strong><p style='margin:0.5rem 0 0 0;'>Este es el primer contenido del caso 2.</p></div>"
+    },
+    {
+      "type": "html",
+      "order": 20,
+      "content": "<div style='padding:1rem;background:#dbeafe;border-radius:6px;margin:0.5rem 0;border-left:4px solid #0284c7;'><strong>📄 Contenido - Order 20</strong><p style='margin:0.5rem 0 0 0;'>Este es el segundo contenido.</p></div>"
+    },
+    {
+      "type": "html",
+      "order": 30,
+      "content": "<div style='padding:1rem;background:#bfdbfe;border-radius:6px;margin:0.5rem 0;border-left:4px solid #0284c7;'><strong>📄 Contenido - Order 30</strong><p style='margin:0.5rem 0 0 0;'>Este es el tercer contenido.</p></div>"
+    },
+    {
+      "type": "html",
+      "order": 100,
+      "content": "<h3 style='margin:2rem 0 1rem 0;color:#7c3aed;'>📝 Ejemplo de Formulario con Hooks</h3><p style='color:#666;'>El siguiente formulario tiene hooks que inyectan fields adicionales usando <code>order</code>.</p>"
+    },
+    {
+      "type": "form",
+      "order": 110,
+      "form_json": "ejemplos/formularios/form-inputs-normales"
+    }
+  ]
+}

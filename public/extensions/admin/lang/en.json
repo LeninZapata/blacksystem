@@ -1,0 +1,20 @@
+{
+  "admin.user.column.id": "ID",
+  "admin.user.column.username": "Username",
+  "admin.user.column.email": "Email",
+  "admin.user.column.role": "Role",
+  "admin.user.column.created": "Created Date",
+  "admin.user.action.edit": "Edit User",
+  "admin.user.action.delete": "Delete User",
+  "admin.user.action.permissions": "Manage Permissions",
+  "admin.user.error.passwords_not_match": "Passwords do not match",
+  "admin.user.error.password_required": "Password is required when creating a user",
+  "admin.user.error.cannot_delete_admin": "Cannot delete an administrator user",
+  "admin.user.success.created": "User created",
+  "admin.user.success.updated": "User updated",
+  "admin.title.users": "User Management",
+  "admin.description.users": "Manage system users",
+  "admin.refresh.success": "User list refreshed",
+  "admin.user.success.deleted": "User deleted successfully",
+  "admin.user.error.delete_failed": "Failed to delete user"
+}

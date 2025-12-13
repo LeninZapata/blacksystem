@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "nombre": "Laptop Dell",
+    "precio": 1250.50,
+    "activo": true,
+    "fecha": "2024-01-15",
+    "codigo": "lap-dell-001"
+  },
+  {
+    "id": 2,
+    "nombre": "Mouse Logitech",
+    "precio": 45.99,
+    "activo": true,
+    "fecha": "2024-02-20",
+    "codigo": "mou-log-002"
+  },
+  {
+    "id": 3,
+    "nombre": "Teclado Mecánico",
+    "precio": 89.00,
+    "activo": false,
+    "fecha": "2024-03-10",
+    "codigo": "key-mec-003"
+  },
+  {
+    "id": 4,
+    "nombre": "Monitor Samsung",
+    "precio": 299.99,
+    "activo": true,
+    "fecha": "2024-04-05",
+    "codigo": "mon-sam-004"
+  },
+  {
+    "id": 5,
+    "nombre": "Webcam HD",
+    "precio": 65.50,
+    "activo": true,
+    "fecha": "2024-05-12",
+    "codigo": "web-hd-005"
+  }
+]
