@@ -9,12 +9,11 @@
 <body>
 <div id="app"></div>
 <script>
-  // ============================================
+  let version = '0.1';
+
   // DETECCIÓN AUTOMÁTICA DE RUTAS
-  // ============================================
   // Como .htaccess redirige internamente a public/,
   // BASE_URL NO debe incluir /public/
-
   var pathname = window.location.pathname;
 
   // Remover index.html si está al final
@@ -36,7 +35,7 @@
   var IS_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) || 
               ['3000', '5173', '8080'].includes(window.location.port);
 
-  var VERSION = IS_DEV ? `dev-${Date.now()}` : '1.0.0';
+  var VERSION = IS_DEV ? `dev-${Date.now()}` : version;
   console.log(`App Version: ${VERSION}`);
 
   const script = document.createElement('script');

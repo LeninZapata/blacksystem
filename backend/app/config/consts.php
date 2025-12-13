@@ -1,6 +1,5 @@
 <?php
 // Constantes de configuración
-define('IS_DEV', true);
 
 // Configuración de zona horaria
 define('TIMEZONE', 'America/Guayaquil');
@@ -18,13 +17,6 @@ define('TIME_YEAR', 31536000);
 // Configuración de sesiones
 define('SESSION_TTL', TIME_DAY * 1);
 define('SESSION_TTL_MS', SESSION_TTL * 1000);
-
-// Configuración de base de datos
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'factory-saas');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_CHARSET', 'utf8mb4');
 
 // Rutas del sistema
 define('BASE_PATH', realpath(dirname(dirname(dirname(__DIR__)))));

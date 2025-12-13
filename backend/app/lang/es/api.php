@@ -8,7 +8,7 @@ return [
   'unauthorized' => 'No autorizado',
   'forbidden' => 'Acceso prohibido',
   'too_many_requests' => 'Demasiadas peticiones',
-  'server_error' => 'Error interno del servidor',
+  'server_error' => 'Error interno del servidor (desde API): {message}',
   'php_warning_detected' => 'Error o advertencia de PHP detectado',
   'not_found' => 'Recurso no encontrado',
   'bad_request' => 'Solicitud incorrecta',

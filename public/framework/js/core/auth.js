@@ -105,7 +105,6 @@ class auth {
         credentials = formIdOrCredentials;
       }
 
-      console.log(`credentials:`, credentials);
       const response = await api.post(this.config.api.login, credentials, { skipAuth: true });
 
       logger.debug('core:auth', 'Respuesta del servidor:', response);

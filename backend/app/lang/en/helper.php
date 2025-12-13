@@ -5,7 +5,7 @@ return [
     'not_found' => 'Resource not found',
     'unauthorized' => 'Unauthorized',
     'forbidden' => 'Forbidden',
-    'server_error' => 'Internal server error'
+    'server_error' => 'Internal server error (from helper)'
   ],
   'session' => [
     'cleanup_completed' => 'Cleanup completed: {cleaned} sessions deleted',

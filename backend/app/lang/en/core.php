@@ -19,6 +19,7 @@ return [
   ],
   'router' => [
     'not_found' => 'Route not found',
+    'method_not_found' => 'Method {method} does not exist in routes',
     'middleware_not_found' => 'Middleware \'{middleware}\' not found',
     'middleware_file_not_found' => 'Middleware file \'{middleware}.php\' not found',
     'middleware_class_not_found' => 'Middleware class \'{middleware}\' not found',

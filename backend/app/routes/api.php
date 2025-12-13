@@ -6,8 +6,9 @@ $path = parse_url($requestUri, PHP_URL_PATH);
 
 // Normalizar path: remover slashes duplicados y prefijos
 $path = preg_replace('#/+#', '/', $path);
-if (preg_match('#^(/[^/]+)?(/api/.*)$#', $path, $matches)) {
-  $path = $matches[2];
+// Soportar múltiples niveles de carpetas: /blacksystem/blacksystem/api/auth -> /api/auth
+if (preg_match('#(/api/.*)$#', $path, $matches)) {
+  $path = $matches[1];
 }
 $path = rtrim($path, '/');
 

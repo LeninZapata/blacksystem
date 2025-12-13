@@ -117,7 +117,7 @@ class form {
       }
     }
 
-    const instanceId = `${schema.id}-${window.VERSION}`;
+    const instanceId = `${schema.id}-${window.VERSION.replace(/\./g, '-')}`;
     const instanceSchema = JSON.parse(JSON.stringify(schema));
     instanceSchema.id = instanceId;
 

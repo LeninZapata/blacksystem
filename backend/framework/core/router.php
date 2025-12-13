@@ -77,8 +77,9 @@ class router {
 
     // Remover el prefijo de la carpeta del proyecto si existe
     // /factory-saas/api/system -> /api/system
-    if (preg_match('#^(/[^/]+)?(/api/.*)$#', $path, $matches)) {
-      $path = $matches[2];
+    // /blacksystem/blacksystem/api/auth/login -> /api/auth/login
+    if (preg_match('#(/api/.*)$#', $path, $matches)) {
+      $path = $matches[1];
     }
 
     // Eliminar trailing slash (excepto si es solo "/")
@@ -92,7 +93,7 @@ class router {
   // Match dinámico
   private function matchDynamic($method, $path) {
     if (!isset($this->routes[$method])) {
-      $this->notFound();
+      $this->notFound('core.router.method_not_found', ['method' => $method]);
       return;
     }
 
@@ -173,8 +174,9 @@ class router {
   }
 
   // 404
-  private function notFound() {
-    response::json(['success' => false, 'error' => __('core.router.not_found'), 'path' => $this->getPath()], 404);
+  private function notFound($errorKey = 'core.router.not_found', $params = []) {
+    $params['path'] = $this->getPath();
+    response::json(['success' => false, 'error' => __($errorKey, $params)], 404);
   }
 }
 

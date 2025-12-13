@@ -15,6 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 $path = __DIR__;
 require_once $path . '/framework/core/autoload.php';
+require_once $path . '/framework/helpers/system.php';
+require_once $path . '/app/config/environment.php';
+require_once $path . '/app/config/database.php';
 require_once $path . '/app/config/consts.php';
 
 if (IS_DEV) {
@@ -57,7 +60,7 @@ try {
       'trace' => array_slice(explode("\n", $e->getTraceAsString()), 0, 5)
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
   } else {
-    echo json_encode(['success' => false, 'error' => __('api.server_error')], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'error' => __('api.server_error', ['message' => $e->getMessage()])], JSON_UNESCAPED_UNICODE);
   }
   exit;
 }
