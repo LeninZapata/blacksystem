@@ -1,0 +1,28 @@
+{
+  "name": "infoproduct",
+  "version": "1.0.0",
+  "enabled": true,
+  "hasViews": true,
+  "hasMenu": true,
+  "hasHooks": false,
+  "description": "Gestión de Infoproductos",
+  "menu": {
+    "title": "Infoproductos",
+    "icon": "📚",
+    "order": 20,
+    "items": [
+      {
+        "id": "infoproduct-products",
+        "title": "Productos",
+        "view": "sections/infoproduct-products",
+        "order": 1
+      },
+      {
+        "id": "infoproduct-stats",
+        "title": "Estadísticas",
+        "view": "sections/infoproduct-stats",
+        "order": 3
+      }
+    ]
+  }
+}

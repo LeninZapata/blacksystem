@@ -1,0 +1,22 @@
+{
+  "name": "setting",
+  "version": "1.0.0",
+  "enabled": true,
+  "hasViews": true,
+  "hasMenu": true,
+  "hasHooks": false,
+  "description": "Configuración del sistema",
+  "menu": {
+    "title": "Configuración",
+    "icon": "⚙️",
+    "order": 50,
+    "items": [
+      {
+        "id": "setting-account",
+        "title": "Mi Cuenta",
+        "view": "sections/setting-account",
+        "order": 1
+      }
+    ]
+  }
+}

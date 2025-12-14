@@ -1,3 +1,4 @@
+public/extensions/ejemplos
 backend/app/storage/*
 shared/*
 *.zip

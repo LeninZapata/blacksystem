@@ -18,6 +18,13 @@
         "view": "sections/admin-panel",
         "order": 5,
         "role": "admin"
+      },
+      {
+        "id": "admin-workflows",
+        "title": "Flujos de Trabajo",
+        "view": "sections/admin-workflows",
+        "order": 10,
+        "role": "admin"
       }
     ]
   }

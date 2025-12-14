@@ -107,13 +107,20 @@ class admin {
       }
     };
 
-    return {
+    const body = {
       user: formData.username,
       email: formData.email,
       role: formData.role,
       pass: formData.password || undefined,
       config
     };
+
+    // Agregar user_id solo en create (no en update)
+    if (!this.currentId && auth.user?.id) {
+      body.user_id = auth.user.id;
+    }
+
+    return body;
   }
 
   // ============================================

@@ -1,0 +1,22 @@
+{
+  "name": "product",
+  "version": "1.0.0",
+  "enabled": false,
+  "hasViews": true,
+  "hasMenu": true,
+  "hasHooks": false,
+  "description": "Gestión de productos digitales",
+  "menu": {
+    "title": "Productos",
+    "icon": "📦",
+    "order": 10,
+    "items": [
+      {
+        "id": "product-list",
+        "title": "Listado",
+        "view": "sections/product-list",
+        "order": 1
+      }
+    ]
+  }
+}

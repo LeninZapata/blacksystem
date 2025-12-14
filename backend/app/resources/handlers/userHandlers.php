@@ -45,7 +45,7 @@ class userHandlers {
       return ['success' => false, 'error' => __('user.config.invalid')];
     }
 
-    $affected = db::table('user')->where('id', $id)->update([
+    $affected = db::table('users')->where('id', $id)->update([
       'config' => $config,
       'du' => date('Y-m-d H:i:s'),
       'tu' => time()

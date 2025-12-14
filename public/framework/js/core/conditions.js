@@ -449,7 +449,11 @@ class conditions {
   static findFieldElement(formEl, fieldPath) {
     // Intentar encontrar por name exacto
     let field = formEl.querySelector(`[name="${fieldPath}"]`);
-    if (field) return field.closest('.form-group, .form-checkbox');
+    if (field) return field.closest('.form-group, .form-checkbox, .form-html-wrapper');
+
+    // Buscar wrapper HTML por data-field-name
+    let htmlWrapper = formEl.querySelector(`.form-html-wrapper[data-field-name="${fieldPath}"]`);
+    if (htmlWrapper) return htmlWrapper;
 
     // Para repetibles: buscar considerando índices [0], [1], etc
     // Convertir "proyectos.tipo_proyecto" a selector que coincida con "proyectos[0].tipo_proyecto"
@@ -461,13 +465,13 @@ class conditions {
       const fields = formEl.querySelectorAll(`[name*=".${baseField}"]`);
       if (fields.length > 0) {
         // Si hay múltiples, devolver el contenedor del primero
-        return fields[0].closest('.form-group, .form-checkbox');
+        return fields[0].closest('.form-group, .form-checkbox, .form-html-wrapper');
       }
     }
 
     // Buscar por name parcial (fallback)
     field = formEl.querySelector(`[name*="${fieldPath}"]`);
-    if (field) return field.closest('.form-group, .form-checkbox');
+    if (field) return field.closest('.form-group, .form-checkbox, .form-html-wrapper');
 
     return null;
   }

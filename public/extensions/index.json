@@ -5,8 +5,28 @@
       "description": "Administración del sistema"
     },
     {
+      "name": "infoproduct",
+      "description": "Gestión de Infoproductos"
+    },
+    {
+      "name": "ecom",
+      "description": "Gestión de E-commerce"
+    },
+    {
+      "name": "automation",
+      "description": "Automatización"
+    },
+    {
+      "name": "setting",
+      "description": "Configuración del sistema"
+    },
+    {
       "name": "botws",
       "description": "Gestión de Bots de WhatsApp"
+    },
+    {
+      "name": "product",
+      "description": "Gestión de productos digitales"
     }
   ]
 }

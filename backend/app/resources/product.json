@@ -1,0 +1,42 @@
+{
+  "resource": "product",
+  "table": "products",
+  "timestamps": true,
+  "middleware": ["throttle:100,1"],
+  "routes": {
+    "list": {"method": "GET", "path": "/api/product", "middleware": ["auth"]},
+    "show": {"method": "GET", "path": "/api/product/{id}", "middleware": ["auth"]},
+    "create": {"method": "POST", "path": "/api/product", "middleware": ["auth", "json"]},
+    "update": {"method": "PUT", "path": "/api/product/{id}", "middleware": ["auth", "json"]},
+    "delete": {"method": "DELETE", "path": "/api/product/{id}", "middleware": ["auth"]}
+  },
+  "fields": [
+    {
+      "name": "user_id",
+      "type": "int",
+      "required": true
+    },
+    {
+      "name": "context",
+      "type": "string",
+      "maxLength": 50,
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "maxLength": 200,
+      "required": true
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "config",
+      "type": "json",
+      "required": false
+    }
+  ]
+}

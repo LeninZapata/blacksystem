@@ -9,9 +9,13 @@ return [
   'bot'        => require $langPath . 'bot.php',
   'client'     => require $langPath . 'client.php',
   'core'       => require $langPath . 'core.php',
+  'country'    => require $langPath . 'country.php',
+  'credential' => require $langPath . 'credential.php',
   'helper'     => require $langPath . 'helper.php',
   'log'        => require $langPath . 'log.php',
   'middleware' => require $langPath . 'middleware.php',
   'session'    => require $langPath . 'session.php',
   'user'       => require $langPath . 'user.php',
+  'product'    => require $langPath . 'product.php',
+  'workFlow'   => require $langPath . 'workFlow.php',
 ];

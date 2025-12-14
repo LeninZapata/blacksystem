@@ -19,8 +19,9 @@ class modal {
     // Header
     const header = document.createElement('div');
     header.className = 'modal-header';
+    const processedTitle = this.processI18nInString(options.title) || __('com.modal.title');
     header.innerHTML = `
-      <h3>${options.title || __('com.modal.title')}</h3>
+      <h3>${processedTitle}</h3>
       <button class="modal-close" onclick="modal.close('${modalId}')">&times;</button>
     `;
 
@@ -33,7 +34,7 @@ class modal {
     const footer = document.createElement('div');
     footer.className = 'modal-footer';
     if (options.footer) {
-      footer.innerHTML = options.footer;
+      footer.innerHTML = this.processI18nInString(options.footer);
     } else if (options.showFooter !== false) {
       footer.innerHTML = `
         <button class="btn btn-secondary" onclick="modal.close('${modalId}')">${__('com.modal.close')}</button>
@@ -93,7 +94,7 @@ class modal {
         const [extensionName, formPath] = resource.split('|');
         const formName = formPath.replace('forms/', '');
         logger.debug('com:modal', `Cargando formulario extension: "${extensionName}/${formName}"`);
-        
+
         // ✅ FIX: Pasar afterRender callback
         const afterRenderCallback = options.afterRender || null;
         await form.load(`${extensionName}/${formName}`, content, null, false, afterRenderCallback);
@@ -272,6 +273,26 @@ class modal {
       };
 
       checkForm();
+    });
+  }
+
+  // Procesar cadenas i18n en contenido
+  static processI18nInString(str) {
+    if (!str || typeof str !== 'string') return str;
+
+    return str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
+      const parts = content.split('|');
+      const key = parts[0];
+      const params = {};
+
+      for (let i = 1; i < parts.length; i++) {
+        const [paramKey, paramValue] = parts[i].split(':');
+        if (paramKey && paramValue) {
+          params[paramKey] = paramValue;
+        }
+      }
+
+      return window.i18n ? i18n.t(key, params) : key;
     });
   }
 }

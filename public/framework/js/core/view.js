@@ -6,6 +6,13 @@ class view {
   static SESSION_CHECK_INTERVAL = 30000;
 
   static async loadView(viewName, container = null, extensionContext = null, menuResources = null, afterRender = null, menuId = null) {
+    // Manejar notación extension|path (ej: botws|sections/botws-listado)
+    if (viewName.includes('|')) {
+      const [targetExtension, targetPath] = viewName.split('|');
+      extensionContext = targetExtension;
+      viewName = targetPath;
+    }
+
     const navCacheKey = `nav_${extensionContext || 'core'}_${viewName}`;
 
     if (!container && window.appConfig?.cache?.viewNavigation) {

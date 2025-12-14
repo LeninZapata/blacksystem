@@ -1,0 +1,28 @@
+{
+  "name": "automation",
+  "version": "1.0.0",
+  "enabled": true,
+  "hasViews": true,
+  "hasMenu": true,
+  "hasHooks": false,
+  "description": "Automatización",
+  "menu": {
+    "title": "Automatización",
+    "icon": "🤖",
+    "order": 40,
+    "items": [
+      {
+        "id": "automation-bots",
+        "title": "Bots Whatsapp",
+        "view": "botws|sections/botws-listado",
+        "order": 1
+      },
+      {
+        "id": "automation-credentials",
+        "title": "Credenciales",
+        "view": "sections/automation-credentials",
+        "order": 2
+      }
+    ]
+  }
+}

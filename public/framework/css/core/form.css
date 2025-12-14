@@ -341,6 +341,13 @@ textarea {
   }
 }
 /* Asterisco de campos requeridos */
+.form-required {
+  color: #e74c3c;
+  margin-left: 2px;
+  font-weight: bold;
+}
+
+/* Compatibilidad con estilo inline anterior */
 .form-group label span[style*="color: #e74c3c"] {
   font-weight: bold;
   font-size: 1.1em;

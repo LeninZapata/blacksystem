@@ -11,7 +11,7 @@ class authHandlers {
     }
 
     // Buscar usuario por username o email
-    $user = db::table('user')
+    $user = db::table('users')
       ->where('user', $data['user'])
       ->orWhere('email', $data['user'])
       ->first();
@@ -40,7 +40,7 @@ class authHandlers {
     self::saveSession($user, $token, $expiresAt);
 
     // Actualizar último acceso
-    db::table('user')->where('id', $user['id'])->update([
+    db::table('users')->where('id', $user['id'])->update([
       'du' => date('Y-m-d H:i:s'),
       'tu' => time()
     ]);

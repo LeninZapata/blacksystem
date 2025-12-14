@@ -1,0 +1,37 @@
+{
+  "id": "product-form",
+  "title": "i18n:product.form.title",
+  "description": "i18n:product.form.description",
+  "fields": [
+    {
+      "name": "name",
+      "label": "i18n:product.field.name",
+      "type": "text",
+      "validation": "required|min:3|max:200",
+      "placeholder": "i18n:product.field.name.placeholder"
+    },
+    {
+      "name": "description",
+      "label": "i18n:product.field.description",
+      "type": "textarea",
+      "validation": "max:1000",
+      "placeholder": "i18n:product.field.description.placeholder",
+      "rows": 4
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "i18n:core.cancel",
+      "action": "call:modal.closeAll",
+      "style": "secondary"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "i18n:core.save",
+      "action": "submit:product.save"
+    }
+  ]
+}

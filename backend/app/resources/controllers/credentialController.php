@@ -1,0 +1,108 @@
+<?php
+class credentialController extends controller {
+
+  function __construct() {
+    parent::__construct('credential');
+  }
+
+  function create() {
+    $data = request::data();
+    
+    if (!isset($data['name']) || empty($data['name'])) {
+      response::json(['success' => false, 'error' => __('credential.name_required')], 200);
+    }
+
+    if (!isset($data['type']) || empty($data['type'])) {
+      response::json(['success' => false, 'error' => __('credential.type_required')], 200);
+    }
+
+    if (!isset($data['user_id']) || empty($data['user_id'])) {
+      response::json(['success' => false, 'error' => __('credential.user_id_required')], 200);
+    }
+
+    if (isset($data['config']) && is_array($data['config'])) {
+      $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
+    }
+
+    $data['dc'] = date('Y-m-d H:i:s');
+    $data['ta'] = time();
+
+    try {
+      $id = db::table('credentials')->insert($data);
+      response::success(['id' => $id], __('credential.create.success'), 201);
+    } catch (Exception $e) {
+      response::serverError(__('credential.create.error'), IS_DEV ? $e->getMessage() : null);
+    }
+  }
+
+  function update($id) {
+    $exists = db::table('credentials')->find($id);
+    if (!$exists) response::notFound(__('credential.not_found'));
+
+    $data = request::data();
+
+    if (isset($data['config']) && is_array($data['config'])) {
+      $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
+    }
+
+    $data['da'] = date('Y-m-d H:i:s');
+    $data['tu'] = time();
+
+    try {
+      $affected = db::table('credentials')->where('id', $id)->update($data);
+      response::success(['affected' => $affected], __('credential.update.success'));
+    } catch (Exception $e) {
+      response::serverError(__('credential.update.error'), IS_DEV ? $e->getMessage() : null);
+    }
+  }
+
+  function show($id) {
+    $data = db::table('credentials')->find($id);
+    if (!$data) response::notFound(__('credential.not_found'));
+
+    if (isset($data['config']) && is_string($data['config'])) {
+      $data['config'] = json_decode($data['config'], true);
+    }
+
+    response::success($data);
+  }
+
+  function list() {
+    $query = db::table('credentials');
+    
+    foreach ($_GET as $key => $value) {
+      if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
+      $query = $query->where($key, $value);
+    }
+
+    $sort = request::query('sort', 'id');
+    $order = request::query('order', 'DESC');
+    $query = $query->orderBy($sort, $order);
+
+    $page = request::query('page', 1);
+    $perPage = request::query('per_page', 50);
+    $data = $query->paginate($page, $perPage)->get();
+
+    if (!is_array($data)) $data = [];
+
+    foreach ($data as &$item) {
+      if (isset($item['config']) && is_string($item['config'])) {
+        $item['config'] = json_decode($item['config'], true);
+      }
+    }
+
+    response::success($data);
+  }
+
+  function delete($id) {
+    $item = db::table('credentials')->find($id);
+    if (!$item) response::notFound(__('credential.not_found'));
+
+    try {
+      $affected = db::table('credentials')->where('id', $id)->delete();
+      response::success(['affected' => $affected], __('credential.delete.success'));
+    } catch (Exception $e) {
+      response::serverError(__('credential.delete.error'), IS_DEV ? $e->getMessage() : null);
+    }
+  }
+}

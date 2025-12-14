@@ -18,6 +18,10 @@ class botController extends controller {
       ], 200);
     }
 
+    if (!isset($data['user_id']) || empty($data['user_id'])) {
+      response::json(['success' => false, 'error' => __('bot.user_id_required')], 200);
+    }
+
     // Convertir config a JSON si es array
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);

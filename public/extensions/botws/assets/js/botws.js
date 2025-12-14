@@ -5,11 +5,7 @@ class botws {
   };
 
   static currentId = null;
-
-  // ============================================
   // FORMULARIOS
-  // ============================================
-
   // Abrir form nuevo
   static openNew(formId) {
     this.currentId = null;
@@ -35,9 +31,26 @@ class botws {
 
   // Llenar formulario
   static fillForm(formId, data) {
+    const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
+    
+    // Convertir arrays de IDs a arrays de objetos con credential_id
+    const agentArray = Array.isArray(configData.apis?.agent)
+      ? configData.apis.agent.map(id => ({ credential_id: id }))
+      : [];
+    
+    const chatArray = Array.isArray(configData.apis?.chat)
+      ? configData.apis.chat.map(id => ({ credential_id: id }))
+      : [];
+    
     form.fill(formId, {
       name: data.name,
-      personality: data.personality || ''
+      number: data.number || '',
+      country_code: data.country_code || '',
+      personality: data.personality || '',
+      type: data.type || '',
+      mode: data.mode || '',
+      'config.apis.agent': agentArray,
+      'config.apis.chat': chatArray
     });
   }
 
@@ -72,10 +85,75 @@ class botws {
 
   // Construir body para API
   static buildBody(formData) {
+    const userId = auth.user?.id;
+    
+    if (!userId) {
+      logger.error('ext:botws', 'No se pudo obtener el user_id');
+      toast.error(__('botws.bot.error.user_not_found'));
+      return null;
+    }
+
+    // Extraer arrays de credenciales desde los repetibles
+    let agentCredentials = [];
+    let chatCredentials = [];
+
+    // Buscar en formData con diferentes formatos posibles
+    if (formData.config && typeof formData.config === 'object') {
+      // config.apis.agent es un array de objetos [{credential_id: 1}, {credential_id: 2}]
+      const agentArray = formData.config.apis?.agent || [];
+      const chatArray = formData.config.apis?.chat || [];
+      
+      agentCredentials = Array.isArray(agentArray) 
+        ? agentArray.map(item => parseInt(item.credential_id)).filter(id => !isNaN(id))
+        : [];
+      
+      chatCredentials = Array.isArray(chatArray)
+        ? chatArray.map(item => parseInt(item.credential_id)).filter(id => !isNaN(id))
+        : [];
+    } else {
+      // Buscar por keys directas (form.getData puede estructurar así)
+      const agentData = formData['config.apis.agent'] || formData['config[apis][agent]'] || [];
+      const chatData = formData['config.apis.chat'] || formData['config[apis][chat]'] || [];
+      
+      agentCredentials = Array.isArray(agentData)
+        ? agentData.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
+        : [];
+      
+      chatCredentials = Array.isArray(chatData)
+        ? chatData.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
+        : [];
+    }
+
+    // ✅ Validación: Al menos 1 agent y 1 chat requerido
+    if (agentCredentials.length === 0) {
+      toast.error(__('botws.bot.error.agent_required'));
+      return null;
+    }
+
+    if (chatCredentials.length === 0) {
+      toast.error(__('botws.bot.error.chat_required'));
+      return null;
+    }
+
+    const config = {
+      apis: {
+        agent: agentCredentials,
+        chat: chatCredentials
+      }
+    };
+
+    console.log('buildBody - formData:', formData);
+    console.log('buildBody - config construido:', config);
+
     return {
+      user_id: userId,
       name: formData.name,
+      number: formData.number,
+      country_code: formData.country_code,
       personality: formData.personality || null,
-      config: {}
+      type: formData.type,
+      mode: formData.mode,
+      config: config
     };
   }
 
@@ -84,6 +162,8 @@ class botws {
   // ============================================
 
   static async create(data) {
+    if (!data) return null;
+
     try {
       const res = await api.post(this.apis.bot, data);
       return res.success === false ? null : (res.data || res);
@@ -106,6 +186,8 @@ class botws {
   }
 
   static async update(id, data) {
+    if (!data) return null;
+
     try {
       const res = await api.put(`${this.apis.bot}/${id}`, {...data, id});
       return res.success === false ? null : (res.data || res);
@@ -145,10 +227,7 @@ class botws {
     }
   }
 
-  // ============================================
   // UTILIDADES
-  // ============================================
-
   // Refrescar datatable
   static refresh() {
     if (window.datatable) datatable.refreshFirst();

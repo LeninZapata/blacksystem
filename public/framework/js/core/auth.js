@@ -142,7 +142,6 @@ class auth {
         return { success: true, user, token, ttl_ms: tokenTTL };
       }
 
-      //  toast.error(__('core.auth.error.invalid_credentials'));
       logger.warn('core:auth', 'Credenciales incorrectas');
       return {
         success: false,
@@ -191,6 +190,10 @@ class auth {
       return;
     }
 
+    // Listener una sola vez para evitar duplicados
+    if (this._loginHandlerRegistered) return;
+    this._loginHandlerRegistered = true;
+
     events.on('form[data-form-id*="login-form"]', 'submit', async function(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -222,7 +225,6 @@ class auth {
       }
 
       if (!result.success) {
-        logger.warn('core:auth', 'Login falló:', result.error);
         auth.showLoginError(form, result.error || __('core.auth.error.login_failed'));
       }
     }, document);
@@ -232,6 +234,7 @@ class auth {
 
   static showLoginError(form, message) {
     let error = form.querySelector('.form-error');
+    
     if (!error) {
       error = document.createElement('div');
       error.className = 'form-error';

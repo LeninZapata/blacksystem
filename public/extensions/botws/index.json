@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "enabled": true,
   "hasViews": true,
-  "hasMenu": true,
+  "hasMenu": false,
   "hasHooks": false,
   "description": "Gestión de Bots de WhatsApp",
   "menu": {

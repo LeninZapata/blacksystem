@@ -1,0 +1,28 @@
+{
+  "name": "ecom",
+  "version": "1.0.0",
+  "enabled": false,
+  "hasViews": true,
+  "hasMenu": true,
+  "hasHooks": false,
+  "description": "Gestión de E-commerce",
+  "menu": {
+    "title": "Ecommerce",
+    "icon": "🛒",
+    "order": 30,
+    "items": [
+      {
+        "id": "ecom-products",
+        "title": "Productos",
+        "view": "sections/ecom-products",
+        "order": 1
+      },
+      {
+        "id": "ecom-stats",
+        "title": "Estadísticas",
+        "view": "sections/ecom-stats",
+        "order": 2
+      }
+    ]
+  }
+}

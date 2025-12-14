@@ -77,6 +77,7 @@
   "core.auth.session.expired": "Tu sesión ha expirado o fue invalidada. Por favor, inicia sesión nuevamente.",
 
   "core.form.repeatable.add": "Agregar",
+  "core.form.select.placeholder": "Selecciona una opción",
   "core.form.validation.form_not_found": "Formulario no encontrado",
   "core.form.validation.required": "{field} es requerido",
   "core.form.validation.required_text": "es requerido",

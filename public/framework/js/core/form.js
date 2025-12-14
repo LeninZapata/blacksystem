@@ -21,6 +21,25 @@ class form {
     'flatlist': 'repeatable'
   };
 
+  // ✅ Transforms disponibles (única fuente de verdad)
+  static transforms = {
+    lowercase: (value) => value.toLowerCase(),
+    uppercase: (value) => value.toUpperCase(),
+    trim: (value) => value.replace(/\s+/g, ''),
+    alphanumeric: (value) => value.replace(/[^a-zA-Z0-9]/g, ''),
+    numeric: (value) => value.replace(/[^0-9]/g, ''),
+    slug: (value) => value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  };
+
+  // ✅ Mapeo de reglas de validación a transforms automáticos
+  static validationToTransformMap = {
+    'numeric': 'numeric',           // Solo números
+    'alpha_num': 'alphanumeric',    // Letras y números
+    // Agregar más según necesidad:
+    // 'url': 'lowercase',
+    // 'slug': 'slug',
+  };
+
   // Normalizar tipo de campo (soporta 3 niveles)
   static normalizeFieldType(field) {
     if (!field || !field.type) return field;
@@ -429,28 +448,98 @@ class form {
     }
   }
 
-  static renderField(field, path) {
-    // ✅ Validar role al inicio
-    if (!this.hasRoleAccess(field)) return '';
-
-    if (field.type === 'html') {
-      return field.content || '';
-    }
-
-    const label = this.t(field.label) || path;
-    const labelI18n = field.label?.startsWith('i18n:') ? `data-i18n="${field.label.replace('i18n:', '')}"` : '';
-    const requiredAsterisk = field.required ? '<span style="color: #e74c3c; margin-left: 2px;">*</span>' : '';
-
+  /**
+   * Obtener clases de transform basadas en field.transform y field.validation
+   * Mapea reglas de validación a sus transforms equivalentes automáticamente
+   */
+  static getTransformClasses(field) {
     const transformClasses = [];
+
+    // 1. Agregar transforms explícitos (field.transform)
     if (field.transform) {
       const transforms = Array.isArray(field.transform) ? field.transform : [field.transform];
       transforms.forEach(t => transformClasses.push(`form-transform-${t}`));
     }
 
+    // 2. Auto-detectar transforms desde validation usando el mapa compartido
+    if (field.validation) {
+      Object.keys(this.validationToTransformMap).forEach(validationRule => {
+        if (field.validation.includes(validationRule)) {
+          const transformName = this.validationToTransformMap[validationRule];
+          const transformClass = `form-transform-${transformName}`;
+          if (!transformClasses.includes(transformClass)) {
+            transformClasses.push(transformClass);
+          }
+        }
+      });
+    }
+
+    return transformClasses;
+  }
+
+  /**
+   * Extraer atributos HTML desde field.validation
+   * Convierte min:8|max:20 → minlength="8" maxlength="20" (para text)
+   * o min="8" max="20" (para number)
+   */
+  static getValidationAttributes(field) {
+    const attrs = [];
+    
+    if (!field.validation) return '';
+
+    const rules = field.validation.split('|');
+    const isNumberType = field.type === 'number' || field.type === 'range';
+
+    rules.forEach(rule => {
+      const [ruleName, ruleValue] = rule.split(':');
+
+      if (ruleName === 'min') {
+        // Para number usa 'min', para text usa 'minlength'
+        const attrName = isNumberType ? 'min' : 'minlength';
+        attrs.push(`${attrName}="${ruleValue}"`);
+      }
+      else if (ruleName === 'max') {
+        // Para number usa 'max', para text usa 'maxlength'
+        const attrName = isNumberType ? 'max' : 'maxlength';
+        attrs.push(`${attrName}="${ruleValue}"`);
+      }
+      else if (ruleName === 'minValue') {
+        attrs.push(`min="${ruleValue}"`);
+      }
+      else if (ruleName === 'maxValue') {
+        attrs.push(`max="${ruleValue}"`);
+      }
+    });
+
+    return attrs.join(' ');
+  }
+
+  static renderField(field, path) {
+    // ✅ Validar role al inicio
+    if (!this.hasRoleAccess(field)) return '';
+
+    if (field.type === 'html') {
+      // ✅ Envolver HTML en contenedor para soportar condiciones
+      const htmlId = path ? `data-field-name="${path}"` : '';
+      return `<div class="form-html-wrapper" ${htmlId}>${field.content || ''}</div>`;
+    }
+
+    const label = this.t(field.label) || path;
+    const labelI18n = field.label?.startsWith('i18n:') ? `data-i18n="${field.label.replace('i18n:', '')}"` : '';
+    // Verificar si es requerido por campo required o por validation
+    const isRequired = field.required || (field.validation && field.validation.includes('required'));
+    const requiredAsterisk = isRequired ? '<span class="form-required">*</span>' : '';
+
+    // ✅ Obtener clases de transform (explícitas + auto-detectadas)
+    const transformClasses = this.getTransformClasses(field);
+
     const classNames = [
       field.className || '',
       ...transformClasses
     ].filter(c => c).join(' ');
+
+    // ✅ Extraer atributos desde validation (min, max, etc.)
+    const validationAttrs = this.getValidationAttributes(field);
 
     const common = `
       name="${path}"
@@ -460,6 +549,7 @@ class form {
       ${field.max !== undefined ? `max="${field.max}"` : ''}
       ${field.step !== undefined ? `step="${field.step}"` : ''}
       ${classNames ? `class="${classNames}"` : ''}
+      ${validationAttrs}
     `.trim();
 
     // Procesar estilos
@@ -509,15 +599,26 @@ class form {
         return `<button type="${btnType}" class="${btnClass}" ${buttonI18n} ${onclickAttr} ${btnPropsAttr}>${label}</button>`;
 
       case 'select':
+        const selectId = `select-${path.replace(/\./g, '-')}`;
+        const hasSource = field.source ? `data-source="${field.source}"` : '';
+        const sourceValue = field.sourceValue || 'value';
+        const sourceLabel = field.sourceLabel || 'label';
+        const sourceData = hasSource ? `data-source-value="${sourceValue}" data-source-label="${sourceLabel}"` : '';
+        
+        const staticOptions = field.options?.map(opt => {
+          const optI18n = opt.label?.startsWith('i18n:') ? `data-i18n="${opt.label.replace('i18n:', '')}"` : '';
+          return `<option value="${opt.value}" ${optI18n}>${this.t(opt.label)}</option>`;
+        }).join('') || '';
+
+        if (field.source) {
+          setTimeout(() => this.loadSelectFromAPI(selectId, field.source, sourceValue, sourceLabel), 10);
+        }
+
         return `
           <div class="form-group">
             <label ${labelI18n}>${label}${requiredAsterisk}</label>
-            <select ${common} ${styleAttr} ${propsAttr}>
-              <option value="">Selecciona...</option>
-              ${field.options?.map(opt => {
-                const optI18n = opt.label?.startsWith('i18n:') ? `data-i18n="${opt.label.replace('i18n:', '')}"` : '';
-                return `<option value="${opt.value}" ${optI18n}>${this.t(opt.label)}</option>`;
-              }).join('') || ''}
+            <select id="${selectId}" ${common} ${styleAttr} ${propsAttr} ${hasSource} ${sourceData}>
+              ${staticOptions}
             </select>
             <span class="form-error"></span>
           </div>`;
@@ -541,10 +642,12 @@ class form {
           </div>`;
 
       default:
+        const hint = field.hint ? `<small class="form-hint">${this.t(field.hint)}</small>` : '';
         return `
           <div class="form-group">
             <label ${labelI18n}>${label}${requiredAsterisk}</label>
             <input type="${field.type}" ${common} ${styleAttr} ${propsAttr}>
+            ${hint}
             <span class="form-error"></span>
           </div>`;
     }
@@ -660,6 +763,14 @@ class form {
     }
     if (field.gap) {
       container.dataset.gap = field.gap;
+    }
+
+    // Crear items iniciales si initialItems > 0
+    const initialItems = parseInt(field.initialItems) || 0;
+    if (initialItems > 0) {
+      for (let i = 0; i < initialItems; i++) {
+        this.addRepeatableItem(path);
+      }
     }
   }
 
@@ -852,14 +963,8 @@ class form {
 
     if (!formEl) return;
 
-    const transforms = {
-      lowercase: (value) => value.toLowerCase(),
-      uppercase: (value) => value.toUpperCase(),
-      trim: (value) => value.replace(/\s+/g, ''),
-      alphanumeric: (value) => value.replace(/[^a-zA-Z0-9]/g, ''),
-      numeric: (value) => value.replace(/[^0-9]/g, ''),
-      slug: (value) => value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    };
+    // ✅ Usar transforms desde la variable de clase
+    const transforms = this.transforms;
 
     formEl.querySelectorAll('[class*="form-transform-"]').forEach(input => {
       const classes = input.className.split(' ');
@@ -1085,6 +1190,21 @@ class form {
     const validateField = (field, fieldPath) => {
       if (field.type === 'button' || field.type === 'html') return;
 
+      // ✅ VALIDACIÓN: Saltar campos ocultos por condiciones
+      const input = formEl.querySelector(`[name="${fieldPath}"]`);
+      if (input) {
+        const fieldContainer = input.closest('.form-group, .form-checkbox, .form-html-wrapper');
+        
+        // Si el campo está oculto (por condiciones o cualquier otro motivo), no validar
+        if (fieldContainer && (
+          fieldContainer.classList.contains('wpfw-depend-on') || 
+          fieldContainer.style.display === 'none' ||
+          window.getComputedStyle(fieldContainer).display === 'none'
+        )) {
+          return; // Saltar validación
+        }
+      }
+
       const value = getValueByPath(formData, fieldPath);
       const label = this.t(field.label) || field.name;
       const fieldErrors = [];
@@ -1187,6 +1307,29 @@ class form {
           field.groups.forEach(group => {
             if (group.fields) processFields(group.fields, basePath);
           });
+        }
+        // ✅ NUEVO: Validar campos dentro de repetables
+        else if (field.type === 'repeatable' && field.fields) {
+          const repeatableFieldPath = basePath ? `${basePath}.${field.name}` : field.name;
+          const repeatableData = getValueByPath(formData, repeatableFieldPath);
+          
+          // Si hay datos en el repeatable (array de items)
+          if (Array.isArray(repeatableData) && repeatableData.length > 0) {
+            repeatableData.forEach((itemData, index) => {
+              const itemPath = `${repeatableFieldPath}[${index}]`;
+              
+              // Validar cada campo dentro del item
+              field.fields.forEach(subField => {
+                if (subField.type === 'repeatable' && subField.fields) {
+                  // Recursión para repetables anidados
+                  processFields([subField], itemPath);
+                } else if (subField.name) {
+                  const subFieldPath = `${itemPath}.${subField.name}`;
+                  validateField(subField, subFieldPath);
+                }
+              });
+            });
+          }
         }
         else if (field.name) {
           const fieldPath = basePath ? `${basePath}.${field.name}` : field.name;
@@ -1338,6 +1481,43 @@ class form {
       el.style.display = 'none';
     });
     formEl.querySelectorAll('.form-group').forEach(el => el.classList.remove('has-error'));
+  }
+
+  static async loadSelectFromAPI(selectId, source, valueField, labelField) {
+    const selectEl = document.getElementById(selectId);
+    if (!selectEl) {
+      logger.error('core:form', `Select no encontrado: ${selectId}`);
+      return;
+    }
+
+    const firstOption = selectEl.querySelector('option');
+    const placeholder = firstOption?.value === '' ? firstOption : null;
+
+    try {
+      selectEl.disabled = true;
+      
+      const data = await api.get(source);
+      const items = Array.isArray(data) ? data : (data.data || []);
+
+      selectEl.innerHTML = '';
+      
+      if (placeholder) {
+        selectEl.appendChild(placeholder);
+      }
+
+      items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item[valueField];
+        option.textContent = item[labelField];
+        selectEl.appendChild(option);
+      });
+
+      selectEl.disabled = false;
+      logger.debug('core:form', `Select ${selectId} cargado con ${items.length} items desde ${source}`);
+    } catch (error) {
+      logger.error('core:form', `Error cargando select ${selectId} desde ${source}:`, error);
+      selectEl.disabled = false;
+    }
   }
 }
 

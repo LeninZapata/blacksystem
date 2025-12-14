@@ -30,7 +30,6 @@
       "name": "submit",
       "type": "button",
       "label": "i18n:auth.login.submit",
-      "action": "submit:auth.login",
       "props": {
         "type": "submit"
       }

@@ -31,6 +31,11 @@ class userController extends controller {
     // Hashear contraseña
     $data['pass'] = password_hash($data['pass'], PASSWORD_BCRYPT);
 
+    // Capturar user_id del usuario autenticado (quien crea)
+    if (isset($GLOBALS['auth_user_id'])) {
+      $data['user_id'] = $GLOBALS['auth_user_id'];
+    }
+
     // Convertir config a JSON si es array
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
@@ -41,7 +46,7 @@ class userController extends controller {
     $data['tc'] = time();
 
     // Validar user único
-    if (db::table('user')->where('user', $data['user'])->exists()) {
+    if (db::table('users')->where('user', $data['user'])->exists()) {
       log::warning('UserController - Usuario ya existe', ['user' => $data['user']], ['module' => 'user']);
       response::json([
         'success' => false,
@@ -51,7 +56,7 @@ class userController extends controller {
 
     // Validar email único si se proporciona
     if (isset($data['email']) && !empty($data['email'])) {
-      if (db::table('user')->where('email', $data['email'])->exists()) {
+      if (db::table('users')->where('email', $data['email'])->exists()) {
         log::warning('UserController - Email ya existe', ['email' => $data['email']], ['module' => 'user']);
         response::json([
           'success' => false,
@@ -61,7 +66,7 @@ class userController extends controller {
     }
 
     try {
-      $id = db::table('user')->insert($data);
+      $id = db::table('users')->insert($data);
       log::info('UserController - Usuario creado', ['id' => $id], ['module' => 'user']);
       response::success(['id' => $id], __('user.create.success'), 201);
     } catch (Exception $e) {
@@ -72,7 +77,7 @@ class userController extends controller {
 
   // Override update para hashear contraseña si se proporciona
   function update($id) {
-    $exists = db::table('user')->find($id);
+    $exists = db::table('users')->find($id);
     if (!$exists) response::notFound(__('user.not_found'));
 
     $data = request::data();
@@ -101,7 +106,7 @@ class userController extends controller {
 
     // Validar user único (excepto el actual)
     if (isset($data['user'])) {
-      $query = db::table('user')->where('user', $data['user'])->where('id', '!=', $id);
+      $query = db::table('users')->where('user', $data['user'])->where('id', '!=', $id);
       if ($query->exists()) {
         response::json([
           'success' => false,
@@ -112,7 +117,7 @@ class userController extends controller {
 
     // Validar email único (excepto el actual)
     if (isset($data['email']) && !empty($data['email'])) {
-      $query = db::table('user')->where('email', $data['email'])->where('id', '!=', $id);
+      $query = db::table('users')->where('email', $data['email'])->where('id', '!=', $id);
       if ($query->exists()) {
         response::json([
           'success' => false,
@@ -125,7 +130,7 @@ class userController extends controller {
     $data['du'] = date('Y-m-d H:i:s');
     $data['tu'] = time();
 
-    $affected = db::table('user')->where('id', $id)->update($data);
+    $affected = db::table('users')->where('id', $id)->update($data);
 
     // INVALIDAR SESIONES si se modificó el config (permisos)
     $cleaned = 0;
@@ -151,7 +156,7 @@ class userController extends controller {
 
   // Override show para no devolver la contraseña
   function show($id) {
-    $data = db::table('user')->find($id);
+    $data = db::table('users')->find($id);
     if (!$data) response::notFound(__('user.not_found'));
 
     // Parsear config si es string JSON
@@ -165,7 +170,7 @@ class userController extends controller {
 
   // Override list para no devolver contraseñas
   function list() {
-    $query = db::table('user');
+    $query = db::table('users');
 
     // Filtros dinámicos
     foreach ($_GET as $key => $value) {

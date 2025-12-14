@@ -1,0 +1,37 @@
+{
+  "resource": "workFlow",
+  "table": "work_flows",
+  "timestamps": true,
+  "middleware": ["throttle:100,1"],
+  "routes": {
+    "list": {"method": "GET", "path": "/api/workFlow", "middleware": ["auth"]},
+    "show": {"method": "GET", "path": "/api/workFlow/{id}", "middleware": ["auth"]},
+    "create": {"method": "POST", "path": "/api/workFlow", "middleware": ["auth", "json"]},
+    "update": {"method": "PUT", "path": "/api/workFlow/{id}", "middleware": ["auth", "json"]},
+    "delete": {"method": "DELETE", "path": "/api/workFlow/{id}", "middleware": ["auth"]}
+  },
+  "fields": [
+    {
+      "name": "user_id",
+      "type": "int",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "maxLength": 200,
+      "required": true
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "file_path",
+      "type": "string",
+      "maxLength": 500,
+      "required": false
+    }
+  ]
+}

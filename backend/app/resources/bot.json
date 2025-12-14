@@ -33,8 +33,13 @@
   },
 
   "fields": [
+    { "name": "user_id", "type": "int", "required": true },
     { "name": "name", "type": "string", "required": true, "maxLength": 50 },
-    { "name": "personality", "type": "string", "maxLength": 250 },
+    { "name": "number", "type": "string", "required": true, "maxLength": 20 },
+    { "name": "country_code", "type": "string", "required": true },
+    { "name": "personality", "type": "string", "maxLength": 200 },
+    { "name": "type", "type": "string", "required": true },
+    { "name": "mode", "type": "string", "required": true },
     { "name": "config", "type": "json" },
     { "name": "dc", "type": "datetime" },
     { "name": "da", "type": "datetime" },
