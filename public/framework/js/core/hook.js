@@ -10,7 +10,8 @@ class hook {
     this.menuItems = [];
 
     try {
-      const registry = await api.get('extensions/index.json');
+      const cacheBuster = `?v=${window.VERSION}`;
+      const registry = await api.get('extensions/index.json' + cacheBuster);
 
       if (!registry?.extensions || !Array.isArray(registry.extensions)) {
         logger.warn('core:hook', 'extensions/index.json vacío o mal formado');

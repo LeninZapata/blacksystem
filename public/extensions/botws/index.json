@@ -1,0 +1,22 @@
+{
+  "name": "botws",
+  "version": "1.0.0",
+  "enabled": true,
+  "hasViews": true,
+  "hasMenu": true,
+  "hasHooks": false,
+  "description": "Gestión de Bots de WhatsApp",
+  "menu": {
+    "title": "Bots WS",
+    "icon": "💬",
+    "order": 10,
+    "items": [
+      {
+        "id": "botws-listado",
+        "title": "Listado",
+        "view": "sections/botws-listado",
+        "order": 1
+      }
+    ]
+  }
+}

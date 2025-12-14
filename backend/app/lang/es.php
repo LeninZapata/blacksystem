@@ -6,6 +6,7 @@ $langPath = __DIR__ . '/es/';
 return [
   'api'        => require $langPath . 'api.php',
   'auth'       => require $langPath . 'auth.php',
+  'bot'        => require $langPath . 'bot.php',
   'client'     => require $langPath . 'client.php',
   'core'       => require $langPath . 'core.php',
   'helper'     => require $langPath . 'helper.php',

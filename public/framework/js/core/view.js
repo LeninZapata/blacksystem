@@ -393,7 +393,7 @@ class view {
 
   static renderContentItem(item) {
     if (item == null) return '';
-    if (typeof item === 'string') return item;
+    if (typeof item === 'string') return this.processI18nInString(item);
     if (typeof item !== 'object') return '';
 
     const formJson = item.form_json || item.formJson;
@@ -407,10 +407,32 @@ class view {
     }
 
     if (item.type === 'html') {
-      return item.content || '';
+      return this.processI18nInString(item.content || '');
     }
 
     return '';
+  }
+
+  // Procesar cadenas i18n en contenido HTML
+  static processI18nInString(str) {
+    if (!str || typeof str !== 'string') return str;
+    
+    // Reemplazar {i18n:key} o {i18n:key|param1:value1|param2:value2}
+    return str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
+      const parts = content.split('|');
+      const key = parts[0];
+      const params = {};
+      
+      // Procesar parámetros opcionales
+      for (let i = 1; i < parts.length; i++) {
+        const [paramKey, paramValue] = parts[i].split(':');
+        if (paramKey && paramValue) {
+          params[paramKey] = paramValue;
+        }
+      }
+      
+      return window.i18n ? i18n.t(key, params) : key;
+    });
   }
 
   static async reInitializeCachedView(cachedData) {
@@ -573,10 +595,28 @@ class view {
       const tabHooks = hooksByTab[tab.id];
 
       if (tabHooks && tabHooks.length > 0 && Array.isArray(tab.content)) {
-        logger.debug('core:view', `Mezclando ${tabHooks.length} hooks en tab "${tab.id}"`);
+        // Crear un Set con los IDs de items que ya están en el tab
+        const existingIds = new Set(tab.content.map(item => item.id).filter(Boolean));
+
+        // Filtrar hooks que no estén ya en el tab
+        const newHooks = tabHooks.filter(hook => {
+          if (!hook.id) return true;
+          if (existingIds.has(hook.id)) {
+            logger.debug('core:view', `Hook "${hook.id}" ya existe en tab "${tab.id}", ignorando duplicado`);
+            return false;
+          }
+          return true;
+        });
+
+        if (newHooks.length === 0) {
+          logger.debug('core:view', `Todos los hooks ya están en tab "${tab.id}", no se agrega nada`);
+          return tab;
+        }
+
+        logger.debug('core:view', `Mezclando ${newHooks.length} hooks en tab "${tab.id}" (${tabHooks.length - newHooks.length} duplicados ignorados)`);
 
         const existingContent = tab.content.map(item => ({ order: item.order || 999, ...item }));
-        const hooksWithOrder = tabHooks.map(hook => ({ order: hook.order || 999, ...hook }));
+        const hooksWithOrder = newHooks.map(hook => ({ order: hook.order || 999, ...hook }));
         const mixedContent = [...hooksWithOrder, ...existingContent];
 
         mixedContent.sort((a, b) => (a.order || 999) - (b.order || 999));
@@ -589,14 +629,32 @@ class view {
   }
 
   static mergeHooksIntoContent(viewData, hooks) {
+    // Crear un Set con los IDs de items que ya están en content
+    const existingIds = new Set(viewData.content.map(item => item.id).filter(Boolean));
+
+    // Filtrar hooks que no estén ya en content
+    const newHooks = hooks.filter(hook => {
+      if (!hook.id) return true; // Si no tiene ID, agregarlo
+      if (existingIds.has(hook.id)) {
+        logger.debug('core:view', `Hook "${hook.id}" ya existe en content, ignorando duplicado`);
+        return false;
+      }
+      return true;
+    });
+
+    if (newHooks.length === 0) {
+      logger.debug('core:view', 'Todos los hooks ya están en content, no se agrega nada');
+      return;
+    }
+
     const existingContent = viewData.content.map(item => ({ order: item.order || 999, ...item }));
-    const hooksWithOrder = hooks.map(hook => ({ order: hook.order || 999, ...hook }));
+    const hooksWithOrder = newHooks.map(hook => ({ order: hook.order || 999, ...hook }));
     const mixedContent = [...hooksWithOrder, ...existingContent];
 
     mixedContent.sort((a, b) => (a.order || 999) - (b.order || 999));
 
     viewData.content = mixedContent;
-    logger.debug('core:view', `${hooks.length} hooks mezclados en content`);
+    logger.debug('core:view', `${newHooks.length} hooks mezclados en content (${hooks.length - newHooks.length} duplicados ignorados)`);
   }
 }
 

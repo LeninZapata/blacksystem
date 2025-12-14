@@ -1,0 +1,22 @@
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  
+  &.left {
+    justify-content: flex-start;
+  }
+  
+  &.center {
+    justify-content: center;
+  }
+  
+  &.right {
+    justify-content: flex-end;
+  }
+  
+  &.space-between {
+    justify-content: space-between;
+  }
+}

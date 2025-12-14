@@ -192,33 +192,53 @@ class datatable {
     }
 
     // Si es un objeto con propiedad 'data' (formato API común)
-    if (typeof response === 'object' && response.data) {
+    if (typeof response === 'object' && response.data !== undefined) {
       if (Array.isArray(response.data)) {
         logger.debug('com:datatable', `Data extracted from response.data (${response.data.length} items)`);
         return response.data;
       }
+      // Si response.data existe pero NO es array, retornar vacío
+      logger.warn('com:datatable', 'response.data exists but is not an array', response.data);
+      return [];
     }
 
     // Si es un objeto con propiedad 'results' (otro formato API común)
-    if (typeof response === 'object' && response.results) {
+    if (typeof response === 'object' && response.results !== undefined) {
       if (Array.isArray(response.results)) {
         logger.debug('com:datatable', `Data extracted from response.results (${response.results.length} items)`);
         return response.results;
       }
+      logger.warn('com:datatable', 'response.results exists but is not an array', response.results);
+      return [];
     }
 
     // Si es un objeto con propiedad 'items'
-    if (typeof response === 'object' && response.items) {
+    if (typeof response === 'object' && response.items !== undefined) {
       if (Array.isArray(response.items)) {
         logger.debug('com:datatable', `Data extracted from response.items (${response.items.length} items)`);
         return response.items;
       }
+      logger.warn('com:datatable', 'response.items exists but is not an array', response.items);
+      return [];
     }
 
-    // Si es un objeto simple (no array), convertirlo a array de un elemento
-    if (typeof response === 'object') {
-      logger.debug('com:datatable', 'Converting single object to array');
-      return [response];
+    // ✅ NUEVO: Si es un objeto con solo 'success' (sin data), retornar vacío
+    if (typeof response === 'object' && response.success !== undefined && !response.data) {
+      logger.warn('com:datatable', 'Response has success but no data property - returning empty array', response);
+      return [];
+    }
+
+    // Si es un objeto simple CON campos de datos (no solo success), convertirlo a array
+    if (typeof response === 'object' && Object.keys(response).length > 0) {
+      // Verificar si tiene campos que parecen datos de entidad (id, name, etc)
+      const hasDataFields = Object.keys(response).some(key => 
+        !['success', 'message', 'error', 'status'].includes(key)
+      );
+      
+      if (hasDataFields) {
+        logger.debug('com:datatable', 'Converting single object to array');
+        return [response];
+      }
     }
 
     // Cualquier otra cosa, retornar array vacío

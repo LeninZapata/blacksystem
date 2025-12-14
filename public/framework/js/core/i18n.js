@@ -253,6 +253,27 @@ class i18n {
     this.translations.clear();
     this.exntesionTranslations.clear();
   }
+
+  // Procesar string con placeholders {i18n:key} o {i18n:key|param:value}
+  static processString(str) {
+    if (!str || typeof str !== 'string') return str;
+    
+    return str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
+      const parts = content.split('|');
+      const key = parts[0];
+      const params = {};
+      
+      // Procesar parámetros opcionales
+      for (let i = 1; i < parts.length; i++) {
+        const [paramKey, paramValue] = parts[i].split(':');
+        if (paramKey && paramValue) {
+          params[paramKey] = paramValue;
+        }
+      }
+      
+      return this.t(key, params);
+    });
+  }
 }
 
 window.i18n = i18n;

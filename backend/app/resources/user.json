@@ -8,7 +8,7 @@
     "list": {
       "method": "GET",
       "path": "/api/user/",
-      "middleware": ["auth"]
+      "middleware": [ "auth" ]
     },
     "show": {
       "method": "GET",

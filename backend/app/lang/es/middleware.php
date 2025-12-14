@@ -2,7 +2,7 @@
 // app/lang/es/middleware.php
 return [
   'auth' => [
-    'token_missing' => 'Token no proporcionado',
+    'token_missing' => 'Token no proporcionado (desde middleware)',
     'token_invalid' => 'Token inválido',
     'token_expired' => 'Token expirado',
     'token_not_found' => 'Token no encontrado',

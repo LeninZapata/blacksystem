@@ -1,0 +1,69 @@
+{
+  "id": "botwsListado",
+  "title": "{i18n:botws.listado.title}",
+  "type": "content",
+  "scripts": [
+    "botws/assets/js/botws.js"
+  ],
+  "content": [
+    {
+      "type": "html",
+      "content": "<div class='view-header'><h2>{i18n:botws.listado.header.title}</h2><p>{i18n:botws.listado.header.description}</p></div>",
+      "order": 0
+    },
+    {
+      "type": "html",
+      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"modal.open('botws|forms/bot-form', {title: '{i18n:botws.modal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){botws.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='botws.refresh();toast.info(\"{i18n:botws.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "order": 1
+    },
+    {
+      "type": "component",
+      "component": "datatable",
+      "order": 2,
+      "config": {
+        "source": "api/bot",
+        "columns": [
+          {
+            "id": {
+              "name": "i18n:botws.bot.column.id",
+              "width": "80px",
+              "align": "center",
+              "sortable": true
+            }
+          },
+          {
+            "name": {
+              "name": "i18n:botws.bot.column.name",
+              "width": "250px",
+              "sortable": true
+            }
+          },
+          {
+            "personality": {
+              "name": "i18n:botws.bot.column.personality",
+              "width": "300px"
+            }
+          },
+          {
+            "dc": {
+              "name": "i18n:botws.bot.column.created",
+              "format": "datetime",
+              "width": "180px",
+              "align": "center"
+            }
+          }
+        ],
+        "actions": {
+          "edit": {
+            "name": "i18n:core.edit",
+            "onclick": "modal.open('botws|forms/bot-form', {title: '{i18n:botws.modal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){botws.openEdit(formId, {id});}})"
+          },
+          "delete": {
+            "name": "i18n:core.delete",
+            "onclick": "if(confirm('{i18n:botws.confirm.delete|name:{name}}')) botws.delete({id}).then(r => r && botws.refresh())"
+          }
+        }
+      }
+    }
+  ]
+}

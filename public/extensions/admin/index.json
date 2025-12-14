@@ -16,36 +16,8 @@
         "id": "admin-panel",
         "title": "Panel de Administración",
         "view": "sections/admin-panel",
-        "order": 1,
+        "order": 5,
         "role": "admin"
-      },
-      {
-        "id": "admin-users",
-        "title": "Gestión de Usuarios",
-        "view": "sections/users",
-        "order": 2,
-        "role": "admin"
-      },
-      {
-        "id": "admin-settings",
-        "title": "Configuración",
-        "order": 3,
-        "items": [
-          {
-            "id": "admin-settings-general",
-            "title": "General",
-            "view": "sections/settings-general",
-            "order": 1,
-            "role": "admin"
-          },
-          {
-            "id": "admin-settings-security",
-            "title": "Seguridad",
-            "view": "sections/settings-security",
-            "order": 2,
-            "role": "admin"
-          }
-        ]
       }
     ]
   }

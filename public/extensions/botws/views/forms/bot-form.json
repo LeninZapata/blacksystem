@@ -1,0 +1,37 @@
+{
+  "id": "bot-form",
+  "title": "i18n:botws.bot.form.title",
+  "description": "i18n:botws.bot.form.description",
+  "fields": [
+    {
+      "name": "name",
+      "label": "i18n:botws.bot.field.name",
+      "type": "text",
+      "validation": "required|min:3|max:50",
+      "placeholder": "i18n:botws.bot.field.name.placeholder"
+    },
+    {
+      "name": "personality",
+      "label": "i18n:botws.bot.field.personality",
+      "type": "textarea",
+      "validation": "max:250",
+      "placeholder": "i18n:botws.bot.field.personality.placeholder",
+      "rows": 4
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "i18n:core.cancel",
+      "action": "call:modal.closeAll",
+      "style": "secondary"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "i18n:core.save",
+      "action": "submit:botws.save"
+    }
+  ]
+}

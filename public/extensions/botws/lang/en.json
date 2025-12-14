@@ -1,0 +1,20 @@
+{
+  "botws.bot.column.id": "ID",
+  "botws.bot.column.name": "Bot Name",
+  "botws.bot.column.personality": "Personality",
+  "botws.bot.column.created": "Created Date",
+  "botws.bot.form.title": "Bot Form",
+  "botws.bot.form.description": "Fill in the WhatsApp bot details",
+  "botws.bot.field.name": "Bot Name",
+  "botws.bot.field.name.placeholder": "Ex: Support Bot",
+  "botws.bot.field.personality": "Personality",
+  "botws.bot.field.personality.placeholder": "Describe the bot's personality (optional)",
+  "botws.bot.success.created": "Bot created successfully",
+  "botws.bot.success.updated": "Bot updated successfully",
+  "botws.bot.success.deleted": "Bot deleted successfully",
+  "botws.bot.error.create_failed": "Failed to create bot",
+  "botws.bot.error.update_failed": "Failed to update bot",
+  "botws.bot.error.delete_failed": "Failed to delete bot",
+  "botws.bot.error.load_failed": "Failed to load bot",
+  "botws.refresh.success": "Bot list updated"
+}

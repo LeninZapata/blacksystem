@@ -598,6 +598,12 @@ class auth {
       sidebar.menuItems = [];
     }
 
+    // Limpiar cache de localStorage (vistas, formularios, etc)
+    if (window.cache) {
+      cache.clear();
+      logger.debug('core:auth', 'Cache de localStorage limpiado');
+    }
+
     logger.success('core:auth', 'Caches de aplicación limpiados');
   }
 

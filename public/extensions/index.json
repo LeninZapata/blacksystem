@@ -3,6 +3,10 @@
     {
       "name": "admin",
       "description": "Administración del sistema"
+    },
+    {
+      "name": "botws",
+      "description": "Gestión de Bots de WhatsApp"
     }
   ]
 }

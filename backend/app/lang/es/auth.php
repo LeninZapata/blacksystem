@@ -11,7 +11,7 @@ return [
     'error' => 'Error al cerrar sesión'
   ],
   'token' => [
-    'missing' => 'Token no proporcionado',
+    'missing' => 'Token no proporcionado (desde auth)',
     'invalid' => 'Token inválido',
     'expired' => 'Token expirado'
   ],

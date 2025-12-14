@@ -18,7 +18,7 @@ class response {
   static function success($data = null, $msg = null, $code = 200) {
     $res = ['success' => true];
     if ($msg) $res['message'] = $msg;
-    if ($data) $res['data'] = $data;
+    if ($data !== null) $res['data'] = $data;  // ✅ FIX: Cambiar if($data) por if($data !== null)
     self::json($res, $code);
   }
 

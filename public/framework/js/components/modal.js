@@ -93,7 +93,10 @@ class modal {
         const [extensionName, formPath] = resource.split('|');
         const formName = formPath.replace('forms/', '');
         logger.debug('com:modal', `Cargando formulario extension: "${extensionName}/${formName}"`);
-        await form.load(`${extensionName}/${formName}`, content, null, false);
+        
+        // ✅ FIX: Pasar afterRender callback
+        const afterRenderCallback = options.afterRender || null;
+        await form.load(`${extensionName}/${formName}`, content, null, false, afterRenderCallback);
         return;
       }
 
