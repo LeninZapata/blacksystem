@@ -31,6 +31,8 @@ class infoproductProduct {
   static fillForm(formId, data) {
     form.fill(formId, {
       name: data.name,
+      bot_id: data.bot_id ? String(data.bot_id) : '',
+      price: data.price || '',
       description: data.description || '',
       context: data.context || this.context
     });
@@ -70,6 +72,8 @@ class infoproductProduct {
     return {
       user_id: userId,
       context: formData.context || this.context,
+      bot_id: parseInt(formData.bot_id),
+      price: parseFloat(formData.price),
       name: formData.name,
       description: formData.description || null,
       config: null

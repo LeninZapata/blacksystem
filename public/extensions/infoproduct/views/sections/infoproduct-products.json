@@ -13,7 +13,7 @@
     },
     {
       "type": "html",
-      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"modal.open('infoproduct|forms/product-form', {title: '{i18n:infoproduct.products.modal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='infoproductProduct.refresh();toast.info(\"{i18n:infoproduct.products.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"modal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.modal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='infoproductProduct.refresh();toast.info(\"{i18n:infoproduct.products.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
       "order": 1
     },
     {
@@ -52,7 +52,7 @@
         "actions": {
           "edit": {
             "name": "i18n:core.edit",
-            "onclick": "modal.open('infoproduct|forms/product-form', {title: '{i18n:infoproduct.products.modal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openEdit(formId, {id});}})"
+            "onclick": "modal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.modal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openEdit(formId, {id});}})"
           },
           "delete": {
             "name": "i18n:core.delete",

@@ -38,6 +38,10 @@ class workFlowController extends controller {
 
     try {
       $affected = db::table('work_flows')->where('id', $id)->update($data);
+      
+      // Actualizar archivos JSON de todos los bots que usan este workflow
+      workflowHandlers::updateBotsContext($id);
+      
       response::success(['affected' => $affected], __('workFlow.update.success'));
     } catch (Exception $e) {
       response::serverError(__('workFlow.update.error'), IS_DEV ? $e->getMessage() : null);

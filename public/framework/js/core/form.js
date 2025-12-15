@@ -29,12 +29,14 @@ class form {
     trim: (value) => value.replace(/\s+/g, ''),
     alphanumeric: (value) => value.replace(/[^a-zA-Z0-9]/g, ''),
     numeric: (value) => value.replace(/[^0-9]/g, ''),
+    decimal: (value) => value.replace(/,/g, '.').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'),
     slug: (value) => value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
   };
 
   // ✅ Mapeo de reglas de validación a transforms automáticos
   static validationToTransformMap = {
     'numeric': 'numeric',           // Solo números
+    'decimal': 'decimal',           // Números con decimales
     'alpha_num': 'alphanumeric',    // Letras y números
     // Agregar más según necesidad:
     // 'url': 'lowercase',
@@ -615,30 +617,36 @@ class form {
           setTimeout(() => this.loadSelectFromAPI(selectId, field.source, sourceValue, sourceLabel), 10);
         }
 
+        const selectHint = field.hint ? `<small class="form-hint">${this.t(field.hint)}</small>` : '';
         return `
           <div class="form-group">
             <label ${labelI18n}>${label}${requiredAsterisk}</label>
             <select id="${selectId}" ${common} ${styleAttr} ${propsAttr} ${hasSource} ${sourceData}>
               ${staticOptions}
             </select>
+            ${selectHint}
             <span class="form-error"></span>
           </div>`;
 
       case 'textarea':
+        const textareaHint = field.hint ? `<small class="form-hint">${this.t(field.hint)}</small>` : '';
         return `
           <div class="form-group">
             <label ${labelI18n}>${label}${requiredAsterisk}</label>
             <textarea ${common} ${styleAttr} ${propsAttr}></textarea>
+            ${textareaHint}
             <span class="form-error"></span>
           </div>`;
 
       case 'checkbox':
+        const checkboxHint = field.hint ? `<small class="form-hint">${this.t(field.hint)}</small>` : '';
         return `
           <div class="form-group form-checkbox">
             <label ${labelI18n}>
               <input type="checkbox" name="${path}" ${field.required ? 'required' : ''} ${styleAttr} ${propsAttr}>
               ${label}${requiredAsterisk}
             </label>
+            ${checkboxHint}
             <span class="form-error"></span>
           </div>`;
 
@@ -975,6 +983,8 @@ class form {
 
       input.addEventListener('input', function(e) {
         let value = e.target.value;
+        const originalValue = value;
+        const cursorPos = e.target.selectionStart;
 
         transformClasses.forEach(transformClass => {
           const transformName = transformClass.replace('form-transform-', '');
@@ -983,10 +993,17 @@ class form {
           }
         });
 
-        if (e.target.value !== value) {
-          const cursorPos = e.target.selectionStart;
+        if (originalValue !== value) {
           e.target.value = value;
-          e.target.setSelectionRange(cursorPos, cursorPos);
+          
+          // Ajustar cursor: si el valor cambió de longitud o caracteres, mantener posición relativa
+          const lengthDiff = value.length - originalValue.length;
+          let newCursorPos = cursorPos + lengthDiff;
+          
+          // Asegurar que el cursor no se salga del rango
+          newCursorPos = Math.max(0, Math.min(newCursorPos, value.length));
+          
+          e.target.setSelectionRange(newCursorPos, newCursorPos);
         }
       });
     });

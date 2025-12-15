@@ -11,11 +11,33 @@
       "placeholder": "i18n:infoproduct.products.field.name.placeholder"
     },
     {
+      "name": "bot_id",
+      "label": "i18n:infoproduct.products.field.bot",
+      "type": "select",
+      "required": true,
+      "validation": "required",
+      "source": "/api/bot",
+      "sourceValue": "id",
+      "sourceLabel": "name",
+      "options": [
+        {"value": "", "label": "i18n:core.form.select.placeholder"}
+      ]
+    },
+    {
+      "name": "price",
+      "label": "i18n:infoproduct.products.field.price",
+      "type": "text",
+      "required": true,
+      "validation": "required|decimal|min:0",
+      "placeholder": "i18n:infoproduct.products.field.price.placeholder"
+    },
+    {
       "name": "description",
       "label": "i18n:infoproduct.products.field.description",
       "type": "textarea",
-      "validation": "max:1000",
+      "validation": "max:500|required",
       "placeholder": "i18n:infoproduct.products.field.description.placeholder",
+      "hint": "i18n:infoproduct.products.field.description.hint",
       "rows": 4
     },
     {

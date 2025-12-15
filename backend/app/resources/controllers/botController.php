@@ -34,6 +34,11 @@ class botController extends controller {
     try {
       $id = db::table('bots')->insert($data);
       log::info('BotController - Bot creado', ['id' => $id, 'name' => $data['name']], ['module' => 'bot']);
+      
+      // Generar archivo de contexto para el bot
+      $botData = array_merge($data, ['id' => $id]);
+      botHandlers::saveContextFile($botData, 'workflow');
+      
       response::success(['id' => $id], __('bot.create.success'), 201);
     } catch (Exception $e) {
       log::error('BotController - Error SQL', ['message' => $e->getMessage()], ['module' => 'bot']);
@@ -60,6 +65,11 @@ class botController extends controller {
     try {
       $affected = db::table('bots')->where('id', $id)->update($data);
       log::info('BotController - Bot actualizado', ['id' => $id], ['module' => 'bot']);
+      
+      // Generar archivo de contexto actualizado para el bot
+      $botData = array_merge($data, ['id' => $id]);
+      botHandlers::saveContextFile($botData, 'workflow');
+      
       response::success(['affected' => $affected], __('bot.update.success'));
     } catch (Exception $e) {
       log::error('BotController - Error SQL', ['message' => $e->getMessage()], ['module' => 'bot']);

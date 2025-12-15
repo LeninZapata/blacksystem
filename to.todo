@@ -1,0 +1,5 @@
+☐ Verificar si el archivo de workflow existe
+puede ser dentro del mismo listado de workflow en un boton tipo editar con eso que muestra un toast si exsite o no el archivo
+tambien que verifique al momento de crear o actualizar un workflow si el archivo existe en donde estaran estos archivos y si no existe que muestre un error
+☐ Todos las peticiones api desde admin, bot, credenciales, productos debes estar filtrados por user_id
+☐ en infoproductos cuando se carga la lista debe estar filtrado por user_id y contexto de esa vista

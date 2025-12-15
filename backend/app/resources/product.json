@@ -23,6 +23,18 @@
       "required": true
     },
     {
+      "name": "bot_id",
+      "type": "int",
+      "required": true
+    },
+    {
+      "name": "price",
+      "type": "decimal",
+      "precision": 10,
+      "scale": 2,
+      "required": true
+    },
+    {
       "name": "name",
       "type": "string",
       "maxLength": 200,
