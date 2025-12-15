@@ -18,6 +18,7 @@
   "botws.bot.field.personality.placeholder": "Describe la personalidad del bot (opcional)",
   "botws.bot.field.type": "Tipo de Bot",
   "botws.bot.field.mode": "Método de Pago",
+  "botws.bot.field.workflow": "Flujo de Trabajo",
   "botws.bot.field.api_agent": "API de Agente IA",
   "botws.bot.field.api_chat": "API de Chat",
   "botws.bot.field.credential_agent": "Credencial de IA",

@@ -19,11 +19,11 @@ class botws {
     this.currentId = id;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    console.log(`realId:`, realId);
+    logger.debug('ext:botws', 'openEdit - realId:', realId);
 
     form.clearAllErrors(realId);
     const data = await this.get(id);
-    console.log(`data:`, data);
+    logger.debug('ext:botws', 'openEdit - data:', data);
     if (!data) return;
 
     this.fillForm(formId, data);
@@ -32,16 +32,23 @@ class botws {
   // Llenar formulario
   static fillForm(formId, data) {
     const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
-    
+
+    logger.debug('ext:botws', 'fillForm - data:', data);
+    logger.debug('ext:botws', 'fillForm - configData:', configData);
+
     // Convertir arrays de IDs a arrays de objetos con credential_id
     const agentArray = Array.isArray(configData.apis?.agent)
-      ? configData.apis.agent.map(id => ({ credential_id: id }))
+      ? configData.apis.agent.map(id => ({ credential_id: String(id) }))
       : [];
-    
+
     const chatArray = Array.isArray(configData.apis?.chat)
-      ? configData.apis.chat.map(id => ({ credential_id: id }))
+      ? configData.apis.chat.map(id => ({ credential_id: String(id) }))
       : [];
-    
+
+    logger.debug('ext:botws', 'fillForm - agentArray:', agentArray);
+    logger.debug('ext:botws', 'fillForm - chatArray:', chatArray);
+
+    // Llenar todos los campos (form.fill maneja automáticamente los selects asíncronos)
     form.fill(formId, {
       name: data.name,
       number: data.number || '',
@@ -49,6 +56,7 @@ class botws {
       personality: data.personality || '',
       type: data.type || '',
       mode: data.mode || '',
+      'config.workflow_id': configData.workflow_id ? String(configData.workflow_id) : '',
       'config.apis.agent': agentArray,
       'config.apis.chat': chatArray
     });
@@ -67,13 +75,13 @@ class botws {
 
     const body = this.buildBody(validation.data);
 
-    const result = this.currentId 
-      ? await this.update(this.currentId, body) 
+    const result = this.currentId
+      ? await this.update(this.currentId, body)
       : await this.create(body);
 
     if (result) {
-      toast.success(this.currentId 
-        ? __('botws.bot.success.updated') 
+      toast.success(this.currentId
+        ? __('botws.bot.success.updated')
         : __('botws.bot.success.created')
       );
       setTimeout(() => {
@@ -86,7 +94,7 @@ class botws {
   // Construir body para API
   static buildBody(formData) {
     const userId = auth.user?.id;
-    
+
     if (!userId) {
       logger.error('ext:botws', 'No se pudo obtener el user_id');
       toast.error(__('botws.bot.error.user_not_found'));
@@ -102,11 +110,11 @@ class botws {
       // config.apis.agent es un array de objetos [{credential_id: 1}, {credential_id: 2}]
       const agentArray = formData.config.apis?.agent || [];
       const chatArray = formData.config.apis?.chat || [];
-      
-      agentCredentials = Array.isArray(agentArray) 
+
+      agentCredentials = Array.isArray(agentArray)
         ? agentArray.map(item => parseInt(item.credential_id)).filter(id => !isNaN(id))
         : [];
-      
+
       chatCredentials = Array.isArray(chatArray)
         ? chatArray.map(item => parseInt(item.credential_id)).filter(id => !isNaN(id))
         : [];
@@ -114,11 +122,11 @@ class botws {
       // Buscar por keys directas (form.getData puede estructurar así)
       const agentData = formData['config.apis.agent'] || formData['config[apis][agent]'] || [];
       const chatData = formData['config.apis.chat'] || formData['config[apis][chat]'] || [];
-      
+
       agentCredentials = Array.isArray(agentData)
         ? agentData.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
         : [];
-      
+
       chatCredentials = Array.isArray(chatData)
         ? chatData.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
         : [];
@@ -135,15 +143,18 @@ class botws {
       return null;
     }
 
+    const workflowId = formData.config?.workflow_id || formData['config.workflow_id'] || null;
+
     const config = {
+      workflow_id: workflowId,
       apis: {
         agent: agentCredentials,
         chat: chatCredentials
       }
     };
 
-    console.log('buildBody - formData:', formData);
-    console.log('buildBody - config construido:', config);
+    logger.debug('ext:botws', 'buildBody - formData:', formData);
+    logger.debug('ext:botws', 'buildBody - config construido:', config);
 
     return {
       user_id: userId,
