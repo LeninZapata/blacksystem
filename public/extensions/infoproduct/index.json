@@ -20,7 +20,7 @@
       {
         "id": "infoproduct-stats",
         "title": "Estadísticas",
-        "view": "sections/infoproduct-stats",
+        "view": "ejemplos|sections/formularios/main",
         "order": 3
       }
     ]

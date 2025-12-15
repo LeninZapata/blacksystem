@@ -2,6 +2,8 @@ class conditions {
   static rules = new Map();
   static watchers = new Map();
   static initialized = false;
+  static evaluateTimeout = null;
+  static isFillingForm = false; // Flag para indicar si se está llenando el formulario
 
   static init(formId) {
     if (!formId) return;
@@ -55,13 +57,26 @@ class conditions {
               mutation.addedNodes.forEach(node => {
                 // Solo procesar elementos (no nodos de texto)
                 if (node.nodeType === 1 && node.classList.contains('repeatable-item')) {
-                  // Pequeño delay para asegurar que el DOM esté listo
-                  setTimeout(() => {
-                    this.evaluate(formId);
+                  // ⚠️ TEMPORALMENTE DESHABILITADO - Causaba demasiadas evaluaciones
+                  // Si se está llenando el formulario, no evaluar inmediatamente
+                  // if (this.isFillingForm) {
+                  //   return; // Posponer evaluación hasta que termine el llenado
+                  // }
 
-                    // ✅ IMPORTANTE: Observar también los repetibles anidados dentro del nuevo item
-                    observeRepeatableContainers(node);
-                  }, 50);
+                  // // Debounce: cancelar evaluación anterior y programar nueva
+                  // if (this.evaluateTimeout) {
+                  //   clearTimeout(this.evaluateTimeout);
+                  // }
+
+                  // this.evaluateTimeout = setTimeout(() => {
+                  //   this.evaluate(formId);
+
+                  //   // ✅ IMPORTANTE: Observar también los repetibles anidados dentro del nuevo item
+                  //   observeRepeatableContainers(node);
+                  // }, 150); // Esperar 150ms después del último cambio
+
+                  // Solo observar repetibles anidados sin evaluar condiciones
+                  observeRepeatableContainers(node);
                 }
               });
             }
@@ -104,6 +119,22 @@ class conditions {
       if (field.type === 'repeatable' && field.fields) {
         this.extractConditions(field.fields, rulesMap, fieldPath);
       }
+      
+      // Recursivo para grouper (puede tener 'fields' o 'groups')
+      if (field.type === 'grouper') {
+        // Si tiene groups (modo tabs o sections)
+        if (field.groups && Array.isArray(field.groups)) {
+          field.groups.forEach((group, index) => {
+            if (group.fields && Array.isArray(group.fields)) {
+              this.extractConditions(group.fields, rulesMap, parentPath);
+            }
+          });
+        }
+        // Si tiene fields directamente (modo linear)
+        else if (field.fields) {
+          this.extractConditions(field.fields, rulesMap, parentPath);
+        }
+      }
     });
   }
 
@@ -126,6 +157,12 @@ class conditions {
       `#${formId} input, #${formId} select, #${formId} textarea`,
       'change',
       (e) => {
+        // ⚠️ No evaluar si se está llenando el formulario
+        if (this.isFillingForm) {
+          // logger.debug('core:conditions', '[watcher] Evento ignorado - formulario en llenado');
+          return;
+        }
+
         const fieldName = this.getFieldName(e.target);
         if (watchedFields.has(fieldName)) {
           this.evaluate(formId);
@@ -139,6 +176,11 @@ class conditions {
       `#${formId} input[type="text"], #${formId} input[type="email"], #${formId} input[type="number"], #${formId} textarea`,
       'input',
       (e) => {
+        // ⚠️ No evaluar si se está llenando el formulario
+        if (this.isFillingForm) {
+          return;
+        }
+
         const fieldName = this.getFieldName(e.target);
         if (watchedFields.has(fieldName)) {
           this.evaluate(formId);
@@ -164,6 +206,8 @@ class conditions {
     const rulesMap = this.rules.get(formId);
     if (!rulesMap) return;
 
+    // logger.debug('core:conditions', `[evaluate] Evaluando ${rulesMap.size} reglas para ${formId}`);
+
     rulesMap.forEach((rule, targetFieldPath) => {
       const { context } = rule;
 
@@ -178,40 +222,107 @@ class conditions {
     });
   }
 
-  static evaluateRepeatable(formEl, targetFieldPath, rule) {
-    // Encontrar todos los repeatable-items
-    const repeatableItems = formEl.querySelectorAll('.repeatable-item');
+  // Método auxiliar para pausar evaluaciones durante llenado masivo
+  static pauseEvaluations() {
+    this.isFillingForm = true;
+    // logger.debug('core:conditions', '[pauseEvaluations] Evaluaciones pausadas');
+  }
 
-    if (repeatableItems.length === 0) {
-      // Si no hay items todavía, ocultar todos los campos condicionales
-      this.applyVisibilityToAll(formEl, targetFieldPath, false);
+  // Método auxiliar para reanudar y ejecutar evaluación final
+  static resumeEvaluations(formId) {
+    this.isFillingForm = false;
+    // logger.debug('core:conditions', '[resumeEvaluations] Reanudando evaluaciones');
+    
+    // Ejecutar evaluación final después de un pequeño delay
+    setTimeout(() => {
+      if (formId) {
+        // logger.debug('core:conditions', '[resumeEvaluations] Ejecutando evaluación final');
+        this.evaluate(formId);
+      }
+    }, 200);
+  }
+
+  static evaluateRepeatable(formEl, targetFieldPath, rule) {
+    // Extraer el path del repeatable desde el targetFieldPath
+    // Ej: "proyectos.fases.nombre_fase" -> repeatablePath="proyectos.fases", fieldName="nombre_fase"
+    const pathParts = targetFieldPath.split('.');
+    const fieldName = pathParts[pathParts.length - 1];
+    const repeatablePath = pathParts.slice(0, -1).join('.');
+
+    // Buscar TODOS los contenedores que coincidan con este path
+    // Necesitamos buscar por patrón ya que el data-path puede tener índices: proyectos[0].fases
+    // mientras que repeatablePath no tiene índices: proyectos.fases
+    const allContainers = formEl.querySelectorAll('.repeatable-items[data-path]');
+    const repeatableContainers = Array.from(allContainers).filter(container => {
+      const dataPath = container.getAttribute('data-path');
+      // Eliminar índices para comparar: proyectos[0].fases[1] -> proyectos.fases
+      const normalizedPath = dataPath.replace(/\[\d+\]/g, '');
+      return normalizedPath === repeatablePath;
+    });
+    
+    if (repeatableContainers.length === 0) {
+      // logger.debug('core:conditions', `[evaluateRepeatable] No se encontró contenedor para: ${repeatablePath}`);
       return;
     }
 
-    // Evaluar cada item individualmente
-    repeatableItems.forEach(item => {
-      const shouldShow = this.checkConditions(item, rule, targetFieldPath);
+    // logger.debug('core:conditions', `[evaluateRepeatable] Field: ${targetFieldPath}, Path: ${repeatablePath}, Containers: ${repeatableContainers.length}`);
 
-      // Buscar el campo target dentro de este item específico
-      const pathParts = targetFieldPath.split('.');
-      const fieldName = pathParts[pathParts.length - 1];
+    // Iterar sobre cada contenedor (uno por cada item del repeatable padre)
+    repeatableContainers.forEach((repeatableContainer) => {
+      // Buscar items solo dentro de este repeatable específico
+      const repeatableItems = repeatableContainer.querySelectorAll(':scope > .repeatable-item');
 
-      const targetField = item.querySelector(`[name*=".${fieldName}"]`);
-      if (targetField) {
-        const fieldElement = targetField.closest('.form-group, .form-checkbox');
+      if (repeatableItems.length === 0) {
+        return;
+      }
 
-        if (fieldElement) {
-          if (shouldShow) {
-            fieldElement.style.display = '';
-            fieldElement.classList.remove('wpfw-depend-on');
-            targetField.disabled = false;
-          } else {
-            fieldElement.style.display = 'none';
-            fieldElement.classList.add('wpfw-depend-on');
-            targetField.disabled = true;
+      // Evaluar cada item individualmente
+      repeatableItems.forEach((item, idx) => {
+        const shouldShow = this.checkConditions(item, rule, targetFieldPath);
+
+        // logger.debug('core:conditions', `[evaluateRepeatable] Item ${idx}, shouldShow: ${shouldShow}`);
+
+        // Buscar el campo target dentro de este item específico
+        // Puede ser un input/select (con name) o un repeatable anidado (con data-field-path)
+        let targetField = item.querySelector(`[name*=".${fieldName}"]`);
+        
+        // Si no se encuentra por name, buscar por data-field-path (repeatables anidados)
+        // Solo buscar hijos directos, no nietos
+        if (!targetField) {
+          const allFieldPaths = item.querySelectorAll(':scope > .form-repeatable[data-field-path]');
+          targetField = Array.from(allFieldPaths).find(el => {
+            const fieldPath = el.getAttribute('data-field-path');
+            // Eliminar índices para comparar: proyectos[0].fases -> proyectos.fases
+            const normalizedFieldPath = fieldPath.replace(/\[\d+\]/g, '');
+            // Comparar si termina con el fieldName: proyectos.fases termina con "fases"
+            return normalizedFieldPath.endsWith(`.${fieldName}`) || normalizedFieldPath === fieldName;
+          });
+        }
+        
+        if (targetField) {
+          const fieldElement = targetField.closest('.form-group, .form-checkbox, .form-repeatable');
+
+          if (fieldElement) {
+            if (shouldShow) {
+              fieldElement.style.display = '';
+              fieldElement.classList.remove('wpfw-depend-on');
+              // Solo deshabilitar inputs reales, no contenedores
+              if (targetField.tagName === 'INPUT' || targetField.tagName === 'SELECT' || targetField.tagName === 'TEXTAREA') {
+                targetField.disabled = false;
+              }
+              // logger.debug('core:conditions', `[evaluateRepeatable] ✅ Mostrando ${targetField.name || targetField.dataset.fieldPath}`);
+            } else {
+              fieldElement.style.display = 'none';
+              fieldElement.classList.add('wpfw-depend-on');
+              // Solo deshabilitar inputs reales, no contenedores
+              if (targetField.tagName === 'INPUT' || targetField.tagName === 'SELECT' || targetField.tagName === 'TEXTAREA') {
+                targetField.disabled = true;
+              }
+              // logger.debug('core:conditions', `[evaluateRepeatable] ❌ Ocultando ${targetField.name || targetField.dataset.fieldPath}`);
+            }
           }
         }
-      }
+      });
     });
   }
 
@@ -283,32 +394,44 @@ class conditions {
   static checkCondition(context, condition) {
     const { field, operator, value } = condition;
 
+    // logger.debug('core:conditions', `[checkCondition] Buscando campo: "${field}", operator: "${operator}", value: "${value}"`);
+
     // Buscar el campo en el contexto
     let fieldEl = null;
 
     // Si el contexto es un repeatable-item, buscar solo dentro de él
     if (context.classList && context.classList.contains('repeatable-item')) {
+      // logger.debug('core:conditions', `[checkCondition] Contexto es repeatable-item`);
       // Buscar por el nombre del campo sin índices
       const fields = context.querySelectorAll(`[name*=".${field}"]`);
       fieldEl = fields.length > 0 ? fields[0] : null;
 
+      // logger.debug('core:conditions', `[checkCondition] Búsqueda [name*=".${field}"], encontrados: ${fields.length}`);
+
       // Si no se encuentra, intentar con el nombre exacto
       if (!fieldEl) {
         fieldEl = context.querySelector(`[name="${field}"], [name*="${field}"]`);
+        // logger.debug('core:conditions', `[checkCondition] Búsqueda alternativa [name="${field}"], encontrado: ${!!fieldEl}`);
       }
     } else {
+      // logger.debug('core:conditions', `[checkCondition] Contexto es form/view`);
       // Búsqueda normal en form/view
       fieldEl = context.querySelector(`[name="${field}"], [name*="${field}"]`);
+      // logger.debug('core:conditions', `[checkCondition] Búsqueda [name="${field}"], encontrado: ${!!fieldEl}`);
     }
 
     if (!fieldEl) {
-      logger.warn('core:conditions', `Campo "${field}" no encontrado en contexto`);
+      logger.warn('core:conditions', `[checkCondition] ❌ Campo "${field}" no encontrado en contexto`);
       return false;
     }
 
     const fieldValue = this.getFieldValue(fieldEl);
+    // logger.debug('core:conditions', `[checkCondition] Campo encontrado: ${fieldEl.name}, valor: "${fieldValue}"`);
 
-    return this.evalOperator(operator, fieldValue, value);
+    const result = this.evalOperator(operator, fieldValue, value);
+    // logger.debug('core:conditions', `[checkCondition] Resultado: ${result} (${fieldValue} ${operator} ${value})`);
+
+    return result;
   }
 
   static evalOperator(operator, fieldValue, targetValue) {

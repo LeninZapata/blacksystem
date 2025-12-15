@@ -19,10 +19,17 @@ class productController extends controller {
     $data['dc'] = date('Y-m-d H:i:s');
     $data['ta'] = time();
 
+    // Convertir config a JSON string si existe y es un array
+    if (isset($data['config']) && is_array($data['config'])) {
+      $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
+    }
+
+    log::debug('productController - Datos para crear producto', $data, ['module' => 'product']);
     try {
       $id = db::table('products')->insert($data);
       response::success(['id' => $id], __('product.create.success'), 201);
     } catch (Exception $e) {
+      log::error('productController - Error SQL al crear producto', ['message' => $e->getMessage()], ['module' => 'product']);
       response::serverError(__('product.create.error'), IS_DEV ? $e->getMessage() : null);
     }
   }
@@ -35,6 +42,11 @@ class productController extends controller {
 
     $data['da'] = date('Y-m-d H:i:s');
     $data['tu'] = time();
+
+    // Convertir config a JSON string si existe y es un array
+    if (isset($data['config']) && is_array($data['config'])) {
+      $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
+    }
 
     try {
       $affected = db::table('products')->where('id', $id)->update($data);

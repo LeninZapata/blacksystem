@@ -41,6 +41,362 @@
       "rows": 4
     },
     {
+      "name": "config.welcome_triggers",
+      "label": "i18n:infoproduct.products.field.welcome_triggers",
+      "type": "text",
+      "validation": "max:200|required",
+      "placeholder": "i18n:infoproduct.products.field.welcome_triggers.placeholder",
+      "hint": "i18n:infoproduct.products.field.welcome_triggers.hint"
+    },
+    {
+      "name": "config.prompt",
+      "label": "i18n:infoproduct.products.field.prompt",
+      "type": "textarea",
+      "validation": "max:250",
+      "placeholder": "i18n:infoproduct.products.field.prompt.placeholder",
+      "hint": "i18n:infoproduct.products.field.prompt.hint",
+      "rows": 3
+    },
+    {
+      "type": "grouper",
+      "mode": "tabs",
+      "activeIndex": 0,
+      "groups": [
+        {
+          "title": "i18n:infoproduct.products.tab.welcome",
+          "fields": [
+            {
+              "name": "config.welcome_messages",
+              "label": "i18n:infoproduct.products.field.welcome_messages",
+              "type": "repeatable",
+              "buttonPosition": "bottom",
+              "addText": "i18n:infoproduct.products.field.welcome_messages.add",
+              "removeText": "i18n:core.form.repeatable.remove",
+              "fields": [
+                {
+                  "name": "message",
+                  "label": "i18n:infoproduct.products.field.welcome_messages.message",
+                  "type": "textarea",
+                  "validation": "max:500",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages.message.placeholder",
+                  "rows": 3
+                },
+                {
+                  "name": "type",
+                  "label": "i18n:infoproduct.products.field.welcome_messages.type",
+                  "type": "select",
+                  "options": [
+                    {"value": "text", "label": "i18n:infoproduct.products.field.welcome_messages.type.text"},
+                    {"value": "media", "label": "i18n:infoproduct.products.field.welcome_messages.type.media"}
+                  ]
+                },
+                {
+                  "name": "delay",
+                  "label": "i18n:infoproduct.products.field.welcome_messages.delay",
+                  "type": "text",
+                  "validation": "numeric|min:0|max:999",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages.delay.placeholder",
+                  "defaultValue": "3"
+                },
+                {
+                  "name": "url",
+                  "label": "i18n:infoproduct.products.field.welcome_messages.url",
+                  "type": "url",
+                  "validation": "url",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages.url.placeholder",
+                  "condition": [
+                    {"field": "type", "operator": "!=", "value": "text"}
+                  ],
+                  "conditionContext": "repeatable"
+                }
+              ]
+            },
+            {
+              "name": "config.welcome_messages_upsell",
+              "label": "i18n:infoproduct.products.field.welcome_messages_upsell",
+              "type": "repeatable",
+              "buttonPosition": "bottom",
+              "addText": "i18n:infoproduct.products.field.welcome_messages_upsell.add",
+              "removeText": "i18n:core.form.repeatable.remove",
+              "fields": [
+                {
+                  "name": "message",
+                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.message",
+                  "type": "textarea",
+                  "validation": "max:500",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.message.placeholder",
+                  "rows": 3
+                },
+                {
+                  "name": "type",
+                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type",
+                  "type": "select",
+                  "options": [
+                    {"value": "text", "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.text"},
+                    {"value": "media", "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.media"}
+                  ]
+                },
+                {
+                  "name": "delay",
+                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.delay",
+                  "type": "text",
+                  "validation": "numeric|min:0|max:999",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.delay.placeholder",
+                  "defaultValue": "3"
+                },
+                {
+                  "name": "url",
+                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.url",
+                  "type": "text",
+                  "validation": "",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.url.placeholder",
+                  "condition": [
+                    {"field": "type", "operator": "!=", "value": "text"}
+                  ],
+                  "conditionContext": "repeatable"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "i18n:infoproduct.products.tab.tracking",
+          "fields": [
+            {
+              "name": "config.tracking_messages",
+              "label": "i18n:infoproduct.products.field.tracking_messages",
+              "type": "repeatable",
+              "buttonPosition": "bottom",
+              "addText": "i18n:infoproduct.products.field.tracking_messages.add",
+              "removeText": "i18n:core.form.repeatable.remove",
+              "fields": [
+                {
+                  "name": "tracking_id",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.tracking_id",
+                  "type": "text",
+                  "validation": "max:50",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.tracking_id.placeholder",
+                  "defaultValue": "seg-{hash:10}",
+                  "transform": "slug"
+                },
+                {
+                  "name": "message",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.message",
+                  "type": "textarea",
+                  "validation": "max:500",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.message.placeholder",
+                  "rows": 3
+                },
+                {
+                  "name": "type",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.type",
+                  "type": "select",
+                  "options": [
+                    {"value": "text", "label": "i18n:infoproduct.products.field.tracking_messages.type.text"},
+                    {"value": "media", "label": "i18n:infoproduct.products.field.tracking_messages.type.media"}
+                  ]
+                },
+                {
+                  "name": "url",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.url",
+                  "type": "text",
+                  "validation": "url",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.url.placeholder",
+                  "condition": [
+                    {"field": "type", "operator": "!=", "value": "text"}
+                  ],
+                  "conditionContext": "repeatable"
+                },
+                {
+                  "name": "time_type",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.time_type",
+                  "type": "select",
+                  "options": [
+                    {"value": "minuto", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.minute"},
+                    {"value": "hora", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.hour"},
+                    {"value": "dia", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.day"},
+                    {"value": "esta_noche", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.tonight"},
+                    {"value": "fin_semana", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.weekend"},
+                    {"value": "quincena_actual", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.current_fortnight"},
+                    {"value": "inicio_mes_proximo", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.next_month_start"}
+                  ]
+                },
+                {
+                  "name": "time_value",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.time_value",
+                  "type": "text",
+                  "validation": "numeric|min:0|max:99",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.time_value.placeholder",
+                  "defaultValue": "1",
+                  "condition": [
+                    {"field": "time_type", "operator": "not-any", "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"}
+                  ],
+                  "conditionContext": "repeatable"
+                },
+                {
+                  "name": "hour",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.hour",
+                  "type": "time",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.hour.placeholder",
+                  "defaultValue": "20:00",
+                  "condition": [
+                    {"field": "time_type", "operator": "not-any", "value": "hora,minuto"}
+                  ],
+                  "conditionContext": "repeatable"
+                }
+              ]
+            },
+            {
+              "name": "config.tracking_messages_upsell",
+              "label": "i18n:infoproduct.products.field.tracking_messages_upsell",
+              "type": "repeatable",
+              "buttonPosition": "bottom",
+              "addText": "i18n:infoproduct.products.field.tracking_messages_upsell.add",
+              "removeText": "i18n:core.form.repeatable.remove",
+              "fields": [
+                {
+                  "name": "tracking_id",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.tracking_id",
+                  "type": "text",
+                  "validation": "max:50",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.tracking_id.placeholder",
+                  "defaultValue": "seg-{hash:10}",
+                  "transform": "slug"
+                },
+                {
+                  "name": "message",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.message",
+                  "type": "textarea",
+                  "validation": "max:500",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.message.placeholder",
+                  "rows": 3
+                },
+                {
+                  "name": "type",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type",
+                  "type": "select",
+                  "options": [
+                    {"value": "text", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.text"},
+                    {"value": "media", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.media"}
+                  ]
+                },
+                {
+                  "name": "url",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.url",
+                  "type": "text",
+                  "validation": "url",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.url.placeholder",
+                  "condition": [
+                    {"field": "type", "operator": "!=", "value": "text"}
+                  ],
+                  "conditionContext": "repeatable"
+                },
+                {
+                  "name": "time_type",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type",
+                  "type": "select",
+                  "options": [
+                    {"value": "minuto", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.minute"},
+                    {"value": "hora", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.hour"},
+                    {"value": "dia", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.day"},
+                    {"value": "esta_noche", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.tonight"},
+                    {"value": "fin_semana", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.weekend"},
+                    {"value": "quincena_actual", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.current_fortnight"},
+                    {"value": "inicio_mes_proximo", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.next_month_start"}
+                  ]
+                },
+                {
+                  "name": "time_value",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_value",
+                  "type": "text",
+                  "validation": "numeric|min:0|max:99",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.time_value.placeholder",
+                  "defaultValue": "1",
+                  "condition": [
+                    {"field": "time_type", "operator": "not-any", "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"}
+                  ],
+                  "conditionContext": "repeatable"
+                },
+                {
+                  "name": "hour",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.hour",
+                  "type": "time",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.hour.placeholder",
+                  "defaultValue": "20:00",
+                  "condition": [
+                    {"field": "time_type", "operator": "not-any", "value": "hora,minuto"}
+                  ],
+                  "conditionContext": "repeatable"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "i18n:infoproduct.products.tab.templates",
+          "fields": [
+            {
+              "name": "config.templates",
+              "label": "i18n:infoproduct.products.field.templates",
+              "type": "repeatable",
+              "buttonPosition": "bottom",
+              "addText": "i18n:infoproduct.products.field.templates.add",
+              "removeText": "i18n:core.form.repeatable.remove",
+              "fields": [
+                {
+                  "name": "template_type",
+                  "label": "i18n:infoproduct.products.field.templates.template_type",
+                  "type": "select",
+                  "options": [
+                    {"value": "link_product", "label": "i18n:infoproduct.products.field.templates.template_type.link_product"},
+                    {"value": "link_review", "label": "i18n:infoproduct.products.field.templates.template_type.link_review"},
+                    {"value": "link_media", "label": "i18n:infoproduct.products.field.templates.template_type.link_media"}
+                  ]
+                },
+                {
+                  "name": "message",
+                  "label": "i18n:infoproduct.products.field.templates.message",
+                  "type": "textarea",
+                  "validation": "max:400",
+                  "placeholder": "i18n:infoproduct.products.field.templates.message.placeholder",
+                  "rows": 3
+                },
+                {
+                  "name": "type",
+                  "label": "i18n:infoproduct.products.field.templates.type",
+                  "type": "select",
+                  "options": [
+                    {"value": "text", "label": "i18n:infoproduct.products.field.templates.type.text"},
+                    {"value": "media", "label": "i18n:infoproduct.products.field.templates.type.media"}
+                  ]
+                },
+                {
+                  "name": "url",
+                  "label": "i18n:infoproduct.products.field.templates.url",
+                  "type": "text",
+                  "validation": "url",
+                  "placeholder": "i18n:infoproduct.products.field.templates.url.placeholder",
+                  "condition": [
+                    {"field": "type", "operator": "!=", "value": "text"}
+                  ],
+                  "conditionContext": "repeatable"
+                },
+                {
+                  "name": "template_id",
+                  "label": "i18n:infoproduct.products.field.templates.template_id",
+                  "type": "text",
+                  "validation": "max:50",
+                  "placeholder": "i18n:infoproduct.products.field.templates.template_id.placeholder",
+                  "hint": "i18n:infoproduct.products.field.templates.template_id.hint",
+                  "transform": "slug"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "type": "html",
       "content": "<input type='hidden' name='context' value='infoproductws' />"
     }

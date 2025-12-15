@@ -110,9 +110,9 @@ class view {
       const combinedData = this.combineResources(viewData, menuResources);
 
       if (container) {
-        this.renderViewInContainer(combinedData, container);
+        this.renderViewInContainer(combinedData, container, extensionContext);
       } else {
-        this.renderView(combinedData);
+        this.renderView(combinedData, extensionContext);
       }
 
       await this.loadAndInitResources(combinedData);
@@ -279,7 +279,7 @@ class view {
     return false;
   }
 
-  static renderView(viewData) {
+  static renderView(viewData, extensionContext = null) {
     const content = document.getElementById('content');
     document.body.setAttribute('data-view', viewData.id);
     document.body.className = document.body.className
@@ -291,22 +291,23 @@ class view {
     }
 
     const hooksHTML = this.processHooksForHTML(viewData);
-    content.innerHTML = this.generateViewHTML(viewData, hooksHTML);
+    content.innerHTML = this.generateViewHTML(viewData, hooksHTML, extensionContext);
     this.setupView(viewData);
   }
 
-  static renderViewInContainer(viewData, container) {
+  static renderViewInContainer(viewData, container, extensionContext = null) {
     const hooksHTML = this.processHooksForHTML(viewData);
-    container.innerHTML = this.generateViewHTML(viewData, hooksHTML);
+    container.innerHTML = this.generateViewHTML(viewData, hooksHTML, extensionContext);
     this.setupView(viewData, container);
   }
 
-  static generateViewHTML(viewData, hooksHTML = null) {
+  static generateViewHTML(viewData, hooksHTML = null, extensionContext = null) {
     const hooksBeforeHTML = hooksHTML?.before || '';
     const hooksAfterHTML = hooksHTML?.after || '';
+    const extensionAttr = extensionContext ? ` data-extension-context="${extensionContext}"` : '';
 
     return `
-      <div class="view-container" data-view="${viewData.id}">
+      <div class="view-container" data-view="${viewData.id}"${extensionAttr}>
         ${hooksBeforeHTML}
 
         ${viewData.header ? `
@@ -459,11 +460,22 @@ class view {
   }
 
   static async loadDynamicComponents(container) {
+    // Obtener el contexto de extensión del contenedor padre
+    const viewContainer = container.closest('[data-extension-context]');
+    const extensionContext = viewContainer?.getAttribute('data-extension-context') || null;
+
     const dynamicForms = container.querySelectorAll('.dynamic-form');
+    
     dynamicForms.forEach(async el => {
       const formJson = el.getAttribute('data-form-json');
+      
       if (formJson && window.form) {
-        await form.load(formJson, el);
+        // Si hay contexto de extensión y el formJson no incluye '|', agregarlo
+        const formPath = (extensionContext && !formJson.includes('|')) 
+          ? `${extensionContext}|forms/${formJson}` 
+          : formJson;
+        
+        await form.load(formPath, el);
       }
     });
 

@@ -69,7 +69,7 @@ const SCRIPTS_TO_LOAD = [
   // Components
   'js/components/langSelector.js',
   'js/components/toast.js',
-  'js/components/grouper.js',
+  // 'js/components/grouper.js',
   'js/components/modal.js',
   'js/components/tabs.js',
   'js/components/widget.js',

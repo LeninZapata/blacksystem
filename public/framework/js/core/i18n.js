@@ -254,10 +254,22 @@ class i18n {
     this.exntesionTranslations.clear();
   }
 
-  // Procesar string con placeholders {i18n:key} o {i18n:key|param:value}
+  /**
+   * Procesar string con claves i18n
+   * Soporta dos formatos:
+   * 1. Directo: "i18n:key" → traduce todo el string
+   * 2. Placeholder: "{i18n:key}" o "{i18n:key|param:value}" → reemplaza dentro del string
+   */
   static processString(str) {
     if (!str || typeof str !== 'string') return str;
     
+    // Formato directo: "i18n:key" (todo el string es una clave)
+    if (str.startsWith('i18n:')) {
+      const key = str.substring(5);
+      return this.t(key);
+    }
+    
+    // Formato placeholder: "{i18n:key}" o "{i18n:key|param:value}"
     return str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
       const parts = content.split('|');
       const key = parts[0];

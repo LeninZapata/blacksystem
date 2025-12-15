@@ -29,11 +29,21 @@ class infoproductProduct {
 
   // Llenar formulario
   static fillForm(formId, data) {
+    const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
+    const messagesData = configData.messages || {};
+    
     form.fill(formId, {
       name: data.name,
       bot_id: data.bot_id ? String(data.bot_id) : '',
       price: data.price || '',
       description: data.description || '',
+      'config.welcome_triggers': configData.welcome_triggers || '',
+      'config.prompt': configData.prompt || '',
+      'config.welcome_messages': messagesData.welcome_messages || [],
+      'config.welcome_messages_upsell': messagesData.welcome_messages_upsell || [],
+      'config.tracking_messages': messagesData.tracking_messages || [],
+      'config.tracking_messages_upsell': messagesData.tracking_messages_upsell || [],
+      'config.templates': messagesData.templates || [],
       context: data.context || this.context
     });
   }
@@ -69,6 +79,45 @@ class infoproductProduct {
       return null;
     }
 
+    // Construir config con welcome_triggers, prompt y messages
+    const config = {};
+    
+    if (formData.config?.welcome_triggers) {
+      config.welcome_triggers = formData.config.welcome_triggers;
+    }
+    
+    if (formData.config?.prompt) {
+      config.prompt = formData.config.prompt;
+    }
+
+    // Agrupar todos los repeatables del grouper en messages
+    const messages = {};
+    
+    if (formData.config?.welcome_messages && Array.isArray(formData.config.welcome_messages)) {
+      messages.welcome_messages = formData.config.welcome_messages;
+    }
+    
+    if (formData.config?.welcome_messages_upsell && Array.isArray(formData.config.welcome_messages_upsell)) {
+      messages.welcome_messages_upsell = formData.config.welcome_messages_upsell;
+    }
+    
+    if (formData.config?.tracking_messages && Array.isArray(formData.config.tracking_messages)) {
+      messages.tracking_messages = formData.config.tracking_messages;
+    }
+    
+    if (formData.config?.tracking_messages_upsell && Array.isArray(formData.config.tracking_messages_upsell)) {
+      messages.tracking_messages_upsell = formData.config.tracking_messages_upsell;
+    }
+    
+    if (formData.config?.templates && Array.isArray(formData.config.templates)) {
+      messages.templates = formData.config.templates;
+    }
+
+    // Solo agregar messages si tiene contenido
+    if (Object.keys(messages).length > 0) {
+      config.messages = messages;
+    }
+    console.log(`config:`, config);
     return {
       user_id: userId,
       context: formData.context || this.context,
@@ -76,7 +125,7 @@ class infoproductProduct {
       price: parseFloat(formData.price),
       name: formData.name,
       description: formData.description || null,
-      config: null
+      config: Object.keys(config).length > 0 ? config : null
     };
   }
 

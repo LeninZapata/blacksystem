@@ -276,24 +276,9 @@ class modal {
     });
   }
 
-  // Procesar cadenas i18n en contenido
+  // Procesar cadenas i18n en contenido (usa i18n.processString)
   static processI18nInString(str) {
-    if (!str || typeof str !== 'string') return str;
-
-    return str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
-      const parts = content.split('|');
-      const key = parts[0];
-      const params = {};
-
-      for (let i = 1; i < parts.length; i++) {
-        const [paramKey, paramValue] = parts[i].split(':');
-        if (paramKey && paramValue) {
-          params[paramKey] = paramValue;
-        }
-      }
-
-      return window.i18n ? i18n.t(key, params) : key;
-    });
+    return window.i18n ? i18n.processString(str) : str;
   }
 }
 

@@ -88,7 +88,13 @@ class form {
     if (!schema) {
       let url;
 
-      if (isCore === true) {
+      // Manejar notación extension|path (ej: ejemplos|forms/formularios/form-inputs-normales)
+      if (formName.includes('|')) {
+        const [extensionName, restPath] = formName.split('|');
+        const basePath = window.appConfig?.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
+        url = `${window.BASE_URL}${basePath}/${restPath}.json`;
+      }
+      else if (isCore === true) {
         const basePath = window.appConfig?.routes?.coreViews || 'js/views';
         url = `${window.BASE_URL}${basePath}/${formName}.json`;
       }
@@ -183,6 +189,10 @@ class form {
       if (formEl) {
         this.initRepeatables(instanceId, target);
         this.bindTransforms(instanceId, target);
+        
+        // Aplicar valores por defecto ANTES de conditions
+        this.applyDefaultValues(instanceId, target);
+        
         if (window.conditions) {
           conditions.init(instanceId);
         }
@@ -339,12 +349,13 @@ class form {
     field.groups.forEach((group, index) => {
       const isOpen = openFirst && index === 0;
       const contentId = `${grouperId}-content-${index}`;
+      const processedTitle = this.processI18nTitle(group.title) || `Grupo ${index + 1}`;
 
       html += `
         <div class="grouper-section ${isOpen ? 'open' : ''} ${!collapsible ? 'non-collapsible' : ''}" data-group-index="${index}">
           <div class="grouper-header ${collapsible ? 'collapsible' : 'non-collapsible'}"
                ${collapsible ? `data-toggle="${contentId}"` : ''}>
-            <h3 class="grouper-title">${group.title || `Grupo ${index + 1}`}</h3>
+            <h3 class="grouper-title">${processedTitle}</h3>
             ${collapsible ? '<span class="grouper-toggle">▼</span>' : ''}
           </div>
           <div class="grouper-content" id="${contentId}" ${!isOpen && collapsible ? 'style="display:none"' : ''}>
@@ -372,10 +383,11 @@ class form {
     html += `<div class="grouper-tabs-header">`;
     field.groups.forEach((group, index) => {
       const isActive = index === activeIndex;
+      const processedTitle = this.processI18nTitle(group.title) || `Tab ${index + 1}`;
       html += `
         <button type="button" class="grouper-tab-btn ${isActive ? 'active' : ''}"
                 data-tab-index="${index}">
-          ${group.title || `Tab ${index + 1}`}
+          ${processedTitle}
         </button>
       `;
     });
@@ -423,6 +435,22 @@ class form {
           } else {
             section.classList.add('open');
             content.style.display = 'block';
+            
+            // Re-evaluar condiciones al abrir sección
+            if (window.conditions) {
+              const formId = container.closest('form')?.id;
+              logger.debug('core:form', `[Linear] Sección abierta, re-evaluando condiciones. FormID: ${formId}`);
+              if (formId) {
+                setTimeout(() => {
+                  logger.debug('core:form', `[Linear] Ejecutando conditions.evaluate(${formId})`);
+                  conditions.evaluate(formId);
+                }, 50);
+              } else {
+                logger.warn('core:form', '[Linear] No se encontró formId');
+              }
+            } else {
+              logger.warn('core:form', '[Linear] window.conditions no está disponible');
+            }
           }
         });
       });
@@ -432,9 +460,13 @@ class form {
       const tabButtons = container.querySelectorAll(':scope > .grouper-tabs-header > .grouper-tab-btn');
       const tabPanels = container.querySelectorAll(':scope > .grouper-tabs-content > .grouper-tab-panel');
 
+      logger.debug('core:form', `[Tabs] Grouper ${container.id} - ${tabButtons.length} tabs encontrados`);
+
       tabButtons.forEach(button => {
         button.addEventListener('click', () => {
           const index = parseInt(button.dataset.tabIndex);
+          
+          logger.debug('core:form', `[Tabs] Click en tab ${index}`);
 
           // Remover active de todos los botones de ESTE grouper
           tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -445,6 +477,24 @@ class form {
           // Activar el panel correspondiente de ESTE grouper
           if (tabPanels[index]) {
             tabPanels[index].classList.add('active');
+            
+            // ✅ Re-evaluar condiciones al cambiar de tab
+            if (window.conditions) {
+              const formId = container.closest('form')?.id;
+              logger.debug('core:form', `[Tabs] Tab ${index} activado, re-evaluando condiciones. FormID: ${formId}`);
+              if (formId) {
+                setTimeout(() => {
+                  logger.debug('core:form', `[Tabs] Ejecutando conditions.evaluate(${formId})`);
+                  conditions.evaluate(formId);
+                }, 50);
+              } else {
+                logger.warn('core:form', '[Tabs] No se encontró formId');
+              }
+            } else {
+              logger.warn('core:form', '[Tabs] window.conditions no está disponible');
+            }
+          } else {
+            logger.warn('core:form', `[Tabs] Panel ${index} no encontrado`);
           }
         });
       });
@@ -783,6 +833,131 @@ class form {
     }
   }
 
+  // ============================================================================
+  // PROCESAR VALORES POR DEFECTO ESPECIALES
+  // ============================================================================
+
+  // ============================================================================
+  // APLICAR VALORES POR DEFECTO
+  // ============================================================================
+
+  static applyDefaultValues(formId, container = null) {
+    const schema = this.schemas.get(formId);
+    if (!schema || !schema.fields) return;
+
+    const formEl = container 
+      ? container.querySelector(`#${formId}`)
+      : document.getElementById(formId);
+    
+    if (!formEl) return;
+
+    // Recorrer todos los campos y aplicar defaults
+    this.applyDefaultsToFields(schema.fields, '', formEl);
+  }
+
+  static applyDefaultsToFields(fields, parentPath = '', formEl) {
+    fields.forEach(field => {
+      const fieldPath = parentPath ? `${parentPath}.${field.name}` : field.name;
+
+      // Procesar según tipo de campo
+      if (field.type === 'group' && field.fields) {
+        // Recursivo para grupos
+        this.applyDefaultsToFields(field.fields, parentPath, formEl);
+      } else if (field.type === 'grouper' && field.groups) {
+        // Recursivo para grouper
+        field.groups.forEach(group => {
+          if (group.fields) {
+            this.applyDefaultsToFields(group.fields, parentPath, formEl);
+          }
+        });
+      } else if (field.type === 'repeatable') {
+        // Los repeatables aplican defaults al agregar items, skip
+        return;
+      } else if (field.defaultValue !== undefined && field.defaultValue !== null && field.name) {
+        // Aplicar default al campo
+        const fieldEl = formEl.querySelector(`[name="${fieldPath}"]`);
+        
+        if (fieldEl) {
+          const processedValue = this.processDefaultValue(field.defaultValue);
+          
+          if (fieldEl.type === 'checkbox' || fieldEl.type === 'radio') {
+            fieldEl.checked = !!processedValue;
+          } else {
+            fieldEl.value = processedValue;
+          }
+        }
+      }
+    });
+  }
+
+  // ============================================================================
+  // PROCESAMIENTO DE TOKENS ESPECIALES
+  // ============================================================================
+
+  static processDefaultValue(value) {
+    if (typeof value !== 'string') return value;
+
+    // Tokens especiales disponibles
+    const tokens = {
+      // {hash:n} - Genera un hash aleatorio de n caracteres
+      hash: (length = 8) => {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      },
+      // {uuid} - Genera un UUID simple
+      uuid: () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      },
+      // {timestamp} - Timestamp actual
+      timestamp: () => {
+        return Date.now().toString();
+      },
+      // {date} - Fecha actual (YYYY-MM-DD)
+      date: () => {
+        return new Date().toISOString().split('T')[0];
+      },
+      // {time} - Hora actual (HH:mm)
+      time: () => {
+        const now = new Date();
+        return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      },
+      // {random:min:max} - Número aleatorio entre min y max
+      random: (min = 0, max = 100) => {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+    };
+
+    // Procesar tokens en el formato {token:param1:param2}
+    return value.replace(/\{([^}]+)\}/g, (match, content) => {
+      const parts = content.split(':');
+      const tokenName = parts[0];
+      const params = parts.slice(1).map(p => {
+        // Convertir a número si es numérico
+        const num = parseFloat(p);
+        return isNaN(num) ? p : num;
+      });
+
+      if (tokens[tokenName]) {
+        return tokens[tokenName](...params);
+      }
+
+      // Si no se reconoce el token, devolver el match original
+      return match;
+    });
+  }
+
+  // ============================================================================
+  // AGREGAR ITEM A REPEATABLE
+  // ============================================================================
+
   static addRepeatableItem(path, buttonElement = null) {
     // 1. Buscar el container DENTRO del formulario correcto
     let container;
@@ -867,11 +1042,32 @@ class form {
     container.insertAdjacentHTML('beforeend', itemHtml);
     container.dataset.itemCount = (newIndex + 1).toString();
 
-    // 8. INICIALIZAR REPETIBLES ANIDADOS dentro del item recién agregado
+    // 8. Aplicar valores por defecto a los campos
+    const addedItem = container.lastElementChild;
+    if (addedItem) {
+      fieldSchema.forEach(field => {
+        if (field.defaultValue !== undefined && field.defaultValue !== null) {
+          const fieldPath = `${itemPath}.${field.name}`;
+          const fieldEl = addedItem.querySelector(`[name="${fieldPath}"]`);
+          
+          if (fieldEl) {
+            // Procesar valor por defecto especial (tokens como {hash:10})
+            const processedValue = this.processDefaultValue(field.defaultValue);
+            
+            if (fieldEl.type === 'checkbox' || fieldEl.type === 'radio') {
+              fieldEl.checked = !!processedValue;
+            } else {
+              fieldEl.value = processedValue;
+            }
+          }
+        }
+      });
+    }
+
+    // 9. INICIALIZAR REPETIBLES ANIDADOS dentro del item recién agregado
     const formId = container.closest('form')?.id;
     if (formId) {
       setTimeout(() => {
-        const addedItem = container.lastElementChild;
 
         if (addedItem && addedItem.classList.contains('repeatable-item')) {
           const nestedRepeatables = this.findNestedRepeatables(fieldSchema, itemPath);
@@ -1064,7 +1260,7 @@ class form {
           if (value !== undefined && value !== null) {
             const input = formEl.querySelector(`[name="${field.name}"]`);
             if (input) {
-              this.setInputValue(input, value);
+              this.setInputValue(input, value, true);
             }
           }
         }
@@ -1091,7 +1287,7 @@ class form {
           if (value !== undefined && value !== null) {
             const input = formEl.querySelector(`[name="${field.name}"]`);
             if (input) {
-              this.setInputValue(input, value);
+              this.setInputValue(input, value, true);
             }
           }
         }
@@ -1135,6 +1331,12 @@ class form {
 
     const fullPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
     logger.info('core:form', `📋 Llenando ${fullPath}: ${items.length} items`);
+
+    // Pausar evaluaciones de condiciones durante el llenado masivo
+    if (window.conditions && items.length >= 1) {
+      logger.debug('core:form', `⏸️ Pausando evaluaciones durante llenado de ${items.length} items`);
+      conditions.pauseEvaluations();
+    }
 
     // Encontrar botón "Agregar" (puede tener path completo o simple)
     let addButton = container.querySelector(`.repeatable-add[data-path="${fullPath}"]`);
@@ -1183,6 +1385,15 @@ class form {
   static fillRepeatableItem(container, fieldName, index, itemData, fieldSchema, parentPath, isLastItem = false) {
     logger.debug('core:form', `Llenando item [${index}] de ${parentPath || fieldName}:`, itemData);
 
+    // Reanudar evaluaciones si es el último item
+    if (isLastItem && window.conditions) {
+      const formEl = container.closest('form');
+      setTimeout(() => {
+        logger.debug('core:form', `✅ Último item de ${parentPath}, reanudando evaluaciones`);
+        conditions.resumeEvaluations(formEl?.id);
+      }, 200);
+    }
+
     // Obtener el item recién agregado
     const items = container.querySelectorAll('.repeatable-item');
     const currentItem = items[items.length - 1];
@@ -1222,7 +1433,7 @@ class form {
         const input = currentItem.querySelector(`[name="${inputName}"]`);
 
         if (input) {
-          this.setInputValue(input, value);
+          this.setInputValue(input, value, true);
           logger.debug('core:form', `✓ ${inputName} = ${value}`);
         } else {
           logger.warn('core:form', `Campo no encontrado: ${inputName}`);
@@ -1272,7 +1483,7 @@ class form {
           const inputName = `${itemPath}.${subField.name}`;
           const input = item.querySelector(`[name="${inputName}"]`);
           if (input) {
-            this.setInputValue(input, value);
+            this.setInputValue(input, value, true);
             logger.debug('core:form', `🔄 Campo actualizado: ${inputName} = ${value} (${input.tagName})`);
           } else {
             logger.warn('core:form', `Campo no encontrado: ${inputName}`);
@@ -1283,7 +1494,7 @@ class form {
   }
 
   // Asignar valor a un input
-  static setInputValue(input, value) {
+  static setInputValue(input, value, silent = false) {
     if (input.type === 'checkbox') {
       input.checked = !!value;
     } else if (input.type === 'radio') {
@@ -1294,8 +1505,10 @@ class form {
       input.value = value;
     }
 
-    // Disparar evento change
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+    // Disparar evento change solo si no es modo silencioso
+    if (!silent) {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }
 
 
@@ -1693,6 +1906,14 @@ class form {
       option.textContent = item[labelField];
       selectEl.appendChild(option);
     });
+  }
+
+  /**
+   * Procesar títulos con claves i18n para grouper
+   * Usa i18n.processString() para soportar ambos formatos
+   */
+  static processI18nTitle(title) {
+    return window.i18n ? i18n.processString(title) : title;
   }
 }
 

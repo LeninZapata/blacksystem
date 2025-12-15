@@ -10,6 +10,8 @@ class grouper {
     const grouperId = `grouper-${++this.counter}`;
     const mode = config.mode || 'linear';
 
+    logger.info('com:grouper', `Renderizando grouper ${grouperId} en modo "${mode}"`);
+
     if (!['linear', 'tabs'].includes(mode)) {
       logger.error('com:grouper', `Modo "${mode}" no válido`);
       return;
@@ -63,10 +65,13 @@ class grouper {
     config.groups.forEach((group, index) => {
       const isOpen = openFirst && index === 0;
       const groupId = `${grouperId}-group-${index}`;
+      logger.debug('com:grouper', `[Linear] Título original (índice ${index}):`, group.title);
+      const processedTitle = this.processI18nInString(group.title) || `Grupo ${index + 1}`;
+      logger.debug('com:grouper', `[Linear] Título procesado (índice ${index}):`, processedTitle);
       html += `
         <div class="grouper-section ${isOpen ? 'open' : ''}" data-group-index="${index}">
           <div class="grouper-header ${collapsible ? 'collapsible' : ''}" ${collapsible ? `data-toggle="${groupId}"` : ''}>
-            <h3 class="grouper-title">${group.title || `Grupo ${index + 1}`}</h3>
+            <h3 class="grouper-title">${processedTitle}</h3>
             ${collapsible ? '<span class="grouper-toggle">▼</span>' : ''}
           </div>
           <div class="grouper-content" id="${groupId}" ${!isOpen ? 'style="display:none"' : ''}>
@@ -83,8 +88,11 @@ class grouper {
     let html = `<div class="grouper grouper-tabs" id="${grouperId}"><div class="grouper-tabs-header">`;
 
     config.groups.forEach((group, index) => {
+      logger.debug('com:grouper', `[Tabs] Título original (índice ${index}):`, group.title);
+      const processedTitle = this.processI18nInString(group.title) || `Tab ${index + 1}`;
+      logger.debug('com:grouper', `[Tabs] Título procesado (índice ${index}):`, processedTitle);
       html += `<button class="grouper-tab-btn ${index === activeIndex ? 'active' : ''}" data-tab-index="${index}">
-          ${group.title || `Tab ${index + 1}`}</button>`;
+          ${processedTitle}</button>`;
     });
 
     html += `</div><div class="grouper-tabs-content">`;
@@ -257,6 +265,49 @@ class grouper {
     document.getElementById(grouperId)?.querySelectorAll('.grouper-section').forEach((_, index) => {
       this.toggleSection(grouperId, index, false);
     });
+  }
+
+  // Procesar cadenas i18n en contenido
+  static processI18nInString(str) {
+    logger.debug('com:grouper', '[i18n] Entrada:', str, '| Tipo:', typeof str);
+    
+    if (!str || typeof str !== 'string') {
+      logger.debug('com:grouper', '[i18n] No es string válido, retornando original');
+      return str;
+    }
+
+    // Formato directo: "i18n:key"
+    if (str.startsWith('i18n:')) {
+      const key = str.substring(5);
+      logger.debug('com:grouper', '[i18n] Detectado formato directo, key:', key);
+      const result = window.i18n ? i18n.t(key) : key;
+      logger.debug('com:grouper', '[i18n] Resultado traducción:', result);
+      logger.debug('com:grouper', '[i18n] i18n disponible:', !!window.i18n);
+      return result;
+    }
+
+    // Formato placeholder: "{i18n:key}" o "{i18n:key|param:value}"
+    logger.debug('com:grouper', '[i18n] Buscando placeholders {i18n:...}');
+    const result = str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
+      const parts = content.split('|');
+      const key = parts[0];
+      const params = {};
+
+      for (let i = 1; i < parts.length; i++) {
+        const [paramKey, paramValue] = parts[i].split(':');
+        if (paramKey && paramValue) {
+          params[paramKey] = paramValue;
+        }
+      }
+
+      logger.debug('com:grouper', '[i18n] Placeholder encontrado, key:', key, '| params:', params);
+      const translated = window.i18n ? i18n.t(key, params) : key;
+      logger.debug('com:grouper', '[i18n] Traducción:', translated);
+      return translated;
+    });
+    
+    logger.debug('com:grouper', '[i18n] Resultado final:', result);
+    return result;
   }
 }
 
