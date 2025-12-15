@@ -1,30 +1,44 @@
 <?php
-// botHandlers - Handlers personalizados para bot
 class botHandlers {
 
-  /**
-   * Guarda un archivo JSON con información del bot en una carpeta específica
-   * 
-   * @param array $botData - Datos del bot (debe contener id, number, config)
-   * @param string $context - Carpeta donde guardar (ej: 'workflow', 'sessions', etc)
-   * @return bool - True si se guardó correctamente, false en caso de error
-   */
-  static function saveContextFile($botData, $context = 'workflow') {
+  static function saveContextFile($botData, $action = 'create') {
     if (!isset($botData['id']) || !isset($botData['number'])) {
-      log::error('botHandlers - Datos insuficientes para guardar archivo', $botData, ['module' => 'bot']);
+      log::error('botHandlers::saveContextFile - Datos insuficientes', null, ['module' => 'bot']);
       return false;
     }
 
-    $botId = $botData['id'];
-    $number = $botData['number'];
-    
-    // Parsear config si es string JSON
-    $config = isset($botData['config']) ? $botData['config'] : null;
-    if (is_string($config)) {
-      $config = json_decode($config, true);
+    self::generateWorkflowFile($botData['number'], $botData, $action);
+    self::generateDataFile($botData['number'], $botData, $action);
+    return true;
+  }
+
+  static function getWorkflowFile($botNumber) {
+    $path = SHARED_PATH . '/bots/infoproduct/rapid/workflow_' . $botNumber . '.json';
+    return file::getJson($path, function() use ($botNumber) {
+      return self::generateWorkflowFile($botNumber);
+    });
+  }
+
+  static function getDataFile($botNumber) {
+    $path = SHARED_PATH . '/bots/data/' . $botNumber . '.json';
+    return file::getJson($path, function() use ($botNumber) {
+      return self::generateDataFile($botNumber);
+    });
+  }
+
+  static function generateWorkflowFile($botNumber, $botData = null, $action = 'create') {
+    if (!$botData) {
+      $botData = db::table('bots')->where('number', $botNumber)->first();
+      if (!$botData) {
+        log::error("botHandlers::generateWorkflowFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
+        return false;
+      }
     }
 
-    // Obtener file_path desde work_flows usando workflow_id
+    $config = isset($botData['config']) && is_string($botData['config']) 
+      ? json_decode($botData['config'], true) 
+      : ($botData['config'] ?? []);
+
     $filePath = null;
     $workflowId = $config['workflow_id'] ?? null;
     
@@ -35,40 +49,44 @@ class botHandlers {
       }
     }
 
-    // Directorio donde se guardará el archivo
-    $dir = STORAGE_PATH . '/bots/' . $context;
-    
-    // Crear directorio si no existe
-    if (!is_dir($dir)) {
-      if (!mkdir($dir, 0755, true)) {
-        log::error('botHandlers - No se pudo crear directorio', ['dir' => $dir], ['module' => 'bot']);
+    $path = SHARED_PATH . '/bots/infoproduct/rapid/workflow_' . $botNumber . '.json';
+    return file::saveJson($path, ['file_path' => $filePath], 'bot', $action);
+  }
+
+  static function generateDataFile($botNumber, $botData = null, $action = 'create') {
+    if (!$botData) {
+      $botData = db::table('bots')->where('number', $botNumber)->first();
+      if (!$botData) {
+        log::error("botHandlers::generateDataFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
         return false;
       }
     }
 
-    // Nombre del archivo: {numero}_{bot_id}.json
-    $filename = $number . '_' . $botId . '.json';
-    $fullPath = $dir . '/' . $filename;
-
-    // Contenido del archivo JSON
-    $jsonContent = [
-      'file_path' => $filePath
-    ];
-
-    // Guardar archivo
-    $result = file_put_contents($fullPath, json_encode($jsonContent, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
-    if ($result === false) {
-      log::error('botHandlers - Error al guardar archivo', ['path' => $fullPath], ['module' => 'bot']);
-      return false;
+    $data = $botData;
+    
+    if (isset($data['config']) && is_string($data['config'])) {
+      $data['config'] = json_decode($data['config'], true);
     }
 
-    log::info('botHandlers - Archivo de contexto guardado', [
-      'bot_id' => $botId,
-      'context' => $context,
-      'file' => $filename
-    ], ['module' => 'bot']);
+    if (isset($data['config']['apis']) && is_array($data['config']['apis'])) {
+      foreach ($data['config']['apis'] as $key => $credentialIds) {
+        if (is_array($credentialIds)) {
+          $resolvedCredentials = [];
+          foreach ($credentialIds as $credId) {
+            $credential = db::table('credentials')->find($credId);
+            if ($credential) {
+              if (isset($credential['config']) && is_string($credential['config'])) {
+                $credential['config'] = json_decode($credential['config'], true);
+              }
+              $resolvedCredentials[] = $credential;
+            }
+          }
+          $data['config']['apis'][$key] = $resolvedCredentials;
+        }
+      }
+    }
 
-    return true;
+    $path = SHARED_PATH . '/bots/data/' . $botNumber . '.json';
+    return file::saveJson($path, $data, 'bot', $action);
   }
 }

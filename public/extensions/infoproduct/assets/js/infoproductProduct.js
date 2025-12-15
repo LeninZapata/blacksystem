@@ -19,11 +19,11 @@ class infoproductProduct {
     this.currentId = id;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    
+
     form.clearAllErrors(realId);
     const data = await this.get(id);
     if (!data) return;
-    
+
     this.fillForm(formId, data);
   }
 
@@ -31,7 +31,7 @@ class infoproductProduct {
   static fillForm(formId, data) {
     const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
     const messagesData = configData.messages || {};
-    
+
     form.fill(formId, {
       name: data.name,
       bot_id: data.bot_id ? String(data.bot_id) : '',
@@ -53,13 +53,13 @@ class infoproductProduct {
     if (!validation.success) return toast.error(validation.message);
 
     const body = this.buildBody(validation.data);
-    const result = this.currentId 
-      ? await this.update(this.currentId, body) 
+    const result = this.currentId
+      ? await this.update(this.currentId, body)
       : await this.create(body);
 
     if (result) {
-      toast.success(this.currentId 
-        ? __('infoproduct.products.success.updated') 
+      toast.success(this.currentId
+        ? __('infoproduct.products.success.updated')
         : __('infoproduct.products.success.created')
       );
       setTimeout(() => {
@@ -71,44 +71,36 @@ class infoproductProduct {
 
   // Construir body para API
   static buildBody(formData) {
-    const userId = auth.user?.id;
-    
-    if (!userId) {
-      logger.error('ext:infoproduct', 'No se pudo obtener el user_id');
-      toast.error(__('infoproduct.products.error.user_not_found'));
-      return null;
-    }
-
     // Construir config con welcome_triggers, prompt y messages
     const config = {};
-    
+
     if (formData.config?.welcome_triggers) {
       config.welcome_triggers = formData.config.welcome_triggers;
     }
-    
+
     if (formData.config?.prompt) {
       config.prompt = formData.config.prompt;
     }
 
     // Agrupar todos los repeatables del grouper en messages
     const messages = {};
-    
+
     if (formData.config?.welcome_messages && Array.isArray(formData.config.welcome_messages)) {
       messages.welcome_messages = formData.config.welcome_messages;
     }
-    
+
     if (formData.config?.welcome_messages_upsell && Array.isArray(formData.config.welcome_messages_upsell)) {
       messages.welcome_messages_upsell = formData.config.welcome_messages_upsell;
     }
-    
+
     if (formData.config?.tracking_messages && Array.isArray(formData.config.tracking_messages)) {
       messages.tracking_messages = formData.config.tracking_messages;
     }
-    
+
     if (formData.config?.tracking_messages_upsell && Array.isArray(formData.config.tracking_messages_upsell)) {
       messages.tracking_messages_upsell = formData.config.tracking_messages_upsell;
     }
-    
+
     if (formData.config?.templates && Array.isArray(formData.config.templates)) {
       messages.templates = formData.config.templates;
     }
@@ -117,9 +109,8 @@ class infoproductProduct {
     if (Object.keys(messages).length > 0) {
       config.messages = messages;
     }
-    console.log(`config:`, config);
+
     return {
-      user_id: userId,
       context: formData.context || this.context,
       bot_id: parseInt(formData.bot_id),
       price: parseFloat(formData.price),

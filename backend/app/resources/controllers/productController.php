@@ -8,12 +8,15 @@ class productController extends controller {
   function create() {
     $data = request::data();
     
+    // Capturar user_id del usuario autenticado (quien crea)
+    if (isset($GLOBALS['auth_user_id'])) {
+      $data['user_id'] = $GLOBALS['auth_user_id'];
+    } else {
+      response::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
+    
     if (!isset($data['name']) || empty($data['name'])) {
       response::json(['success' => false, 'error' => __('product.name_required')], 200);
-    }
-
-    if (!isset($data['user_id']) || empty($data['user_id'])) {
-      response::json(['success' => false, 'error' => __('product.user_id_required')], 200);
     }
 
     $data['dc'] = date('Y-m-d H:i:s');
@@ -27,6 +30,13 @@ class productController extends controller {
     log::debug('productController - Datos para crear producto', $data, ['module' => 'product']);
     try {
       $id = db::table('products')->insert($data);
+      
+      // Invocar handler para generar archivos JSON
+      if (isset($data['context'])) {
+        $data['id'] = $id; // Agregar el ID generado
+        productHandler::handleByContext($data, 'create');
+      }
+      
       response::success(['id' => $id], __('product.create.success'), 201);
     } catch (Exception $e) {
       log::error('productController - Error SQL al crear producto', ['message' => $e->getMessage()], ['module' => 'product']);
@@ -50,6 +60,13 @@ class productController extends controller {
 
     try {
       $affected = db::table('products')->where('id', $id)->update($data);
+      
+      // Invocar handler para regenerar archivos JSON solo si hubo cambios
+      if ($affected > 0 && isset($data['context'])) {
+        $data['id'] = $id; // Agregar el ID
+        productHandler::handleByContext($data, 'update');
+      }
+      
       response::success(['affected' => $affected], __('product.update.success'));
     } catch (Exception $e) {
       response::serverError(__('product.update.error'), IS_DEV ? $e->getMessage() : null);
