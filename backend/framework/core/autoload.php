@@ -35,6 +35,20 @@ spl_autoload_register(function ($class) {
     // Handlers (app)
     'userhandlers' => APP_PATH . '/resources/handlers/userHandlers.php',
     'clienthandlers' => APP_PATH . '/resources/handlers/clientHandlers.php',
+
+    // ChatAPI Service
+    'chatapiservice' => FRAMEWORK_PATH . '/services/integrations/chatapi/chatApiService.php',
+
+    // Providers
+    'basechatapiprovider' => FRAMEWORK_PATH . '/services/integrations/chatapi/baseChatApiProvider.php',
+    'evolutionprovider' => FRAMEWORK_PATH . '/services/integrations/chatapi/evolution/evolutionProvider.php',
+    'testingprovider' => FRAMEWORK_PATH . '/services/integrations/chatapi/testing/testingProvider.php',
+
+    // Interface
+    'chatapiproviderinterface' => FRAMEWORK_PATH . '/services/integrations/chatapi/chatApiProviderInterface.php',
+
+    // Controller
+    'webhookcontroller' => APP_PATH . '/resources/controllers/webhookController.php',
   ];
 
   if (isset($classMap[$classLower])) {
