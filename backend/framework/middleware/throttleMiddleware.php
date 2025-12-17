@@ -5,8 +5,11 @@ class throttleMiddleware {
   private $storageFile;
 
   function __construct() {
-    // Archivo para almacenar el tracking (en producción usar Redis/Memcached)
-    $this->storageFile = sys_get_temp_dir() . '/throttle_data.json';
+    $middlewareDir = STORAGE_PATH . '/middleware';
+    if (!is_dir($middlewareDir)) {
+      mkdir($middlewareDir, 0755, true);
+    }
+    $this->storageFile = $middlewareDir . '/throttle_data.json';
   }
 
   // Recibir parámetros: throttle:maxRequests,minutes
@@ -43,6 +46,14 @@ class throttleMiddleware {
       header("X-RateLimit-Limit: $maxRequests");
       header("X-RateLimit-Remaining: 0");
       header("X-RateLimit-Reset: " . ($now + $retryAfter));
+
+      log::warning('middleware:throttle rate limit exceeded', [
+        'ip' => $ip,
+        'path' => request::path(),
+        'max_requests' => $maxRequests,
+        'minutes' => $minutes,
+        'request_count' => $requestCount
+      ]);
 
       response::error(
         __('middleware.throttle.too_many_requests', ['max' => $maxRequests, 'minutes' => $minutes]),

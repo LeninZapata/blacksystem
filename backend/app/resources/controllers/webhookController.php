@@ -1,39 +1,37 @@
 <?php
-class webhookController extends controller {
-
-  function __construct() {
-    parent::__construct('webhook');
-  }
+class webhookController {
 
   function whatsapp() {
     try {
-      $data = request::data();
+      $rawData = request::data();
       
-      if (empty($data)) {
-        response::json(['success' => false, 'error' => 'No se recibieron datos en el webhook'], 400);
-      }
-
-      $remoteJid = $data['key']['remoteJid'] ?? null;
-      if (!$remoteJid) {
-        response::json(['success' => false, 'error' => 'remoteJid no encontrado en webhook'], 400);
-      }
-
-      $botNumber = str_replace('@s.whatsapp.net', '', $remoteJid);
+      // Semántico: Detectar provider del webhook
+      $webhook = service::integration('chatapi', 'detect', $rawData);
       
-      $bot = botHandlers::getDataFile($botNumber);
+      // Extraer datos normalizados
+      $sender = $webhook->extractSender();
+      $message = $webhook->extractMessage();
+      $detectedProvider = $webhook->getProvider(); // evolution, wazapi, etc
+      
+      if (!$sender['number']) {
+        response::json(['success' => false, 'error' => 'Número de remitente no encontrado'], 400);
+      }
+      
+      $bot = botHandlers::getDataFile($sender['number']);
       if (!$bot) {
-        log::error('webhookController::whatsapp - Bot no encontrado', ['bot_number' => $botNumber], ['module' => 'webhook']);
-        response::json(['success' => false, 'error' => "Bot {$botNumber} no encontrado"], 404);
+        log::error('webhookController::whatsapp - Bot no encontrado', ['bot_number' => $sender['number']], ['module' => 'webhook']);
+        response::json(['success' => false, 'error' => "Bot {$sender['number']} no encontrado"], 404);
       }
 
-      chatApiService::setConfig($bot);
+      // Configurar chatapi con el provider detectado (semántico)
+      chatapi::setConfig($bot, $detectedProvider);
 
-      $workflowData = botHandlers::getWorkflowFile($botNumber);
+      $workflowData = botHandlers::getWorkflowFile($sender['number']);
       $workflowFile = $workflowData['file_path'] ?? null;
 
       if (!$workflowFile) {
-        log::error('webhookController::whatsapp - Workflow no configurado', ['bot_number' => $botNumber], ['module' => 'webhook']);
-        response::json(['success' => false, 'error' => "Bot {$botNumber} no tiene workflow configurado"], 400);
+        log::error('webhookController::whatsapp - Workflow no configurado', ['bot_number' => $sender['number']], ['module' => 'webhook']);
+        response::json(['success' => false, 'error' => "Bot {$sender['number']} no tiene workflow configurado"], 400);
       }
 
       $workflowPath = APP_PATH . "/workflows/{$workflowFile}";
@@ -42,12 +40,49 @@ class webhookController extends controller {
         response::json(['success' => false, 'error' => "Workflow file '{$workflowFile}' no encontrado"], 404);
       }
 
+      // Ejecutar workflow con variables disponibles
       require $workflowPath;
 
-      response::success(['message' => 'Webhook procesado']);
+      response::success(['message' => 'Webhook procesado', 'provider' => $detectedProvider]);
 
     } catch (Exception $e) {
       log::error('webhookController::whatsapp - Error crítico', ['error' => $e->getMessage()], ['module' => 'webhook']);
+      response::serverError('Error al procesar webhook', IS_DEV ? $e->getMessage() : null);
+    }
+  }
+
+  // Futuro: webhook de Telegram
+  function telegram() {
+    try {
+      $rawData = request::data();
+      
+      // Semántico: Detectar provider
+      $webhook = service::integration('chatapi', 'detect', $rawData);
+      
+      $sender = $webhook->extractSender();
+      $message = $webhook->extractMessage();
+      $provider = $webhook->getProvider();
+      
+      // ... lógica similar a whatsapp
+      
+    } catch (Exception $e) {
+      log::error('webhookController::telegram - Error crítico', ['error' => $e->getMessage()], ['module' => 'webhook']);
+      response::serverError('Error al procesar webhook', IS_DEV ? $e->getMessage() : null);
+    }
+  }
+
+  // Futuro: webhook de Email
+  function email() {
+    try {
+      $rawData = request::data();
+      
+      // Semántico: Detectar provider de email
+      $webhook = service::integration('email', 'detect', $rawData);
+      
+      // ... lógica email
+      
+    } catch (Exception $e) {
+      log::error('webhookController::email - Error crítico', ['error' => $e->getMessage()], ['module' => 'webhook']);
       response::serverError('Error al procesar webhook', IS_DEV ? $e->getMessage() : null);
     }
   }

@@ -227,7 +227,7 @@ class form {
   }
 
   static renderFields(fields, path = '') {
-    return fields.map((field) => {
+    return fields.map((field, index) => {
       // ✅ Normalizar tipo ANTES de procesar
       const normalizedField = this.normalizeFieldType(field);
 
@@ -245,7 +245,7 @@ class form {
       }
 
       if (normalizedField.type === 'grouper') {
-        return this.renderGrouper(normalizedField, path);
+        return this.renderGrouper(normalizedField, path, index);
       }
 
       return this.renderField(normalizedField, fieldPath);
@@ -321,9 +321,17 @@ class form {
     `;
   }
 
-  static renderGrouper(field, parentPath) {
+  static renderGrouper(field, parentPath, fieldIndex = 0) {
     const mode = field.mode || 'linear';
     const grouperId = `grouper-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Generar nombre único para el grouper basado en name o índice
+    const grouperName = field.name || `grouper_${fieldIndex}`;
+    const path = parentPath ? `${parentPath}.${grouperName}` : grouperName;
+    
+    // Si tiene condiciones, iniciar oculto
+    const hasConditions = field.condition && Array.isArray(field.condition) && field.condition.length > 0;
+    const initialStyle = hasConditions ? ' style="display: none;"' : '';
 
     let html = '';
 
@@ -332,6 +340,9 @@ class form {
     } else if (mode === 'tabs') {
       html += this.renderGrouperTabs(field, grouperId, parentPath);
     }
+
+    // Envolver en contenedor para que conditions.js pueda encontrarlo
+    html = `<div class="form-grouper-wrapper" data-field-name="${path}" data-grouper-id="${grouperId}"${initialStyle}>${html}</div>`;
 
     setTimeout(() => {
       this.bindGrouperEvents(grouperId, mode);

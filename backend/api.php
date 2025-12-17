@@ -14,11 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $path = __DIR__;
-require_once $path . '/framework/core/autoload.php';
-require_once $path . '/framework/helpers/system.php';
+require_once $path . '/framework/helpers/system.php'; // siempre primero 🔝
 require_once $path . '/app/config/environment.php';
 require_once $path . '/app/config/database.php';
 require_once $path . '/app/config/consts.php';
+require_once $path . '/framework/core/autoload.php';
 
 if (IS_DEV) {
   error_reporting(E_ALL);

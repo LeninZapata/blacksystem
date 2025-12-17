@@ -29,6 +29,7 @@ define('ROUTES_PATH', APP_PATH . '/routes');
 define('STORAGE_PATH', APP_PATH . '/storage');
 define('LOG_PATH', STORAGE_PATH . '/logs');
 define('SHARED_PATH', BASE_PATH . '/shared');
+define('SERVICES_PATH', FRAMEWORK_PATH . '/services');
 define('API_BASE_URL', '/api');
 
 // Configuración de la API
@@ -40,6 +41,7 @@ define('DEFAULT_LANG', 'es');
 
 // Cargar helper de idioma
 require_once FRAMEWORK_PATH . '/helpers/lang.php';
+require_once FRAMEWORK_PATH . '/helpers/log.php';
 
 // Inicializar idioma
 // Opción 1: Idioma fijo

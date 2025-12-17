@@ -13,36 +13,44 @@ class workflowHandlers {
       log::warning('workflowHandlers - workflow_id no proporcionado', [], ['module' => 'workflow']);
       return 0;
     }
-
-    // Buscar todos los bots que tienen este workflow_id en su config
-    $bots = db::table('bots')->get();
-
-    $updated = 0;
-
-    foreach ($bots as $bot) {
-      // Parsear config
-      $config = isset($bot['config']) ? $bot['config'] : null;
-      if (is_string($config)) {
-        $config = json_decode($config, true);
-      }
-
-      // Verificar si el bot usa este workflow
-      $botWorkflowId = $config['workflow_id'] ?? null;
-
-      if ($botWorkflowId == $workflowId) {
-        // Actualizar archivo de contexto del bot
-        $success = botHandlers::saveContextFile($bot, 'workflow');
-        if ($success) {
-          $updated++;
-        }
-      }
+    
+    // Futuro: detectar otros proveedores
+    // if (WazapiNormalizer::detect($rawData)) return 'wazapi';
+    // if (TelegramNormalizer::detect($rawData)) return 'telegram';
+    
+    return null;
+  }
+  
+  // Extraer información del sender
+  static function extractSender($normalizedData) {
+    $provider = $normalizedData['provider'] ?? null;
+    
+    if (!$provider) {
+      throw new Exception('webhookHandlers::extractSender - Provider no encontrado en data normalizada');
     }
-
-    log::info('workflowHandlers - Archivos de contexto actualizados', [
-      'workflow_id' => $workflowId,
-      'bots_updated' => $updated
-    ], ['module' => 'workflow']);
-
-    return $updated;
+    
+    return service::integration("chatapi/{$provider}", 'extractSender', $normalizedData);
+  }
+  
+  // Extraer mensaje
+  static function extractMessage($normalizedData) {
+    $provider = $normalizedData['provider'] ?? null;
+    
+    if (!$provider) {
+      throw new Exception('webhookHandlers::extractMessage - Provider no encontrado en data normalizada');
+    }
+    
+    return service::integration("chatapi/{$provider}", 'extractMessage', $normalizedData);
+  }
+  
+  // Extraer contexto (opcional, para FB Ads, etc)
+  static function extractContext($normalizedData) {
+    $provider = $normalizedData['provider'] ?? null;
+    
+    if (!$provider) {
+      return [];
+    }
+    
+    return service::integration("chatapi/{$provider}", 'extractContext', $normalizedData);
   }
 }

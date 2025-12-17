@@ -2,7 +2,7 @@
   "resource": "product",
   "table": "products",
   "timestamps": true,
-  "middleware": ["throttle:100,1"],
+  "middleware": ["throttle:50,1"],
   "routes": {
     "list": {"method": "GET", "path": "/api/product", "middleware": ["auth"]},
     "show": {"method": "GET", "path": "/api/product/{id}", "middleware": ["auth"]},

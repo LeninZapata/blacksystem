@@ -26,6 +26,7 @@ Esta plantilla permite crear un CRUD completo (backend PHP + frontend JS) de for
 
 **Regla de oro**: Si `bot.json` tiene `maxLength:50`, el form DEBE tener `max:50` en validation.
 
+
 ### ⚠️ IMPORTANTE - Reglas de Nombrado
 1. **Nombre del recurso** debe coincidir en:
    - Archivo JSON: `miRecurso.json`
@@ -34,6 +35,44 @@ Esta plantilla permite crear un CRUD completo (backend PHP + frontend JS) de for
 2. **NO usar guiones** en URLs de API (causa error "Método no existe")
 3. **Tabla BD** siempre plural: `mi_recursos`
 4. **user_id** debe ir ANTES de los campos de auditoría (dc, da, ta, tu)
+
+### 🚨 CRÍTICO - Atributo `name` OBLIGATORIO
+**TODOS los campos y componentes con condiciones DEBEN tener el atributo `name`**
+
+❌ **INCORRECTO** (causará error):
+```json
+{
+  "type": "grouper",
+  "condition": [
+    {"field": "type", "operator": "==", "value": "chat"}
+  ],
+  "groups": [...]
+}
+```
+
+✅ **CORRECTO**:
+```json
+{
+  "name": "chat_config_group",
+  "type": "grouper",
+  "condition": [
+    {"field": "type", "operator": "==", "value": "chat"}
+  ],
+  "groups": [...]
+}
+```
+
+**Regla de oro**: Si un campo/componente tiene `condition`, DEBE tener `name`.
+
+**Aplica a**:
+- ✅ Campos normales: `text`, `select`, `checkbox`, `textarea`
+- ✅ Groupers con condiciones
+- ✅ Repetables con condiciones
+- ✅ Cualquier elemento con `condition`
+
+**Sin `name`**: El sistema de condiciones no podrá identificar el elemento para mostrar/ocultar y causará un error crítico (`Cannot read properties of undefined (reading 'split')`).
+
+**Debug**: Si ves error `"undefined" debe mostrarse`, verifica que todos los campos con `condition` tengan `name`.
 
 ---
 
@@ -543,6 +582,50 @@ window.{miRecurso} = {miRecurso};
 ```
 
 ---
+
+
+## VALORES POR DEFECTO (defaultValue)
+
+Todos los campos pueden tener valores iniciales usando `defaultValue`:
+
+```json
+{
+  "name": "nombre",
+  "type": "text",
+  "defaultValue": "Juan Pérez"
+}
+```
+
+### Tokens Especiales
+
+Genera valores únicos automáticamente:
+
+| Token | Resultado | Ejemplo |
+|-------|-----------|---------|
+| `{hash:n}` | Hash aleatorio de n caracteres | `{hash:8}` → `a7f3k9m2` |
+| `{uuid}` | UUID v4 completo | `550e8400-e29b-41d4-a716-446655440000` |
+| `{timestamp}` | Milisegundos desde epoch | `1671321600000` |
+| `{date}` | Fecha actual (YYYY-MM-DD) | `2024-12-15` |
+| `{time}` | Hora actual (HH:MM:SS) | `14:30:45` |
+| `{random:min:max}` | Número aleatorio | `{random:1:100}` → `42` |
+
+**Combinar tokens**:
+```json
+{
+  "name": "codigo",
+  "defaultValue": "REF-{date}-{hash:8}",
+  "readonly": true
+}
+// Resultado: REF-2024-12-15-a7f3k9m2
+```
+
+**En repeatables**: Los tokens generan valores únicos por cada item nuevo.
+
+**Tipos soportados**:
+- ✅ `text`, `number`, `textarea` → String o número
+- ✅ `select` → Valor del option
+- ✅ `checkbox` → `true` o `false`
+- ✅ `repeatable` → Aplica a cada campo hijo
 
 ## TIPOS DE CAMPOS SOPORTADOS
 

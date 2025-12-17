@@ -35,12 +35,15 @@ class credential {
       if (data.config.type_value) {
         if (data.type === 'ai-agent') {
           fillData.ai_agent = data.config.type_value;
+          if (data.config.credential_value) {
+            fillData.api_token = data.config.credential_value;
+          }
         } else if (data.type === 'chat') {
           fillData.chat_api = data.config.type_value;
+          if (data.config.base_url) fillData.base_url = data.config.base_url;
+          if (data.config.instance) fillData.instance = data.config.instance;
+          if (data.config.credential_value) fillData.credential_value = data.config.credential_value;
         }
-      }
-      if (data.config.credential_value) {
-        fillData.api_token = data.config.credential_value;
       }
     }
 
@@ -91,7 +94,9 @@ class credential {
       config.credential_value = formData.api_token || '';
     } else if (formData.type === 'chat') {
       config.type_value = formData.chat_api || '';
-      config.credential_value = ''; // Chat API no requiere token por ahora
+      config.base_url = formData.base_url || '';
+      config.instance = formData.instance || '';
+      config.credential_value = formData.credential_value || '';
     }
 
     return {

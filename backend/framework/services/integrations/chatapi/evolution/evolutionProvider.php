@@ -1,122 +1,128 @@
 <?php
 class evolutionProvider extends baseChatApiProvider {
 
-  function validateConfig(): bool {
-    parent::validateConfig();
-    if (empty($this->baseUrl)) $this->baseUrl = 'https://evolution-api.com';
-    return true;
-  }
-
   function getProviderName(): string {
     return 'Evolution API';
   }
 
   function sendMessage(string $number, string $message, string $url = ''): array {
+    if (!$this->validateConfig()) {
+      return $this->errorResponse('Configuración inválida');
+    }
+
     $number = $this->formatNumber($number);
     $mediaType = $this->detectMediaType($url);
-    $payload = $this->buildPayload($number, $message, $url, $mediaType);
-    $endpoint = $this->getEndpoint($mediaType);
-    $result = $this->sendRequest($endpoint, $payload);
 
-    return [
-      'success' => true,
-      'api' => $this->getProviderName(),
-      'number' => $number,
-      'message_type' => $mediaType,
-      'message_id' => 'EVO-' . uniqid(),
-      'timestamp' => time()
-    ];
+    $endpoint = match($mediaType) {
+      'text' => 'message/sendText',
+      'image' => 'message/sendMedia',
+      'video' => 'message/sendMedia',
+      'audio' => 'message/sendWhatsAppAudio',
+      'document' => 'message/sendMedia',
+      default => 'message/sendText'
+    };
+
+    $payload = ['number' => $number];
+
+    if ($mediaType === 'text') {
+      $payload['text'] = $message;
+    } elseif ($mediaType === 'audio') {
+      $payload['audioMessage'] = ['audio' => $url];
+    } else {
+      $payload['mediaMessage'] = ['mediatype' => $mediaType, 'media' => $url];
+      if ($this->shouldIncludeText($mediaType, $message)) {
+        $payload['mediaMessage']['caption'] = $message;
+      }
+    }
+
+    try {
+      $response = http::post($this->baseUrl . $endpoint . '/' . $this->instance, $payload, [
+        'apikey: ' . $this->apiKey,
+        'Content-Type: application/json'
+      ]);
+
+      if (!$response['success']) {
+        return $this->errorResponse($response['error'] ?? 'Error en la petición HTTP');
+      }
+
+      $data = $response['data'];
+
+      if (isset($data['key']['id'])) {
+        return $this->successResponse([
+          'message_id' => $data['key']['id'],
+          'timestamp' => $data['messageTimestamp'] ?? time()
+        ]);
+      }
+
+      return $this->errorResponse('Respuesta inesperada de Evolution API');
+
+    } catch (Exception $e) {
+      return $this->errorResponse($e->getMessage());
+    }
   }
 
   function sendPresence(string $number, string $presenceType, int $delay = 1200): array {
-    $number = $this->formatNumber($number);
-    $validPresences = ['composing', 'recording', 'paused'];
-    if (!in_array($presenceType, $validPresences)) return $this->errorResponse('Tipo de presencia no válido');
-
-    $payload = ['number' => $number, 'presence' => $presenceType, 'delay' => $delay];
-    $endpoint = "{$this->baseUrl}/chat/sendPresence/{$this->instance}";
-    $this->sendRequest($endpoint, $payload);
-
-    return ['success' => true, 'api' => $this->getProviderName(), 'number' => $number, 'presence' => $presenceType, 'delay' => $delay];
-  }
-
-  private function buildPayload($number, $message, $url, $mediaType): array {
-    $payload = [
-      'number' => $number,
-      'text' => $mediaType === 'text' ? $message : '',
-      'mediatype' => $mediaType,
-      'mimetype' => '',
-      'media' => $mediaType !== 'text' ? $url : '',
-      'caption' => $mediaType !== 'text' && $this->shouldIncludeText($mediaType, $message) ? $message : '',
-      'filename' => '',
-      'audio' => ''
-    ];
-
-    if ($mediaType !== 'text' && !empty($url)) {
-      $filename = basename(parse_url($url, PHP_URL_PATH));
-      $payload['filename'] = time() . '-' . $filename;
-      $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-      $payload['mimetype'] = $this->getMimeType($ext);
-      if ($mediaType === 'audio') $payload['audio'] = $url;
+    if (!$this->validateConfig()) {
+      return $this->errorResponse('Configuración inválida');
     }
 
-    return $payload;
-  }
+    $number = $this->formatNumber($number);
 
-  private function getEndpoint($mediaType): string {
-    $base = "{$this->baseUrl}/message";
-    if ($mediaType === 'audio') return "{$base}/sendWhatsAppAudio/{$this->instance}";
-    if ($mediaType === 'text') return "{$base}/sendText/{$this->instance}";
-    return "{$base}/sendMedia/{$this->instance}";
-  }
+    $payload = [
+      'number' => $number,
+      'presence' => $presenceType,
+      'delay' => $delay
+    ];
 
-  private function sendRequest($endpoint, $payload): array {
     try {
-      $ch = curl_init($endpoint);
-      curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_HTTPHEADER => [
-          'apikey: ' . $this->apiKey,
-          'Content-Type: application/json'
-        ],
-        CURLOPT_TIMEOUT => 30
+      $response = http::post($this->baseUrl . 'chat/sendPresence/' . $this->instance, $payload, [
+        'apikey: ' . $this->apiKey,
+        'Content-Type: application/json'
       ]);
 
-      $response = curl_exec($ch);
-      $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-      curl_close($ch);
+      if (!$response['success']) {
+        return $this->errorResponse($response['error'] ?? 'Error en sendPresence');
+      }
 
-      $data = json_decode($response, true) ?? [];
-      return ['status' => 'success', 'data' => $data, 'httpCode' => $httpCode];
+      return $this->successResponse(['presence_sent' => true]);
+
     } catch (Exception $e) {
-      log::error('evolutionProvider::sendRequest - Error', ['error' => $e->getMessage()], ['module' => 'chatapi']);
-      return ['status' => 'error', 'data' => [], 'httpCode' => null, 'error' => $e->getMessage()];
+      return $this->errorResponse($e->getMessage());
     }
   }
 
   function sendArchive(string $chatNumber, string $lastMessageId = 'archive', bool $archive = true): array {
+    if (!$this->validateConfig()) {
+      return $this->errorResponse('Configuración inválida');
+    }
+
     $chatNumber = $this->formatNumber($chatNumber);
+
     $payload = [
-      'chat' => $chatNumber,
-      'archive' => $archive,
       'lastMessage' => [
         'key' => [
           'remoteJid' => $chatNumber,
-          'fromMe' => false,
-          'id' => $lastMessageId . '-' . time()
+          'fromMe' => true,
+          'id' => $lastMessageId
         ]
-      ]
+      ],
+      'archive' => $archive
     ];
 
-    $endpoint = "{$this->baseUrl}/chat/archiveChat/{$this->instance}";
-    $result = $this->sendRequest($endpoint, $payload);
+    try {
+      $response = http::post($this->baseUrl . 'chat/archiveChat/' . $this->instance, $payload, [
+        'apikey: ' . $this->apiKey,
+        'Content-Type: application/json'
+      ]);
 
-    if ($result['status'] === 'success') {
-      return $this->successResponse(['chat' => $chatNumber, 'archive' => $archive, 'status' => 'archived']);
+      if (!$response['success']) {
+        return $this->errorResponse($response['error'] ?? 'Error en archiveChat');
+      }
+
+      return $this->successResponse(['archived' => $archive]);
+
+    } catch (Exception $e) {
+      return $this->errorResponse($e->getMessage());
     }
-
-    return $this->errorResponse('Error al archivar chat', $result['httpCode'] ?? null);
   }
 }
