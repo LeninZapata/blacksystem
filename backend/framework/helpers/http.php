@@ -29,7 +29,7 @@ class http {
       $ch = curl_init();
       
       $curlOpts = [
-        CURLOPT_URL => $url,
+        CURLOPT_URL => url::normalizeUrl($url),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => $config['timeout'],
         CURLOPT_SSL_VERIFYPEER => $config['ssl_verify'],

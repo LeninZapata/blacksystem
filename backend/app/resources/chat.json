@@ -1,0 +1,65 @@
+{
+  "resource": "chat",
+  "table": "chats",
+  "timestamps": true,
+  "middleware": ["throttle:100,1"],
+  "routes": {
+    "list": {"method": "GET", "path": "/api/chat", "middleware": ["auth"]},
+    "show": {"method": "GET", "path": "/api/chat/{id}", "middleware": ["auth"]},
+    "create": {"method": "POST", "path": "/api/chat", "middleware": ["auth", "json"]},
+    "update": {"method": "PUT", "path": "/api/chat/{id}", "middleware": ["auth", "json"]},
+    "delete": {"method": "DELETE", "path": "/api/chat/{id}", "middleware": ["auth"]}
+  },
+  "fields": [
+    {
+      "name": "bot_id",
+      "type": "int",
+      "required": true
+    },
+    {
+      "name": "bot_number",
+      "type": "string",
+      "maxLength": 20,
+      "required": true
+    },
+    {
+      "name": "client_id",
+      "type": "int",
+      "required": true
+    },
+    {
+      "name": "client_number",
+      "type": "string",
+      "maxLength": 20,
+      "required": true
+    },
+    {
+      "name": "sale_id",
+      "type": "int",
+      "required": false,
+      "default": 0
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "maxLength": 1,
+      "default": "P"
+    },
+    {
+      "name": "format",
+      "type": "string",
+      "maxLength": 25,
+      "default": "text"
+    },
+    {
+      "name": "message",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "metadata",
+      "type": "json",
+      "required": false
+    }
+  ]
+}

@@ -58,6 +58,7 @@
       "rows": 3
     },
     {
+      "name": "config.messages",
       "type": "grouper",
       "mode": "tabs",
       "activeIndex": 0,

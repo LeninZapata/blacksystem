@@ -8,7 +8,6 @@ class productController extends controller {
   function create() {
     $data = request::data();
     
-    // Capturar user_id del usuario autenticado (quien crea)
     if (isset($GLOBALS['auth_user_id'])) {
       $data['user_id'] = $GLOBALS['auth_user_id'];
     } else {
@@ -22,18 +21,17 @@ class productController extends controller {
     $data['dc'] = date('Y-m-d H:i:s');
     $data['ta'] = time();
 
-    // Convertir config a JSON string si existe y es un array
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
 
     log::debug('productController - Datos para crear producto', $data, ['module' => 'product']);
+    
     try {
       $id = db::table('products')->insert($data);
       
-      // Invocar handler para generar archivos JSON
       if (isset($data['context'])) {
-        $data['id'] = $id; // Agregar el ID generado
+        $data['id'] = $id;
         productHandler::handleByContext($data, 'create');
       }
       
@@ -50,10 +48,14 @@ class productController extends controller {
 
     $data = request::data();
 
+    // Detectar si cambió el bot_id
+    $oldBotId = $exists['bot_id'] ?? null;
+    $newBotId = $data['bot_id'] ?? $oldBotId;
+    $botChanged = $oldBotId && $newBotId && $oldBotId !== $newBotId;
+
     $data['da'] = date('Y-m-d H:i:s');
     $data['tu'] = time();
 
-    // Convertir config a JSON string si existe y es un array
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
@@ -61,10 +63,17 @@ class productController extends controller {
     try {
       $affected = db::table('products')->where('id', $id)->update($data);
       
-      // Invocar handler para regenerar archivos JSON solo si hubo cambios
+      log::info('productController - Producto actualizado', [
+        'id' => $id,
+        'bot_changed' => $botChanged,
+        'old_bot_id' => $oldBotId,
+        'new_bot_id' => $newBotId
+      ], ['module' => 'product']);
+      
       if ($affected > 0 && isset($data['context'])) {
-        $data['id'] = $id; // Agregar el ID
-        productHandler::handleByContext($data, 'update');
+        $data['id'] = $id;
+        // Pasar oldBotId solo si cambió
+        productHandler::handleByContext($data, 'update', $botChanged ? $oldBotId : null);
       }
       
       response::success(['affected' => $affected], __('product.update.success'));

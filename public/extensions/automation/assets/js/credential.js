@@ -74,14 +74,6 @@ class credential {
   }
 
   static buildBody(formData) {
-    const userId = auth.user?.id;
-    
-    if (!userId) {
-      logger.error('ext:automation', 'No se pudo obtener el user_id');
-      toast.error(__('automation.credentials.error.user_not_found'));
-      return null;
-    }
-
     // Construir config JSON automáticamente
     let config = {
       type: formData.type,
@@ -100,7 +92,6 @@ class credential {
     }
 
     return {
-      user_id: userId,
       name: formData.name,
       type: formData.type,
       config: config

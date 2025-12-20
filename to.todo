@@ -1,11 +1,26 @@
-☐ Todos las peticiones api desde admin, bot, credenciales, productos debes estar filtrados por user_id
-☐ en infoproductos cuando se carga la lista debe estar filtrado por user_id y contexto de esa vista
-
+☐ Agregar el nombre del prompt y prompt de imagen en flujo de trabajo o bot
+revisa donde ponerlo pero debes ponerlo el nombre no mas
+☐ Te falta obtener las plantillas en el prompt para darle el contexto de pago al bot
+✔ en infoproductos cuando se carga la lista debe estar filtrado por user_id y contexto de esa vista @done(19-12-2025 21:04)
+✔ revisa los controles estan que hacen query por parametros que pueden venir de la url @done(19-12-2025 21:04)
+sin tanta validaciones.... se que por el nombre de la ruta sea semantico pero tambien
+hay cosas que se puede apunta de filtros sin crear tantos metodos.
+✘ Hay un prompt general y versionaldo para vender infoproductos, en bots hay que agregar @cancelled(19-12-2025 21:04)
+una textarea donde se pondria las variaciones de ese bot y seria parte del prompt general
+con esto no se crea tantos prompts por bots sino 1 solo por modelo de negocio.
+☐ revisar si cuando la persona te escribe te escribe con una foto con caption y tu tienes
+que identificar el caption, creo que ya hay un webhook que envia con caption pero debes v
+ver con ese nuevo sistema.
 DESPUES:
+☐ en credenciales cuando grouper no esta visible esta que valida, eso esta mal hay que
+corregirlo.
+☐ para simplificar lineas en los controllers y hendlers debes
+hacer que los array sea de 2 columnas, y los query multimetodos sean inlinea
 ☐ Verificar si el archivo de workflow existe
 puede ser dentro del mismo listado de workflow en un boton tipo editar con eso que muestra un toast si exsite o no el archivo
 tambien que verifique al momento de crear o actualizar un workflow si el archivo existe en donde estaran estos archivos y si no existe que muestre un error
 ☐ crear los endpoint de limpieza en este caso deben limíar los archivos de shared/
   ☐ cuando un bot edita su numero se crear otro workflow_{numero}.json y el anterior queda huérfano entonces debe eliminarse
   por medio una limpieza diaria a media noche donde se limpie los archivos que no tengan un bot asociado
-  
+☐ Los throws deben tener keys, y debe ser lanzados en el return porque sino no hay error y te dice 
+siempre que el webhook es correcto.

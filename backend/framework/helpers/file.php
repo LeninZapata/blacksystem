@@ -85,4 +85,34 @@ class file {
     }
     return true;
   }
+
+  static function delete($filePath) {
+    if (!file_exists($filePath)) {
+      return true;
+    }
+
+    if (unlink($filePath)) {
+      return true;
+    }
+
+    log::error("file::delete - No se pudo eliminar archivo: {$filePath}");
+    return false;
+  }
+
+  static function deletePattern($pattern) {
+    $files = glob($pattern);
+    
+    if ($files === false) {
+      return 0;
+    }
+
+    $deleted = 0;
+    foreach ($files as $file) {
+      if (is_file($file) && unlink($file)) {
+        $deleted++;
+      }
+    }
+
+    return $deleted;
+  }
 }

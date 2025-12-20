@@ -35,6 +35,10 @@ class log {
     self::write('INFO', $msg, $ctx, $meta);
   }
 
+  static function success($msg, $ctx = [], $meta = []) {
+    self::write('SUCCESS', $msg, $ctx, $meta);
+  }
+
   static function warning($msg, $ctx = [], $meta = []) {
     self::write('WARNING', $msg, $ctx, $meta);
   }

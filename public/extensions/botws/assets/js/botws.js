@@ -36,11 +36,19 @@ class botws {
     logger.debug('ext:botws', 'fillForm - data:', data);
     logger.debug('ext:botws', 'fillForm - configData:', configData);
 
-    // Convertir arrays de IDs a arrays de objetos con credential_id
-    const agentArray = Array.isArray(configData.apis?.agent)
-      ? configData.apis.agent.map(id => ({ credential_id: String(id) }))
-      : [];
+    // Convertir desde bot.ai[task] al formato de repeatable para agent
+    const aiData = configData.ai || {};
+    const agentArray = [];
 
+    ['conversation', 'image', 'audio'].forEach(task => {
+      if (Array.isArray(aiData[task])) {
+        aiData[task].forEach(credId => {
+          agentArray.push({ credential_id: String(credId), task: task });
+        });
+      }
+    });
+
+    // Chat se mantiene como array simple de IDs
     const chatArray = Array.isArray(configData.apis?.chat)
       ? configData.apis.chat.map(id => ({ credential_id: String(id) }))
       : [];
@@ -93,47 +101,40 @@ class botws {
 
   // Construir body para API
   static buildBody(formData) {
-    const userId = auth.user?.id;
-
-    if (!userId) {
-      logger.error('ext:botws', 'No se pudo obtener el user_id');
-      toast.error(__('botws.bot.error.user_not_found'));
-      return null;
-    }
-
-    // Extraer arrays de credenciales desde los repetibles
-    let agentCredentials = [];
-    let chatCredentials = [];
+    // Extraer arrays desde los repetibles
+    let agentArray = [];
+    let chatArray = [];
 
     // Buscar en formData con diferentes formatos posibles
     if (formData.config && typeof formData.config === 'object') {
-      // config.apis.agent es un array de objetos [{credential_id: 1}, {credential_id: 2}]
-      const agentArray = formData.config.apis?.agent || [];
-      const chatArray = formData.config.apis?.chat || [];
-
-      agentCredentials = Array.isArray(agentArray)
-        ? agentArray.map(item => parseInt(item.credential_id)).filter(id => !isNaN(id))
-        : [];
-
-      chatCredentials = Array.isArray(chatArray)
-        ? chatArray.map(item => parseInt(item.credential_id)).filter(id => !isNaN(id))
-        : [];
+      agentArray = formData.config.apis?.agent || [];
+      chatArray = formData.config.apis?.chat || [];
     } else {
-      // Buscar por keys directas (form.getData puede estructurar así)
-      const agentData = formData['config.apis.agent'] || formData['config[apis][agent]'] || [];
-      const chatData = formData['config.apis.chat'] || formData['config[apis][chat]'] || [];
-
-      agentCredentials = Array.isArray(agentData)
-        ? agentData.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
-        : [];
-
-      chatCredentials = Array.isArray(chatData)
-        ? chatData.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
-        : [];
+      agentArray = formData['config.apis.agent'] || formData['config[apis][agent]'] || [];
+      chatArray = formData['config.apis.chat'] || formData['config[apis][chat]'] || [];
     }
 
+    // Agrupar credenciales de AGENT por tarea
+    const aiTasks = { conversation: [], image: [], audio: [] };
+
+    if (Array.isArray(agentArray)) {
+      agentArray.forEach(item => {
+        const credId = parseInt(item.credential_id || item);
+        const task = item.task || 'conversation';
+        if (!isNaN(credId) && aiTasks[task]) {
+          aiTasks[task].push(credId);
+        }
+      });
+    }
+
+    // Chat se mantiene como array simple de IDs
+    const chatCredentials = Array.isArray(chatArray)
+      ? chatArray.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
+      : [];
+
     // ✅ Validación: Al menos 1 agent y 1 chat requerido
-    if (agentCredentials.length === 0) {
+    const totalAgents = aiTasks.conversation.length + aiTasks.image.length + aiTasks.audio.length;
+    if (totalAgents === 0) {
       toast.error(__('botws.bot.error.agent_required'));
       return null;
     }
@@ -147,8 +148,8 @@ class botws {
 
     const config = {
       workflow_id: workflowId,
+      ai: aiTasks,
       apis: {
-        agent: agentCredentials,
         chat: chatCredentials
       }
     };
@@ -157,7 +158,6 @@ class botws {
     logger.debug('ext:botws', 'buildBody - config construido:', config);
 
     return {
-      user_id: userId,
       name: formData.name,
       number: formData.number,
       country_code: formData.country_code,

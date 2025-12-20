@@ -1,26 +1,34 @@
 <?php
 class chatapi {
-
   private static $config = null;
   private static $botData = null;
-  private static $provider = null;  // Provider detectado
-  private static $providers = [];   // Cache de instancias de providers
+  private static $provider = null;
+  private static $providers = [];
 
-  // Configurar servicio con provider opcional
   static function setConfig(array $botData, string $provider = null) {
     self::$botData = $botData;
     self::$config = $botData['config']['apis']['chat'] ?? [];
-    self::$provider = $provider; // Guardar provider si se especifica
-    self::$providers = []; // Limpiar cache
+    self::$provider = $provider;
+    self::$providers = [];
   }
 
-  // Obtener provider configurado
   static function getProvider() {
     return self::$provider;
   }
 
+  // Detectar provider desde webhook y normalizar
+  static function detectAndNormalize($rawData) {
+    $provider = service::detect('chatapi', $rawData);
+    if (!$provider) return null;
+
+    $normalized = service::call('chatapi', $provider, 'Normalizer', 'normalize', $rawData);
+    $standard = service::call('chatapi', $provider, 'Normalizer', 'standardize', $normalized);
+
+    return ['provider' => $provider, 'normalized' => $normalized, 'standard' => $standard];
+  }
+
   static function send(string $to, string $message, string $media = ''): array {
-    if (!self::$config) throw new Exception(__('core.service.not_configured', ['service' => self::class]));
+    if (!self::$config) throw new Exception('ChatAPI no configurado');
 
     $lastError = null;
     foreach (self::$config as $index => $apiConfig) {
@@ -31,7 +39,7 @@ class chatapi {
         if ($response['success']) {
           $response['used_fallback'] = $index > 0;
           $response['attempt'] = $index + 1;
-          $response['provider'] = self::$provider; // Incluir provider usado
+          $response['provider'] = self::$provider;
           return $response;
         }
 
@@ -42,7 +50,7 @@ class chatapi {
       }
     }
 
-    log::error('chatapi::send - Todos los proveedores fallaron', ['error' => $lastError], ['module' => 'chatapi']);
+    log::error('chatapi::send - Fallback completo falló', ['error' => $lastError], ['module' => 'chatapi']);
     return ['success' => false, 'error' => $lastError, 'all_providers_failed' => true];
   }
 
@@ -63,7 +71,7 @@ class chatapi {
   }
 
   static function sendArchive(string $chatNumber, string $lastMessageId = 'archive', bool $archive = true): array {
-    if (!self::$config) throw new Exception(__('core.service.not_configured_short', ['service' => self::class]));
+    if (!self::$config) throw new Exception('ChatAPI no configurado');
 
     $results = [];
     $successCount = 0;
@@ -89,7 +97,7 @@ class chatapi {
 
   private static function getProviderInstance(array $apiConfig) {
     $type = $apiConfig['config']['type_value'] ?? null;
-    if (!$type) throw new Exception(__('core.service.api_type_not_specified'));
+    if (!$type) throw new Exception('Tipo de API no especificado');
 
     $cacheKey = md5(json_encode($apiConfig));
     if (isset(self::$providers[$cacheKey])) return self::$providers[$cacheKey];
@@ -103,7 +111,7 @@ class chatapi {
     $provider = match($type) {
       'evolutionapi' => new evolutionProvider($config),
       'testing' => new testingProvider($config),
-      default => throw new Exception(__('core.service.provider_not_supported', ['provider' => $type]))
+      default => throw new Exception("Provider no soportado: {$type}")
     };
 
     self::$providers[$cacheKey] = $provider;

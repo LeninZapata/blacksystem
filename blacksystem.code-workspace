@@ -8,16 +8,21 @@
 		"highlightLine.borderColor" : "#9457EB",
 		"highlightLine.borderWidth": "1px",
 
-		// The number of spaces a tab is equal to. This setting is overridden
+    // The number of spaces a tab is equal to. This setting is overridden
     // based on the file contents when `editor.detectIndentation` is true.
 		"editor.tabSize": 2,
 		// Insert spaces when pressing Tab. This setting is overriden
     // based on the file contents when `editor.detectIndentation` is true.
     "editor.insertSpaces": true,
+    "workbench.editor.wrapTabs": true,
+
 		// When opening a file, `editor.tabSize` and `editor.insertSpaces`
     // will be detected based on the file contents. Set to false to keep
     // the values you've explicitly set, above.
     "editor.detectIndentation": false,
+    "sortEditors.sortEditorsAutomatically" : true,
+		"sortEditors.sortEditorsOrder": "alphabetical",
+
 
     //"workbench.colorTheme": "Sonokai Atlantis",
     "workbench.colorTheme": "Pop N' Lock Theme by Luxcium ✨",
@@ -60,8 +65,5 @@
 		"terminal.integrated.fontSize": 11,
 		"terminal.integrated.fontWeight": 450,
 		"terminal.integrated.fontWeightBold": 800,
-
-		"sortEditors.sortEditorsAutomatically" : true,
-		"sortEditors.sortEditorsOrder": "alphabetical"
 	}
 }

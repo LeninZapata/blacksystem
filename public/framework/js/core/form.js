@@ -1559,15 +1559,15 @@ class form {
       // ✅ VALIDACIÓN: Saltar campos ocultos por condiciones
       const input = formEl.querySelector(`[name="${fieldPath}"]`);
       if (input) {
-        const fieldContainer = input.closest('.form-group, .form-checkbox, .form-html-wrapper');
-        
-        // Si el campo está oculto (por condiciones o cualquier otro motivo), no validar
-        if (fieldContainer && (
-          fieldContainer.classList.contains('wpfw-depend-on') || 
-          fieldContainer.style.display === 'none' ||
-          window.getComputedStyle(fieldContainer).display === 'none'
-        )) {
-          return; // Saltar validación
+        // Verificar si el input o algún ancestro está oculto
+        let element = input;
+        while (element && element !== formEl) {
+          const style = window.getComputedStyle(element);
+          if (style.display === 'none' || element.classList.contains('wpfw-depend-on')) {
+            logger.debug('core:form', `Campo "${fieldPath}" está oculto, saltando validación`);
+            return; // Saltar validación
+          }
+          element = element.parentElement;
         }
       }
 

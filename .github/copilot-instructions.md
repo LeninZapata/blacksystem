@@ -307,3 +307,21 @@ if (isset($data['config']['apis']) && is_array($data['config']['apis'])) {
 - **Código minimalista**: Sin comentarios PHPDoc excesivos en handlers
 - **Versatilidad**: Métodos deben funcionar con o sin datos completos
 - **Performance**: Usar archivos JSON para datos frecuentes, evitar consultas repetitivas
+
+## Comentarios en metodos/funciones/clases
+- no quiero que hagas esto:
+```php
+/**
+ * Esta función hace X, Y, Z.
+*/
+```
+- quiero que hagas esto:
+```php
+// Esta función hace X, Y, Z.
+```
+porque necesito consumir menos lineas y quiero que el código sea más limpio
+- Los comentarios largos solo cuando sean realmente necesarios para explicar lógica compleja
+- Comentarios en español
+- Mantener comentarios existentes a menos que sean incorrectos o irrelevantes
+- Si el nombre del metodo/clase/función ya es claro, no es necesario agregar un comentario redundante
+- Esto aplica para cualquier lenguaje .php, .js, etc...

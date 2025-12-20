@@ -1,0 +1,36 @@
+# Tu resultado debe ser un JSON (que inicie con { y termine con }) sin saltos de linea ni espacios innecesarios arriba o abajo,
+ni tampoco la tipica salida con '```json {....} ```'.
+
+1) Analiza esta image si es un comprobante de pago o no.
+Para verificar si es un comprobante de pago debe tener palabras como:
+"cuenta", "origen", "destino", "type de cuenta", "transacción", "transferencia", "concepto", "saldo", "valor", "date", "amount".
+{ "is_proof_payment": true/false }
+
+2) Si is_proof_payment es TRUE, entonces ¿Contiene un amount/valor de pago con estos
+formatos: xx.xx ó xxx.xx ó xxxx.xx ó xx,xx ó xxx,xx ó xxxx,xx o es un amount valido ?
+{  "valid_amount": true/false }
+{  "amount_found": "{aqui va el amount encontrado es format con decimal y es numerico}" }
+
+3) Si valid_amount es TRUE, entonces ¿Aparece el name en el comprobante? no distingas entre mayusculas y minusculas
+
+{ "valid_name": true/false }
+{ "name_found": "{name a quien realiza el pago aqui}" }
+
+4) Si is_proof_payment es FALSE, entonces describe la image a text para que pueda entender,
+se descriptivo caso contrario si is_proof_payment es TRUE, entonces pon que es un "recibo de pago".
+{ "resume": "tu respuesta sobre la image" }
+
+
+Responde ÚNICAMENTE con un JSON en este format:{
+  "is_proof_payment": true/false,
+  "valid_amount" : true/false,
+  "amount_found": "amount encontrado es format con decimal como punto '.'",
+  "valid_name" :true/false,
+  "name_found" : "name encontrado",
+  "resume": "tu respuesta de analisis sobre la image",
+  "type" : "image"
+}
+
+- Debe ser en un format JSON asi que debes usar comillas dobles para los key y para los valores.
+- No uses comillas simple dentro de un valor, puede que haya error en la salida del json y si vas a
+poner comilla simple hazlo como caracteres de escape como "\'" por ejemplo esta palabra: \'hola\'.

@@ -1,5 +1,5 @@
 <?php
-// app/lang/es/core.php
+// app/lang/es/core.php - Actualizado con service
 return [
   'resource' => [
     'not_found' => 'Recurso no encontrado'
@@ -35,9 +35,14 @@ return [
     'server_error_message' => 'Ha ocurrido un error interno. Por favor, contacte al administrador.'
   ],
   'service' => [
-    'not_configured' => '{service} no configurado. Llama a setConfig() primero',
-    'not_configured_short' => '{service} no configurado',
-    'api_type_not_specified' => 'Tipo de API no especificado',
-    'provider_not_supported' => 'Proveedor \'{provider}\' no soportado'
+    'integration' => [
+      'method_required' => 'El segundo parámetro debe ser el nombre del método (ej: \'detect\', \'normalize\')',
+      'data_required' => 'Se requieren datos para detectar provider',
+      'provider_not_detected' => 'No se pudo detectar el provider para categoría \'{category}\'',
+      'method_not_implemented' => 'Método \'{method}\' no implementado. Usa \'detect\' o la clase directa del servicio',
+      'file_not_found' => 'Archivo no encontrado: {file}',
+      'class_not_found' => 'Clase no encontrada: {class}',
+      'method_not_exists' => 'Método \'{method}\' no existe en {class}'
+    ]
   ]
 ];

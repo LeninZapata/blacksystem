@@ -5,29 +5,33 @@ class botController extends controller {
     parent::__construct('bot');
   }
 
-  // Override create para agregar timestamps y validar config
   function create() {
     $data = request::data();
 
-    // Validar campo requerido
+    if (isset($GLOBALS['auth_user_id'])) {
+      $data['user_id'] = $GLOBALS['auth_user_id'];
+    } else {
+      response::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
+
     if (!isset($data['name']) || empty($data['name'])) {
       log::error('BotController - Campo name requerido', $data, ['module' => 'bot']);
-      response::json([
-        'success' => false,
-        'error' => __('bot.name_required')
-      ], 200);
+      response::json(['success' => false, 'error' => __('bot.name_required')], 200);
     }
 
-    if (!isset($data['user_id']) || empty($data['user_id'])) {
-      response::json(['success' => false, 'error' => __('bot.user_id_required')], 200);
+    // Agregar timezone a config desde country_code
+    if (!isset($data['config']) || !is_array($data['config'])) {
+      $data['config'] = [];
     }
 
-    // Convertir config a JSON si es array
+    $countryCode = $data['country_code'] ?? 'EC';
+    $countryData = country::get($countryCode);
+    $data['config']['timezone'] = $countryData['timezone'] ?? 'America/Guayaquil';
+
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
 
-    // Timestamps (se manejan con triggers pero por compatibilidad)
     $data['dc'] = date('Y-m-d H:i:s');
     $data['ta'] = time();
 
@@ -47,30 +51,52 @@ class botController extends controller {
     }
   }
 
-  // Override update para agregar timestamps y validar config
   function update($id) {
     $exists = db::table('bots')->find($id);
     if (!$exists) response::notFound(__('bot.not_found'));
 
     $data = request::data();
 
-    // Convertir config a JSON si es array
+    // Detectar si cambió el número
+    $oldNumber = $exists['number'] ?? null;
+    $newNumber = $data['number'] ?? $oldNumber;
+    $numberChanged = $oldNumber && $newNumber && $oldNumber !== $newNumber;
+
+    // Parsear config si viene como string
+    if (isset($data['config']) && is_string($data['config'])) {
+      $data['config'] = json_decode($data['config'], true);
+    }
+
+    // Agregar timezone a config desde country_code
+    if (!isset($data['config']) || !is_array($data['config'])) {
+      $data['config'] = [];
+    }
+
+    $countryCode = $data['country_code'] ?? $exists['country_code'] ?? 'EC';
+    $countryData = country::get($countryCode);
+    $data['config']['timezone'] = $countryData['timezone'] ?? 'America/Guayaquil';
+
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
 
-    // Timestamps (se manejan con triggers pero por compatibilidad)
     $data['da'] = date('Y-m-d H:i:s');
     $data['tu'] = time();
 
     try {
       $affected = db::table('bots')->where('id', $id)->update($data);
-      log::info('BotController - Bot actualizado', ['id' => $id], ['module' => 'bot']);
+      log::info('BotController - Bot actualizado', [
+        'id' => $id,
+        'number_changed' => $numberChanged,
+        'old_number' => $oldNumber,
+        'new_number' => $newNumber
+      ], ['module' => 'bot']);
       
       if ($affected > 0) {
         $botData = db::table('bots')->find($id);
         if ($botData) {
-          botHandlers::saveContextFile($botData, 'update');
+          // Pasar oldNumber solo si cambió
+          botHandlers::saveContextFile($botData, 'update', $numberChanged ? $oldNumber : null);
         }
       }
       
@@ -81,12 +107,10 @@ class botController extends controller {
     }
   }
 
-  // Override show para parsear config si es string JSON
   function show($id) {
     $data = db::table('bots')->find($id);
     if (!$data) response::notFound(__('bot.not_found'));
 
-    // Parsear config si es string JSON
     if (isset($data['config']) && is_string($data['config'])) {
       $data['config'] = json_decode($data['config'], true);
     }
@@ -94,33 +118,27 @@ class botController extends controller {
     response::success($data);
   }
 
-  // Override list para parsear config
   function list() {
     $query = db::table('bots');
 
-    // Filtros dinámicos
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
       $query = $query->where($key, $value);
     }
 
-    // Ordenamiento
     $sort = request::query('sort', 'id');
     $order = request::query('order', 'DESC');
     $query = $query->orderBy($sort, $order);
 
-    // Paginación
     $page = request::query('page', 1);
     $perPage = request::query('per_page', 50);
     $data = $query->paginate($page, $perPage)->get();
 
-    // Asegurar que siempre sea array
     if (!is_array($data)) {
       log::warning('BotController - Data no es array, convirtiendo a []', ['data' => $data], ['module' => 'bot']);
       $data = [];
     }
 
-    // Parsear config
     foreach ($data as &$bot) {
       if (isset($bot['config']) && is_string($bot['config'])) {
         $bot['config'] = json_decode($bot['config'], true);
@@ -130,7 +148,6 @@ class botController extends controller {
     response::success($data);
   }
 
-  // Override delete para logging
   function delete($id) {
     $bot = db::table('bots')->find($id);
     if (!$bot) response::notFound(__('bot.not_found'));

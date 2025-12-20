@@ -1,56 +1,51 @@
 <?php
-// workflowHandlers - Handlers personalizados para work_flows
 class workflowHandlers {
 
-  /**
-   * Actualiza los archivos JSON de contexto de todos los bots que usan un workflow específico
-   *
-   * @param int $workflowId - ID del workflow actualizado
-   * @return int - Cantidad de bots actualizados
-   */
+  // Actualiza archivos workflow de todos los bots que usan este workflow
   static function updateBotsContext($workflowId) {
     if (!$workflowId) {
-      log::warning('workflowHandlers - workflow_id no proporcionado', [], ['module' => 'workflow']);
+      log::warning('workflowHandlers::updateBotsContext - workflow_id no proporcionado', [], ['module' => 'workflow']);
       return 0;
     }
     
-    // Futuro: detectar otros proveedores
-    // if (WazapiNormalizer::detect($rawData)) return 'wazapi';
-    // if (TelegramNormalizer::detect($rawData)) return 'telegram';
+    // Buscar todos los bots que usan este workflow
+    $bots = db::table('bots')
+      ->where('config', 'LIKE', '%"workflow_id":"' . $workflowId . '"%')
+      ->get();
     
-    return null;
-  }
-  
-  // Extraer información del sender
-  static function extractSender($normalizedData) {
-    $provider = $normalizedData['provider'] ?? null;
-    
-    if (!$provider) {
-      throw new Exception('webhookHandlers::extractSender - Provider no encontrado en data normalizada');
+    if (empty($bots)) {
+      log::info('workflowHandlers::updateBotsContext - No hay bots usando workflow', [
+        'workflow_id' => $workflowId
+      ], ['module' => 'workflow']);
+      return 0;
     }
     
-    return service::integration("chatapi/{$provider}", 'extractSender', $normalizedData);
-  }
-  
-  // Extraer mensaje
-  static function extractMessage($normalizedData) {
-    $provider = $normalizedData['provider'] ?? null;
+    $updated = 0;
     
-    if (!$provider) {
-      throw new Exception('webhookHandlers::extractMessage - Provider no encontrado en data normalizada');
+    foreach ($bots as $bot) {
+      $botNumber = $bot['number'] ?? null;
+      
+      if ($botNumber) {
+        // Regenerar archivo workflow del bot
+        $result = botHandlers::generateWorkflowFile($botNumber, $bot, 'update');
+        
+        if ($result) {
+          $updated++;
+          log::info('workflowHandlers::updateBotsContext - Bot actualizado', [
+            'bot_id' => $bot['id'],
+            'bot_number' => $botNumber,
+            'workflow_id' => $workflowId
+          ], ['module' => 'workflow']);
+        }
+      }
     }
     
-    return service::integration("chatapi/{$provider}", 'extractMessage', $normalizedData);
-  }
-  
-  // Extraer contexto (opcional, para FB Ads, etc)
-  static function extractContext($normalizedData) {
-    $provider = $normalizedData['provider'] ?? null;
+    log::info('workflowHandlers::updateBotsContext - Proceso completado', [
+      'workflow_id' => $workflowId,
+      'bots_updated' => $updated,
+      'bots_total' => count($bots)
+    ], ['module' => 'workflow']);
     
-    if (!$provider) {
-      return [];
-    }
-    
-    return service::integration("chatapi/{$provider}", 'extractContext', $normalizedData);
+    return $updated;
   }
 }

@@ -1,0 +1,39 @@
+{
+  "resource": "sale",
+  "table": "sales",
+  "timestamps": true,
+  "middleware": ["throttle:100,1"],
+  "routes": {
+    "list": {"method": "GET", "path": "/api/sale", "middleware": ["auth"]},
+    "show": {"method": "GET", "path": "/api/sale/{id}", "middleware": ["auth"]},
+    "create": {"method": "POST", "path": "/api/sale", "middleware": ["auth", "json"]},
+    "update": {"method": "PUT", "path": "/api/sale/{id}", "middleware": ["auth", "json"]},
+    "delete": {"method": "DELETE", "path": "/api/sale/{id}", "middleware": ["auth"]}
+  },
+  "fields": [
+    {"name": "sale_type", "type": "string", "maxLength": 50, "default": "main"},
+    {"name": "context", "type": "string", "maxLength": 50, "default": "whatsapp"},
+    {"name": "number", "type": "string", "maxLength": 20, "required": false},
+    {"name": "country_code", "type": "string", "maxLength": 5, "required": false},
+    {"name": "product_name", "type": "string", "maxLength": 220, "required": false},
+    {"name": "product_id", "type": "int", "required": false},
+    {"name": "bot_id", "type": "int", "required": false},
+    {"name": "bot_type", "type": "string", "maxLength": 1, "required": false},
+    {"name": "bot_mode", "type": "string", "maxLength": 1, "required": false},
+    {"name": "client_id", "type": "int", "required": false},
+    {"name": "amount", "type": "decimal", "required": true},
+    {"name": "billed_amount", "type": "decimal", "required": false},
+    {"name": "process_status", "type": "string", "maxLength": 50, "default": "initiated"},
+    {"name": "transaction_id", "type": "string", "maxLength": 100, "required": false},
+    {"name": "tracking_funnel_id", "type": "string", "maxLength": 150, "required": false},
+    {"name": "parent_transaction_id", "type": "string", "maxLength": 100, "required": false},
+    {"name": "payment_date", "type": "datetime", "required": false},
+    {"name": "payment_method", "type": "string", "maxLength": 50, "required": false},
+    {"name": "source_app", "type": "string", "maxLength": 50, "required": false},
+    {"name": "source_url", "type": "string", "maxLength": 250, "required": false},
+    {"name": "device", "type": "string", "maxLength": 50, "required": false},
+    {"name": "force_welcome", "type": "int", "default": 0},
+    {"name": "parent_sale_id", "type": "int", "default": 0},
+    {"name": "is_downsell", "type": "int", "default": 0}
+  ]
+}

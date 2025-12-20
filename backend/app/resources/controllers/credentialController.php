@@ -7,6 +7,12 @@ class credentialController extends controller {
 
   function create() {
     $data = request::data();
+
+    if (isset($GLOBALS['auth_user_id'])) {
+      $data['user_id'] = $GLOBALS['auth_user_id'];
+    } else {
+      response::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
     
     if (!isset($data['name']) || empty($data['name'])) {
       response::json(['success' => false, 'error' => __('credential.name_required')], 200);
@@ -14,10 +20,6 @@ class credentialController extends controller {
 
     if (!isset($data['type']) || empty($data['type'])) {
       response::json(['success' => false, 'error' => __('credential.type_required')], 200);
-    }
-
-    if (!isset($data['user_id']) || empty($data['user_id'])) {
-      response::json(['success' => false, 'error' => __('credential.user_id_required')], 200);
     }
 
     if (isset($data['config']) && is_array($data['config'])) {
@@ -50,7 +52,19 @@ class credentialController extends controller {
 
     try {
       $affected = db::table('credentials')->where('id', $id)->update($data);
-      response::success(['affected' => $affected], __('credential.update.success'));
+      
+      // Actualizar archivos JSON de todos los bots que usan esta credencial
+      $botsUpdated = credentialHandlers::updateBotsContext($id);
+      
+      log::info('credentialController - Credencial actualizada', [
+        'id' => $id,
+        'bots_updated' => $botsUpdated
+      ], ['module' => 'credential']);
+      
+      response::success([
+        'affected' => $affected,
+        'bots_updated' => $botsUpdated
+      ], __('credential.update.success'));
     } catch (Exception $e) {
       response::serverError(__('credential.update.error'), IS_DEV ? $e->getMessage() : null);
     }
