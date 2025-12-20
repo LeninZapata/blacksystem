@@ -212,7 +212,7 @@
   "metadata": {
     "action": "{ACCION_QUE_TU_CONSIDERES}",
     "sale_id: "{ID_DE_LA_VENTA}" // por lo general siempre hay una venta en proceso, debe ser la venta actual que estas tratando puede ser de un proudcto principal o upsell
-    "product_id: "{ID_DEL_PRODUCTO}" // el ID del producto que estas vendiendo o entregando
+    "product_id: "{ID_DEL_PRODUCTO}" // el ID del producto que estas vendiendo o entregando, esta dentro de current_sale o en ultimo mensaje con metadata de  metadata 'start_sale'
   },
   "source_url: "{URL}" // Si no vas enviar url entonces no pones este campo, si vas agregar una url con extension (imagen, video, audio) que se encuentre dentro del prompt entonces la pones
 }

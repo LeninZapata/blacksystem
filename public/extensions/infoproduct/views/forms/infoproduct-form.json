@@ -350,6 +350,7 @@
                   "type": "select",
                   "options": [
                     {"value": "link_product", "label": "i18n:infoproduct.products.field.templates.template_type.link_product"},
+                    {"value": "link_payment_method", "label": "i18n:infoproduct.products.field.templates.template_type.link_payment_method"},
                     {"value": "link_review", "label": "i18n:infoproduct.products.field.templates.template_type.link_review"},
                     {"value": "link_media", "label": "i18n:infoproduct.products.field.templates.template_type.link_media"}
                   ]

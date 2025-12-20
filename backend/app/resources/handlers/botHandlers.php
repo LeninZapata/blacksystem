@@ -76,6 +76,7 @@ class botHandlers {
 
   // Generar archivo data/{numero}.json
   static function generateDataFile($botNumber, $botData = null, $action = 'create') {
+
     if (!$botData) {
       $botData = db::table('bots')->where('number', $botNumber)->first();
       if (!$botData) {
@@ -91,9 +92,9 @@ class botHandlers {
     }
 
     // Resolver credenciales de AI (conversation, image, audio)
-    if (isset($data['config']['ai']) && is_array($data['config']['ai'])) {
+    if (isset($data['config']['apis']['ai']) && is_array($data['config']['apis']['ai'])) {
       $resolvedAi = [];
-      foreach ($data['config']['ai'] as $task => $credentialIds) {
+      foreach ($data['config']['apis']['ai'] as $task => $credentialIds) {
         $resolvedAi[$task] = [];
         if (is_array($credentialIds)) {
           foreach ($credentialIds as $credId) {
@@ -108,7 +109,7 @@ class botHandlers {
           }
         }
       }
-      $data['config']['ai'] = $resolvedAi;
+      $data['config']['apis']['ai'] = $resolvedAi;
     }
 
     // Resolver credenciales de chat
@@ -125,13 +126,6 @@ class botHandlers {
         }
       }
       $data['config']['apis']['chat'] = $resolvedChat;
-    }
-
-    // Reorganizar estructura: apis { ai, chat }
-    if (isset($data['config']['ai'])) {
-      $aiData = $data['config']['ai'];
-      unset($data['config']['ai']);
-      $data['config']['apis']['ai'] = $aiData;
     }
 
     $path = SHARED_PATH . '/bots/data/' . $botNumber . '.json';

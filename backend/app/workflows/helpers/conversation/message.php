@@ -55,8 +55,8 @@ class workflowMessage {
       'product_name' => $product['name'],
       'price' => $product['price'],
       'description' => $product['description'] ?? '',
-      'instructions' => $product['config']['instructions'] ?? '',
-      'templates' => $product['config']['messages']['templates'] ?? []
+      'instructions' => $product['config']['prompt'] ?? '',
+      // 'templates' => $product['config']['messages']['templates'] ?? []
     ];
 
     // Registrar en BD primero
@@ -77,6 +77,7 @@ class workflowMessage {
       $chatData = [
         'number' => $person['number'],
         'bot_id' => $bot['id'],
+        'bot_mode' => $bot['mode'],
         'client_id' => $clientId,
         'sale_id' => $saleId,
         'product_id' => $product['id'],
@@ -93,7 +94,7 @@ class workflowMessage {
   }
 
   // Guardar conversación (mensaje del usuario) en BD y JSON
-  static function saveConversation($args) {
+  static function saveConversation($args, $message_type = 'P') {
     $bot = $args['bot'];
     $person = $args['person'];
     $message = $args['message'];
@@ -110,7 +111,7 @@ class workflowMessage {
       $clientId,
       $person['number'],
       $text,
-      'P', // Prospecto
+      $message_type, // Prospecto, Bot , Sistema
       $type,
       null,
       $saleId
@@ -128,7 +129,7 @@ class workflowMessage {
         'metadata' => null
       ];
 
-      return chatHandlers::addMessage($chatData, 'p');
+      return chatHandlers::addMessage($chatData, $message_type);
     }
 
     return false;
@@ -165,11 +166,26 @@ class workflowMessage {
     }
 
     foreach ($messages as $msg) {
+      $msg['from'] = $person['number']; // Asegurar que el campo 'from' esté presente
       $rawMessages[] = $msg;
       $interpreted = messageInterpreter::interpret($msg, $bot);
+
+      if( $interpreted['type'] === 'image' ){
+        // Si es imagen lo vamos a resolver aparte
+        log::info('Mensaje de tipo imagen detectado - Procesando análisis de imagen', [], ['module' => 'conversation']);
+        self::resolveImageMessage($person, $bot, $msg, $interpreted, $clientId, $saleId );
+        return;
+      }
+
       $interpretedMessages[] = $interpreted;
       log::debug('Mensaje interpretado', ['type' => $interpreted['type'], 'text_preview' => substr($interpreted['text'], 0, 50)], ['module' => 'conversation']);
     }
+
+    echo '<pre>$interpretedMessages:'; var_dump($interpretedMessages); echo '</pre>';exit;
+    // 2.1 Si entre los mensajes tengo un tipo de mensaje tipo "image" entonces no continuar a IA
+    // necesitamos saber si es un recibo valido de pago y con eso validar el pago y enviar el producto
+    log::info('=== RESPUESTA DE LA IA DE IMAGEN ===', ['response' => $aiResponse['response']], ['module' => 'conversation']);
+    
 
     // 3. Construir texto final para IA
     $aiText = self::buildAiText($interpretedMessages);
@@ -180,17 +196,18 @@ class workflowMessage {
     $chat = chatHandlers::getChat($person['number'], $bot['id']);
 
     // 5. Archivo de prompt (quemado aquí - fácil de cambiar)
-    $promcptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo.txt';
-    if (!file_exists($promcptFile)) {
-      log::error('Archivo de prompt no encontrado', ['file' => $promcptFile], ['module' => 'conversation']);
-      throw new Exception("Archivo de prompt no encontrado: {$promcptFile}"); // hay que usar throw para que el workflow capture el error
-    } $promcptFile = file_get_contents($promcptFile);
+    // TODO: hacer que este archivo sea traido del bot
+    $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo.txt';
+    if (!file_exists($promptFile)) {
+      log::error('Archivo de prompt no encontrado', ['file' => $promptFile], ['module' => 'conversation']);
+      throw new Exception("Archivo de prompt no encontrado: {$promptFile}"); // hay que usar throw para que el workflow capture el error
+    } $promptFile = file_get_contents($promptFile);
 
     // 6. Prompt adicional del bot (se concatena al principal)
     $botPrompt = ! empty( $bot['personality'] ) ? "\n\n---\n\n## Personalidad Especifica\n" . $bot['personality'] : '';
 
     // 6.1 Prompt static + prompt bot
-    $promptSystem = $promcptFile . $botPrompt;
+    $promptSystem = $promptFile . $botPrompt;
 
     log::info('Usando prompt:', ['file' => basename($promptFile), 'has_bot_prompt' => !empty($botPrompt)], ['module' => 'conversation']);
 
@@ -216,7 +233,6 @@ class workflowMessage {
     try {
       $ai = service::integration('ai');
       $aiResponse = $ai->getChatCompletion($prompt, $bot, []);
-      echo '<pre>$aiResponse:'; var_dump($aiResponse); echo '</pre>';exit;
 
       if ($aiResponse['success']) {
         log::success('Respuesta de IA recibida', [
@@ -251,5 +267,23 @@ class workflowMessage {
     }
 
     return implode("\n", $lines);
+  }
+
+  private static function resolveImageMessage($person, $bot, $message, $interpreted, $clientId, $saleId ){ {
+    if( $interpreted['success'] === false ){
+      log::error('Error interpretando imagen', ['text' => $interpreted['text']], ['module' => 'conversation']);
+      $message_error = "Lo siento, no pude procesar la imagen correctamente. Por favor, envíala nuevamente.";
+      chatapi::send($message['from'] ?? null, $message_error);
+
+      // Guardamos el mensaje del cliente
+      self::saveConversation(['bot' => $bot, 'person' => $person, 'message' => $message, 'client_id' => $clientId, 'sale_id' =>  $saleId, 'P']);
+
+      // Guardamos el mensaje de error en la conversación
+      self::saveConversation(['bot' => $bot, 'person' => $person, 'message' => $message_error, 'client_id' => $clientId, 'sale_id' =>  $saleId, 'B']);
+      return;
+    }
+
+    // Aquí puedes agregar la lógica para procesar la descripción de la imagen
+    // Por ejemplo, verificar si es un recibo válido, enviar confirmaciones, etc.
   }
 }

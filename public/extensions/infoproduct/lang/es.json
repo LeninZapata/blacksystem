@@ -95,6 +95,7 @@
   "infoproduct.products.field.templates.add": "➕ Agregar Plantilla",
   "infoproduct.products.field.templates.template_type": "Tipo de Plantilla",
   "infoproduct.products.field.templates.template_type.link_product": "Link Producto",
+  "infoproduct.products.field.templates.template_type.link_payment_method": "Link Método de Pago",
   "infoproduct.products.field.templates.template_type.link_review": "Link Reseña",
   "infoproduct.products.field.templates.template_type.link_media": "Link Media",
   "infoproduct.products.field.templates.message": "Mensaje",

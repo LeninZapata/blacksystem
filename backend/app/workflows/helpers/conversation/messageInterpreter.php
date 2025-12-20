@@ -64,25 +64,69 @@ class messageInterpreter {
   private static function interpretImage($message, $bot) {
     $imageUrl = $message['media_url'] ?? null;
     $caption = $message['text'] ?? '';
+    $base64 = $message['base64'] ?? null;
 
-    if (!$imageUrl) return ['type' => 'image', 'text' => "[Imagen: {$caption}]", 'metadata' => null];
+    // TODO: meensaje de espera debe ser con de key de idioma
+    chatapi::send($message['from'] ?? null, "Listo ✅
+Un momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste)
+
+🕐 Si tardo en responder, no te preocupes.
+Estoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊💡");
+
+    if (!$base64 && !$imageUrl){
+      return ['type' => 'image', 'text' => "[Imagen: {$caption}]", 'metadata' => null];
+    }
 
     try {
-      $imageData = file_get_contents($imageUrl);
-      if ($imageData === false) throw new Exception('No se pudo descargar imagen');
+      // Usar base64 directamente si está disponible
+      if (!$base64) {
+        $imageData = file_get_contents($imageUrl);
+        if ($imageData === false) throw new Exception('No se pudo descargar imagen');
+        $base64 = base64_encode($imageData);
+      }
 
-      $base64 = base64_encode($imageData);
-      $mimeType = self::getMimeType($imageUrl);
+      $mimeType = $imageUrl ? self::getMimeType($imageUrl) : 'image/jpeg';
       $dataUri = "data:{$mimeType};base64,{$base64}";
 
-      $instruction = empty($caption) ? 'Describe brevemente esta imagen' : "Describe esta imagen. Caption: {$caption}";
+      // TODO: este instruction debería venir del bot
+      $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo-img.txt';
+    if (!file_exists($promptFile)) {
+      log::error('Archivo de prompt no encontrado', ['file' => $promptFile], ['module' => 'conversation']);
+      throw new Exception("Archivo de prompt no encontrado: {$promptFile}"); // hay que usar throw para que el workflow capture el error
+    } $instruction = file_get_contents($promptFile) ?? 'Describe brevemente esta imagen';
 
       $ai = service::integration('ai');
       $result = $ai->analyzeImage($dataUri, $instruction, $bot);
 
       if ($result['success']) {
-        $text = empty($caption) ? "[Imagen: {$result['description']}]" : "[Imagen con caption '{$caption}': {$result['description']}]";
-        return ['type' => 'image', 'text' => $text, 'metadata' => ['image_url' => $imageUrl, 'caption' => $caption, 'description' => $result['description']]];
+        // Validar si $result['description'] es un json o texto
+        $description = $result['description'] ?? '';
+
+        if (!str::isJson($description)) {
+
+          // Es texto plano, retornar error
+          return [
+            'success' => false,
+            'type' => 'image',
+            'text' => 'No pude procesar la imagen correctamente. Por favor, envíala nuevamente.',
+            'metadata' => ['error' => 'invalid_image_analysis', 'raw_response' => $description]
+          ];
+        }
+
+        // Es JSON válido, decodificar y usar el contenido
+        $jsonData = json_decode($description, true);
+        $text = json_encode($jsonData, JSON_UNESCAPED_UNICODE);
+
+        return [
+          'success' => true,
+          'type' => 'image',
+          'text' => $text,
+          'metadata' => [
+            'image_url' => $imageUrl,
+            'caption' => $caption,
+            'description' => $jsonData
+          ]
+        ];
       }
 
       return ['type' => 'image', 'text' => "[Imagen: {$caption}]", 'metadata' => ['error' => $result['error'] ?? null]];

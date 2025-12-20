@@ -102,6 +102,7 @@ class evolutionNormalizer {
         'timestamp' => $data['messageTimestamp'] ?? null,
         'status' => $data['status'] ?? null,
         'media_url' => self::extractMediaUrl($message),
+        'base64' => $message['base64'] ?? null,
         'raw' => $message
       ],
 

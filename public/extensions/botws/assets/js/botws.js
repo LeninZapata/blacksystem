@@ -36,8 +36,8 @@ class botws {
     logger.debug('ext:botws', 'fillForm - data:', data);
     logger.debug('ext:botws', 'fillForm - configData:', configData);
 
-    // Convertir desde bot.ai[task] al formato de repeatable para agent
-    const aiData = configData.ai || {};
+    // Convertir desde bot.apis.ai[task] al formato de repeatable para agent
+    const aiData = configData.apis?.ai || {};
     const agentArray = [];
 
     ['conversation', 'image', 'audio'].forEach(task => {
@@ -148,8 +148,8 @@ class botws {
 
     const config = {
       workflow_id: workflowId,
-      ai: aiTasks,
       apis: {
+        ai: aiTasks,
         chat: chatCredentials
       }
     };

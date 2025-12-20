@@ -28,6 +28,7 @@ class credentialHandlers {
 
       // Verificar si el bot usa esta credencial
       $usesCredential = self::botUsesCredential($config, $credentialId);
+      log::debug('credentialHandlers::botUsesCredential - este bot usa esta credencial: ' . $credentialId, $usesCredential, ['module' => 'credential']);
 
       if (!$usesCredential) {
         continue;
@@ -63,14 +64,18 @@ class credentialHandlers {
   private static function botUsesCredential($config, $credentialId) {
     $apis = $config['apis'] ?? [];
 
-    // Recorrer cada tipo de API (chat, ai, etc)
-    foreach ($apis as $apiType => $credentialIds) {
-      if (!is_array($credentialIds)) {
-        continue;
+    // Buscar en AI (estructura anidada por tareas)
+    if (isset($apis['ai']) && is_array($apis['ai'])) {
+      foreach ($apis['ai'] as $task => $credentialIds) {
+        if (is_array($credentialIds) && in_array($credentialId, $credentialIds)) {
+          return true;
+        }
       }
+    }
 
-      // Verificar si el credentialId está en el array
-      if (in_array($credentialId, $credentialIds)) {
+    // Buscar en Chat (array directo)
+    if (isset($apis['chat']) && is_array($apis['chat'])) {
+      if (in_array($credentialId, $apis['chat'])) {
         return true;
       }
     }

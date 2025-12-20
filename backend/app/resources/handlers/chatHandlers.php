@@ -363,7 +363,7 @@ class chatHandlers {
       'client_id' => $data['client_id'],
       'client_name' => $clientName,
       'bot_id' => $data['bot_id'],
-      'purchase_method' => 'Recibo de pago',
+      'purchase_method' => ($data['bot_mode'] ?? 'R') === 'C' ? 'Checkout' : 'Recibo de Pago',
       'conversation_started' => date('Y-m-d H:i:s'),
       'last_activity' => date('Y-m-d H:i:s'),
       'current_sale' => isset($data['sale_id']) && $data['sale_id'] > 0 ? [

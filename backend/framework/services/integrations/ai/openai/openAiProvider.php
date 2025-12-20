@@ -11,7 +11,7 @@ class openAiProvider extends baseAIProvider {
       $messages = $this->buildMessages($prompt);
       $model = $this->getModel($options, 'gpt-4o-mini');
       $temperature = $this->getTemperature($options, 0.7);
-      $maxTokens = $this->getMaxTokens($options, 2500);
+      $maxTokens = $this->getMaxTokens($options, 3000);
 
       $payload = ['model' => $model, 'messages' => $messages, 'temperature' => $temperature, 'max_tokens' => $maxTokens];
 
@@ -79,6 +79,11 @@ class openAiProvider extends baseAIProvider {
 
   public function analyzeImage($imageDataUri, $instruction): array {
     try {
+      // Si imageDataUri no tiene el prefijo data:image, agregarlo
+      if (strpos($imageDataUri, 'data:image') !== 0) {
+        $imageDataUri = 'data:image/jpeg;base64,' . $imageDataUri;
+      }
+
       $messages = [[
         'role' => 'user',
         'content' => [
@@ -87,7 +92,7 @@ class openAiProvider extends baseAIProvider {
         ]
       ]];
 
-      $payload = ['model' => 'gpt-4o-mini', 'messages' => $messages, 'max_tokens' => 1500];
+      $payload = ['model' => 'gpt-4o-mini', 'messages' => $messages, 'max_tokens' => 2500];
 
       $response = http::post($this->baseUrl . '/chat/completions', $payload, [
         'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->apiKey],
