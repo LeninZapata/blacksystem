@@ -103,15 +103,27 @@ class conditions {
   }
 
   static extractConditions(fields, rulesMap, parentPath = '') {
-    fields.forEach(field => {
-      const fieldPath = parentPath ? `${parentPath}.${field.name}` : field.name;
+    fields.forEach((field, index) => {
+      let fieldPath;
+      
+      // Construir fieldPath según el tipo de campo
+      if (field.name) {
+        fieldPath = parentPath ? `${parentPath}.${field.name}` : field.name;
+      } else if (field.type === 'grouper') {
+        // Grouper sin name: usar índice como fallback
+        fieldPath = parentPath ? `${parentPath}.__grouper_${index}` : `__grouper_${index}`;
+      } else {
+        // Otro tipo sin name: usar índice
+        fieldPath = parentPath ? `${parentPath}.__field_${index}` : `__field_${index}`;
+      }
 
       // Si el campo tiene condiciones
       if (field.condition && Array.isArray(field.condition) && field.condition.length > 0) {
         rulesMap.set(fieldPath, {
           conditions: field.condition,
           context: field.conditionContext || 'form',
-          logic: field.conditionLogic || 'AND' // AND | OR
+          logic: field.conditionLogic || 'AND',
+          isGrouper: field.type === 'grouper'
         });
       }
 
@@ -120,20 +132,22 @@ class conditions {
         this.extractConditions(field.fields, rulesMap, fieldPath);
       }
       
-      // Recursivo para grouper (puede tener 'fields' o 'groups')
+      // Recursivo para grouper
       if (field.type === 'grouper') {
-        // Si tiene groups (modo tabs o sections)
         if (field.groups && Array.isArray(field.groups)) {
-          field.groups.forEach((group, index) => {
+          field.groups.forEach((group, groupIndex) => {
             if (group.fields && Array.isArray(group.fields)) {
               this.extractConditions(group.fields, rulesMap, parentPath);
             }
           });
-        }
-        // Si tiene fields directamente (modo linear)
-        else if (field.fields) {
+        } else if (field.fields) {
           this.extractConditions(field.fields, rulesMap, parentPath);
         }
+      }
+      
+      // Recursivo para groups
+      if (field.type === 'group' && field.fields) {
+        this.extractConditions(field.fields, rulesMap, parentPath);
       }
     });
   }
@@ -272,17 +286,17 @@ class conditions {
         const shouldShow = this.checkConditions(item, rule, targetFieldPath);
 
         // Buscar el campo target dentro de este item específico
-        // Puede ser un input/select (con name) o un repeatable anidado (con data-field-path)
+        // Puede ser un input/select (con name), un repeatable anidado, o un grouper (con data-field-path)
         let targetField = item.querySelector(`[name*=".${fieldName}"]`);
         
-        // Si no se encuentra por name, buscar por data-field-path (repeatables anidados)
+        // Si no se encuentra por name, buscar por data-field-path (repeatables anidados o groupers)
         if (!targetField) {
-          const allFieldPaths = item.querySelectorAll('.form-repeatable[data-field-path]');
+          const allFieldPaths = item.querySelectorAll('.form-repeatable[data-field-path], .grouper[data-field-path]');
           const candidates = Array.from(allFieldPaths).filter(el => {
             const fieldPath = el.getAttribute('data-field-path');
-            // Eliminar índices para comparar: proyectos[0].fases -> proyectos.fases
+            // Eliminar índices para comparar: productos[0].grouper_envio_fisico -> productos.grouper_envio_fisico
             const normalizedFieldPath = fieldPath.replace(/\[\d+\]/g, '');
-            // Comparar si termina con el fieldName: proyectos.fases termina con "fases"
+            // Comparar si termina con el fieldName
             return normalizedFieldPath.endsWith(`.${fieldName}`) || normalizedFieldPath === fieldName;
           });
           
@@ -297,7 +311,7 @@ class conditions {
         }
         
         if (targetField) {
-          const fieldElement = targetField.closest('.form-group, .form-checkbox, .form-repeatable');
+          const fieldElement = targetField.closest('.form-group, .form-checkbox, .form-repeatable, .grouper');
 
           if (fieldElement) {
             if (shouldShow) {
@@ -562,6 +576,10 @@ class conditions {
     // Buscar wrapper HTML por data-field-name
     let htmlWrapper = formEl.querySelector(`.form-html-wrapper[data-field-name="${fieldPath}"]`);
     if (htmlWrapper) return htmlWrapper;
+
+    // Buscar grouper por data-field-path
+    let grouper = formEl.querySelector(`.grouper[data-field-path="${fieldPath}"]`);
+    if (grouper) return grouper;
 
     // Para repetibles: buscar considerando índices [0], [1], etc
     // Convertir "proyectos.tipo_proyecto" a selector que coincida con "proyectos[0].tipo_proyecto"

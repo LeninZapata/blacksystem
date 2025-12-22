@@ -4,6 +4,8 @@ class UserHandler {
   // Nombre de la tabla asociada a este handler
   protected static $table = DB_TABLES['users'];
 
+  private static $logMeta = ['module' => 'user', 'layer' => 'app'];
+
   /**
    * Profile optimizado - SIN consulta a BD
    * Usa sesión del archivo para obtener datos del usuario
@@ -15,7 +17,16 @@ class UserHandler {
       return ['success' => false, 'error' => __('auth.token.missing')];
     }
 
-    // Obtener datos directamente del archivo de sesión
+    // Verificar cache primero
+    $cacheKey = 'auth_session_' . substr($token, 0, 16);
+    $cachedSession = cache::get($cacheKey);
+
+    // Si hay cache válido, usarlo
+    if ($cachedSession && $cachedSession['expires_timestamp'] >= time() && $cachedSession['token'] === $token) {
+      return ['success' => true, 'data' => $cachedSession['user']];
+    }
+
+    // Buscar en archivo
     $session = self::getSessionFromToken($token);
 
     if (!$session) {
@@ -25,8 +36,12 @@ class UserHandler {
     // Verificar expiración
     if ($session['expires_timestamp'] < time()) {
       self::deleteSession($token);
+      cache::forget($cacheKey);
       return ['success' => false, 'error' => __('auth.token.expired')];
     }
+
+    // Guardar en cache
+    cache::set($cacheKey, $session);
 
     return ['success' => true, 'data' => $session['user']];
   }

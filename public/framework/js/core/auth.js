@@ -57,19 +57,19 @@ class auth {
       return false;
     }
 
-    // Verificar si el token está expirado localmente
-    if (cache.isExpired(`${this.config.storageKey}_token`)) {
-      logger.warn('core:auth', 'Token expirado en cache local');
-      this.clearSession();
-      return false;
-    }
+    // ❌ REMOVIDO: No verificar expiración local, el backend es la fuente de verdad
+    // if (cache.isExpired(`${this.config.storageKey}_token`)) {
+    //   logger.warn('core:auth', 'Token expirado en cache local');
+    //   this.clearSession();
+    //   return false;
+    // }
 
     try {
       const response = await api.get(this.config.api.me);
 
       if (response.success && response.data) {
-        // Actualizar usuario en cache
-        cache.setLocal(`${this.config.storageKey}_user`, response.data, this.config.tokenTTL);
+        // Actualizar usuario en cache (sin TTL específico, el backend maneja expiración)
+        cache.setLocal(`${this.config.storageKey}_user`, response.data);
         logger.success('core:auth', 'Sesión válida');
         return true;
       }
@@ -117,18 +117,15 @@ class auth {
           };
         }
 
-        // Usar TTL del backend o fallback
-        const tokenTTL = ttl_ms || this.config.tokenTTL;
-
-        // Guardar en cache
-        cache.setLocal(`${this.config.storageKey}_token`, token, tokenTTL);
-        cache.setLocal(`${this.config.storageKey}_user`, user, tokenTTL);
+        // Guardar en cache (sin TTL, el backend maneja expiración)
+        cache.setLocal(`${this.config.storageKey}_token`, token);
+        cache.setLocal(`${this.config.storageKey}_user`, user);
 
         // Guardar usuario en memoria
         this.user = user;
 
         logger.success('core:auth', `Login exitoso para: ${user.user}`);
-        logger.info('core:auth', `Token expira en: ${Math.round(tokenTTL / 1000 / 60)} minutos`);
+        logger.info('core:auth', `Token expira en: ${Math.round(ttl_ms / 1000 / 60)} minutos`);
 
         // Cargar permisos y mostrar app
         this.normalizeConfig();
@@ -136,7 +133,7 @@ class auth {
         await this.showApp();
         this.startSessionMonitoring();
 
-        return { success: true, user, token, ttl_ms: tokenTTL };
+        return { success: true, user, token, ttl_ms };
       }
 
       logger.warn('core:auth', 'Credenciales incorrectas');
@@ -302,7 +299,6 @@ class auth {
         this.loadUserPermissions();
         await this.reloadAppAfterPermissionChange();
 
-        // ✅ Firma correcta: toast.show(message, options)
         toast.show('✅ Tus permisos han sido actualizados', {
           type: 'success',
           duration: 3000
@@ -336,12 +332,15 @@ class auth {
       logger.warn('core:auth', 'Respuesta inesperada del servidor:', response);
       return { valid: false };
     } catch (error) {
-      if (error.status === 401 || error.response?.status === 401) {
+      // ✅ FIX: Solo retornar valid:false en errores 401 (token inválido/expirado)
+      // Para otros errores (red, 500, etc), mantener sesión activa
+      if (error.status === 401 || error.response?.status === 401 || error.message?.includes('401')) {
         logger.warn('core:auth', '❌ Sesión inválida (401 Unauthorized)');
         return { valid: false };
       }
 
-      logger.error('core:auth', 'Error verificando sesión:', {
+      // ✅ Para errores de red, backend caído, etc: NO cerrar sesión
+      logger.error('core:auth', 'Error verificando sesión (manteniendo sesión activa):', {
         message: error.message,
         status: error.status
       });
