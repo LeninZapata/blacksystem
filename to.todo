@@ -1,93 +1,30 @@
-☐ Agregar el nombre del prompt y prompt de imagen en flujo de trabajo o bot
-revisa donde ponerlo pero debes ponerlo el nombre no mas
-☐ Te falta obtener las plantillas en el prompt para darle el contexto de pago al bot
-✔ en infoproductos cuando se carga la lista debe estar filtrado por user_id y contexto de esa vista @done(19-12-2025 21:04)
-✔ revisa los controles estan que hacen query por parametros que pueden venir de la url @done(19-12-2025 21:04)
-sin tanta validaciones.... se que por el nombre de la ruta sea semantico pero tambien
-hay cosas que se puede apunta de filtros sin crear tantos metodos.
-✘ Hay un prompt general y versionaldo para vender infoproductos, en bots hay que agregar @cancelled(19-12-2025 21:04)
-una textarea donde se pondria las variaciones de ese bot y seria parte del prompt general
-con esto no se crea tantos prompts por bots sino 1 solo por modelo de negocio.
+Backend (Aplicacion):
 ☐ revisar si cuando la persona te escribe te escribe con una foto con caption y tu tienes
 que identificar el caption, creo que ya hay un webhook que envia con caption pero debes v
 ver con ese nuevo sistema.
-DESPUES:
-☐ Ver cada posible error en lineas de validacion y forzarlo al error para ver 
-que mensaje te da como por ejemplo apis incorrecta, con esto puedes tener una mejor 
-forma de tener que mismo paso con ese error
-☐ en credenciales cuando grouper no esta visible esta que valida, eso esta mal hay que
-corregirlo.
 ☐ para simplificar lineas en los controllers y hendlers debes
 hacer que los array sea de 2 columnas, y los query multimetodos sean inlinea
-☐ Verificar si el archivo de workflow existe
-puede ser dentro del mismo listado de workflow en un boton tipo editar con eso que muestra un toast si exsite o no el archivo
-tambien que verifique al momento de crear o actualizar un workflow si el archivo existe en donde estaran estos archivos y si no existe que muestre un error
-☐ crear los endpoint de limpieza en este caso deben limíar los archivos de shared/
-  ☐ cuando un bot edita su numero se crear otro workflow_{numero}.json y el anterior queda huérfano entonces debe eliminarse
-  por medio una limpieza diaria a media noche donde se limpie los archivos que no tengan un bot asociado
-☐ Los throws deben tener keys, y debe ser lanzados en el return porque sino no hay error y te dice 
-siempre que el webhook es correcto.
-☐ en una conversion con la IA me dice que si puedo lanzar el throw con el log de una forma asi
-URGENTE: cuando hagas esto internamente debes enviarte un mensaje porque puede que esto sea un problema que corregir!
-o poner un parametro si es necesario que yo lo resuelva manualmente porque es de caracter URGENTE.
-URENTE2: hay que crear un sistema de notificaciones internas para el admin que le avise de estos errores
-y que pueda verlos en un panel de notificaciones, ademas de enviarsele un correo. Es una clase interna que 
-debe  hacerse para el manejo de errores fatales.
-<?php
-// En framework/helpers/log.php
-static function throwError($msg, $ctx = [], $meta = []) {
-  self::error($msg, $ctx, $meta);
-  throw new Exception($msg);
-}
-
-// Uso en message.php
-log::throwError('Archivo de prompt no encontrado', ['file' => $promcptFile], ['module' => 'conversation']);
-☐ Agregar el aparatado de promtps de tipo 'conversation', 'image', 'audio' porque se necesita versionar
-entonces el bot puede seleccionar cuales son sus prompts aparte del agente y de ai, necesita seleccionar con 
-que prompt va a trabajar. Actualmente esta hardcodeado en message.php
-☐ Reorganizar todo el menu para una mejor entendimiento
-☐ Agregar que tu puedes tener un campo que solo sea visible para el admin
-esto va permitir listar todos los usuarios cosa que por FORM tu puedes poner
-a quien le pertenece ese registro, por defecto estara el user logeado pero el admin puede cambiarlo
-y poner otro usuario. Con esto podemos rapidamente crear registros para otros usuarios.
-Otra cosa, el admin debe tener la posibilidad de ver todos los registros de todos los usuarios
-actualmente solo ve los suyos. Esto debe ser algo estandar en todo el sistema.
-☐ Las rutas de los JSON no era necesario que sea en shared/ ya que el proceso lo llama internamente desde el backend
-entonces estos pudieron haber estado en stored/ sin problema. y alli poner una seguridad tipo index.php que no permita listar los archivos.
-para haberlo hecho mas facil entonces se tenia que crear una constante que arme donde van estas rutas asi no se cambia
-el codigo sino la ruta directo desde la constantes.
-☐ Es una idea vaga pero la generacion de JSON de todos los lados tuvo que podria ser un archivo handler aparte
-cosa que asi no tenia responsivlidad del CRUD de cada entidad, sino que todo lo de JSON lo hacia un handler aparte
-y los controllers solo se encargaban de recibir y enviar los datos.
-Es decir para no mezclar responsabilidades.
-☐ interpretImage deberia ser como una especia de estandar porque maneja bien las cosas
-y ser llamado desde el otro lado ademas de alli valida cosas por formato es decir si hay algo que validar
-por FORMATO entonces debe usar esa capa, pero me gusta como se lo hizo actualmente por tiempo todo se esta
-validando dentro de formato de forma brusca.
-☐ Manejo de errores FATALES
-if (!file_exists($promptFile)) {
-      log::error('Archivo de prompt no encontrado', ['file' => $promptFile], ['module' => 'conversation']);
-      throw new Exception("Archivo de prompt no encontrado: {$promptFile}"); // hay que usar throw para que el workflow capture el error
-    } $instruction = file_get_contents($promptFile) ?? 'Describe brevemente esta imagen';
---
-sino encuentra aqui el archivo practicamente se cae todo el flujo de trabajo y esto es un error
-fatal que debe ser notificado al admin POR MEDio de un mensaje interno y un correo electronico
-ademas de quedar registrado en los logs. Esto es importante porque si no existe el archivo
-PIENSO QUE DEBES MANEJARTE con niveles de error fatales y no fatales. es decir
-'normal', 'warning', 'error', 'fatal'. El 'error' es una aviso NARAJAN pero el 'fatal' es ROJO
-y debe ser notificado al admin.
-
-Aprendizaje:
-☐ los log::debug son muy utiles para ver que datos estan llegando a las variables y son temporales
-y se pueden eliminar despues de debuggear, en cambio los log::error son persistentes y quedan en los logs
-y son utiles para ver errores que pasan en produccion. Ademas cmo los logs info,warning,error tienen niveles
-de importancia y se pueden filtrar en los logs.
-☐ la rspuesta de log debe remover el TAB porque si esta adentro puede que se confunda con la seapracion actual
-que es un TAB mismo, entonces con eso no se congufunde.
-☐ Log deben saber aparte del modulo tambien sobre sobre si es del FRAMEWORK o de la APLICACION
 ☐ Controladores solo tiene los CRUD y la logica de negocio va en los handlers en lo posible,
 y si el handler se hace muy grande se puede dividir en varios handlers por funcionalidad o ayudadores del mismo
 handler pero es como ultima instancia, son capas de abstraccion para separar responsabilidades.
 nivel 1 CRUD en controller
 nivel 2 logica de negocio en handler
 nivel 3 ayudadores del handler en otros handlers o helpers
+☐ Los throws deben tener keys, y debe ser lanzados en el return porque sino no hay error y te dice 
+siempre que el webhook es correcto.
+☐ en la siguiente linea poner el manejador de errores fatales porque sino encuentra un prompt se quiebra todo
+if (!file_exists($promptFile)) {
+      throw new Exception("Prompt file not found: {$promptFile}");
+}
+busca donde esta recibo-img.txt cuando lo llama
+
+Frontend (Aplicacion):
+☐ Agregar el nombre del prompt y prompt de imagen en flujo de trabajo o bot
+revisa donde ponerlo pero debes ponerlo el nombre no mas
+☐ Verificar si el archivo de workflow existe
+puede ser dentro del mismo listado de workflow en un boton tipo editar con eso que muestra un toast si exsite o no el archivo
+tambien que verifique al momento de crear o actualizar un workflow si el archivo existe en donde estaran estos archivos y si no existe que muestre un error
+☐ Agregar el aparatado de promtps de tipo 'conversation', 'image', 'audio' porque se necesita versionar
+entonces el bot puede seleccionar cuales son sus prompts aparte del agente y de ai, necesita seleccionar con 
+que prompt va a trabajar. Actualmente esta hardcodeado en message.php
+☐ Reorganizar todo el menu para una mejor entendimiento

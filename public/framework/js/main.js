@@ -59,7 +59,12 @@ const SCRIPTS_TO_LOAD = [
   'js/core/validator.js',
   'js/core/conditions.js',
   'js/core/dataLoader.js',
-  'js/core/form.js',
+
+  'js/core/form.js',           // 1. Base
+  //'js/core/formState.js',      // 2. Extiende con estado
+  //'js/core/formValidation.js', // 3. Extiende con validación
+  //'js/core/formEvents.js',     // 4. Extiende con eventos
+  
   'js/core/auth.js',
   'js/core/view.js',
   'js/core/navigation.js',

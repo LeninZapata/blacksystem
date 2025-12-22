@@ -1,11 +1,11 @@
 <?php
+
 class webhookController {
 
   function whatsapp() {
     try {
       $rawData = request::data();
 
-      // 1. Detectar provider y normalizar (usa service::integration para evitar recorrido de autoload)
       $chatapi = service::integration('chatapi');
       $result = $chatapi->detectAndNormalize($rawData);
 
@@ -17,7 +17,6 @@ class webhookController {
       $normalized = $result['normalized'];
       $standard = $result['standard'];
 
-      // 2. Extraer datos en variables simples para el workflow
       $sender = $standard['sender'];
       $person = $standard['person'];
       $message = $standard['message'];
@@ -32,40 +31,88 @@ class webhookController {
         response::json(['success' => false, 'error' => 'Person no encontrado'], 400);
       }
 
-      // 3. Buscar bot por número
       $bot = botHandlers::getDataFile($sender['number']);
+      
       if (!$bot) {
-        log::error('webhookController::whatsapp - Bot no encontrado', ['bot_number' => $sender['number']], ['module' => 'webhook']);
+        log::error('webhookController::whatsapp - Bot no encontrado', [
+          'bot_number' => $sender['number']
+        ], ['module' => 'webhook']);
         response::json(['success' => false, 'error' => "Bot no encontrado: {$sender['number']}"], 404);
       }
 
-      // 4. Configurar chatapi con el provider detectado (usa instancia cacheada)
       $chatapi->setConfig($bot, $detectedProvider);
 
-      // 5. Obtener archivo de workflow
       $workflowData = botHandlers::getWorkflowFile($sender['number']);
       $workflowFile = $workflowData['file_path'] ?? null;
 
       if (!$workflowFile) {
-        log::error('webhookController::whatsapp - Workflow no configurado', ['bot_number' => $sender['number']], ['module' => 'webhook']);
+        log::error('webhookController::whatsapp - Workflow no configurado', [
+          'bot_number' => $sender['number']
+        ], ['module' => 'webhook']);
         response::json(['success' => false, 'error' => 'Workflow no configurado'], 400);
       }
 
-      $workflowPath = APP_PATH . "/workflows/{$workflowFile}";
-      if (!file_exists($workflowPath)) {
-        log::error('webhookController::whatsapp - Archivo workflow no existe', ['file' => $workflowFile], ['module' => 'webhook']);
-        response::json(['success' => false, 'error' => "Workflow no encontrado: {$workflowFile}"], 404);
-      }
+      // NUEVO: Resolver handler dinámicamente
+      $handler = $this->resolveHandler($workflowFile);
 
-      // 6. Ejecutar workflow con variables disponibles
-      require $workflowPath;
+      // NUEVO: Ejecutar handler con webhook completo
+      $handler->handle([
+        'provider' => $detectedProvider,
+        'normalized' => $normalized,
+        'standard' => $standard,
+        'raw' => $rawData
+      ]);
 
-      response::success(['message' => 'Webhook procesado', 'provider' => $detectedProvider]);
+      response::success([
+        'message' => 'Webhook procesado',
+        'provider' => $detectedProvider,
+        'workflow' => $workflowFile
+      ]);
 
     } catch (Exception $e) {
-      log::error('webhookController::whatsapp - Error crítico', ['error' => $e->getMessage()], ['module' => 'webhook']);
+      log::error('webhookController::whatsapp - Error crítico', [
+        'error' => $e->getMessage()
+      ], ['module' => 'webhook']);
       response::serverError('Error procesando webhook', IS_DEV ? $e->getMessage() : null);
     }
+  }
+
+  // NUEVO: Resolver handler desde versions/
+  private function resolveHandler($workflowFile) {
+    $workflowPath = APP_PATH . "/workflows/versions/{$workflowFile}";
+
+    if (!file_exists($workflowPath)) {
+      log::error('webhookController::resolveHandler - Archivo no existe', [
+        'file' => $workflowFile
+      ], ['module' => 'webhook']);
+      throw new Exception("Workflow no encontrado: {$workflowFile}");
+    }
+
+    require_once $workflowPath;
+
+    $className = $this->getClassNameFromFile($workflowFile);
+
+    if (!class_exists($className)) {
+      throw new Exception("Clase no encontrada: {$className} en {$workflowFile}");
+    }
+
+    return new $className();
+  }
+
+  // NUEVO: Convertir nombre de archivo a nombre de clase
+  private function getClassNameFromFile($filename) {
+    // infoproduct-v2.php → InfoproductV2Handler
+    // ecommerce-test.php → EcommerceTestHandler
+
+    $name = str_replace('.php', '', $filename);
+    $parts = explode('-', $name);
+
+    $className = '';
+    foreach ($parts as $part) {
+      $className .= ucfirst($part);
+    }
+
+    return $className . 'Handler';
   }
 
   function telegram() {
@@ -82,10 +129,12 @@ class webhookController {
       $message = $standard['message'];
       $context = $standard['context'];
 
-      // ... lógica similar a whatsapp
+      // TODO: Implementar lógica similar a whatsapp
 
     } catch (Exception $e) {
-      log::error('webhookController::telegram - Error crítico', ['error' => $e->getMessage()], ['module' => 'webhook']);
+      log::error('webhookController::telegram - Error crítico', [
+        'error' => $e->getMessage()
+      ], ['module' => 'webhook']);
       response::serverError('Error procesando webhook', IS_DEV ? $e->getMessage() : null);
     }
   }
@@ -94,13 +143,12 @@ class webhookController {
     try {
       $rawData = request::data();
 
-      // TODO: Crear emailService con método detectAndNormalize()
-      // $result = email::detectAndNormalize($rawData);
-
       response::json(['success' => false, 'error' => 'Email webhook no implementado'], 501);
 
     } catch (Exception $e) {
-      log::error('webhookController::email - Error crítico', ['error' => $e->getMessage()], ['module' => 'webhook']);
+      log::error('webhookController::email - Error crítico', [
+        'error' => $e->getMessage()
+      ], ['module' => 'webhook']);
       response::serverError('Error procesando webhook', IS_DEV ? $e->getMessage() : null);
     }
   }

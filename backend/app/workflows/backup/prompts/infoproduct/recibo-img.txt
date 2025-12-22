@@ -34,8 +34,3 @@ Responde ÚNICAMENTE con un JSON en este format:{
 - Debe ser en un format JSON asi que debes usar comillas dobles para los key y para los valores.
 - No uses comillas simple dentro de un valor, puede que haya error en la salida del json y si vas a
 poner comilla simple hazlo como caracteres de escape como "\'" por ejemplo esta palabra: \'hola\'.
-
-IMPORTANTE SOBRE EL NOMBRE:
-- El nombre a buscar es el del CLIENTE que realiza el pago, NO el nombre del destinatario/bot.
-- Si en la sección "INFORMACIÓN ADICIONAL DEL BOT" se menciona un nombre, ese NO debe ser tomado como el nombre del cliente.
-- El nombre del cliente debe aparecer en el campo de "Origen", "Remitente", "De" o similar en el comprobante.

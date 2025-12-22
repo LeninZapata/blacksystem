@@ -181,7 +181,6 @@ class workflowMessage {
       log::debug('Mensaje interpretado', ['type' => $interpreted['type'], 'text_preview' => substr($interpreted['text'], 0, 50)], ['module' => 'conversation']);
     }
 
-    echo '<pre>$interpretedMessages:'; var_dump($interpretedMessages); echo '</pre>';exit;
     // 2.1 Si entre los mensajes tengo un tipo de mensaje tipo "image" entonces no continuar a IA
     // necesitamos saber si es un recibo valido de pago y con eso validar el pago y enviar el producto
     log::info('=== RESPUESTA DE LA IA DE IMAGEN ===', ['response' => $aiResponse['response']], ['module' => 'conversation']);

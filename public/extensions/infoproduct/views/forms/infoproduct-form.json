@@ -64,6 +64,7 @@
       "activeIndex": 0,
       "groups": [
         {
+          "name": "welcome_group",
           "title": "i18n:infoproduct.products.tab.welcome",
           "fields": [
             {
@@ -161,6 +162,7 @@
           ]
         },
         {
+          "name": "tracking_group",
           "title": "i18n:infoproduct.products.tab.tracking",
           "fields": [
             {
@@ -334,6 +336,7 @@
           ]
         },
         {
+          "name": "templates_group",
           "title": "i18n:infoproduct.products.tab.templates",
           "fields": [
             {
