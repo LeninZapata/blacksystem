@@ -1,10 +1,14 @@
 <?php
 spl_autoload_register(function ($class) {
-  $classLower = strtolower($class);
+  // Clases que mantienen case original (PascalCase) para compatibilidad Linux
+  static $caseSensitiveClasses = ['Application'];
+  
+  $classLower = in_array($class, $caseSensitiveClasses) ? $class : strtolower($class);
 
   // Mapa estático SOLO de clases core que se usan en CADA request
   static $classMap = [
     // Core (framework) - Se usa siempre
+    'Application' => FRAMEWORK_PATH . '/core/Application.php',
     'controller' => FRAMEWORK_PATH . '/core/controller.php',
     'router' => FRAMEWORK_PATH . '/core/router.php',
     'resource' => FRAMEWORK_PATH . '/core/resource.php',
@@ -60,7 +64,14 @@ spl_autoload_register(function ($class) {
     return;
   }
 
-  // 6. Services - Auto-discovery con patrón inteligente
+  // 6. Traits (framework) - Carga bajo demanda
+  $traitFile = FRAMEWORK_PATH . '/traits/' . $class . '.php';
+  if (file_exists($traitFile)) {
+    require_once $traitFile;
+    return;
+  }
+
+  // 7. Services - Auto-discovery con patrón inteligente
   if (tryLoadService($class, $classLower)) {
     return;
   }
@@ -77,7 +88,7 @@ function tryLoadService($class, $classLower) {
     require_once $serviceFile;
     return true;
   }
-  
+
   // Buscar en subcarpeta /integrations/ (chatApiService dentro de chatapi/)
   $categories = ['chatapi', 'ai', 'email', 'storage', 'payment'];
   foreach ($categories as $category) {
@@ -87,14 +98,14 @@ function tryLoadService($class, $classLower) {
       return true;
     }
   }
-  
+
   // Detectar sufijo (Provider, Normalizer, Validator, Service)
   $suffixes = ['provider', 'normalizer', 'validator', 'service'];
-  
+
   foreach ($suffixes as $suffix) {
     if (str_ends_with($classLower, $suffix)) {
       $providerName = substr($classLower, 0, -strlen($suffix));
-      
+
       // Buscar en todas las categorías de integración
       foreach ($categories as $category) {
         // Patrón 1: /integrations/{category}/{provider}/{class}.php
@@ -104,7 +115,7 @@ function tryLoadService($class, $classLower) {
           require_once $file;
           return true;
         }
-        
+
         // Patrón 2: /integrations/{category}/{provider}/{Provider}{Suffix}.php
         $file = SERVICES_PATH . "/integrations/{$category}/{$providerName}/{$class}.php";
         if (file_exists($file)) {
@@ -115,7 +126,7 @@ function tryLoadService($class, $classLower) {
       }
     }
   }
-  
+
   return false;
 }
 
@@ -123,21 +134,21 @@ function tryLoadService($class, $classLower) {
 function loadServiceDependencies($category, $provider) {
   static $loaded = [];
   $key = "{$category}:{$provider}";
-  
+
   if (isset($loaded[$key])) return;
-  
+
   // Cargar interface si existe
   $interfaceFile = SERVICES_PATH . "/integrations/{$category}/" . $category . "ProviderInterface.php";
   if (file_exists($interfaceFile)) {
     require_once $interfaceFile;
   }
-  
+
   // Cargar clase base si existe
   $baseFile = SERVICES_PATH . "/integrations/{$category}/base" . ucfirst($category) . "Provider.php";
   if (file_exists($baseFile)) {
     require_once $baseFile;
   }
-  
+
   $loaded[$key] = true;
 }
 
@@ -145,14 +156,14 @@ function loadServiceDependencies($category, $provider) {
 function handleClassNotFound($class) {
   $isApi = isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false;
   $isJson = isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false;
-  
+
   // Log del error (log y lang ya están cargados en consts.php)
   log::error(__('core.autoload.class_not_found', ['class' => $class]), [
     'class' => $class,
     'request_uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
     'is_api' => $isApi
   ], ['module' => 'autoload']);
-  
+
   // Si es API o JSON request, responder en JSON
   if ($isApi || $isJson) {
     if (class_exists('response', false)) {
@@ -171,7 +182,7 @@ function handleClassNotFound($class) {
     // Respuesta HTML para peticiones web
     http_response_code(500);
     header('Content-Type: text/html; charset=utf-8');
-    
+
     if (defined('IS_DEV') && IS_DEV) {
       echo "<!DOCTYPE html>
 <html>

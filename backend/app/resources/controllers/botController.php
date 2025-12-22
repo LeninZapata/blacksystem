@@ -1,5 +1,7 @@
 <?php
-class botController extends controller {
+class BotController extends controller {
+  // Nombre de la tabla asociada a este controlador
+  protected static $table = DB_TABLES['bots'];
 
   function __construct() {
     parent::__construct('bot');
@@ -36,12 +38,12 @@ class botController extends controller {
     $data['ta'] = time();
 
     try {
-      $id = db::table('bots')->insert($data);
+      $id = db::table(self::$table)->insert($data);
       log::info('BotController - Bot creado', ['id' => $id, 'name' => $data['name']], ['module' => 'bot']);
       
       if (isset($data['number'])) {
         $data['id'] = $id;
-        botHandlers::saveContextFile($data, 'create');
+        BotHandlers::saveContextFile($data, 'create');
       }
       
       response::success(['id' => $id], __('bot.create.success'), 201);
@@ -52,7 +54,7 @@ class botController extends controller {
   }
 
   function update($id) {
-    $exists = db::table('bots')->find($id);
+    $exists = db::table(self::$table)->find($id);
     if (!$exists) response::notFound(__('bot.not_found'));
 
     $data = request::data();
@@ -84,7 +86,7 @@ class botController extends controller {
     $data['tu'] = time();
 
     try {
-      $affected = db::table('bots')->where('id', $id)->update($data);
+      $affected = db::table(self::$table)->where('id', $id)->update($data);
       log::info('BotController - Bot actualizado', [
         'id' => $id,
         'number_changed' => $numberChanged,
@@ -93,10 +95,10 @@ class botController extends controller {
       ], ['module' => 'bot']);
       
       if ($affected > 0) {
-        $botData = db::table('bots')->find($id);
+        $botData = db::table(self::$table)->find($id);
         if ($botData) {
           // Pasar oldNumber solo si cambió
-          botHandlers::saveContextFile($botData, 'update', $numberChanged ? $oldNumber : null);
+          BotHandlers::saveContextFile($botData, 'update', $numberChanged ? $oldNumber : null);
         }
       }
       
@@ -108,7 +110,7 @@ class botController extends controller {
   }
 
   function show($id) {
-    $data = db::table('bots')->find($id);
+    $data = db::table(self::$table)->find($id);
     if (!$data) response::notFound(__('bot.not_found'));
 
     if (isset($data['config']) && is_string($data['config'])) {
@@ -119,7 +121,7 @@ class botController extends controller {
   }
 
   function list() {
-    $query = db::table('bots');
+    $query = db::table(self::$table);
 
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
@@ -149,11 +151,11 @@ class botController extends controller {
   }
 
   function delete($id) {
-    $bot = db::table('bots')->find($id);
+    $bot = db::table(self::$table)->find($id);
     if (!$bot) response::notFound(__('bot.not_found'));
 
     try {
-      $affected = db::table('bots')->where('id', $id)->delete();
+      $affected = db::table(self::$table)->where('id', $id)->delete();
       log::info('BotController - Bot eliminado', ['id' => $id, 'name' => $bot['name']], ['module' => 'bot']);
       response::success(['affected' => $affected], __('bot.delete.success'));
     } catch (Exception $e) {

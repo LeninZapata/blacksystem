@@ -1,7 +1,13 @@
 <?php
-// authMiddleware - Verificar autenticación usando sesiones optimizadas
+// authMiddleware - Autenticación con validación de versión PHP
 class authMiddleware {
+
   function handle() {
+    // Validar versión PHP (solo 1 vez por sesión)
+    if (!$this->validatePhpVersion()) {
+      return false;
+    }
+
     $token = $this->getToken();
 
     if (!$token) {
@@ -9,7 +15,18 @@ class authMiddleware {
       return false;
     }
 
-    // Validar usando archivo de sesión
+    // Intentar obtener sesión del cache
+    $cacheKey = 'auth_session_' . substr($token, 0, 16);
+    $session = cache::get($cacheKey);
+    
+    // Validar cache: existe, no expiró y el token completo coincide
+    if ($session && $session['expires_timestamp'] >= time() && $session['token'] === $token) {
+      $GLOBALS['auth_user_id'] = $session['user_id'];
+      $GLOBALS['auth_user'] = $session['user'];
+      return true;
+    }
+
+    // No está en cache o expiró, leer archivo de sesión
     $session = $this->getSessionFromToken($token);
 
     if (!$session) {
@@ -17,16 +34,43 @@ class authMiddleware {
       return false;
     }
 
-    // Verificar expiración (usando timestamp del archivo)
+    // Verificar expiración
     if ($session['expires_timestamp'] < time()) {
       $this->deleteSession($token);
+      cache::forget($cacheKey);
       response::unauthorized(__('middleware.auth.token_expired'));
       return false;
     }
 
-    // Guardar user_id y user en globals
+    // Guardar en cache para futuros requests
+    cache::set($cacheKey, $session);
+
+    // Guardar en globals
     $GLOBALS['auth_user_id'] = $session['user_id'];
     $GLOBALS['auth_user'] = $session['user'];
+
+    return true;
+  }
+
+  // Validar versión PHP usando cache
+  private function validatePhpVersion() {
+    $required = defined('PHP_MIN_VERSION') ? PHP_MIN_VERSION : '8.1.0';
+    
+    // Cache GLOBAL (en $_SESSION porque no depende del usuario)
+    $isValid = cache::remember('global_php_version_valid', function() use ($required) {
+      return version_compare(PHP_VERSION, $required, '>=');
+    });
+
+    if (!$isValid) {
+      response::error(
+        __('middleware.auth.php_version_required', [
+          'required' => $required,
+          'current' => PHP_VERSION
+        ]),
+        500
+      );
+      return false;
+    }
 
     return true;
   }
@@ -60,10 +104,7 @@ class authMiddleware {
     return null;
   }
 
-  /**
-   * Obtener sesión desde archivo optimizado
-   * Busca por patrón usando los primeros 16 chars del token
-   */
+  // Obtener sesión desde archivo
   private function getSessionFromToken($token) {
     $sessionsDir = STORAGE_PATH . '/sessions/';
 
@@ -71,28 +112,17 @@ class authMiddleware {
       return null;
     }
 
-    // Buscar archivo con patrón: *_*_{token_short}.json
     $tokenShort = substr($token, 0, 16);
     $pattern = $sessionsDir . "*_*_{$tokenShort}.json";
     $files = glob($pattern);
 
     if (empty($files)) {
-      log::warning(__('middleware.auth.token_not_found') . ": {$tokenShort}...",  null, ['module' => 'auth']);
       return null;
     }
 
-    // Leer el primer archivo encontrado
-    $sessionFile = $files[0];
-    $session = json_decode(file_get_contents($sessionFile), true);
+    $session = json_decode(file_get_contents($files[0]), true);
 
-    if (!$session || !isset($session['user_id'])) {
-      log::error(__('middleware.auth.session_corrupted'), null, ['module' => 'auth']);
-      return null;
-    }
-
-    // Verificar que el token completo coincida
-    if ($session['token'] !== $token) {
-      log::warning(__('middleware.auth.token_mismatch'), null, ['module' => 'auth']);
+    if (!$session || !isset($session['user_id']) || $session['token'] !== $token) {
       return null;
     }
 
@@ -110,7 +140,6 @@ class authMiddleware {
       $session = json_decode(file_get_contents($file), true);
       if ($session && $session['token'] === $token) {
         unlink($file);
-        log::info(__('middleware.auth.token_expired_deleted'), [], ['module' => 'auth']);
         return;
       }
     }

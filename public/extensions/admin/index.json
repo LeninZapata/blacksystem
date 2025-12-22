@@ -16,14 +16,21 @@
         "id": "admin-panel",
         "title": "Panel de Administración",
         "view": "sections/admin-panel",
-        "order": 5,
+        "order": 1,
         "role": "admin"
       },
       {
-        "id": "admin-workflows",
-        "title": "Flujos de Trabajo",
-        "view": "sections/admin-workflows",
-        "order": 10,
+        "id": "admin-endpoints",
+        "title": "Endpoints",
+        "view": "sections/endpoints",
+        "order": 4,
+        "role": "admin"
+      },
+      {
+        "id": "admin-logs",
+        "title": "Logs del Sistema",
+        "view": "sections/logs",
+        "order": 3,
         "role": "admin"
       }
     ]

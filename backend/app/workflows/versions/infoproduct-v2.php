@@ -68,7 +68,7 @@ class InfoproductV2Handler {
       'bot_number' => $botNumber
     ], ['module' => 'infoproduct_v2']);
 
-    $botData = botHandlers::getDataFile($botNumber);
+    $botData = BotHandlers::getDataFile($botNumber);
 
     if (!$botData) {
       log::error("Bot data not found: {$botNumber}", [], ['module' => 'infoproduct_v2']);

@@ -20,10 +20,10 @@ class openAiProvider extends baseAIProvider {
         'timeout' => 60
       ]);
 
-      if (!$response['success']) throw new Exception('Error HTTP ' . ($response['httpCode'] ?? '500'));
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
-      if (!isset($data['choices'][0]['message']['content'])) throw new Exception('Respuesta con formato inválido');
+      if (!isset($data['choices'][0]['message']['content'])) throw new Exception(__('services.ai.invalid_response'));
 
       return [
         'success' => true,
@@ -43,7 +43,7 @@ class openAiProvider extends baseAIProvider {
   public function transcribeAudio($audioUrl): array {
     try {
       $audioContent = file_get_contents($audioUrl);
-      if ($audioContent === false) throw new Exception('No se pudo descargar el audio');
+      if ($audioContent === false) throw new Exception(__('services.ai.transcription_failed') . ': No se pudo descargar el audio');
 
       $boundary = 'boundary' . uniqid();
       $body = "--{$boundary}\r\n";
@@ -64,7 +64,7 @@ class openAiProvider extends baseAIProvider {
         'raw' => true
       ]);
 
-      if (!$response['success']) throw new Exception('Error HTTP ' . ($response['httpCode'] ?? '500'));
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
       $text = $data['text'] ?? '';
@@ -99,7 +99,7 @@ class openAiProvider extends baseAIProvider {
         'timeout' => 60
       ]);
 
-      if (!$response['success']) throw new Exception('Error HTTP ' . ($response['httpCode'] ?? '500'));
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
       $description = $data['choices'][0]['message']['content'] ?? '';

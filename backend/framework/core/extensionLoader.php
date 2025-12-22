@@ -72,8 +72,6 @@ class extensionLoader {
 
     self::$loaded[$extensionName] = $config;
 
-    log::debug("Extension loaded", ['extension' => $extensionName]);
-
     return true;
   }
 

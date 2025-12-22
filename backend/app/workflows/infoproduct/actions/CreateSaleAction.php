@@ -30,7 +30,7 @@ class CreateSaleAction {
     }
 
     $countryCode = $bot['country_code'] ?? 'EC';
-    $clientResult = clientHandlers::registerOrUpdate($from, $name, $countryCode, $device);
+    $clientResult = ClientHandlers::registerOrUpdate($from, $name, $countryCode, $device);
 
     if (!$clientResult['success']) {
       return [
@@ -63,7 +63,7 @@ class CreateSaleAction {
       'force_welcome' => 0
     ];
 
-    $saleResult = saleHandlers::create($saleData);
+    $saleResult = SaleHandlers::create($saleData);
 
     if (!$saleResult['success']) {
       return [

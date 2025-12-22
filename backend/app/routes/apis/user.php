@@ -3,21 +3,22 @@
 // Las rutas CRUD (create, update, delete, etc.) se auto-registran desde user.json
 $router->group('/api/user', function($router) {
 
-  // Profile - GET /api/user/profile
+  // Perfil del usuario autenticado
   $router->get('/profile', function() {
-    $result = userHandlers::profile([]);
+    $result = UserHandler::profile([]);
     response::json($result);
   })->middleware('auth');
 
-  // Update Config - PUT /api/user/{id}/config
+  // Actualizar configuración del usuario
   $router->put('/{id}/config', function($id) {
-    $result = userHandlers::updateConfig(['id' => $id]);
+    $result = UserHandler::updateConfig(['id' => $id]);
     response::json($result);
   })->middleware(['auth', 'json']);
 
-  // UTILIDADES DE DESARROLLO
-  // Generate Password Hash - GET /api/user/generatepass/{key}
+
   if (IS_DEV) {
+
+    // Generar hash de contraseña
     $router->get('/generatepass/{key}', function($key) {
       if (empty($key)) {
         response::json([

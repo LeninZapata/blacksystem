@@ -17,7 +17,7 @@ window.appConfig = {
     redirectAfterLogin: 'dashboard/dashboard',
     storageKey: 'factory_auth',
     tokenTTL: 24 * 60 * 60 * 1000,
-    sessionCheckInterval: 2*60*1000, // 2 minutos
+    sessionCheckInterval: 1*60*1000, // 1 minutos
     api: {
       login: '/api/auth/login',
       logout: '/api/auth/logout',
@@ -35,12 +35,12 @@ window.appConfig = {
   },
 
   cache: {
-    modals: !IS_DEV,
-    forms: !IS_DEV,
-    views: !IS_DEV,
-    viewNavigation: !!IS_DEV, // creo que es view tabs
-    validation: !IS_DEV,
-    ttl: 60 * 60 * 1000
+    modals: !IS_DEV, // Cachea configuraciones de modales (loader.loadJson)
+    forms: !IS_DEV, // Cachea JSON de formularios (form.load)
+    views: !IS_DEV, // Cachea JSON de vistas del sidebar (view.loadView)
+    viewNavigation: !IS_DEV, // Cachea HTML renderizado de vistas del sidebar (viewNavigationCache)
+    validation: !IS_DEV, // Cachea esquemas de validación (validator.loadSchema)
+    ttl: 60 * 60 * 1000 // Tiempo de vida del caché: 1 hora
   }
 };
 
@@ -59,12 +59,7 @@ const SCRIPTS_TO_LOAD = [
   'js/core/validator.js',
   'js/core/conditions.js',
   'js/core/dataLoader.js',
-
-  'js/core/form.js',           // 1. Base
-  //'js/core/formState.js',      // 2. Extiende con estado
-  //'js/core/formValidation.js', // 3. Extiende con validación
-  //'js/core/formEvents.js',     // 4. Extiende con eventos
-  
+  'js/core/form.js',
   'js/core/auth.js',
   'js/core/view.js',
   'js/core/navigation.js',

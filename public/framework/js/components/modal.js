@@ -72,9 +72,8 @@ class modal {
       // CORE: Formulario del core con prefijo "core:"
       if (typeof resource === 'string' && resource.startsWith('core:')) {
         const corePath = resource.replace('core:', '');
-        logger.debug('com:modal', `Cargando formulario core: "${corePath}"`);
-
         const afterRenderCallback = options.afterRender || null;
+
         await form.load(corePath, content, null, true, afterRenderCallback);
         return;
       }
@@ -82,8 +81,6 @@ class modal {
       // Formulario de extension con prefijo "extension:"
       if (typeof resource === 'string' && resource.startsWith('extension:')) {
         const pluginPath = resource.replace('extension:', '');
-        logger.debug('com:modal', `Cargando formulario extension: "${pluginPath}"`);
-
         const afterRenderCallback = options.afterRender || null;
         await form.load(pluginPath, content, null, false, afterRenderCallback);
         return;
@@ -93,7 +90,6 @@ class modal {
       if (typeof resource === 'string' && resource.includes('|forms/')) {
         const [extensionName, formPath] = resource.split('|');
         const formName = formPath.replace('forms/', '');
-        logger.debug('com:modal', `Cargando formulario extension: "${extensionName}/${formName}"`);
 
         // ✅ FIX: Pasar afterRender callback
         const afterRenderCallback = options.afterRender || null;
@@ -103,7 +99,6 @@ class modal {
 
       // Formulario del core (sin prefijo): "user/forms/user-form" o "auth/forms/login-form"
       if (typeof resource === 'string' && resource.includes('/forms/')) {
-        logger.debug('com:modal', `Cargando formulario: "${resource}"`);
         await form.load(resource, content);
         return;
       }
@@ -111,8 +106,6 @@ class modal {
       // Vista del core con prefijo "core:"
       if (typeof resource === 'string' && resource.startsWith('core:sections/')) {
         const corePath = resource.replace('core:sections/', '');
-        logger.debug('com:modal', `Cargando vista core: "${corePath}"`);
-
         const afterRenderCallback = options.afterRender || null;
         await view.loadView(corePath, content, null, null, afterRenderCallback);
         return;
@@ -121,8 +114,6 @@ class modal {
       // Vista de extension: "user|sections/user"
       if (typeof resource === 'string' && resource.includes('|')) {
         const [extension, viewPath] = resource.split('|');
-        logger.debug('com:modal', `Cargando vista extension: "${extension}/${viewPath}"`);
-
         const afterRenderCallback = options.afterRender || null;
         await view.loadView(`${viewPath}`, content, extension, null, afterRenderCallback);
         return;
@@ -130,8 +121,6 @@ class modal {
 
       // Vista simple: "dashboard" o "sections/user"
       if (typeof resource === 'string') {
-        logger.debug('com:modal', `Cargando vista: "${resource}"`);
-
         const afterRenderCallback = options.afterRender || null;
         await view.loadView(resource, content, null, null, afterRenderCallback);
         return;
@@ -173,8 +162,6 @@ class modal {
   }
 
   static async openWithData(resource, options = {}) {
-    logger.debug('com:modal', 'openWithData', { resource, options });
-
     if (!options.id) {
       logger.warn('com:modal', 'No se especificó ID para cargar datos');
       const result = this.open(resource, options);
@@ -195,7 +182,6 @@ class modal {
       if (button) {
         const configStr = button.getAttribute('data-loader-config');
         dataLoaderConfig = JSON.parse(configStr.replace(/&quot;/g, '"'));
-        logger.debug('com:modal', 'DataLoader encontrado en botón');
       }
     }
 
@@ -210,17 +196,13 @@ class modal {
           },
           mock: pluginConfig.mockData
         };
-        logger.debug('com:modal', 'DataLoader construido desde extension config');
       }
     }
 
     if (dataLoaderConfig && window.dataLoader) {
       try {
         await loadPromise;
-        logger.debug('com:modal', 'Contenido cargado');
-
         const data = await dataLoader.loadDetail(dataLoaderConfig, options.id, extensionName);
-        logger.debug('com:modal', 'Datos cargados', data);
 
         const modalContent = document.querySelector(`#${modalId} .modal-content`);
         const formElement = modalContent?.querySelector('form');
@@ -234,7 +216,6 @@ class modal {
         }
 
         const realFormId = formElement.getAttribute('id');
-        logger.debug('com:modal', `Formulario encontrado con ID: "${realFormId}"`);
 
         if (window.form) {
           form.fill(realFormId, data, modalContent);
@@ -262,7 +243,6 @@ class modal {
 
         if (formElement) {
           const elapsed = Date.now() - startTime;
-          logger.debug('com:modal', `Formulario encontrado después de ${elapsed}ms`);
           resolve(formElement);
         } else if (Date.now() - startTime >= timeout) {
           logger.error('com:modal', `Timeout - Formulario "${formId}" no encontrado`);

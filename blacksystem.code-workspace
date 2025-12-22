@@ -25,7 +25,7 @@
 
 
     //"workbench.colorTheme": "Sonokai Atlantis",
-    "workbench.colorTheme": "One Monokai 80s Original",
+    "workbench.colorTheme": "One Monokai",
 
 		// "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'",
     "editor.lineHeight": 17,
@@ -54,12 +54,12 @@
 
 		//"editor.fontFamily": "Fira Code",
 		// "editor.fontFamily": "'Monaspace Xenon Var', Fira Code, Monaco, monospace",
-		//"editor.fontFamily": "'Anonymous Pro', 'Fira Code'",
-		"editor.fontFamily": "'Fira Code'",
+		"editor.fontFamily": "'Fira Code', 'Anonymous Pro'",
+		//"editor.fontFamily": "'Fira Code'",
 		"editor.fontLigatures": true,
 		"editor.fontVariations": "'wght' 100",
 		//"editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'",
-		"editor.fontSize": 11,
+		"editor.fontSize": 12,
 
 		"terminal.integrated.fontFamily": "'Monaspace Neon Var', Fira Code, Monaco, monospace",
 		"terminal.integrated.fontSize": 11,

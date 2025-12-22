@@ -31,7 +31,7 @@ class webhookController {
         response::json(['success' => false, 'error' => 'Person no encontrado'], 400);
       }
 
-      $bot = botHandlers::getDataFile($sender['number']);
+      $bot = BotHandlers::getDataFile($sender['number']);
       
       if (!$bot) {
         log::error('webhookController::whatsapp - Bot no encontrado', [
@@ -42,7 +42,7 @@ class webhookController {
 
       $chatapi->setConfig($bot, $detectedProvider);
 
-      $workflowData = botHandlers::getWorkflowFile($sender['number']);
+      $workflowData = BotHandlers::getWorkflowFile($sender['number']);
       $workflowFile = $workflowData['file_path'] ?? null;
 
       if (!$workflowFile) {

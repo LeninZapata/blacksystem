@@ -5,11 +5,8 @@ class loader {
     const normalizedUrl = this.normalizeUrl(url);
 
     if (this.loaded.has(normalizedUrl)) {
-      logger.debug('core:loader', `✓ Script en caché: ${normalizedUrl}`);
       return true;
     }
-
-    logger.debug('core:loader', `📥 Cargando script: ${normalizedUrl}`);
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -21,7 +18,6 @@ class loader {
       };
       script.onerror = () => {
         if (options.optional) {
-          logger.debug('core:loader', `⚠️ Script opcional no encontrado: ${normalizedUrl}`);
           resolve(false);
         } else {
           logger.error('core:loader', `❌ Error cargando script: ${normalizedUrl}`);
@@ -36,11 +32,8 @@ class loader {
     const normalizedUrl = this.normalizeUrl(url);
 
     if (this.loaded.has(normalizedUrl)) {
-      logger.debug('core:loader', `✓ Style en caché: ${normalizedUrl}`);
       return true;
     }
-
-    logger.debug('core:loader', `🎨 Cargando style: ${normalizedUrl}`);
 
     return new Promise((resolve, reject) => {
       const link = document.createElement('link');
@@ -53,7 +46,6 @@ class loader {
       };
       link.onerror = () => {
         if (options.optional) {
-          logger.debug('core:loader', `⚠️ Style opcional no encontrado: ${normalizedUrl}`);
           resolve(false);
         } else {
           logger.error('core:loader', `❌ Error cargando style: ${normalizedUrl}`);
@@ -65,11 +57,6 @@ class loader {
   }
 
   static async loadResources(scripts = [], styles = []) {
-    logger.debug('core:loader', `📦 loadResources llamado con:`, {
-      scripts: scripts.length,
-      styles: styles.length
-    });
-
     if (!Array.isArray(scripts)) {
       logger.error('core:loader', '❌ scripts no es un array:', scripts);
       scripts = [];
@@ -98,11 +85,6 @@ class loader {
 
     const normalizedScripts = validScripts.map(url => this.normalizeUrl(url));
     const normalizedStyles = validStyles.map(url => this.normalizeUrl(url));
-
-    logger.debug('core:loader', `🔧 URLs normalizadas:`, {
-      scripts: normalizedScripts,
-      styles: normalizedStyles
-    });
 
     const promises = [
       ...normalizedScripts.map(url => this.loadScript(url)),
@@ -136,25 +118,11 @@ class loader {
     try {
       const normalizedUrl = this.normalizeUrl(url);
 
-      // Solo log de "Cargando" si no es silent
-      if (options.silent !== true) {
-        logger.debug('core:loader', `📄 Cargando JSON: ${normalizedUrl}`);
-      }
-
       const response = await fetch(normalizedUrl);
 
       // Si es opcional, cualquier error se trata como "no disponible"
       if (!response.ok) {
         if (options.optional) {
-          // Log solo si no es silent
-          if (options.silent !== true) {
-            if (response.status === 404) {
-              logger.debug('core:loader', `⚠️ JSON opcional no encontrado: ${normalizedUrl}`);
-            } else {
-              logger.debug('core:loader', `⚠️ JSON opcional no disponible (HTTP ${response.status}): ${normalizedUrl}`);
-            }
-          }
-          // Si es silent, simplemente retornar null sin logs
           return null;
         }
 
@@ -166,19 +134,11 @@ class loader {
 
       const data = await response.json();
 
-      // Solo log de success si no es silent
-      if (options.silent !== true) {
-        logger.success('core:loader', `✅ JSON cargado: ${normalizedUrl}`);
-      }
-
       return data;
 
     } catch (error) {
       // Si es opcional, capturar CUALQUIER error y retornar null
       if (options.optional) {
-        if (options.silent !== true) {
-          logger.debug('core:loader', `⚠️ Error cargando JSON opcional: ${url} - ${error.message}`);
-        }
         return null;
       }
 

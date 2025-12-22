@@ -17,6 +17,7 @@ class view {
 
     if (!container && window.appConfig?.cache?.viewNavigation) {
       if (this.viewNavigationCache.has(navCacheKey)) {
+        logger.info('core:view', `✅ Cache viewNavigation: usando HTML cacheado para "${viewName}"`);
         const cachedData = this.viewNavigationCache.get(navCacheKey);
         const content = document.getElementById('content');
         if (content) {
@@ -49,12 +50,12 @@ class view {
 
     if (extensionContext) {
       basePath = `extensions/${extensionContext}/views`;
-      cacheKey = `extension_view_${extensionContext}_${viewName.replace(/\//g, '_')}`;
+      cacheKey = `extension_view_${extensionContext}_${viewName.replace(/\//g, '_')}_v${window.VERSION}`;
     }
     else if (viewName.startsWith('core:')) {
       viewName = viewName.replace('core:', '');
       basePath = `${frameworkPath}/js/views`;
-      cacheKey = `core_view_${viewName.replace(/\//g, '_')}`;
+      cacheKey = `core_view_${viewName.replace(/\//g, '_')}_v${window.VERSION}`;
     }
     else if (viewName.includes('/')) {
       const parts = viewName.split('/');
@@ -64,20 +65,25 @@ class view {
         basePath = `extensions/${firstPart}/views`;
         const restPath = parts.slice(1).join('/');
         viewName = restPath || viewName;
-        cacheKey = `extension_view_${firstPart}_${viewName.replace(/\//g, '_')}`;
+        cacheKey = `extension_view_${firstPart}_${viewName.replace(/\//g, '_')}_v${window.VERSION}`;
         extensionContext = firstPart;
       } else {
         basePath = `${frameworkPath}/js/views`;
-        cacheKey = `core_view_${viewName.replace(/\//g, '_')}`;
+        cacheKey = `core_view_${viewName.replace(/\//g, '_')}_v${window.VERSION}`;
       }
     }
     else {
       basePath = `${frameworkPath}/js/views`;
-      cacheKey = `core_view_${viewName.replace(/\//g, '_')}`;
+      cacheKey = `core_view_${viewName.replace(/\//g, '_')}_v${window.VERSION}`;
     }
 
     try {
-      let viewData = cache.get(cacheKey);
+      // Solo leer del caché si está habilitado
+      let viewData = window.appConfig?.cache?.views ? cache.get(cacheKey) : null;
+
+      if (viewData) {
+        logger.info('core:view', `✅ Cache views: usando caché para "${viewName}"`);
+      }
 
       if (!viewData) {
         const cacheBuster = `?t=${window.VERSION}`;
@@ -99,6 +105,9 @@ class view {
 
         if (window.appConfig?.cache?.views) {
           cache.set(cacheKey, viewData);
+          logger.info('core:view', `💾 Cache views: guardando en caché "${viewName}"`);
+        } else {
+          logger.info('core:view', `⚠️ Cache views: NO cacheando "${viewName}" (deshabilitado)`);
         }
       }
 
@@ -135,7 +144,10 @@ class view {
             layout: combinedData.layout,
             viewData: combinedData
           });
+          logger.info('core:view', `💾 Cache viewNavigation: guardando HTML renderizado para "${viewName}"`);
         }
+      } else if (!container) {
+        logger.info('core:view', `⚠️ Cache viewNavigation: NO cacheando HTML para "${viewName}" (deshabilitado)`);
       }
 
     } catch (error) {
@@ -160,14 +172,12 @@ class view {
     }
 
     if (!extensionPerms.menus || extensionPerms.menus === '*') {
-      logger.debug('core:view', `Extension ${extensionName} con acceso total`);
       return tabs;
     }
 
     const menuPerms = extensionPerms.menus[menuId];
 
     if (menuPerms === true) {
-      logger.debug('core:view', `Menú ${menuId} con acceso total`);
       return tabs;
     }
 
@@ -182,7 +192,6 @@ class view {
     }
 
     if (menuPerms.tabs === '*') {
-      logger.debug('core:view', `Todas las tabs permitidas para ${menuId}`);
       return tabs;
     }
 
@@ -535,8 +544,6 @@ class view {
     const allHooks = hook.execute(`hook_${viewData.id}`, []);
     if (allHooks.length === 0) return null;
 
-    logger.debug('core:view', `Procesando ${allHooks.length} hooks para ${viewData.id}`);
-
     const hooksBeforeView = allHooks.filter(h => h.context === 'view' && h.position === 'before');
     const hooksAfterView = allHooks.filter(h => h.context === 'view' && h.position === 'after');
     const hooksForTabs = allHooks.filter(h => h.context === 'tab');
@@ -576,8 +583,6 @@ class view {
     const componentHooks = viewContainer.querySelectorAll('.hook-component[data-component]');
     if (componentHooks.length === 0) return;
 
-    logger.debug('core:view', `Renderizando ${componentHooks.length} componentes de hooks`);
-
     for (const hookElement of componentHooks) {
       const componentName = hookElement.dataset.component;
       const configStr = hookElement.dataset.config || '{}';
@@ -587,7 +592,6 @@ class view {
 
         if (window[componentName]?.render) {
           await window[componentName].render(config, hookElement);
-          logger.debug('core:view', `Componente hook renderizado: ${componentName}`);
         } else {
           logger.warn('core:view', `Componente ${componentName} no encontrado`);
           hookElement.innerHTML = `<div style="padding:1rem;background:#fee;border:1px solid #fcc;border-radius:4px;">Componente ${componentName} no disponible</div>`;
@@ -621,18 +625,14 @@ class view {
         const newHooks = tabHooks.filter(hook => {
           if (!hook.id) return true;
           if (existingIds.has(hook.id)) {
-            logger.debug('core:view', `Hook "${hook.id}" ya existe en tab "${tab.id}", ignorando duplicado`);
             return false;
           }
           return true;
         });
 
         if (newHooks.length === 0) {
-          logger.debug('core:view', `Todos los hooks ya están en tab "${tab.id}", no se agrega nada`);
           return tab;
         }
-
-        logger.debug('core:view', `Mezclando ${newHooks.length} hooks en tab "${tab.id}" (${tabHooks.length - newHooks.length} duplicados ignorados)`);
 
         const existingContent = tab.content.map(item => ({ order: item.order || 999, ...item }));
         const hooksWithOrder = newHooks.map(hook => ({ order: hook.order || 999, ...hook }));
@@ -655,14 +655,12 @@ class view {
     const newHooks = hooks.filter(hook => {
       if (!hook.id) return true; // Si no tiene ID, agregarlo
       if (existingIds.has(hook.id)) {
-        logger.debug('core:view', `Hook "${hook.id}" ya existe en content, ignorando duplicado`);
         return false;
       }
       return true;
     });
 
     if (newHooks.length === 0) {
-      logger.debug('core:view', 'Todos los hooks ya están en content, no se agrega nada');
       return;
     }
 
@@ -673,7 +671,6 @@ class view {
     mixedContent.sort((a, b) => (a.order || 999) - (b.order || 999));
 
     viewData.content = mixedContent;
-    logger.debug('core:view', `${newHooks.length} hooks mezclados en content (${hooks.length - newHooks.length} duplicados ignorados)`);
   }
 }
 

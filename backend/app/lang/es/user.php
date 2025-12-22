@@ -27,5 +27,14 @@ return [
     'invalid' => 'Configuración inválida',
     'required' => 'Config requerido'
   ],
-  'fields_required' => 'Los campos user, pass y role son requeridos'
+  'fields_required' => 'Los campos user, pass y role son requeridos',
+  'session' => [
+    'cleanup' => [
+      'success' => 'Sesiones limpiadas correctamente'
+    ],
+    'cleanup_completed' => 'Limpieza completada: {cleaned} sesiones eliminadas',
+    'cleaned_user' => 'Limpiadas {cleaned} sesiones del usuario {userId}',
+    'cleanup_error' => 'Error limpiando sesión',
+    'invalidated' => '{count} sesiones invalidadas'
+  ],
 ];

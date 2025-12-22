@@ -21,8 +21,6 @@ class navigation {
       return;
     }
 
-    logger.debug('core:navigation', `Navigate to: ${screen}`, params);
-
     // Guardar en historial
     if (this.currentScreen) {
       this.history.push({
@@ -66,7 +64,6 @@ class navigation {
     }
 
     const previous = this.history.pop();
-    logger.debug('core:navigation', `Go back to: ${previous.screen}`);
 
     this.currentScreen = previous.screen;
 
@@ -88,8 +85,6 @@ class navigation {
    * Reemplazar la vista actual (sin agregar al historial)
    */
   static replace(screen, params = {}) {
-    logger.debug('core:navigation', `Replace with: ${screen}`, params);
-
     // No agregar al historial, solo reemplazar
     this.currentScreen = screen;
 
@@ -106,8 +101,6 @@ class navigation {
    * Resetear navegación (útil para logout)
    */
   static reset(screen = 'dashboard/dashboard') {
-    logger.debug('core:navigation', `Reset to: ${screen}`);
-
     // Limpiar historial
     this.history = [];
     this.currentScreen = screen;
@@ -135,7 +128,6 @@ class navigation {
    * Limpiar historial sin navegar
    */
   static clearHistory() {
-    logger.debug('core:navigation', 'Historial limpiado');
     this.history = [];
   }
 }

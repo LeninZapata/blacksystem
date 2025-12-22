@@ -1,6 +1,6 @@
 <?php
-class clientHandlers {
-  private static $table = 'clients';
+class ClientHandlers {
+  private static $table = DB_TABLES['clients'];
 
   // Eliminar todos los datos del cliente en cascada
   static function deleteAllData($params) {

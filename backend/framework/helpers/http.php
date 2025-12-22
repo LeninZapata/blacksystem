@@ -1,6 +1,8 @@
 <?php
 class http {
 
+  private static $logMeta = ['module' => 'http', 'layer' => 'framework'];
+
   static function get($url, $options = []) {
     return self::request('GET', $url, null, $options);
   }
@@ -27,7 +29,7 @@ class http {
 
     try {
       $ch = curl_init();
-      
+
       $curlOpts = [
         CURLOPT_URL => url::normalizeUrl($url),
         CURLOPT_RETURNTRANSFER => true,
@@ -73,7 +75,7 @@ class http {
       curl_close($ch);
 
       if ($curlErrno !== 0) {
-        log::error('http::request - cURL error', ['url' => $url, 'error' => $curlError], ['module' => 'http']);
+        log::error('http::request - cURL error', ['url' => $url, 'error' => $curlError], self::$logMeta);
         return ['success' => false, 'data' => null, 'httpCode' => $httpCode, 'error' => $curlError];
       }
 
@@ -93,7 +95,7 @@ class http {
       ];
 
     } catch (Exception $e) {
-      log::error('http::request - Exception', ['url' => $url, 'error' => $e->getMessage()], ['module' => 'http']);
+      log::error('http::request - Exception', ['url' => $url, 'error' => $e->getMessage()], self::$logMeta);
       return ['success' => false, 'data' => null, 'httpCode' => 0, 'error' => $e->getMessage()];
     }
   }

@@ -13,7 +13,7 @@ class service {
     $serviceFile = SERVICES_PATH . "/{$category}.php";
 
     if (!file_exists($serviceFile)) {
-      throw new Exception("Servicio no encontrado: {$category}");
+      throw new Exception(__('core.service.not_found', ['category' => $category]));
     }
 
     require_once $serviceFile;
@@ -50,11 +50,11 @@ class service {
     $class = $provider . $className;
 
     if (!class_exists($class)) {
-      throw new Exception("Clase no existe: {$class}");
+      throw new Exception(__('core.service.class_not_found', ['class' => $class]));
     }
 
     if (!method_exists($class, $method)) {
-      throw new Exception("Método no existe: {$class}::{$method}");
+      throw new Exception(__('core.service.method_not_found', ['class' => $class, 'method' => $method]));
     }
 
     return call_user_func_array([$class, $method], $args);

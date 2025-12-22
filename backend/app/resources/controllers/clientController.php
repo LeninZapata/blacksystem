@@ -1,6 +1,6 @@
 <?php
-class clientController extends controller {
-  private static $table = 'clients';
+class ClientController extends controller {
+  private static $table = DB_TABLES['clients'];
 
   function __construct() {
     parent::__construct('client');

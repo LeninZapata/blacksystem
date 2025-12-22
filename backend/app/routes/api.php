@@ -20,14 +20,14 @@ if (preg_match('#^/api/([^/]+)#', $path, $matches)) {
 
 // PASO 1: Auto-registrar rutas CRUD desde JSON
 if ($module) {
-  $resourceFile = APP_PATH . "/resources/{$module}.json";
+  $resourceFile = APP_PATH . "/resources/schemas/{$module}.json";  // ✅ CORREGIDO
 
   if (file_exists($resourceFile)) {
 
     $config = json_decode(file_get_contents($resourceFile), true);
 
     // Verificar si existe controller personalizado
-    $controllerClass = $module . 'Controller';
+    $controllerClass = ucfirst($module) . 'Controller';  // ✅ CORREGIDO: PascalCase
     $ctrl = class_exists($controllerClass)
     ? new $controllerClass()
     : new controller($module);

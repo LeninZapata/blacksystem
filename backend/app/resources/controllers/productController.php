@@ -1,5 +1,7 @@
 <?php
-class productController extends controller {
+class ProductController extends controller {
+  // Nombre de la tabla asociada a este controlador
+  protected static $table = DB_TABLES['products'];
 
   function __construct() {
     parent::__construct('product');
@@ -7,13 +9,13 @@ class productController extends controller {
 
   function create() {
     $data = request::data();
-    
+
     if (isset($GLOBALS['auth_user_id'])) {
       $data['user_id'] = $GLOBALS['auth_user_id'];
     } else {
       response::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }
-    
+
     if (!isset($data['name']) || empty($data['name'])) {
       response::json(['success' => false, 'error' => __('product.name_required')], 200);
     }
@@ -26,15 +28,15 @@ class productController extends controller {
     }
 
     log::debug('productController - Datos para crear producto', $data, ['module' => 'product']);
-    
+
     try {
-      $id = db::table('products')->insert($data);
-      
+      $id = db::table(self::$table)->insert($data);
+
       if (isset($data['context'])) {
         $data['id'] = $id;
-        productHandler::handleByContext($data, 'create');
+        ProductHandler::handleByContext($data, 'create');
       }
-      
+
       response::success(['id' => $id], __('product.create.success'), 201);
     } catch (Exception $e) {
       log::error('productController - Error SQL al crear producto', ['message' => $e->getMessage()], ['module' => 'product']);
@@ -43,7 +45,7 @@ class productController extends controller {
   }
 
   function update($id) {
-    $exists = db::table('products')->find($id);
+    $exists = db::table(self::$table)->find($id);
     if (!$exists) response::notFound(__('product.not_found'));
 
     $data = request::data();
@@ -61,21 +63,21 @@ class productController extends controller {
     }
 
     try {
-      $affected = db::table('products')->where('id', $id)->update($data);
-      
+      $affected = db::table(self::$table)->where('id', $id)->update($data);
+
       log::info('productController - Producto actualizado', [
         'id' => $id,
         'bot_changed' => $botChanged,
         'old_bot_id' => $oldBotId,
         'new_bot_id' => $newBotId
       ], ['module' => 'product']);
-      
+
       if ($affected > 0 && isset($data['context'])) {
         $data['id'] = $id;
         // Pasar oldBotId solo si cambió
-        productHandler::handleByContext($data, 'update', $botChanged ? $oldBotId : null);
+        ProductHandler::handleByContext($data, 'update', $botChanged ? $oldBotId : null);
       }
-      
+
       response::success(['affected' => $affected], __('product.update.success'));
     } catch (Exception $e) {
       response::serverError(__('product.update.error'), IS_DEV ? $e->getMessage() : null);
@@ -83,15 +85,15 @@ class productController extends controller {
   }
 
   function show($id) {
-    $data = db::table('products')->find($id);
+    $data = db::table(self::$table)->find($id);
     if (!$data) response::notFound(__('product.not_found'));
 
     response::success($data);
   }
 
   function list() {
-    $query = db::table('products');
-    
+    $query = db::table(self::$table);
+
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
       $query = $query->where($key, $value);
@@ -111,11 +113,11 @@ class productController extends controller {
   }
 
   function delete($id) {
-    $item = db::table('products')->find($id);
+    $item = db::table(self::$table)->find($id);
     if (!$item) response::notFound(__('product.not_found'));
 
     try {
-      $affected = db::table('products')->where('id', $id)->delete();
+      $affected = db::table(self::$table)->where('id', $id)->delete();
       response::success(['affected' => $affected], __('product.delete.success'));
     } catch (Exception $e) {
       response::serverError(__('product.delete.error'), IS_DEV ? $e->getMessage() : null);

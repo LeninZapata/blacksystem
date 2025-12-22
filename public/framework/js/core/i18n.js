@@ -7,13 +7,14 @@ class i18n {
   static config = {};
 
   static async init(config = {}) {
-    // ✅ Configuración con refresh por defecto
     this.config = {
-      refreshOnChange: true,  // true = recargar página | false = cambio dinámico
+      refreshOnChange: true,
       ...config
     };
 
-    // ✅ Prioridad: storage > config > default
+    // Limpiar cache de versiones antiguas
+    this.cleanupOldVersionCache();
+
     const storedLang = this.getLangFromStorage();
     this.currentLang = storedLang || config.defaultLang || 'es';
     this.defaultLang = config.defaultLang || 'es';
@@ -22,12 +23,31 @@ class i18n {
     await this.loadCoreLang(this.currentLang);
 
     const source = storedLang ? 'localStorage' : (config.defaultLang ? 'config' : 'default');
-    logger.debug('core:i18n', `Idioma '${this.currentLang}' desde ${source}`);
-    logger.debug('core:i18n', `Modo ${this.config.refreshOnChange ? 'REFRESH' : 'DINÁMICO'}`);
+    logger.info('core:i18n', `Idioma '${this.currentLang}' desde ${source}`);
+  }
+
+  static cleanupOldVersionCache() {
+    const currentVersion = window.VERSION;
+    let cleaned = 0;
+
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('cache_i18n_core_') || key.startsWith('cache_i18n_extension_')) {
+        const hasCurrentVersion = key.includes(`_v${currentVersion}`);
+        
+        if (!hasCurrentVersion) {
+          localStorage.removeItem(key);
+          cleaned++;
+        }
+      }
+    });
+
+    if (cleaned > 0) {
+      logger.info('core:i18n', `Limpiados ${cleaned} archivos de idioma de versiones antiguas`);
+    }
   }
 
   static async loadCoreLang(lang) {
-    const cacheKey = `i18n_core_${lang}`;
+    const cacheKey = `i18n_core_${lang}_v${window.VERSION}`;
     let data = cache.get(cacheKey);
 
     if (!data) {
@@ -45,7 +65,6 @@ class i18n {
 
           logger.success('core:i18n', `✅ Idioma ${lang} cargado exitosamente`);
           logger.info('core:i18n', `📊 Total de keys cargadas: ${Object.keys(data).length}`);
-          logger.debug('core:i18n', `🔑 Primeras 10 keys:`, Object.keys(data).slice(0, 10));
 
           cache.set(cacheKey, data, 60 * 60 * 1000);
         } else {
@@ -58,7 +77,6 @@ class i18n {
       }
     } else {
       logger.info('core:i18n', `♻️ Idioma ${lang} cargado desde caché`);
-      logger.debug('core:i18n', `📊 Keys en caché: ${Object.keys(data).length}`);
     }
 
     this.translations.set(lang, data);
@@ -66,7 +84,7 @@ class i18n {
   }
 
   static async loadExtensionLang(extensionName, lang) {
-    const cacheKey = `i18n_extension_${extensionName}_${lang}`;
+    const cacheKey = `i18n_extension_${extensionName}_${lang}_v${window.VERSION}`;
     let data = cache.get(cacheKey);
 
     if (!data) {
@@ -116,7 +134,6 @@ class i18n {
       // Log de debug cuando se busca una key
       if (!translation && !key.startsWith('i18n:')) {
         logger.warn('core:i18n', `❌ Key no encontrada: "${key}" (idioma: ${lang})`);
-        logger.debug('core:i18n', `📋 Keys disponibles en core:`, coreData ? Object.keys(coreData).length : 0);
       }
     }
 
@@ -154,24 +171,19 @@ class i18n {
     this.currentLang = lang;
     this.saveLangToStorage(lang);
 
-    // ✅ NUEVO: Decidir entre refresh o dinámico
     if (this.config.refreshOnChange) {
-      // Modo refresh: recargar página
       logger.info('core:i18n', '🔄 Recargando página...');
       window.location.reload();
     } else {
-      // Modo dinámico: actualizar sin recargar
       logger.info('core:i18n', '⚡ Actualizando dinámicamente...');
       this.updateDynamicContent();
 
-      // Trigger evento para componentes personalizados
       document.dispatchEvent(new CustomEvent('lang-changed', {
         detail: { lang, method: 'dynamic' }
       }));
     }
   }
 
-  // ✅ NUEVO: Actualizar contenido dinámicamente
   static updateDynamicContent() {
     // 1. Actualizar elementos con data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -196,7 +208,6 @@ class i18n {
     document.querySelectorAll('label[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
 
-      // Preservar checkbox/radio inputs dentro del label
       const input = el.querySelector('input[type="checkbox"], input[type="radio"]');
       if (input) {
         const inputHTML = input.outerHTML;
@@ -210,7 +221,6 @@ class i18n {
     logger.success('core:i18n', `${elementsCount} elementos actualizados`);
   }
 
-  // ✅ NUEVO: Parsear parámetros de data attributes
   static parseDataParams(element) {
     const params = {};
     const paramsAttr = element.getAttribute('data-i18n-params');
@@ -226,7 +236,6 @@ class i18n {
     return params;
   }
 
-  // Método helper para agregar atributo data-i18n
   static markElement(key, params = null) {
     const attrs = `data-i18n="${key}"`;
     const paramsAttr = params ? ` data-i18n-params='${JSON.stringify(params)}'` : '';
@@ -254,28 +263,19 @@ class i18n {
     this.exntesionTranslations.clear();
   }
 
-  /**
-   * Procesar string con claves i18n
-   * Soporta dos formatos:
-   * 1. Directo: "i18n:key" → traduce todo el string
-   * 2. Placeholder: "{i18n:key}" o "{i18n:key|param:value}" → reemplaza dentro del string
-   */
   static processString(str) {
     if (!str || typeof str !== 'string') return str;
     
-    // Formato directo: "i18n:key" (todo el string es una clave)
     if (str.startsWith('i18n:')) {
       const key = str.substring(5);
       return this.t(key);
     }
     
-    // Formato placeholder: "{i18n:key}" o "{i18n:key|param:value}"
     return str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
       const parts = content.split('|');
       const key = parts[0];
       const params = {};
       
-      // Procesar parámetros opcionales
       for (let i = 1; i < parts.length; i++) {
         const [paramKey, paramValue] = parts[i].split(':');
         if (paramKey && paramValue) {

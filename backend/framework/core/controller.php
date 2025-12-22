@@ -4,7 +4,7 @@ class controller {
   private $config, $table, $resource;
 
   function __construct($resourceName) {
-    $configFile = APP_PATH . "/resources/{$resourceName}.json";
+    $configFile = APP_PATH . "/resources/schemas/{$resourceName}.json";
 
     if (!file_exists($configFile)) {
       response::error(__('core.controller.resource_not_found', ['resource' => $resourceName]), 404);

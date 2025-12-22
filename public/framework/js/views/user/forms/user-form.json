@@ -17,7 +17,8 @@
               "type": "text",
               "transform": ["lowercase", "alphanumeric"],
               "validation": "required|alpha_num|min:3|max:50",
-              "placeholder": "usuario123"
+              "placeholder": "usuario123",
+              "focus": true
             },
             {
               "type": "group",

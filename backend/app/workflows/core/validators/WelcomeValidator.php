@@ -30,7 +30,7 @@ class WelcomeValidator {
       return null;
     }
 
-    $activators = productHandler::getActivatorsFile($botNumber);
+    $activators = ProductHandler::getActivatorsFile($botNumber);
     
     if (empty($activators)) {
       return null;

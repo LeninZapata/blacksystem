@@ -31,8 +31,6 @@ class action {
       return;
     }
 
-    logger.debug('core:action', `Ejecutando: ${type}:${value}`, params);
-
     switch(type.toLowerCase()) {
       case 'navigate':
         return this.handleNavigate(value, params, context);
@@ -58,8 +56,6 @@ class action {
   }
 
   static handleNavigate(screen, params, context) {
-    logger.debug('core:action', `Navigate to: ${screen}`, params);
-
     // Usar navigation si está disponible
     if (window.navigation && typeof navigation.navigate === 'function') {
       navigation.navigate(screen, {
@@ -77,8 +73,6 @@ class action {
   }
 
   static handleModal(viewPath, params, context) {
-    logger.debug('core:action', `Open modal: ${viewPath}`, params);
-
     if (window.modal && typeof modal.open === 'function') {
       modal.open(viewPath, params);
     } else {
@@ -87,8 +81,6 @@ class action {
   }
 
   static async handleApi(endpoint, params, context) {
-    logger.debug('core:action', `API call: ${endpoint}`, params);
-
     const method = params.method || 'POST';
 
     if (!window.api) {
@@ -116,8 +108,6 @@ class action {
   }
 
   static handleCustom(functionName, params, context) {
-    logger.debug('core:action', `Custom function: ${functionName}`, params);
-
     // Buscar función en window
     if (window[functionName] && typeof window[functionName] === 'function') {
       return window[functionName](params, context);
@@ -127,8 +117,6 @@ class action {
   }
 
   static handleSubmit(handler, params, context) {
-    logger.debug('core:action', `Submit: ${handler}`);
-
     // Obtener formulario de múltiples formas
     let form = null;
 
@@ -158,7 +146,6 @@ class action {
     }
 
     const formId = form.id;
-    logger.debug('core:action', `Formulario encontrado: ${formId}`);
 
     // Separar objeto.método
     const parts = handler.split('.');
@@ -168,7 +155,6 @@ class action {
       const obj = window[objName];
 
       if (obj && typeof obj[methodName] === 'function') {
-        logger.debug('core:action', `Llamando: ${handler}(${formId})`);
         return obj[methodName](formId, params);
       }
     }
@@ -194,7 +180,6 @@ class action {
         // Función global simple: "alert:Hola"
         const funcName = methodParts[0];
         if (typeof window[funcName] === 'function') {
-          logger.debug('core:action', `Llamando función global: ${funcName}`, args);
           return window[funcName](...args);
         } else {
           logger.error('core:action', `Función global no encontrada: ${funcName}`);
@@ -220,7 +205,6 @@ class action {
         return;
       }
 
-      logger.debug('core:action', `Llamando: ${objectMethod}(${args.join(', ')})`);
       return method.apply(obj, args);
 
     } catch (error) {

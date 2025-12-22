@@ -1,5 +1,7 @@
 <?php
 class workflowHandlers {
+  // Nombre de la tabla de bots asociada a este handler
+  protected static $tableBots = DB_TABLES['bots'];
 
   // Actualiza archivos workflow de todos los bots que usan este workflow
   static function updateBotsContext($workflowId) {
@@ -9,7 +11,7 @@ class workflowHandlers {
     }
     
     // Buscar todos los bots que usan este workflow
-    $bots = db::table('bots')
+    $bots = db::table(self::$tableBots)
       ->where('config', 'LIKE', '%"workflow_id":"' . $workflowId . '"%')
       ->get();
     
@@ -27,7 +29,7 @@ class workflowHandlers {
       
       if ($botNumber) {
         // Regenerar archivo workflow del bot
-        $result = botHandlers::generateWorkflowFile($botNumber, $bot, 'update');
+        $result = BotHandlers::generateWorkflowFile($botNumber, $bot, 'update');
         
         if ($result) {
           $updated++;

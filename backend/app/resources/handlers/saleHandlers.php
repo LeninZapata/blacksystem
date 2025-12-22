@@ -1,7 +1,7 @@
 <?php
-class saleHandlers {
+class SaleHandlers {
 
-  private static $table = 'sales';
+  private static $table = DB_TABLES['sales'];
 
   // Crear venta simple
   static function create($data) {

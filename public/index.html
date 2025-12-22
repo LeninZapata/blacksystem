@@ -9,7 +9,7 @@
 <body>
 <div id="app"></div>
 <script>
-  let version = '0.4.2';
+  let version = '0.0.1';
 
   // DETECCIÓN AUTOMÁTICA DE RUTAS
   // Como .htaccess redirige internamente a public/,
@@ -31,6 +31,7 @@
 
   var BASE_URL = pathname;
   var FRAMEWORK_URL = BASE_URL + 'framework/';
+  var PUBLIC_URL = window.location.origin + pathname; // URL completa con protocolo
 
   var IS_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) || 
               ['3000', '5173', '8080'].includes(window.location.port);

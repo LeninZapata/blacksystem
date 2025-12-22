@@ -119,7 +119,7 @@ class tabs {
       const tempContainer = document.createElement('div');
       tempContainer.innerHTML = renderedContent;
 
-      await this.loadDynamicComponents(tempContainer);
+      await this.loadDynamicComponents(tabsData.id, tempContainer);
       this.tabCache.set(cacheKey, tempContainer);
     } catch (error) {
       logger.error('com:tabs', `Error cargando tab ${tabId}:`, error);
@@ -233,10 +233,17 @@ class tabs {
       const formJson = formContainer.dataset.formJson;
       
       try {
-        // Si hay contexto de extensión y el formJson no incluye '|', agregarlo
-        const formPath = (extensionContext && !formJson.includes('|')) 
-          ? `${extensionContext}|forms/${formJson}` 
-          : formJson;
+        let formPath = formJson;
+
+        // Si hay contexto de extensión y el formJson no incluye '|'
+        if (extensionContext && !formJson.includes('|')) {
+          // Remover el prefijo de extensión si ya está presente
+          const cleanFormJson = formJson.startsWith(`${extensionContext}/`) 
+            ? formJson.substring(extensionContext.length + 1) 
+            : formJson;
+          
+          formPath = `${extensionContext}|forms/${cleanFormJson}`;
+        }
         
         await form.load(formPath, formContainer);
       } catch (error) {

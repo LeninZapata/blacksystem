@@ -10,7 +10,7 @@ class SendWelcomeAction {
     $from = $person['number'];
     $name = $person['name'];
 
-    $product = productHandler::getProductFile($productId);
+    $product = ProductHandler::getProductFile($productId);
 
     if (!$product) {
       return [
@@ -25,7 +25,7 @@ class SendWelcomeAction {
 
     $dataSale['product'] = $product;
 
-    $messages = productHandler::getMessagesFile('welcome', $productId);
+    $messages = ProductHandler::getMessagesFile('welcome', $productId);
 
     if (!$messages || empty($messages)) {
       return [

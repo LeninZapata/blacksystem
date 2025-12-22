@@ -1,8 +1,9 @@
 <?php
-// Configuración de base de datos según entorno
-
-define('DB_HOST', isLocalhost() ? 'localhost' : 'localhost');
-define('DB_NAME', isLocalhost() ? 'blacksystem' : 'kviocppc_blacksystem');
-define('DB_USER', isLocalhost() ? 'root' : 'kviocppc_blacksystem_admin');
-define('DB_PASS', isLocalhost() ? '' : 'Lenin266*');
-define('DB_CHARSET', 'utf8mb4');
+// Configuración de base de datos del proyecto
+return [
+  'host' => isLocalhost() ? 'localhost' : '',
+  'name' => isLocalhost() ? 'blacksystem' : '',
+  'user' => isLocalhost() ? 'root' : '',
+  'pass' => isLocalhost() ? '' : '',
+  'charset' => 'utf8mb4'
+];

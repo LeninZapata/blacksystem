@@ -21,7 +21,7 @@ class ConversationValidator {
 
   static function getChatData($number, $botId, $reconstruct = true) {
     if ($reconstruct) {
-      $chat = chatHandlers::getChat($number, $botId, false);
+      $chat = ChatHandlers::getChat($number, $botId, false);
     } else {
       $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
 

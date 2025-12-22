@@ -98,8 +98,13 @@ class router {
     }
 
     foreach ($this->routes[$method] as $route => $routeObj) {
-      $pattern = preg_replace('/\{[^}]+\}/', '([^/]+)', $route);
+      // Soportar {param:.*} para capturar todo incluyendo /
+      $pattern = preg_replace('/\{([^:}]+):\.\*\}/', '(.*)', $route);
+      // Reemplazar {param} normales (sin /)
+      $pattern = preg_replace('/\{[^}]+\}/', '([^/]+)', $pattern);
       $pattern = '#^' . $pattern . '$#';
+      
+      
       if (preg_match($pattern, $path, $matches)) {
         array_shift($matches);
         $this->exec($routeObj, $matches);
@@ -132,21 +137,21 @@ class router {
     }
     if (is_string($handler) && strpos($handler, '@') !== false) {
       list($class, $method) = explode('@', $handler);
-      
+
       if (!class_exists($class)) {
         throw new Exception(__('core.router.controller_not_found', ['controller' => $class]));
       }
-      
+
       $controller = new $class();
-      
+
       if (!method_exists($controller, $method)) {
         throw new Exception(__('core.router.method_not_found_in_controller', ['method' => $method, 'controller' => $class]));
       }
-      
+
       call_user_func_array([$controller, $method], $params);
       return;
     }
-    
+
     $handlerType = is_object($handler) ? get_class($handler) : gettype($handler);
     throw new Exception(__('core.router.invalid_handler') . " (tipo: {$handlerType})");
   }

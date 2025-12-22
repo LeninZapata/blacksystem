@@ -1,7 +1,7 @@
 <?php
-class saleController extends controller {
+class SaleController extends controller {
 
-  private static $table = 'sales';
+  private static $table = DB_TABLES['sales'];
 
   function __construct() {
     parent::__construct('sale');
@@ -9,7 +9,7 @@ class saleController extends controller {
 
   function create() {
     $data = request::data();
-    
+
     if (!isset($data['amount']) || empty($data['amount'])) {
       response::json(['success' => false, 'error' => __('sale.amount_required')], 200);
     }
@@ -55,7 +55,7 @@ class saleController extends controller {
 
   function list() {
     $query = db::table(self::$table);
-    
+
     // Filtros
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;

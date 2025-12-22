@@ -4,6 +4,7 @@ class chatapi {
   private static $botData = null;
   private static $provider = null;
   private static $providers = [];
+  private static $logMeta = ['module' => 'chatapi', 'layer' => 'service'];
 
   static function setConfig(array $botData, string $provider = null) {
     self::$botData = $botData;
@@ -28,7 +29,7 @@ class chatapi {
   }
 
   static function send(string $to, string $message, string $media = ''): array {
-    if (!self::$config) throw new Exception('ChatAPI no configurado');
+    if (!self::$config) throw new Exception(__('services.chatapi.not_configured'));
 
     $lastError = null;
     foreach (self::$config as $index => $apiConfig) {
@@ -50,8 +51,7 @@ class chatapi {
       }
     }
 
-    log::error('chatapi::send - Fallback completo falló', ['error' => $lastError], ['module' => 'chatapi']);
-    return ['success' => false, 'error' => $lastError, 'all_providers_failed' => true];
+    log::throwError('chatapi::send - Fallback completo falló', ['error' => $lastError, 'to' => $to], self::$logMeta);
   }
 
   static function sendPresence(string $to, string $presenceType, int $delay = 1200): array {
@@ -63,6 +63,8 @@ class chatapi {
         $response = $provider->sendPresence($to, $presenceType, $delay);
         if ($response['success']) return $response;
       } catch (Exception $e) {
+        // Ignorar errores en presencia, solo log
+        log::warning('chatapi::sendPresence - Error enviando presencia', ['error' => $e->getMessage(), 'to' => $to, 'presence_type' => $presenceType], self::$logMeta);
         continue;
       }
     }
@@ -71,7 +73,7 @@ class chatapi {
   }
 
   static function sendArchive(string $chatNumber, string $lastMessageId = 'archive', bool $archive = true): array {
-    if (!self::$config) throw new Exception('ChatAPI no configurado');
+    if (!self::$config) throw new Exception(__('services.chatapi.not_configured'));
 
     $results = [];
     $successCount = 0;
@@ -87,6 +89,9 @@ class chatapi {
       }
     }
 
+    // Marcamos un warning si ningún provider tuvo éxito
+    log::warning('chatapi::sendArchive - Ningún provider tuvo éxito', ['chat_number' => $chatNumber, 'results' => $results], self::$logMeta);
+
     return [
       'success' => $successCount > 0,
       'successful_providers' => $successCount,
@@ -97,7 +102,7 @@ class chatapi {
 
   private static function getProviderInstance(array $apiConfig) {
     $type = $apiConfig['config']['type_value'] ?? null;
-    if (!$type) throw new Exception('Tipo de API no especificado');
+    if (!$type) throw new Exception(__('services.chatapi.api_type_required'));
 
     $cacheKey = md5(json_encode($apiConfig));
     if (isset(self::$providers[$cacheKey])) return self::$providers[$cacheKey];
@@ -111,7 +116,7 @@ class chatapi {
     $provider = match($type) {
       'evolutionapi' => new evolutionProvider($config),
       'testing' => new testingProvider($config),
-      default => throw new Exception("Provider no soportado: {$type}")
+      default => throw new Exception(__('services.chatapi.provider_not_supported', ['provider' => $type]))
     };
 
     self::$providers[$cacheKey] = $provider;

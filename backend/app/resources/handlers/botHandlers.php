@@ -1,5 +1,7 @@
 <?php
-class botHandlers {
+class BotHandlers {
+  // Nombre de la tabla asociada a este handler
+  protected static $table = DB_TABLES['bots'];
 
   /**
    * Guardar archivos de contexto del bot
@@ -7,7 +9,7 @@ class botHandlers {
    */
   static function saveContextFile($botData, $action = 'create', $oldNumber = null) {
     if (!isset($botData['id']) || !isset($botData['number'])) {
-      log::error('botHandlers::saveContextFile - Datos insuficientes', null, ['module' => 'bot']);
+      log::error('BotHandlers::saveContextFile - Datos insuficientes', null, ['module' => 'bot']);
       return false;
     }
 
@@ -20,7 +22,7 @@ class botHandlers {
       self::deleteContextFiles($oldNumber);
 
       // Regenerar activators con el nuevo número
-      productHandler::generateActivatorsFile($currentNumber, $botData['id'], 'update');
+      ProductHandler::generateActivatorsFile($currentNumber, $botData['id'], 'update');
     }
 
     // Generar archivos con el número actual
@@ -49,9 +51,9 @@ class botHandlers {
   // Generar archivo workflow_{numero}.json
   static function generateWorkflowFile($botNumber, $botData = null, $action = 'create') {
     if (!$botData) {
-      $botData = db::table('bots')->where('number', $botNumber)->first();
+      $botData = db::table(self::$table)->where('number', $botNumber)->first();
       if (!$botData) {
-        log::error("botHandlers::generateWorkflowFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
+        log::error("BotHandlers::generateWorkflowFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
         return false;
       }
     }
@@ -78,9 +80,9 @@ class botHandlers {
   static function generateDataFile($botNumber, $botData = null, $action = 'create') {
 
     if (!$botData) {
-      $botData = db::table('bots')->where('number', $botNumber)->first();
+      $botData = db::table(self::$table)->where('number', $botNumber)->first();
       if (!$botData) {
-        log::error("botHandlers::generateDataFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
+        log::error("BotHandlers::generateDataFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
         return false;
       }
     }

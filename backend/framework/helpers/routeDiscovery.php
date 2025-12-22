@@ -102,102 +102,189 @@ class routeDiscovery {
   // Parsear archivo PHP para extraer rutas
   private static function parsePhpRoutes($content, $module) {
     $routes = [];
+    $foundPaths = []; // Para evitar duplicados
 
-    // Buscar patrones como: $router->get('/path', function() ...)
-    // o $router->post('/path', ...)
+    // Extraer grupos usando conteo de llaves
+    $groups = self::extractGroups($content);
 
-    // Patrón para rutas directas
-    preg_match_all(
-      '/\$router->(get|post|put|delete)\([\'"]([^\'"]+)[\'"]/',
-      $content,
-      $matches,
-      PREG_SET_ORDER
-    );
-
-    foreach ($matches as $match) {
-      $method = strtoupper($match[1]);
-      $path = $match[2];
-
-      // Detectar middleware
-      $middleware = [];
-      if (preg_match('/->middleware\(\[?[\'"]([^\'"]+)[\'"]/', $content, $mwMatch)) {
-        $middleware = explode(',', str_replace(['[', ']', "'", '"', ' '], '', $mwMatch[1]));
-      }
-
-      $routes[] = [
-        'method' => $method,
-        'path' => $path,
-        'description' => self::extractDescription($content, $path),
-        'middleware' => $middleware,
-        'source' => "manual:{$module}",
-        'type' => 'manual'
-      ];
-    }
-
-    // Buscar grupos
-    preg_match_all(
-      '/\$router->group\([\'"]([^\'"]+)[\'"]/',
-      $content,
-      $groupMatches,
-      PREG_SET_ORDER
-    );
-
-    foreach ($groupMatches as $groupMatch) {
-      $prefix = $groupMatch[1];
+    // Procesar rutas dentro de cada grupo
+    foreach ($groups as $group) {
+      $prefix = $group['prefix'];
+      $groupContent = $group['content'];
 
       // Buscar rutas dentro del grupo
       preg_match_all(
-        '/\$router->(get|post|put|delete)\([\'"]([^\'"]+)[\'"]/',
-        $content,
+        '/\$router->(get|post|put|delete)\(\[?[\'"]([^\'"]+)[\'"]\]?/',
+        $groupContent,
         $innerMatches,
         PREG_SET_ORDER
       );
 
       foreach ($innerMatches as $match) {
         $method = strtoupper($match[1]);
-        $path = $prefix . $match[2];
+        $relativePath = $match[2];
+        $fullPath = $prefix . $relativePath;
+        $routeKey = $method . ':' . $fullPath;
 
         // Evitar duplicados
-        $exists = false;
-        foreach ($routes as $r) {
-          if ($r['path'] === $path && $r['method'] === $method) {
-            $exists = true;
-            break;
-          }
-        }
+        if (isset($foundPaths[$routeKey])) continue;
+        $foundPaths[$routeKey] = true;
+        
+        // También marcar el path relativo para evitar que se procese como ruta directa
+        $foundPaths[$method . ':' . $relativePath] = true;
 
-        if (!$exists) {
-          $routes[] = [
-            'method' => $method,
-            'path' => $path,
-            'description' => self::extractDescription($content, $match[2]),
-            'middleware' => self::extractMiddleware($content, $match[2]),
-            'source' => "manual:{$module}",
-            'type' => 'manual'
-          ];
-        }
+        // Extraer descripción del comentario antes de la ruta
+        $description = self::extractDescriptionFromGroup($groupContent, $relativePath);
+
+        // Extraer middleware
+        $middleware = self::extractMiddlewareFromGroup($groupContent, $relativePath);
+
+        $routes[] = [
+          'method' => $method,
+          'path' => $fullPath,
+          'description' => $description,
+          'middleware' => $middleware,
+          'source' => "manual:{$module}",
+          'type' => 'manual'
+        ];
       }
+    }
+
+    // Buscar rutas directas (fuera de grupos)
+    preg_match_all(
+      '/\$router->(get|post|put|delete)\([\'"]([^\'"]+)[\'"]/',
+      $content,
+      $directMatches,
+      PREG_SET_ORDER
+    );
+
+    foreach ($directMatches as $match) {
+      $method = strtoupper($match[1]);
+      $path = $match[2];
+      
+      // Solo agregar si no fue procesada como parte de un grupo
+      $routeKey = $method . ':' . $path;
+      if (isset($foundPaths[$routeKey])) continue;
+      
+      $foundPaths[$routeKey] = true;
+
+      $description = self::extractDescription($content, $path);
+      $middleware = self::extractMiddleware($content, $path);
+
+      $routes[] = [
+        'method' => $method,
+        'path' => $path,
+        'description' => $description,
+        'middleware' => $middleware,
+        'source' => "manual:{$module}",
+        'type' => 'manual'
+      ];
     }
 
     return $routes;
   }
 
+  // Extraer grupos usando conteo de llaves para capturar correctamente el contenido completo
+  private static function extractGroups($content) {
+    $groups = [];
+    $pattern = '/\$router->group\([\'"]([^\'"]+)[\'"]/';
+    
+    if (preg_match_all($pattern, $content, $matches, PREG_OFFSET_CAPTURE)) {
+      foreach ($matches[0] as $index => $match) {
+        $prefix = $matches[1][$index][0];
+        $startPos = $match[1];
+        
+        // Encontrar el inicio de la función (después del '{')
+        $funcStart = strpos($content, '{', $startPos);
+        if ($funcStart === false) continue;
+        
+        // Contar llaves para encontrar el final del grupo
+        $braceCount = 1;
+        $pos = $funcStart + 1;
+        $length = strlen($content);
+        
+        while ($pos < $length && $braceCount > 0) {
+          $char = $content[$pos];
+          if ($char === '{') {
+            $braceCount++;
+          } elseif ($char === '}') {
+            $braceCount--;
+          }
+          $pos++;
+        }
+        
+        // Extraer el contenido del grupo
+        $groupContent = substr($content, $funcStart + 1, $pos - $funcStart - 2);
+        
+        $groups[] = [
+          'prefix' => $prefix,
+          'content' => $groupContent
+        ];
+      }
+    }
+    
+    return $groups;
+  }
+
   // Extraer descripción del comentario
   private static function extractDescription($content, $path) {
-    // Buscar comentario antes de la ruta
-    $pattern = '/\/\/\s*(.+?)\s*\n[^\n]*' . preg_quote($path, '/') . '/';
+    // Buscar comentario // antes de la ruta (solo la línea inmediata anterior)
+    $escapedPath = preg_quote($path, '/');
+    $pattern = '/\/\/\s*([^\n]+)\s*\n\s*\$router->[a-z]+\([^\)]*?' . $escapedPath . '/i';
+    
     if (preg_match($pattern, $content, $match)) {
-      return trim($match[1]);
+      $description = trim($match[1]);
+      // Limpiar emojis y caracteres especiales del inicio
+      $description = preg_replace('/^[^\w\s]+\s*/', '', $description);
+      // Eliminar indicadores de método HTTP redundantes
+      $description = preg_replace('/^(GET|POST|PUT|DELETE|PATCH)\s+\/\S+\s*-?\s*/i', '', $description);
+      return trim($description);
     }
-    return 'No description';
+    
+    return '';
+  }
+
+  // Extraer descripción dentro de un grupo
+  private static function extractDescriptionFromGroup($groupContent, $path) {
+    $escapedPath = preg_quote($path, '/');
+    // Buscar el comentario inmediatamente antes de la ruta (solo la última línea de comentario)
+    $pattern = '/\/\/\s*([^\n]+)\s*\n\s*\$router->[a-z]+\([^\)]*?' . $escapedPath . '/i';
+    
+    if (preg_match($pattern, $groupContent, $match)) {
+      $description = trim($match[1]);
+      // Limpiar emojis y caracteres especiales del inicio
+      $description = preg_replace('/^[^\w\s]+\s*/', '', $description);
+      // Eliminar indicadores de método HTTP redundantes (GET, POST, etc.)
+      $description = preg_replace('/^(GET|POST|PUT|DELETE|PATCH)\s+\/\S+\s*-?\s*/i', '', $description);
+      return trim($description);
+    }
+    
+    return '';
   }
 
   // Extraer middleware de la ruta
   private static function extractMiddleware($content, $path) {
-    $pattern = '/' . preg_quote($path, '/') . '[^;]+->middleware\(\[?[\'"]([^\'"]+)[\'"]/';
+    $escapedPath = preg_quote($path, '/');
+    $pattern = '/' . $escapedPath . '[^;]+->middleware\(\[?[\'"]([^\'"]+)[\'"]/s';
+    
     if (preg_match($pattern, $content, $match)) {
-      return explode(',', str_replace(['[', ']', "'", '"', ' '], '', $match[1]));
+      $mw = str_replace(['[', ']', "'", '"', ' '], '', $match[1]);
+      return array_filter(explode(',', $mw));
     }
+    
+    return [];
+  }
+
+  // Extraer middleware dentro de un grupo
+  private static function extractMiddlewareFromGroup($groupContent, $path) {
+    $escapedPath = preg_quote($path, '/');
+    $pattern = '/' . $escapedPath . '[^;]+->middleware\(\[?[\'"]([^\'"]+)[\'"]/s';
+    
+    if (preg_match($pattern, $groupContent, $match)) {
+      $mw = str_replace(['[', ']', "'", '"', ' '], '', $match[1]);
+      return array_filter(explode(',', $mw));
+    }
+    
     return [];
   }
 

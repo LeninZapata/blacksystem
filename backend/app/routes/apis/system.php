@@ -3,29 +3,31 @@
 
 $router->group('/api/system', function($router) {
 
-  // ✅ Limpiar sesiones expiradas - GET /api/system/cleanup-sessions
-  $router->get('/cleanup-sessions', function() {
-    $result = sessionCleanup::clean();
-    response::success($result, __('session.cleanup.success'));
-  })->middleware('auth');
-
-  // ✅ Estadísticas de sesiones - GET /api/system/sessions-stats
-  $router->get('/sessions-stats', function() {
-    $stats = sessionCleanup::stats();
-    response::success($stats);
-  })->middleware('auth');
-
-  // ✅ Info del sistema - GET /api/system/info
+  // Información general del sistema
   $router->get('/info', function() {
+    $sessionsDir = STORAGE_PATH . '/sessions/';
+    $activeCount = 0;
+
+    if (is_dir($sessionsDir)) {
+      $now = time();
+      foreach (scandir($sessionsDir) as $file) {
+        if ($file === '.' || $file === '..') continue;
+        $parts = explode('_', $file);
+        if (count($parts) >= 3 && (int)$parts[0] >= $now) {
+          $activeCount++;
+        }
+      }
+    }
+
     response::success([
       'php_version' => PHP_VERSION,
       'environment' => IS_DEV ? 'development' : 'production',
       'storage_path' => STORAGE_PATH,
-      'sessions_active' => sessionCleanup::stats()['active']
+      'sessions_active' => $activeCount
     ]);
   })->middleware('auth');
 
-  // ✅ Health check - GET /api/system/health
+  // Verificar estado del sistema
   $router->get('/health', function() {
     response::success([
       'status' => 'ok',
@@ -33,7 +35,7 @@ $router->group('/api/system', function($router) {
     ]);
   });
 
-  // ✅ Listar todos los endpoints - GET /api/system/routes
+  // Listar todos los endpoints del sistema
   $router->get('/routes', function() {
     $routes = routeDiscovery::getAllRoutes();
     $stats = routeDiscovery::getStats($routes);

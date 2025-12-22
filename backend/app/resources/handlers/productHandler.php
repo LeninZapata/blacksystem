@@ -1,5 +1,8 @@
 <?php
-class productHandler {
+class ProductHandler {
+
+  protected static $table = DB_TABLES['products'];
+  protected static $tableBots = DB_TABLES['bots'];
 
   // Handler principal por contexto
   static function handleByContext($productData, $action = 'create', $oldBotId = null) {
@@ -22,13 +25,14 @@ class productHandler {
       // Si cambió el bot (solo en update)
       if ($action === 'update' && $oldBotId && $oldBotId !== $currentBotId) {
         // Regenerar activators del bot antiguo (sin este producto)
-        $oldBot = db::table('bots')->find($oldBotId);
+        // Nombre de las tablas asociadas a este handler
+        $oldBot = db::table(self::$tableBots)->find($oldBotId);
         if ($oldBot) {
           self::generateActivatorsFile($oldBot['number'], $oldBotId, 'update');
         }
         
         // Regenerar activators del bot nuevo (con este producto)
-        $newBot = db::table('bots')->find($currentBotId);
+        $newBot = db::table(self::$tableBots)->find($currentBotId);
         if ($newBot) {
           self::generateActivatorsFile($newBot['number'], $currentBotId, 'update');
         }
@@ -49,7 +53,7 @@ class productHandler {
       
       return true;
     } catch (Exception $e) {
-      log::error('productHandler::handleInfoproduct - Error', ['message' => $e->getMessage()], ['module' => 'product']);
+      log::error('ProductHandler::handleInfoproduct - Error', ['message' => $e->getMessage()], ['module' => 'product']);
       return false;
     }
   }
@@ -59,7 +63,7 @@ class productHandler {
     if (!$botNumber && !$botId) return null;
 
     if (!$botNumber) {
-      $bot = db::table('bots')->find($botId);
+      $bot = db::table(self::$tableBots)->find($botId);
       if (!$bot) return null;
       $botNumber = $bot['number'];
     }
@@ -108,7 +112,7 @@ class productHandler {
    * NO incluye config.messages
    */
   static function generateProductFile($productId, $action = 'create') {
-    $product = db::table('products')->find($productId);
+    $product = db::table(self::$table)->find($productId);
     if (!$product) return false;
 
     // Parsear config
@@ -136,7 +140,7 @@ class productHandler {
 
   // Generar archivo de mensajes
   static function generateMessagesFile($type, $productId, $action = 'create') {
-    $product = db::table('products')->find($productId);
+    $product = db::table(self::$table)->find($productId);
     if (!$product) return false;
 
     $config = isset($product['config']) && is_string($product['config']) 
@@ -159,7 +163,7 @@ class productHandler {
 
   // Generar archivo de templates
   static function generateTemplatesFile($productId, $action = 'create') {
-    $product = db::table('products')->find($productId);
+    $product = db::table(self::$table)->find($productId);
     if (!$product) return false;
 
     $config = isset($product['config']) && is_string($product['config']) 
@@ -176,22 +180,22 @@ class productHandler {
     if (!$botId && !$botNumber) return false;
 
     if (!$botNumber) {
-      $bot = db::table('bots')->find($botId);
+      $bot = db::table(self::$tableBots)->find($botId);
       if (!$bot || !isset($bot['number'])) {
-        log::error('productHandler::generateActivatorsFile - Bot no encontrado', ['bot_id' => $botId], ['module' => 'product']);
+        log::error('ProductHandler::generateActivatorsFile - Bot no encontrado', ['bot_id' => $botId], ['module' => 'product']);
         return false;
       }
       $botNumber = $bot['number'];
     } else if (!$botId) {
-      $bot = db::table('bots')->where('number', $botNumber)->first();
+      $bot = db::table(self::$tableBots)->where('number', $botNumber)->first();
       if (!$bot) {
-        log::error('productHandler::generateActivatorsFile - Bot no encontrado', ['bot_number' => $botNumber], ['module' => 'product']);
+        log::error('ProductHandler::generateActivatorsFile - Bot no encontrado', ['bot_number' => $botNumber], ['module' => 'product']);
         return false;
       }
       $botId = $bot['id'];
     }
 
-    $products = db::table('products')
+    $products = db::table(self::$table)
       ->where('context', 'infoproductws')
       ->where('bot_id', $botId)
       ->get();

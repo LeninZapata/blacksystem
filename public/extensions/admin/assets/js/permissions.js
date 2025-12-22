@@ -24,7 +24,6 @@ class permissions {
     const selectorId = `permissions-${window.VERSION}`;
 
     // Cargar tabs de todas las vistas
-    console.log(`extensionsData:`, extensionsData);
     await this.loadAllViewsTabs(extensionsData);
 
     const html = `

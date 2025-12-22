@@ -197,6 +197,8 @@ class form {
           conditions.init(instanceId);
         }
 
+        // Aplicar autofocus si algún campo tiene focus: true
+        this.applyAutoFocus(instanceSchema, formEl);
         if (typeof afterRender === 'function') {
           try {
             afterRender(instanceId, formEl);
@@ -208,6 +210,53 @@ class form {
     }, 10);
 
     return instanceId;
+  }
+
+  // Aplicar autofocus al primer campo con focus: true
+  static applyAutoFocus(schema, formEl) {
+    const findFieldWithFocus = (fields) => {
+      if (!fields) return null;
+      
+      for (const field of fields) {
+        // Si el campo tiene focus: true, retornarlo
+        if (field.focus === true && field.name) {
+          return field.name;
+        }
+        
+        // Buscar recursivamente en grouper tabs
+        if (field.type === 'grouper' && field.groups) {
+          for (const group of field.groups) {
+            if (group.fields) {
+              const found = findFieldWithFocus(group.fields);
+              if (found) return found;
+            }
+          }
+        }
+        
+        // Buscar recursivamente en groups
+        if (field.type === 'group' && field.fields) {
+          const found = findFieldWithFocus(field.fields);
+          if (found) return found;
+        }
+      }
+      
+      return null;
+    };
+    
+    const fieldName = findFieldWithFocus(schema.fields);
+    
+    if (fieldName) {
+      const input = formEl.querySelector(`[name="${fieldName}"]`);
+      if (input) {
+        setTimeout(() => {
+          input.focus();
+          // Si es un input de texto, mover cursor al final
+          if (input.setSelectionRange && input.value) {
+            input.setSelectionRange(input.value.length, input.value.length);
+          }
+        }, 50);
+      }
+    }
   }
 
   static render(schema) {
@@ -227,7 +276,7 @@ class form {
   }
 
   static renderFields(fields, path = '') {
-    return fields.map((field, index) => {
+    return fields.map((field) => {
       // ✅ Normalizar tipo ANTES de procesar
       const normalizedField = this.normalizeFieldType(field);
 
@@ -245,7 +294,7 @@ class form {
       }
 
       if (normalizedField.type === 'grouper') {
-        return this.renderGrouper(normalizedField, path, index);
+        return this.renderGrouper(normalizedField, path);
       }
 
       return this.renderField(normalizedField, fieldPath);
@@ -321,17 +370,9 @@ class form {
     `;
   }
 
-  static renderGrouper(field, parentPath, fieldIndex = 0) {
+  static renderGrouper(field, parentPath) {
     const mode = field.mode || 'linear';
     const grouperId = `grouper-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Generar nombre único para el grouper basado en name o índice
-    const grouperName = field.name || `grouper_${fieldIndex}`;
-    const path = parentPath ? `${parentPath}.${grouperName}` : grouperName;
-    
-    // Si tiene condiciones, iniciar oculto
-    const hasConditions = field.condition && Array.isArray(field.condition) && field.condition.length > 0;
-    const initialStyle = hasConditions ? ' style="display: none;"' : '';
 
     let html = '';
 
@@ -340,9 +381,6 @@ class form {
     } else if (mode === 'tabs') {
       html += this.renderGrouperTabs(field, grouperId, parentPath);
     }
-
-    // Envolver en contenedor para que conditions.js pueda encontrarlo
-    html = `<div class="form-grouper-wrapper" data-field-name="${path}" data-grouper-id="${grouperId}"${initialStyle}>${html}</div>`;
 
     setTimeout(() => {
       this.bindGrouperEvents(grouperId, mode);
@@ -450,10 +488,8 @@ class form {
             // Re-evaluar condiciones al abrir sección
             if (window.conditions) {
               const formId = container.closest('form')?.id;
-              logger.debug('core:form', `[Linear] Sección abierta, re-evaluando condiciones. FormID: ${formId}`);
               if (formId) {
                 setTimeout(() => {
-                  logger.debug('core:form', `[Linear] Ejecutando conditions.evaluate(${formId})`);
                   conditions.evaluate(formId);
                 }, 50);
               } else {
@@ -471,14 +507,10 @@ class form {
       const tabButtons = container.querySelectorAll(':scope > .grouper-tabs-header > .grouper-tab-btn');
       const tabPanels = container.querySelectorAll(':scope > .grouper-tabs-content > .grouper-tab-panel');
 
-      logger.debug('core:form', `[Tabs] Grouper ${container.id} - ${tabButtons.length} tabs encontrados`);
-
       tabButtons.forEach(button => {
         button.addEventListener('click', () => {
           const index = parseInt(button.dataset.tabIndex);
           
-          logger.debug('core:form', `[Tabs] Click en tab ${index}`);
-
           // Remover active de todos los botones de ESTE grouper
           tabButtons.forEach(btn => btn.classList.remove('active'));
           tabPanels.forEach(panel => panel.classList.remove('active'));
@@ -492,10 +524,8 @@ class form {
             // ✅ Re-evaluar condiciones al cambiar de tab
             if (window.conditions) {
               const formId = container.closest('form')?.id;
-              logger.debug('core:form', `[Tabs] Tab ${index} activado, re-evaluando condiciones. FormID: ${formId}`);
               if (formId) {
                 setTimeout(() => {
-                  logger.debug('core:form', `[Tabs] Ejecutando conditions.evaluate(${formId})`);
                   conditions.evaluate(formId);
                 }, 50);
               } else {
@@ -547,12 +577,11 @@ class form {
    * o min="8" max="20" (para number)
    */
   static getValidationAttributes(field) {
-    const attrs = [];
-    
     if (!field.validation) return '';
 
     const rules = field.validation.split('|');
     const isNumberType = field.type === 'number' || field.type === 'range';
+    const attrs = [];
 
     rules.forEach(rule => {
       const [ruleName, ruleValue] = rule.split(':');
@@ -843,10 +872,6 @@ class form {
       }
     }
   }
-
-  // ============================================================================
-  // PROCESAR VALORES POR DEFECTO ESPECIALES
-  // ============================================================================
 
   // ============================================================================
   // APLICAR VALORES POR DEFECTO
@@ -1233,8 +1258,6 @@ class form {
       return;
     }
 
-    logger.debug('core:form', `📝 Llenando formulario ${formId}${skipRepeatables ? ' (solo selects)' : ''}`);
-
     // ✅ Guardar data en el formulario para reutilizar después
     if (!formEl.dataset.formData) {
       formEl.dataset.formData = JSON.stringify(data);
@@ -1318,7 +1341,6 @@ class form {
       
       formEl.addEventListener('select:afterLoad', (e) => {
         selectLoadCount++;
-        logger.debug('core:form', `🔄 Select #${selectLoadCount} cargado (${e.detail.fromCache ? 'cache' : 'API'}): ${e.detail.selectId}`);
         
         // Solo reintentar seleccionar valores en selects, NO recrear repeatables
         const savedData = JSON.parse(formEl.dataset.formData || '{}');
@@ -1326,7 +1348,6 @@ class form {
       });
       
       formEl.dataset.fillListenerRegistered = 'true';
-      logger.debug('core:form', `✅ Listener registrado para ${formId}`);
     }
   }
 
@@ -1336,7 +1357,6 @@ class form {
     const items = data[fieldName];
 
     if (!Array.isArray(items) || items.length === 0) {
-      logger.debug('core:form', `No hay datos para: ${fieldName}`);
       return;
     }
 
@@ -1345,7 +1365,6 @@ class form {
 
     // Pausar evaluaciones de condiciones durante el llenado masivo
     if (window.conditions && items.length >= 1) {
-      logger.debug('core:form', `⏸️ Pausando evaluaciones durante llenado de ${items.length} items`);
       conditions.pauseEvaluations();
     }
 
@@ -1377,8 +1396,6 @@ class form {
     // Agregar items uno por uno
     items.forEach((itemData, index) => {
       setTimeout(() => {
-        logger.debug('core:form', `Agregando item ${index + 1}/${items.length} de ${fullPath}`);
-
         // Click en "Agregar"
         addButton.click();
 
@@ -1394,13 +1411,10 @@ class form {
 
   // Llenar un item específico del repeatable (RECURSIVO)
   static fillRepeatableItem(container, fieldName, index, itemData, fieldSchema, parentPath, isLastItem = false) {
-    logger.debug('core:form', `Llenando item [${index}] de ${parentPath || fieldName}:`, itemData);
-
     // Reanudar evaluaciones si es el último item
     if (isLastItem && window.conditions) {
       const formEl = container.closest('form');
       setTimeout(() => {
-        logger.debug('core:form', `✅ Último item de ${parentPath}, reanudando evaluaciones`);
         conditions.resumeEvaluations(formEl?.id);
       }, 200);
     }
@@ -1420,14 +1434,10 @@ class form {
     // Calcular path del item usando el índice del DOM
     const itemPath = parentPath ? `${parentPath}[${domIndex}]` : `${fieldName}[${domIndex}]`;
 
-    logger.debug('core:form', `Llenando item [${index}] de ${parentPath || fieldName}:`, itemData);
-
     // Iterar sobre cada campo del schema
     fieldSchema.forEach(subField => {
       if (subField.type === 'repeatable') {
         // ✅ RECURSIÓN: Llenar repeatable anidado
-        logger.debug('core:form', `🔄 Procesando repeatable anidado: ${subField.name}`);
-
         // Llamar recursivamente pasando el item actual como contenedor
         this.fillRepeatable(currentItem, subField, itemData, itemPath);
 
@@ -1445,7 +1455,6 @@ class form {
 
         if (input) {
           this.setInputValue(input, value, true);
-          logger.debug('core:form', `✓ ${inputName} = ${value}`);
         } else {
           logger.warn('core:form', `Campo no encontrado: ${inputName}`);
         }
@@ -1457,7 +1466,6 @@ class form {
       const formEl = container.closest('form');
       if (formEl?.dataset.formData) {
         const originalData = JSON.parse(formEl.dataset.formData);
-        logger.debug('core:form', '🔄 Último item procesado, re-ejecutando fill() para selects');
         this.fill(formEl.id, originalData, null, true); // skipRepeatables=true
       }
     }
@@ -1495,7 +1503,6 @@ class form {
           const input = item.querySelector(`[name="${inputName}"]`);
           if (input) {
             this.setInputValue(input, value, true);
-            logger.debug('core:form', `🔄 Campo actualizado: ${inputName} = ${value} (${input.tagName})`);
           } else {
             logger.warn('core:form', `Campo no encontrado: ${inputName}`);
           }
@@ -1559,15 +1566,15 @@ class form {
       // ✅ VALIDACIÓN: Saltar campos ocultos por condiciones
       const input = formEl.querySelector(`[name="${fieldPath}"]`);
       if (input) {
-        // Verificar si el input o algún ancestro está oculto
-        let element = input;
-        while (element && element !== formEl) {
-          const style = window.getComputedStyle(element);
-          if (style.display === 'none' || element.classList.contains('wpfw-depend-on')) {
-            logger.debug('core:form', `Campo "${fieldPath}" está oculto, saltando validación`);
-            return; // Saltar validación
-          }
-          element = element.parentElement;
+        const fieldContainer = input.closest('.form-group, .form-checkbox, .form-html-wrapper');
+        
+        // Si el campo está oculto (por condiciones o cualquier otro motivo), no validar
+        if (fieldContainer && (
+          fieldContainer.classList.contains('wpfw-depend-on') || 
+          fieldContainer.style.display === 'none' ||
+          window.getComputedStyle(fieldContainer).display === 'none'
+        )) {
+          return; // Saltar validación
         }
       }
 
@@ -1863,7 +1870,6 @@ class form {
     // ✅ Verificar cache primero
     const cacheKey = `${source}|${valueField}|${labelField}`;
     if (this.selectCache.has(cacheKey)) {
-      logger.debug('core:form', `📦 Usando cache para ${selectId} desde ${source}`);
       const cachedData = this.selectCache.get(cacheKey);
       this.populateSelect(selectEl, cachedData, valueField, labelField, placeholder);
       
@@ -1878,7 +1884,6 @@ class form {
     try {
       selectEl.disabled = true;
       
-      logger.debug('core:form', `🌐 Cargando ${selectId} desde API: ${source}`);
       const data = await api.get(source);
       const items = Array.isArray(data) ? data : (data.data || []);
 
@@ -1888,7 +1893,6 @@ class form {
       this.populateSelect(selectEl, items, valueField, labelField, placeholder);
 
       selectEl.disabled = false;
-      logger.debug('core:form', `Select ${selectId} cargado con ${items.length} items desde ${source}`);
       
       // ✅ Disparar evento afterLoad para que se intente seleccionar el valor
       selectEl.dispatchEvent(new CustomEvent('select:afterLoad', {

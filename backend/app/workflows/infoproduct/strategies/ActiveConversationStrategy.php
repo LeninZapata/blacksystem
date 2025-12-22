@@ -49,7 +49,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $chatData = $context['chat_data'];
 
     foreach ($messages as $msg) {
-      chatHandlers::register(
+      ChatHandlers::register(
         $bot['id'],
         $bot['number'],
         $chatData['client_id'],
@@ -61,7 +61,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
         $chatData['sale_id']
       );
 
-      chatHandlers::addMessage([
+      ChatHandlers::addMessage([
         'number' => $person['number'],
         'bot_id' => $bot['id'],
         'client_id' => $chatData['client_id'],
@@ -129,7 +129,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $message = $parsedResponse['message'] ?? '';
     $metadata = $parsedResponse['metadata'] ?? null;
 
-    chatHandlers::register(
+    ChatHandlers::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -141,7 +141,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       $chatData['sale_id']
     );
 
-    chatHandlers::addMessage([
+    ChatHandlers::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],

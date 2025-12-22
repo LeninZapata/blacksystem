@@ -40,7 +40,7 @@ class workflowWelcome {
     if (!$botNumber) return null;
     
     // Obtener activators del bot
-    $activators = productHandler::getActivatorsFile($botNumber);
+    $activators = ProductHandler::getActivatorsFile($botNumber);
     
     if (empty($activators)) return null;
     
@@ -133,7 +133,7 @@ class workflowWelcome {
     $logMetada = [ 'module' => 'whatsapp_message_received', 'tags' => ['workflow', $from] ];
 
     // Obtener producto
-    $product = productHandler::getProductFile($productId);
+    $product = ProductHandler::getProductFile($productId);
     if (!$product) {
       return [
         'success' => false,
@@ -149,7 +149,7 @@ class workflowWelcome {
     $dataSale['product'] = $product;
 
     // Obtener mensajes de bienvenida
-    $messages = productHandler::getMessagesFile('welcome', $productId);
+    $messages = ProductHandler::getMessagesFile('welcome', $productId);
     if (!$messages || empty($messages)) {
       return [
         'success' => false,

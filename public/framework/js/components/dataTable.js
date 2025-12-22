@@ -12,7 +12,6 @@ class datatable {
     if (config && typeof config.appendChild === 'function') {
       actualContainer = config;
       actualConfig = container || {};
-      logger.debug('com:datatable', 'Parámetros invertidos detectados - corrigiendo');
     }
 
     // ✅ NUEVO: Normalizar alias (list, FlatList → datatable)
@@ -26,7 +25,6 @@ class datatable {
       const normalizedType = typeAliases[actualConfig.type.toLowerCase()];
 
       if (normalizedType) {
-        logger.debug('com:datatable', `Normalizando tipo: ${actualConfig.type} → ${normalizedType}`);
         actualConfig = { ...actualConfig, type: normalizedType };
 
         // Mapear propiedades de 'list' a 'datatable'
@@ -39,7 +37,6 @@ class datatable {
           }
 
           actualConfig.source = source;
-          logger.debug('com:datatable', `Mapeando: data (${actualConfig.data}) → source (${source})`);
         }
 
         // Remover propiedades específicas de RN (no aplican en web)
@@ -116,32 +113,26 @@ class datatable {
 
       if (isApi) {
         // API → usar api.get()
-        logger.debug('com:datatable', `Cargando desde API: ${source}`);
         const response = await api.get(source);
         data = this.normalizeData(response);
 
         // Guardar en caché
         cache.set(cacheKey, data, cacheTTL);
-        logger.debug('com:datatable', `Datos guardados en caché: ${cacheKey}`);
 
       } else if (isExternal) {
         // URL externa → usar tal cual
-        logger.debug('com:datatable', `Cargando desde URL externa: ${source}`);
         finalUrl = source;
 
       } else if (isAbsolute) {
         // Ruta absoluta → usar tal cual
-        logger.debug('com:datatable', `Cargando desde ruta absoluta: ${source}`);
         finalUrl = `${window.BASE_URL}${source.substring(1)}`;
 
       } else if (hasExtensions) {
         // Ya tiene "extensions/" → usar tal cual
-        logger.debug('com:datatable', `Cargando desde ruta con extensions/: ${source}`);
         finalUrl = `${window.BASE_URL}${source}`;
 
       } else {
         // Ruta relativa → agregar "extensions/" automáticamente
-        logger.debug('com:datatable', `Cargando mock: ${source} → extensions/${source}`);
         finalUrl = `${window.BASE_URL}extensions/${source}`;
       }
 
@@ -159,7 +150,6 @@ class datatable {
 
         // Guardar en caché
         cache.set(cacheKey, data, cacheTTL);
-        logger.debug('com:datatable', `Datos guardados en caché: ${cacheKey}`);
       }
 
       return data;
@@ -181,20 +171,17 @@ class datatable {
   static normalizeData(response) {
     // Si la respuesta es null o undefined, retornar array vacío
     if (!response) {
-      logger.debug('com:datatable', 'Response is null/undefined - returning empty array');
       return [];
     }
 
     // Si ya es un array, retornarlo directamente
     if (Array.isArray(response)) {
-      logger.debug('com:datatable', `Data is array with ${response.length} items`);
       return response;
     }
 
     // Si es un objeto con propiedad 'data' (formato API común)
     if (typeof response === 'object' && response.data !== undefined) {
       if (Array.isArray(response.data)) {
-        logger.debug('com:datatable', `Data extracted from response.data (${response.data.length} items)`);
         return response.data;
       }
       // Si response.data existe pero NO es array, retornar vacío
@@ -205,7 +192,6 @@ class datatable {
     // Si es un objeto con propiedad 'results' (otro formato API común)
     if (typeof response === 'object' && response.results !== undefined) {
       if (Array.isArray(response.results)) {
-        logger.debug('com:datatable', `Data extracted from response.results (${response.results.length} items)`);
         return response.results;
       }
       logger.warn('com:datatable', 'response.results exists but is not an array', response.results);
@@ -215,7 +201,6 @@ class datatable {
     // Si es un objeto con propiedad 'items'
     if (typeof response === 'object' && response.items !== undefined) {
       if (Array.isArray(response.items)) {
-        logger.debug('com:datatable', `Data extracted from response.items (${response.items.length} items)`);
         return response.items;
       }
       logger.warn('com:datatable', 'response.items exists but is not an array', response.items);
@@ -236,7 +221,6 @@ class datatable {
       );
       
       if (hasDataFields) {
-        logger.debug('com:datatable', 'Converting single object to array');
         return [response];
       }
     }

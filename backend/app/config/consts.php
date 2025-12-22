@@ -1,59 +1,19 @@
 <?php
-// Constantes de configuración
+// Constantes de la APLICACIÓN (específicas de este proyecto)
 
-// Configuración de zona horaria
-define('TIMEZONE', 'America/Guayaquil');
-date_default_timezone_set(TIMEZONE);
+// Cargar configuración de base de datos
+$dbConfig = require __DIR__ . '/database.php';
+define('DB_HOST', $dbConfig['host']);
+define('DB_NAME', $dbConfig['name']);
+define('DB_USER', $dbConfig['user']);
+define('DB_PASS', $dbConfig['pass']);
+define('DB_CHARSET', $dbConfig['charset']);
 
-// Constantes de tiempo (en segundos)
-define('TIME_SECOND', 1);
-define('TIME_MINUTE', 60);
-define('TIME_HOUR', 3600);
-define('TIME_DAY', 86400);
-define('TIME_WEEK', 604800);
-define('TIME_MONTH', 2592000);
-define('TIME_YEAR', 31536000);
+// Cargar nombres de tablas
+$tables = require __DIR__ . '/tables.php';
+define('DB_TABLES', $tables);
 
-// Configuración de sesiones
-define('SESSION_TTL', TIME_DAY * 1);
-define('SESSION_TTL_MS', SESSION_TTL * 1000);
 
-// Rutas del sistema
-define('BASE_PATH', realpath(dirname(dirname(dirname(__DIR__)))));
-define('BACKEND_PATH', BASE_PATH . '/backend');
-define('FRAMEWORK_PATH', BACKEND_PATH . '/framework');
-define('APP_PATH', BACKEND_PATH . '/app');
-define('FRONTEND_PATH', BASE_PATH . '/frontend');
-define('EXTENSIONS_PATH', BACKEND_PATH . '/extensions');
-define('ROUTES_PATH', APP_PATH . '/routes');
-define('STORAGE_PATH', APP_PATH . '/storage');
-define('LOG_PATH', STORAGE_PATH . '/logs');
-define('SHARED_PATH', BASE_PATH . '/shared');
-define('SERVICES_PATH', FRAMEWORK_PATH . '/services');
-define('API_BASE_URL', '/api');
-
-// Configuración de la API
-define('API_DEFAULT_TIMEOUT', 60);
-define('API_MAX_PAYLOAD_SIZE', 1048576);
-
-// Configuración de idioma
-define('DEFAULT_LANG', 'es');
-
-// Cargar helper de idioma
-require_once FRAMEWORK_PATH . '/helpers/lang.php';
-require_once FRAMEWORK_PATH . '/helpers/log.php';
-
-// Inicializar idioma
-// Opción 1: Idioma fijo
-lang::load(DEFAULT_LANG);
-
-// Opción 2: Detectar desde header HTTP (descomenta para usar)
-// $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? 'es', 0, 2);
-// lang::load($lang);
-
-// Opción 3: Desde query param (descomenta para usar)
-// $lang = $_GET['lang'] ?? DEFAULT_LANG;
-// lang::load($lang);
-
-// Ejecuta otros archivos de configuración
-require_once APP_PATH . '/config/debug.php';
+// Aquí puedes agregar más constantes específicas del proyecto
+// define('APP_NAME', 'Factory SaaS');
+// define('APP_VERSION', '1.0.0');

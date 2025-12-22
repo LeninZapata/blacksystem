@@ -1,7 +1,7 @@
 <?php
-class chatHandlers {
+class ChatHandlers {
 
-  private static $table = 'chats';
+  private static $table = DB_TABLES['chats'];
 
   // Registrar mensaje de chat - Método simplificado
   static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type = 'P', $format = 'text', $metadata = null, $saleId = 0) {
@@ -202,7 +202,7 @@ class chatHandlers {
     $required = ['number', 'bot_id', 'client_id', 'sale_id'];
     foreach ($required as $field) {
       if (!isset($data[$field])) {
-        log::error('chatHandlers::addMessage - Campo requerido faltante', ['field' => $field], ['module' => 'chat']);
+        log::error('ChatHandlers::addMessage - Campo requerido faltante', ['field' => $field], ['module' => 'chat']);
         return false;
       }
     }
@@ -251,7 +251,7 @@ class chatHandlers {
       // Buscar cliente
       $client = db::table('clients')->where('number', $number)->first();
       if (!$client) {
-        log::warning('chatHandlers::rebuildFromDB - Cliente no encontrado', ['number' => $number], ['module' => 'chat']);
+        log::warning('ChatHandlers::rebuildFromDB - Cliente no encontrado', ['number' => $number], ['module' => 'chat']);
         return false;
       }
 
@@ -266,7 +266,7 @@ class chatHandlers {
         ->get();
 
       if (!$messages || count($messages) === 0) {
-        log::info('chatHandlers::rebuildFromDB - No hay mensajes para reconstruir', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
+        log::info('ChatHandlers::rebuildFromDB - No hay mensajes para reconstruir', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
         return false;
       }
 
@@ -331,14 +331,14 @@ class chatHandlers {
       // Guardar archivo reconstruido
       $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
       if (self::saveChatFile($chatFile, $chatData)) {
-        log::info('chatHandlers::rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
+        log::info('ChatHandlers::rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
         return $chatData;
       }
 
       return false;
 
     } catch (Exception $e) {
-      log::error('chatHandlers::rebuildFromDB - Error', ['error' => $e->getMessage()], ['module' => 'chat']);
+      log::error('ChatHandlers::rebuildFromDB - Error', ['error' => $e->getMessage()], ['module' => 'chat']);
       return false;
     }
   }
@@ -391,7 +391,7 @@ class chatHandlers {
 
     if (!is_dir($dir)) {
       if (!mkdir($dir, 0755, true)) {
-        log::error('chatHandlers::saveChatFile - No se pudo crear directorio', ['dir' => $dir], ['module' => 'chat']);
+        log::error('ChatHandlers::saveChatFile - No se pudo crear directorio', ['dir' => $dir], ['module' => 'chat']);
         return false;
       }
     }
@@ -399,7 +399,7 @@ class chatHandlers {
     $json = json_encode($chatData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
     if (file_put_contents($chatFile, $json) === false) {
-      log::error('chatHandlers::saveChatFile - Error al escribir archivo', ['file' => $chatFile], ['module' => 'chat']);
+      log::error('ChatHandlers::saveChatFile - Error al escribir archivo', ['file' => $chatFile], ['module' => 'chat']);
       return false;
     }
 

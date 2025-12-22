@@ -55,7 +55,7 @@ $router->group('/api/logs', function($router) {
 
   $middleware = IS_DEV ? [] : ['auth'];
 
-  // GET /api/logs/today - Logs de hoy
+  // Obtener logs del día actual
   $router->get('/today', function() {
     $limit = (int) request::query('limit', 100);
     $logs = logReader::today($limit);
@@ -70,7 +70,7 @@ $router->group('/api/logs', function($router) {
     ]);
   })->middleware($middleware);
 
-  // GET /api/logs/latest - Últimos logs
+  // Obtener los últimos logs registrados
   $router->get(['/latest','','/'], function() {
     $limit = (int) request::query('limit', 50);
     $logs = logReader::latest($limit);
@@ -83,7 +83,7 @@ $router->group('/api/logs', function($router) {
     ]);
   })->middleware($middleware);
 
-  // GET /api/logs/{year}/{month}/{day} - Logs de fecha específica
+  // Obtener logs de una fecha específica
   $router->get('/{year}/{month}/{day}', function($year, $month, $day) {
     $files = logReader::find([
       'year' => $year,
@@ -123,7 +123,7 @@ $router->group('/api/logs', function($router) {
     ]);
   })->middleware($middleware);
 
-  // GET /api/logs/{year}/{month} - Logs de un mes
+  // Obtener logs de un mes completo
   $router->get('/{year}/{month}', function($year, $month) {
     $files = logReader::find([
       'year' => $year,
@@ -162,7 +162,7 @@ $router->group('/api/logs', function($router) {
     ]);
   })->middleware($middleware);
 
-  // GET /api/logs/search - Búsqueda con rango de fechas
+  // Buscar logs con filtros y rango de fechas
   $router->get('/search', function() {
     $from = request::query('from');
     $to = request::query('to');
@@ -188,7 +188,7 @@ $router->group('/api/logs', function($router) {
     ]);
   })->middleware($middleware);
 
-  // GET /api/logs/stats - Estadísticas
+  // Obtener estadísticas de logs del sistema
   $router->get('/stats', function() {
     $logs = logReader::today(0);
 

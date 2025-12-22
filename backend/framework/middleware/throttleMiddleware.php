@@ -53,7 +53,7 @@ class throttleMiddleware {
         'max_requests' => $maxRequests,
         'minutes' => $minutes,
         'request_count' => $requestCount
-      ]);
+      ], ['module' => 'throttle', 'layer' => 'framework']);
 
       response::error(
         __('middleware.throttle.too_many_requests', ['max' => $maxRequests, 'minutes' => $minutes]),

@@ -3,7 +3,7 @@ class workflowMessage {
 
   // Verificar si existe conversación activa (archivo JSON existe y está dentro del rango de días)
   static function hasActiveConversation($number, $botId, $maxDays = 1) {
-    $chat = chatHandlers::getChat($number, $botId, true);
+    $chat = ChatHandlers::getChat($number, $botId, true);
 
     if ($chat === false) {
       return false;
@@ -27,7 +27,7 @@ class workflowMessage {
 
   // Obtener datos del chat (client_id, sale_id)
   static function getChatData($number, $botId) {
-    $chat = chatHandlers::getChat($number, $botId, true);
+    $chat = ChatHandlers::getChat($number, $botId, true);
     
     if (!$chat) {
       return ['client_id' => null, 'sale_id' => 0];
@@ -60,7 +60,7 @@ class workflowMessage {
     ];
 
     // Registrar en BD primero
-    $dbResult = chatHandlers::register(
+    $dbResult = ChatHandlers::register(
       $bot['id'],
       $bot['number'],
       $clientId,
@@ -87,7 +87,7 @@ class workflowMessage {
         'metadata' => $metadata
       ];
 
-      return chatHandlers::addMessage($chatData, 'start_sale');
+      return ChatHandlers::addMessage($chatData, 'start_sale');
     }
 
     return false;
@@ -105,7 +105,7 @@ class workflowMessage {
     $type = $message['type'];
 
     // Registrar en BD primero
-    $dbResult = chatHandlers::register(
+    $dbResult = ChatHandlers::register(
       $bot['id'],
       $bot['number'],
       $clientId,
@@ -129,7 +129,7 @@ class workflowMessage {
         'metadata' => null
       ];
 
-      return chatHandlers::addMessage($chatData, $message_type);
+      return ChatHandlers::addMessage($chatData, $message_type);
     }
 
     return false;
@@ -192,7 +192,7 @@ class workflowMessage {
     log::success('Mensajes listos para IA', ['total' => count($messages), 'ai_text_length' => strlen($aiText)], ['module' => 'conversation']);
 
     // 4. Obtener chat completo para contexto
-    $chat = chatHandlers::getChat($person['number'], $bot['id']);
+    $chat = ChatHandlers::getChat($person['number'], $bot['id']);
 
     // 5. Archivo de prompt (quemado aquí - fácil de cambiar)
     // TODO: hacer que este archivo sea traido del bot

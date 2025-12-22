@@ -1,6 +1,7 @@
 <?php
 class deepSeekProvider extends baseAIProvider {
   private $baseUrl = 'https://api.deepseek.com';
+  protected static $logMeta = ['module' => 'ai', 'layer' => 'service'];
 
   public function getProviderName(): string {
     return 'deepseek';
@@ -21,14 +22,14 @@ class deepSeekProvider extends baseAIProvider {
       ]);
 
       if (!$response['success']){
-        log::error('Error HTTP en chat completion', $response, ['module' => 'ai']);
-        throw new Exception('Error HTTP ' . ($response['httpCode'] ?? '500'));
+        log::error('Error HTTP en chat completion', $response, self::$logMeta);
+        throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
       }
 
       $data = $response['data'];
       if (!isset($data['choices'][0]['message']['content'])){
-        log::error('Respuesta con formato inválido', ['response_data' => $data]);
-        throw new Exception('Respuesta con formato inválido');
+        log::error('Respuesta con formato inválido', ['response_data' => $data], self::$logMeta);
+        throw new Exception(__('services.ai.invalid_response'));
       }
 
       $usage = $data['usage'] ?? [];
@@ -53,7 +54,7 @@ class deepSeekProvider extends baseAIProvider {
   }
 
   public function transcribeAudio($audioUrl): array {
-    return $this->errorResponse('DeepSeek no soporta transcripción de audio', 'NOT_SUPPORTED');
+    return $this->errorResponse(__('services.ai.not_supported', ['provider' => 'DeepSeek']), 'NOT_SUPPORTED');
   }
 
   public function analyzeImage($imageDataUri, $instruction): array {
@@ -73,7 +74,7 @@ class deepSeekProvider extends baseAIProvider {
         'timeout' => 60
       ]);
 
-      if (!$response['success']) throw new Exception('Error HTTP ' . ($response['httpCode'] ?? '500'));
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
       $description = $data['choices'][0]['message']['content'] ?? '';

@@ -1,6 +1,8 @@
 <?php
 class ai {
 
+  private static $logMeta = ['module' => 'ai', 'layer' => 'service'];
+
   // Chat completion con fallback automático
   public function getChatCompletion($prompt, $bot, $options = []) {
     try {
@@ -25,15 +27,14 @@ class ai {
 
         } catch (Exception $e) {
           $lastError = $e->getMessage();
-          log::debug("[" . $provider->getProviderName() . "] Error en chat completion", ['error' => $lastError], ['module' => 'ai']);
           if ($attemptNumber < count($aiServices)) continue;
         }
       }
 
-      throw new Exception(__('services.ai.all_services_failed', ['error' => $lastError]));
+      log::throwError(__('services.ai.all_services_failed', ['error' => $lastError]), ['services_tried' => $attemptNumber], self::$logMeta);
 
     } catch (Exception $e) {
-      log::error('Error en chat completion', ['error' => $e->getMessage()], ['module' => 'ai']);
+      log::error('Error en chat completion', ['error' => $e->getMessage()], self::$logMeta);
       return ['success' => false, 'error' => $e->getMessage(), 'services_tried' => $attemptNumber ?? 0];
     }
   }
@@ -60,10 +61,10 @@ class ai {
         }
       }
 
-      throw new Exception(__('services.ai.all_services_failed', ['error' => $lastError]));
+      log::throwError(__('services.ai.all_services_failed', ['error' => $lastError]), ['services_tried' => $attemptNumber, 'task' => 'audio'], self::$logMeta);
 
     } catch (Exception $e) {
-      log::error('Error transcribiendo audio', ['error' => $e->getMessage()], ['module' => 'ai']);
+      log::error('Error transcribiendo audio', ['error' => $e->getMessage()], self::$logMeta);
       return ['success' => false, 'error' => $e->getMessage()];
     }
   }
@@ -90,10 +91,10 @@ class ai {
         }
       }
 
-      throw new Exception(__('services.ai.all_services_failed', ['error' => $lastError]));
+      log::throwError(__('services.ai.all_services_failed', ['error' => $lastError]), ['services_tried' => $attemptNumber, 'task' => 'image'], self::$logMeta);
 
     } catch (Exception $e) {
-      log::error('Error analizando imagen', ['error' => $e->getMessage()], ['module' => 'ai']);
+      log::error('Error analizando imagen', ['error' => $e->getMessage()], self::$logMeta);
       return ['success' => false, 'error' => $e->getMessage()];
     }
   }
@@ -123,7 +124,7 @@ class ai {
   // Obtener servicios para una tarea
   private function getServicesForTask($bot, $task) {
     $services = $bot['config']['apis']['ai'][$task] ?? [];
-    if (empty($services)) log::warning("No hay servicios para: {$task}", [], ['module' => 'ai']);
+    if (empty($services)) log::warning("No hay servicios para: {$task}", [], self::$logMeta);
     return $services;
   }
 

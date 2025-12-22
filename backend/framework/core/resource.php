@@ -4,7 +4,7 @@ class resource {
   private $config, $table;
 
   function __construct($resourceName) {
-    $configFile = APP_PATH . "/resources/{$resourceName}.json";
+    $configFile = APP_PATH . "/resources/schemas/{$resourceName}.json";
     $this->config = json_decode(file_get_contents($configFile), true);
     $this->table = $this->config['table'];
   }

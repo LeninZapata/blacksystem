@@ -1,7 +1,8 @@
 <?php
-class chatController extends controller {
+class ChatController extends controller {
 
-  private static $table = 'chats';
+  // Nombre de la tabla asociada a este controlador
+  protected static $table = DB_TABLES['chats'];
 
   function __construct() {
     parent::__construct('chat');

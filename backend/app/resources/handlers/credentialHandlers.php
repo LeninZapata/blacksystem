@@ -1,18 +1,20 @@
 <?php
-class credentialHandlers {
+class CredentialHandlers {
+  // Nombre de la tabla de bots asociada a este handler
+  protected static $tableBots = DB_TABLES['bots'];
 
   // Actualiza archivos JSON de todos los bots que usan esta credencial
   static function updateBotsContext($credentialId) {
     if (!$credentialId) {
-      log::warning('credentialHandlers::updateBotsContext - credential_id no proporcionado', [], ['module' => 'credential']);
+      log::warning('CredentialHandlers::updateBotsContext - credential_id no proporcionado', [], ['module' => 'credential']);
       return 0;
     }
 
     // Buscar todos los bots que usan esta credencial en config.apis
-    $bots = db::table('bots')->get();
+    $bots = db::table(self::$tableBots)->get();
 
     if (empty($bots)) {
-      log::info('credentialHandlers::updateBotsContext - No hay bots en el sistema', [
+      log::info('CredentialHandlers::updateBotsContext - No hay bots en el sistema', [
         'credential_id' => $credentialId
       ], ['module' => 'credential']);
       return 0;
@@ -28,7 +30,6 @@ class credentialHandlers {
 
       // Verificar si el bot usa esta credencial
       $usesCredential = self::botUsesCredential($config, $credentialId);
-      log::debug('credentialHandlers::botUsesCredential - este bot usa esta credencial: ' . $credentialId, $usesCredential, ['module' => 'credential']);
 
       if (!$usesCredential) {
         continue;
@@ -38,11 +39,11 @@ class credentialHandlers {
 
       if ($botNumber) {
         // Regenerar archivo data del bot
-        $result = botHandlers::generateDataFile($botNumber, $bot, 'update');
+        $result = BotHandlers::generateDataFile($botNumber, $bot, 'update');
 
         if ($result) {
           $updated++;
-          log::info('credentialHandlers::updateBotsContext - Bot actualizado', [
+          log::info('CredentialHandlers::updateBotsContext - Bot actualizado', [
             'bot_id' => $bot['id'],
             'bot_number' => $botNumber,
             'credential_id' => $credentialId
@@ -51,7 +52,7 @@ class credentialHandlers {
       }
     }
 
-    log::info('credentialHandlers::updateBotsContext - Proceso completado', [
+    log::info('CredentialHandlers::updateBotsContext - Proceso completado', [
       'credential_id' => $credentialId,
       'bots_updated' => $updated,
       'bots_checked' => count($bots)

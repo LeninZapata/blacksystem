@@ -1,7 +1,7 @@
 <?php
 /**
  * Log - Sistema de logging minimalista
- * 
+ *
  * Responsabilidad: SOLO escribir logs
  * Formato: [timestamp] [level] [module] [message] [context_json] [file:line] [user_id] [tags]
  */
@@ -12,7 +12,9 @@ class log {
     'template' => null,
     'level' => 'debug',
     'max_size' => 1048576,
-    'enabled' => true
+    'enabled' => true,
+    'columns' => ['timestamp', 'level', 'layer', 'module', 'message', 'context', 'file_line', 'user_id', 'tags'],
+    'separator' => "\t"
   ];
 
   private static $levels = [
@@ -21,6 +23,8 @@ class log {
     'warning' => 2,
     'error' => 3
   ];
+
+  private static $isFatalError = false;
 
   static function setConfig($config) {
     self::$config = array_merge(self::$config, $config);
@@ -52,6 +56,14 @@ class log {
     self::write('SQL', $sql, ['bindings' => $bindings], ['module' => 'database']);
   }
 
+  // Combina log::error + throw Exception
+  static function throwError($msg, $ctx = [], $meta = []) {
+    self::$isFatalError = true;
+    self::error($msg, $ctx, $meta);
+    self::$isFatalError = false;
+    throw new Exception($msg);
+  }
+
   /**
    * Escribir log
    * Formato: [timestamp] [level] [module] [message] [context_json] [file:line] [user_id] [tags]
@@ -69,7 +81,8 @@ class log {
 
     $file = isset($caller['file']) ? basename($caller['file']) : 'unknown';
     $line = $caller['line'] ?? 0;
-    $module = $meta['module'] ?? 'app';
+    $module = $meta['module'] ?? 'DEBUG';
+    $layer = $meta['layer'] ?? 'app';
 
     // Extraer tags
     $tags = $meta['tags'] ?? [];
@@ -83,10 +96,10 @@ class log {
       $ctx = ['value' => $ctx];
     }
 
-    // Extraer custom vars (todo excepto 'module' y 'tags')
+    // Extraer custom vars (todo excepto 'module', 'layer' y 'tags')
     $customVars = [];
     foreach ($meta as $key => $value) {
-      if (!in_array($key, ['module', 'tags', 'custom'])) {
+      if (!in_array($key, ['module', 'layer', 'tags', 'custom'])) {
         $customVars[$key] = $value;
       }
     }
@@ -108,17 +121,33 @@ class log {
     $fullContext = array_merge($ctx, $customVars);
     $contextJson = !empty($fullContext) ? json_encode($fullContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '-';
 
-    // Formato TAB-separated - NUEVO ORDEN
-    $logLine = implode("\t", [
-      "[$timestamp]",
-      $level,
-      $module,
-      $msg,
-      $contextJson,
-      "$file:$line",
-      $userIdStr ?: '-',
-      $tagsStr ?: '-'
-    ]) . PHP_EOL;
+    // Preparar datos para columnas
+    $columnData = [
+      'timestamp' => "[$timestamp]",
+      'level' => $level,
+      'layer' => $layer,
+      'module' => $module,
+      'message' => $msg,
+      'context' => $contextJson,
+      'file_line' => "$file:$line",
+      'user_id' => $userIdStr ?: '-',
+      'tags' => $tagsStr ?: '-'
+    ];
+
+    // Construir línea de log según columnas configuradas
+    $separator = self::$config['separator'];
+    $logParts = [];
+    foreach (self::$config['columns'] as $column) {
+      if (isset($columnData[$column])) {
+        $value = $columnData[$column];
+        // Sanitizar: trim + reemplazar separator interno por espacio
+        $value = trim($value, $separator);
+        $value = str_replace($separator, ' ', $value);
+        $logParts[] = $value;
+      }
+    }
+
+    $logLine = implode($separator, $logParts) . PHP_EOL;
 
     // Obtener ruta y escribir
     $logFile = self::getLogFilePath($level, $module, $meta);
@@ -131,6 +160,21 @@ class log {
     $logFile = self::checkRotation($logFile);
 
     file_put_contents($logFile, $logLine, FILE_APPEND | LOCK_EX);
+
+    // Manejar errores fatales solo si viene de throwError
+    if (strtoupper($level) === 'ERROR' && self::$isFatalError) {
+      self::handleFatalError($level, $msg, $ctx, $meta);
+    }
+  }
+
+  // Handler para errores fatales - vacío por ahora, listo para notificaciones
+  private static function handleFatalError($level, $msg, $ctx, $meta) {
+    // TODO: Implementar notificaciones (email, Slack, SMS, etc)
+    // Ejemplo futuro:
+    // - Enviar email al admin
+    // - Notificar a Slack/Discord
+    // - Guardar en base de datos de errores críticos
+    // - Incrementar contador de errores en Redis
   }
 
   // Obtener ruta del archivo según formato

@@ -28,7 +28,7 @@ class DeliverProductAction {
   }
 
   private static function loadProductTemplates($productId) {
-    return productHandler::getMessagesFile('template', $productId);
+    return ProductHandler::getMessagesFile('template', $productId);
   }
 
   private static function sendTemplates($templates, $to) {
@@ -53,7 +53,7 @@ class DeliverProductAction {
       'delivered_at' => date('Y-m-d H:i:s')
     ];
 
-    chatHandlers::register(
+    ChatHandlers::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -65,7 +65,7 @@ class DeliverProductAction {
       $chatData['sale_id']
     );
 
-    chatHandlers::addMessage([
+    ChatHandlers::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],

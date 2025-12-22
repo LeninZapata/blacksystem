@@ -27,10 +27,11 @@ class api {
 
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        
         // En desarrollo mostrar token completo, en producción truncado
+
         const tokenDisplay = window.IS_DEV ? token : `${token.substring(0, 20)}...`;
         logger.debug('core:api', `🔐 Token incluido: ${tokenDisplay}`);
+
       } else {
         logger.warn('core:api', '⚠️ NO se encontró token para esta petición');
       }

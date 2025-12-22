@@ -19,7 +19,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       
       chatapi::send($person['number'], $errorMessage);
 
-      chatHandlers::register(
+      ChatHandlers::register(
         $bot['id'],
         $bot['number'],
         $chatData['client_id'],
@@ -64,7 +64,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     $resume = $imageAnalysis['metadata']['description']['resume'] ?? 'Imagen de pago';
 
-    chatHandlers::register(
+    ChatHandlers::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -76,7 +76,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       $chatData['sale_id']
     );
 
-    chatHandlers::addMessage([
+    ChatHandlers::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -129,9 +129,9 @@ class PaymentStrategy implements ConversationStrategyInterface {
   }
 
   private function processPayment($paymentData, $saleId) {
-    saleHandlers::updateStatus($saleId, 'completed');
+    SaleHandlers::updateStatus($saleId, 'completed');
     
-    saleHandlers::registerPayment(
+    SaleHandlers::registerPayment(
       $saleId,
       'RECEIPT_' . time(),
       'Recibo de pago',

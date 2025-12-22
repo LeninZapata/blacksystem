@@ -15,8 +15,8 @@ abstract class baseChatApiProvider implements chatApiProviderInterface {
   }
 
   function validateConfig(): bool {
-    if (empty($this->apiKey)) throw new Exception($this->getProviderName() . ' requiere api_key');
-    if (empty($this->instance)) throw new Exception($this->getProviderName() . ' requiere instance');
+    if (empty($this->apiKey)) throw new Exception(__('services.chatapi.api_key_required', ['provider' => $this->getProviderName()]));
+    if (empty($this->instance)) throw new Exception(__('services.chatapi.instance_required', ['provider' => $this->getProviderName()]));
     return true;
   }
 

@@ -52,7 +52,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
   }
 
   private function loadProduct($productId) {
-    return productHandler::getProductFile($productId);
+    return ProductHandler::getProductFile($productId);
   }
 
   private function registerStartSale($bot, $person, $product, $clientId, $saleId) {
@@ -67,7 +67,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'instructions' => $product['config']['prompt'] ?? ''
     ];
 
-    chatHandlers::register(
+    ChatHandlers::register(
       $bot['id'],
       $bot['number'],
       $clientId,
@@ -92,6 +92,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'metadata' => $metadata
     ];
 
-    chatHandlers::addMessage($chatData, 'start_sale');
+    ChatHandlers::addMessage($chatData, 'start_sale');
   }
 }

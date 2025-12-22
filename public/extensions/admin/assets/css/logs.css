@@ -1,0 +1,17 @@
+/* body -> data-view="admin-logs" **/
+body[data-view="admin-logs"] {
+  & .layout {
+    & .header{
+      background-color: #141b21;
+      color: #8a8a8a;
+      border-bottom: 1px solid #1c2f43;
+    }
+    & .content {
+      background-color: #141b21;
+      & .view-toolbar{
+        border: 1px solid #19232e;
+        border-bottom: 1px solid #1c2f43;
+      }
+    }
+  }
+}

@@ -1,5 +1,7 @@
 <?php
-class credentialController extends controller {
+class CredentialController extends controller {
+  // Nombre de la tabla asociada a este controlador
+  protected static $table = DB_TABLES['credentials'];
 
   function __construct() {
     parent::__construct('credential');
@@ -30,7 +32,7 @@ class credentialController extends controller {
     $data['ta'] = time();
 
     try {
-      $id = db::table('credentials')->insert($data);
+      $id = db::table(self::$table)->insert($data);
       response::success(['id' => $id], __('credential.create.success'), 201);
     } catch (Exception $e) {
       response::serverError(__('credential.create.error'), IS_DEV ? $e->getMessage() : null);
@@ -38,7 +40,7 @@ class credentialController extends controller {
   }
 
   function update($id) {
-    $exists = db::table('credentials')->find($id);
+    $exists = db::table(self::$table)->find($id);
     if (!$exists) response::notFound(__('credential.not_found'));
 
     $data = request::data();
@@ -51,10 +53,10 @@ class credentialController extends controller {
     $data['tu'] = time();
 
     try {
-      $affected = db::table('credentials')->where('id', $id)->update($data);
+      $affected = db::table(self::$table)->where('id', $id)->update($data);
       
       // Actualizar archivos JSON de todos los bots que usan esta credencial
-      $botsUpdated = credentialHandlers::updateBotsContext($id);
+      $botsUpdated = CredentialHandlers::updateBotsContext($id);
       
       log::info('credentialController - Credencial actualizada', [
         'id' => $id,
@@ -71,7 +73,7 @@ class credentialController extends controller {
   }
 
   function show($id) {
-    $data = db::table('credentials')->find($id);
+    $data = db::table(self::$table)->find($id);
     if (!$data) response::notFound(__('credential.not_found'));
 
     if (isset($data['config']) && is_string($data['config'])) {
@@ -82,7 +84,7 @@ class credentialController extends controller {
   }
 
   function list() {
-    $query = db::table('credentials');
+    $query = db::table(self::$table);
     
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
@@ -109,11 +111,11 @@ class credentialController extends controller {
   }
 
   function delete($id) {
-    $item = db::table('credentials')->find($id);
+    $item = db::table(self::$table)->find($id);
     if (!$item) response::notFound(__('credential.not_found'));
 
     try {
-      $affected = db::table('credentials')->where('id', $id)->delete();
+      $affected = db::table(self::$table)->where('id', $id)->delete();
       response::success(['affected' => $affected], __('credential.delete.success'));
     } catch (Exception $e) {
       response::serverError(__('credential.delete.error'), IS_DEV ? $e->getMessage() : null);

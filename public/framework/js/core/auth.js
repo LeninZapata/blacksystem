@@ -27,7 +27,7 @@ class auth {
 
     if (!this.config.enabled) return;
 
-    logger.debug('core:auth', 'Inicializando autenticación...');
+    logger.info('core:auth', 'Inicializando autenticación...');
 
     // Interceptar formulario de login
     this.setupLoginHandler();
@@ -54,7 +54,6 @@ class auth {
     const token = this.getToken();
 
     if (!token) {
-      logger.debug('core:auth', 'No hay token guardado');
       return false;
     }
 
@@ -88,7 +87,7 @@ class auth {
 
   static async login(formIdOrCredentials) {
     try {
-      logger.debug('core:auth', 'Iniciando login...');
+      logger.info('core:auth', 'Iniciando login...');
 
       // Determinar si es formId o credentials
       let credentials;
@@ -106,8 +105,6 @@ class auth {
       }
 
       const response = await api.post(this.config.api.login, credentials, { skipAuth: true });
-
-      logger.debug('core:auth', 'Respuesta del servidor:', response);
 
       if (response.success && response.data) {
         const { token, user, ttl_ms } = response.data;
@@ -175,7 +172,7 @@ class auth {
     this.clearSession();
     this.user = null;
 
-    logger.debug('core:auth', 'Sesión cerrada');
+    logger.info('core:auth', 'Sesión cerrada');
 
     window.location.reload();
   }
@@ -229,7 +226,7 @@ class auth {
       }
     }, document);
 
-    logger.debug('core:auth', 'Handler de login registrado');
+    logger.info('core:auth', 'Handler de login registrado');
   }
 
   static showLoginError(form, message) {
@@ -287,7 +284,6 @@ class auth {
     logger.info('core:auth', `📡 Endpoint de verificación: ${endpoint}`);
 
     this.sessionCheckInterval = setInterval(async () => {
-      logger.debug('core:auth', '🔍 Verificando sesión en servidor...');
       const result = await this.checkSessionWithServer();
 
       if (!result.valid) {
@@ -296,7 +292,7 @@ class auth {
         return;
       }
 
-      logger.debug('core:auth', '✅ Sesión válida');
+      logger.success('core:auth', '✅ Sesión válida');
 
       if (result.updated) {
         logger.info('core:auth', '🔄 Cambios detectados en la sesión, recargando permisos...');
@@ -319,7 +315,7 @@ class auth {
     if (this.sessionCheckInterval) {
       clearInterval(this.sessionCheckInterval);
       this.sessionCheckInterval = null;
-      logger.debug('core:auth', 'Monitoreo de sesión detenido');
+      logger.info('core:auth', 'Monitoreo de sesión detenido');
     }
   }
 
@@ -387,14 +383,13 @@ class auth {
     }
 
     logger.info('core:auth', '🔐 Iniciando carga de permisos del usuario...');
-    logger.debug('core:auth', '👤 Usuario:', this.user.user, '| Role:', this.user.role);
+    logger.info('core:auth', '👤 Usuario:', this.user.user, '| Role:', this.user.role);
 
     const config = this.user.config;
     this.userPermissions = config.permissions || {};
     this.userPreferences = config.preferences || {};
 
     logger.success('core:auth', '✅ Permisos cargados exitosamente');
-    logger.debug('core:auth', '📋 Config original (tipo):', typeof config);
 
     if (this.userPermissions.extensions) {
       const extensionsWithPerms = Object.keys(this.userPermissions.extensions);
@@ -512,7 +507,6 @@ class auth {
     if (typeof this.user.config === 'string') {
       try {
         this.user.config = JSON.parse(this.user.config);
-        logger.debug('core:auth', 'Config parseado de string a objeto');
       } catch (e) {
         logger.error('core:auth', 'Error parseando config:', e);
         this.user.config = { permissions: {}, preferences: {} };
@@ -604,7 +598,7 @@ class auth {
     // Limpiar cache de localStorage (vistas, formularios, etc)
     if (window.cache) {
       cache.clear();
-      logger.debug('core:auth', 'Cache de localStorage limpiado');
+      logger.info('core:auth', 'Cache de localStorage limpiado');
     }
 
     logger.success('core:auth', 'Caches de aplicación limpiados');

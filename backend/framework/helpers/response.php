@@ -4,7 +4,7 @@ class response {
   // Respuesta JSON
   static function json($data, $code = 200) {
     if ($code !== 200) {
-      log::error('Response Error', ['code' => $code, 'data' => $data], ['module' => 'response']);
+      log::error('Response Error', ['code' => $code, 'data' => $data], ['module' => 'response', 'layer' => 'framework']);
     }
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
@@ -18,7 +18,7 @@ class response {
   static function success($data = null, $msg = null, $code = 200) {
     $res = ['success' => true];
     if ($msg) $res['message'] = $msg;
-    if ($data !== null) $res['data'] = $data;  // ✅ FIX: Cambiar if($data) por if($data !== null)
+    if ($data !== null) $res['data'] = $data;  // ✅ FIX: Permite arrays vacíos []
     self::json($res, $code);
   }
 

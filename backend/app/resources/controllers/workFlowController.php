@@ -1,5 +1,7 @@
 <?php
-class workFlowController extends controller {
+class WorkFlowController extends controller {
+  // Nombre de la tabla asociada a este controlador
+  protected static $table = DB_TABLES['work_flows'];
 
   function __construct() {
     parent::__construct('workFlow');
@@ -7,7 +9,7 @@ class workFlowController extends controller {
 
   function create() {
     $data = request::data();
-    
+
     if (!isset($data['name']) || empty($data['name'])) {
       response::json(['success' => false, 'error' => __('workFlow.name_required')], 200);
     }
@@ -20,7 +22,7 @@ class workFlowController extends controller {
     $data['ta'] = time();
 
     try {
-      $id = db::table('work_flows')->insert($data);
+      $id = db::table(self::$table)->insert($data);
       response::success(['id' => $id], __('workFlow.create.success'), 201);
     } catch (Exception $e) {
       response::serverError(__('workFlow.create.error'), IS_DEV ? $e->getMessage() : null);
@@ -28,7 +30,7 @@ class workFlowController extends controller {
   }
 
   function update($id) {
-    $exists = db::table('work_flows')->find($id);
+    $exists = db::table(self::$table)->find($id);
     if (!$exists) response::notFound(__('workFlow.not_found'));
 
     $data = request::data();
@@ -37,11 +39,11 @@ class workFlowController extends controller {
     $data['tu'] = time();
 
     try {
-      $affected = db::table('work_flows')->where('id', $id)->update($data);
-      
+      $affected = db::table(self::$table)->where('id', $id)->update($data);
+
       // Actualizar archivos JSON de todos los bots que usan este workflow
       workflowHandlers::updateBotsContext($id);
-      
+
       response::success(['affected' => $affected], __('workFlow.update.success'));
     } catch (Exception $e) {
       response::serverError(__('workFlow.update.error'), IS_DEV ? $e->getMessage() : null);
@@ -49,15 +51,15 @@ class workFlowController extends controller {
   }
 
   function show($id) {
-    $data = db::table('work_flows')->find($id);
+    $data = db::table(self::$table)->find($id);
     if (!$data) response::notFound(__('workFlow.not_found'));
 
     response::success($data);
   }
 
   function list() {
-    $query = db::table('work_flows');
-    
+    $query = db::table(self::$table);
+
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
       $query = $query->where($key, $value);
@@ -77,11 +79,11 @@ class workFlowController extends controller {
   }
 
   function delete($id) {
-    $item = db::table('work_flows')->find($id);
+    $item = db::table(self::$table)->find($id);
     if (!$item) response::notFound(__('workFlow.not_found'));
 
     try {
-      $affected = db::table('work_flows')->where('id', $id)->delete();
+      $affected = db::table(self::$table)->where('id', $id)->delete();
       response::success(['affected' => $affected], __('workFlow.delete.success'));
     } catch (Exception $e) {
       response::serverError(__('workFlow.delete.error'), IS_DEV ? $e->getMessage() : null);

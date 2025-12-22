@@ -8,6 +8,32 @@
 class logReader {
 
   /**
+   * Obtener configuración de columnas desde log.php
+   * Usa reflection para acceder a la configuración privada
+   */
+  private static function getLogConfig() {
+    static $config = null;
+    
+    if ($config === null) {
+      // Intentar obtener config de log.php mediante reflection
+      try {
+        $reflection = new ReflectionClass('log');
+        $property = $reflection->getProperty('config');
+        $property->setAccessible(true);
+        $config = $property->getValue();
+      } catch (Exception $e) {
+        // Fallback: configuración por defecto
+        $config = [
+          'columns' => ['timestamp', 'level', 'layer', 'module', 'message', 'context', 'file_line', 'user_id', 'tags'],
+          'separator' => "\t"
+        ];
+      }
+    }
+    
+    return $config;
+  }
+
+  /**
    * Parsear archivo de log
    *
    * @param string $file Ruta del archivo
@@ -25,63 +51,58 @@ class logReader {
       $lines = array_slice($lines, -$limit);
     }
 
+    // Obtener configuración de columnas
+    $logConfig = self::getLogConfig();
+    $columns = $logConfig['columns'] ?? ['timestamp', 'level', 'layer', 'module', 'message', 'context', 'file_line', 'user_id', 'tags'];
+    $separator = $logConfig['separator'] ?? "\t";
+
     $logs = [];
     foreach ($lines as $line) {
-      $parts = explode("\t", $line);
+      $parts = explode($separator, $line);
 
-      if (count($parts) >= 8) {
-        // Formato nuevo: [timestamp] [level] [module] [message] [context_json] [file:line] [user_id] [tags]
-        $contextJson = $parts[4] ?? '';
-        $context = ($contextJson && $contextJson !== '-') ? json_decode($contextJson, true) : null;
-
-        $userId = $parts[6] ?? '';
-        $userId = ($userId && $userId !== '-') ? $userId : null;
-
-        $tagsStr = $parts[7] ?? '';
-        $tags = ($tagsStr && $tagsStr !== '-') ? explode(',', $tagsStr) : [];
-
-        $logs[] = [
-          'timestamp' => trim($parts[0], '[]'),
-          'level' => $parts[1],
-          'module' => $parts[2],
-          'message' => $parts[3],
-          'context' => $context,
-          'location' => $parts[5],
-          'user_id' => $userId,
-          'tags' => $tags
-        ];
-      } elseif (count($parts) >= 6) {
-        // Formato anterior: [timestamp] [level] [module] [file:line] [message] [context_json] [tags]
-        $contextJson = $parts[5] ?? '';
-        $context = ($contextJson && $contextJson !== '-') ? json_decode($contextJson, true) : null;
-
-        $tagsStr = $parts[6] ?? '';
-        $tags = ($tagsStr && $tagsStr !== '-') ? explode(',', $tagsStr) : [];
-
-        $logs[] = [
-          'timestamp' => trim($parts[0], '[]'),
-          'level' => $parts[1],
-          'module' => $parts[2],
-          'message' => $parts[4],
-          'location' => $parts[3],
-          'context' => $context,
-          'user_id' => null,
-          'tags' => $tags
-        ];
-      } elseif (count($parts) >= 5) {
-        // Formato antiguo sin tags (retrocompatibilidad)
-        $contextJson = $parts[5] ?? '';
-        $context = ($contextJson && $contextJson !== '-') ? json_decode($contextJson, true) : null;
-
-        $logs[] = [
-          'timestamp' => trim($parts[0], '[]'),
-          'level' => $parts[1],
-          'module' => $parts[2],
-          'location' => $parts[3],
-          'message' => $parts[4],
-          'tags' => [],
-          'context' => $context
-        ];
+      // Crear array asociativo según el orden de columnas configurado
+      $log = [];
+      foreach ($columns as $index => $columnName) {
+        $value = $parts[$index] ?? '';
+        
+        // Procesar según el tipo de columna
+        switch ($columnName) {
+          case 'timestamp':
+            $log['timestamp'] = trim($value, '[]');
+            break;
+            
+          case 'context':
+            $contextJson = $value;
+            $log['context'] = ($contextJson && $contextJson !== '-') ? json_decode($contextJson, true) : null;
+            break;
+            
+          case 'tags':
+            $tagsStr = $value;
+            $log['tags'] = ($tagsStr && $tagsStr !== '-') ? explode(',', $tagsStr) : [];
+            break;
+            
+          case 'user_id':
+            $log['user_id'] = ($value && $value !== '-') ? $value : null;
+            break;
+            
+          case 'file_line':
+            $log['location'] = $value;
+            break;
+            
+          case 'layer':
+            $log['layer'] = $value;
+            break;
+            
+          default:
+            // level, module, message, etc.
+            $log[$columnName] = $value;
+            break;
+        }
+      }
+      
+      // Solo agregar si tiene al menos timestamp y level
+      if (!empty($log['timestamp']) && !empty($log['level'])) {
+        $logs[] = $log;
       }
     }
 

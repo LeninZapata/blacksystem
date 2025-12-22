@@ -89,9 +89,6 @@ class hook {
       await Promise.all(pluginLoadPromises);
       this.menuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
 
-      const endTime = performance.now();
-      logger.debug('core:hook', `${this.loadedHooks.size} extensions cargados en ${(endTime - startTime).toFixed(0)}ms`);
-
     } catch (error) {
       logger.error('core:hook', 'Error cargando extensions:', error);
     }
@@ -128,13 +125,11 @@ class hook {
         i18n.exntesionTranslations.set(extensionName, new Map());
       }
       i18n.exntesionTranslations.get(extensionName).set(lang, translations);
-      cache.set(`i18n_extension_${extensionName}_${lang}`, translations, 60 * 60 * 1000);
+      cache.set(`i18n_extension_${extensionName}_${lang}_v${window.VERSION}`, translations, 60 * 60 * 1000);
 
       logger.success('core:hook', `✅ Idioma ${lang} cargado para ${extensionName}`);
       return true;
     } catch (error) {
-      // Capturar cualquier error inesperado sin mostrar en consola
-      logger.debug('core:hook', `⚠️ ${extensionName} no tiene traducciones para '${lang}'`);
       return false;
     }
   }
@@ -244,7 +239,6 @@ class hook {
     for (const [extensionName, pluginConfig] of this.pluginRegistry) {
       // Solo incluir extensions habilitados
       if (pluginConfig.enabled !== true) {
-        logger.debug('core:hook', `Extension "${extensionName}" oculto (enabled=${pluginConfig.enabled})`);
         continue;
       }
 
@@ -278,15 +272,6 @@ class hook {
     // Ordenar por order
     menuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
 
-    logger.debug('core:hook', `getMenuItems: ${menuItems.length} extensions visibles`);
-
-    // Log detallado de items por extension
-    menuItems.forEach(item => {
-      if (item.items) {
-        logger.debug('core:hook', `  - ${item.id}: ${item.items.length} submenú${item.items.length !== 1 ? 's' : ''}`);
-      }
-    });
-
     return menuItems;
   }
 
@@ -305,7 +290,6 @@ class hook {
       });
     }
 
-    logger.debug('core:hook', `getAllExtensionsForPermissions: ${extensions.length} extensions disponibles`);
     return extensions;
   }
 
@@ -379,11 +363,6 @@ class hook {
     // Reconstruir el nombre completo del hook
     const finalHookName = hasPrefix ? `hook_${normalizedName}` : normalizedName;
 
-    // Log solo si hubo normalización
-    if (baseName !== normalizedName) {
-      logger.debug('core:hook', `Nombre normalizado: "${hookName}" → "${finalHookName}"`);
-    }
-
     let results = [...defaultData];
 
     // Iterar sobre todos los extensions cargados
@@ -394,8 +373,6 @@ class hook {
 
       if (hookClass && typeof hookClass[finalHookName] === 'function') {
         try {
-          logger.debug('core:hook', `Ejecutando ${extensionName}Hooks.${finalHookName}()`);
-
           const hookResult = hookClass[finalHookName]();
 
           if (Array.isArray(hookResult)) {
@@ -415,10 +392,6 @@ class hook {
 
     // Ordenar por campo "order"
     results.sort((a, b) => (a.order || 999) - (b.order || 999));
-
-    if (results.length > defaultData.length) {
-      logger.debug('core:hook', `Hook "${finalHookName}" agregó ${results.length - defaultData.length} items`);
-    }
 
     return results;
   }
@@ -445,7 +418,6 @@ class hook {
       if (window[componentName] && typeof window[componentName].render === 'function') {
         try {
           await window[componentName].render(hookResult.config, wrapper);
-          logger.debug('core:hook', `Componente "${componentName}" renderizado para hook "${hookResult.id}"`);
         } catch (error) {
           logger.error('core:hook', `Error renderizando componente "${componentName}":`, error);
           wrapper.innerHTML = `<div style="padding:1rem;background:#fee;border:1px solid #fcc;border-radius:4px;">${__('core.hook.error.loading_component', { component: componentName })}</div>`;
@@ -470,8 +442,6 @@ class hook {
     for (const result of results) {
       await this.renderHookResult(result, container);
     }
-
-    logger.debug('core:hook', `Renderizados ${results.length} hooks en "${containerId}"`);
   }
 
   static normalizeHookName(viewId) {
