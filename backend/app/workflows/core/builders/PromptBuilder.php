@@ -42,17 +42,22 @@ class PromptBuilder {
 
     $prompt = "";
 
+    // Recolectar productos en conversación y ventas confirmadas
     $productosEnConversacion = [];
+    $ventasConfirmadas = [];
+
     foreach ($messages as $msg) {
       $metadata = $msg['metadata'] ?? [];
       $action = $metadata['action'] ?? null;
 
+      // Recolectar productos cuando inicia venta
       if ($action === 'start_sale') {
         $productId = $metadata['product_id'] ?? null;
         $productName = $metadata['product_name'] ?? 'Desconocido';
         $productDescription = $metadata['description'] ?? '';
         $productInstructions = $metadata['instructions'] ?? '';
         $productPrice = $metadata['price'] ?? '0.00';
+        $saleId = $metadata['sale_id'] ?? null;
 
         $templatesFile = SHARED_PATH . '/bots/infoproduct/messages/template_' . $productId . '.json';
         $templates = file::getJson($templatesFile) ?? [];
@@ -63,14 +68,51 @@ class PromptBuilder {
             'description' => $productDescription,
             'instructions' => $productInstructions,
             'price' => $productPrice,
-            'templates' => $templates
+            'templates' => $templates,
+            'sale_id' => $saleId
+          ];
+        }
+      }
+
+      // Recolectar ventas confirmadas
+      if ($action === 'sale_confirmed') {
+        $saleId = $metadata['sale_id'] ?? null;
+        $receiptData = $metadata['receipt_data'] ?? [];
+        $amountPaid = $receiptData['amount_found'] ?? '0.00';
+        $fecha = $msg['date'] ?? 'N/A';
+
+        if ($saleId) {
+          $ventasConfirmadas[$saleId] = [
+            'amount_paid' => $amountPaid,
+            'date' => $fecha
           ];
         }
       }
     }
 
+    // Construir sección de productos comprados
+    if (!empty($ventasConfirmadas)) {
+      $prompt .= "\n### PRODUCTOS COMPRADOS:\n\n";
+
+      foreach ($productosEnConversacion as $prodId => $prodData) {
+        $saleId = $prodData['sale_id'] ?? null;
+
+        if ($saleId && isset($ventasConfirmadas[$saleId])) {
+          $venta = $ventasConfirmadas[$saleId];
+          $precioOfrecido = $prodData['price'];
+          $precioPagado = $venta['amount_paid'];
+          $fecha = $venta['date'];
+
+          $prompt .= "- {$prodData['name']} (ID: {$prodId}) | Precio ofrecido: \${$precioOfrecido} | Precio pagado: \${$precioPagado} | Fecha: {$fecha} | Tipo: Principal\n";
+        }
+      }
+
+      $prompt .= "\n";
+    }
+
+    // Construir sección de productos disponibles
     if (!empty($productosEnConversacion)) {
-      $prompt .= "\n### PRODUCTOS EN CONVERSACIÓN:\n";
+      $prompt .= "### PRODUCTOS EN CONVERSACIÓN:\n";
 
       foreach ($productosEnConversacion as $prodId => $prodData) {
         $prompt .= "═══════════════════════════════════════\n";

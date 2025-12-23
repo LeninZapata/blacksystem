@@ -282,7 +282,7 @@ class ChatHandlers {
       $completedSales = db::table('sales')
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
-        ->where('process_status', 'completed')
+        ->where('process_status', 'sale_confirmed')
         ->get();
 
       // Construir estructura del chat
@@ -306,7 +306,7 @@ class ChatHandlers {
         'summary' => [
           'completed_sales' => count($completedSales),
           'sales_in_process' => $currentSale ? 1 : 0,
-          'total_value' => array_sum(array_column($completedSales, 'amount')),
+          'total_value' => self::calculateTotalValue($completedSales),
           'purchased_products' => array_column($completedSales, 'product_name'),
           'upsells_offered' => []
         ],
@@ -422,5 +422,17 @@ class ChatHandlers {
     ];
 
     return $map[$type] ?? 'prospect';
+  }
+
+  private static function calculateTotalValue($sales) {
+    $total = 0;
+
+    foreach ($sales as $sale) {
+      // Usar billed_amount si existe, sino usar amount
+      $value = $sale['billed_amount'] ?? $sale['amount'] ?? 0;
+      $total += (float)$value;
+    }
+
+    return $total;
   }
 }

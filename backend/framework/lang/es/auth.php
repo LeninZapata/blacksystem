@@ -4,7 +4,7 @@ return [
   'login_success' => 'Inicio de sesión exitoso',
   'login_failed' => 'Credenciales inválidas',
   'logout_success' => 'Sesión cerrada exitosamente',
-  'token_invalid' => 'Token inválido',
+  'token_invalid' => 'Token inválido (desde framework/auth)',
   'token_expired' => 'Token expirado',
   'token_missing' => 'Token no proporcionado',
   'unauthorized' => 'No autorizado',

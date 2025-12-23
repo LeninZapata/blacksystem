@@ -16,7 +16,7 @@ class CreateSaleAction {
       ->where('number', $from)
       ->where('bot_id', $bot['id'])
       ->where('product_id', $product['id'])
-      ->whereNotIn('process_status', ['completed', 'cancelled', 'refunded'])
+      ->whereNotIn('process_status', ['sale_confirmed', 'cancelled', 'refunded'])
       ->orderBy('id', 'DESC')
       ->first();
 

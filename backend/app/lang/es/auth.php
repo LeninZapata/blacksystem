@@ -12,7 +12,7 @@ return [
   ],
   'token' => [
     'missing' => 'Token no proporcionado (desde auth)',
-    'invalid' => 'Token inválido',
+    'invalid' => 'Token inválido (desde app/auth)',
     'expired' => 'Token expirado'
   ],
   'credentials' => [

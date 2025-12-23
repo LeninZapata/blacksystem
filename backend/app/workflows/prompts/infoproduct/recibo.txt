@@ -197,7 +197,7 @@
 - → Responder amablemente: "¿Tiene alguna duda? Si está listo para adquirirlo, le envío los métodos de pago"
 - Si da "gracias" u otro tipo de "agradecimiento" y:
   - Sí hay `'action':'sale_confirmed'` o `'delivered_product'`  en el historial del chat
-- → Responder con gratitud de que espera que disfrute el material y le envias una de las plantillas 'review' luego de 2 saltos de linea ya que tiene un link
+- → Responder con gratitud de que esperas que disfrute el material, si llega a existir una plantilla de tipo 'link_review' entonces le envias una de las plantillas 'link_review' luego de 2 saltos de linea ya que tiene un link (si no existe entonces no le envies sobre la reseña o review)
 
 ## FORMATO DE SALIDA
 - Tu respuesta SIEMPRE debe ser JSON limpio

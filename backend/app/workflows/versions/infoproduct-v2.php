@@ -31,9 +31,9 @@ class InfoproductV2Handler {
 
     $registry = $this->actionDispatcher->getRegistry();
 
-    $registry->register('sale_confirmed', 'SaleConfirmedHandler');
-    $registry->register('delivered_product', 'DeliveredProductHandler');
-    $registry->register('payment_method_template', 'PaymentMethodTemplateHandler');
+    // $registry->register('sale_confirmed', 'SaleConfirmedHandler');
+    // $registry->register('delivered_product', 'DeliveredProductHandler');
+    // $registry->register('payment_method_template', 'PaymentMethodTemplateHandler');
 
     log::debug("InfoproductV2Handler::registerActionHandlers - FIN", [], ['module' => 'infoproduct_v2']);
   }
@@ -138,13 +138,33 @@ class InfoproductV2Handler {
 
     $chatData = ConversationValidator::getChatData($person['number'], $bot['id']);
 
-    require_once APP_PATH . '/workflows/core/support/MessageBuffer.php';  // ← minúscula
+    // ✅ NUEVO: BYPASS del buffer para imágenes (respuesta inmediata)
+    $isImage = strtoupper($messageType) === 'IMAGE';
+
+    if ($isImage) {
+      log::info("InfoproductV2Handler::continueConversation - Imagen detectada, procesando SIN buffer", [
+        'number' => $person['number'],
+        'bypass_reason' => 'image_type'
+      ], ['module' => 'infoproduct_v2']);
+
+      // Procesar imagen INMEDIATAMENTE (sin esperar 3 segundos)
+      $this->processImageMessages([$message], $bot, $person, $chatData);
+      return;
+    }
+
+    // ✅ Para texto/audio: usar buffer normal (3 segundos)
+    log::debug("InfoproductV2Handler::continueConversation - Mensaje de texto/audio, usando buffer", [
+      'type' => $messageType,
+      'delay' => $this->bufferDelay
+    ], ['module' => 'infoproduct_v2']);
+
+    require_once APP_PATH . '/workflows/core/support/MessageBuffer.php';
     $buffer = new MessageBuffer($this->bufferDelay);
 
     $result = $buffer->process(
       $person['number'],
       $bot['id'],
-      $message  // ← SIN el parámetro $shouldBuffer
+      $message
     );
 
     if ($result === null) {
@@ -155,7 +175,7 @@ class InfoproductV2Handler {
     $messages = $result['messages'];
     $hasImage = MessageClassifier::hasImageInMessages($messages);
 
-    log::debug("InfoproductV2Handler::continueConversation - Procesando mensajes", [
+    log::debug("InfoproductV2Handler::continueConversation - Buffer completado, procesando mensajes", [
       'has_image' => $hasImage,
       'message_count' => count($messages)
     ], ['module' => 'infoproduct_v2']);

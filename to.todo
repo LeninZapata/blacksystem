@@ -1,7 +1,22 @@
+Claude:
+  https://claude.ai/chat/708d9a4c-81e1-49fd-a899-95c6075fb141
+  ok el flujo es asi, y da 2 bievenidas dentro de los 2 dias entonces el segunda bienvenida lo maneja el bot e igual queda registrado el texto de bienvenida como un chat normal, ahora si paso los 2 dias, entonces se le da la bievenida  re registra un re_welcome y todo pero sin duplicar venta ni cliente. 
+
+Por cierto todas estas validaciones son con el bot_id verdad? bueno arregla ese flujo de bienvenida para que quede muy logico para la venta e interpretacion.
 Backend (Aplicacion):
 ☐ revisar si cuando la persona te escribe te escribe con una foto con caption y tu tienes
 que identificar el caption, creo que ya hay un webhook que envia con caption pero debes v
 ver con ese nuevo sistema.
+☐ que pasa si te compra 2 veces el mismo producto en el sentido que te envia el recibo una segunda vez
+entonces se debe validar que lo resuelva el bot porque no hay venta activa
+☐ el orden cuando se chatea es se envia mensaje -> se guarda en el json -> se guarda en db (ya que es mas lento guardar en la db)
+☐ el orden cuando envian la foto es se se guarda en el json -> se envia el producto -> se guarda en db
+este orden debes pedirle a la IA que lo separe para solo ordenarlo facilmente
+☐ Hacer las pruebas con el imagen+caption, video solo, video con caption, stickers, reaction
+☐ debes tener un intersector de mensaje por ejemplo si es un stickers no es necesario parasar por nada
+mas que un mensaje de que no leen los stickers y guardar en json + db, lo mismo para otros tipos
+☐ tienes un flujo mas separado y modular asi que la IA no se confunde y lo puede editar rapdio
+☐ maneja los log:: mejor porque necesito saber el flujo de lo que apsa con el webhook agrega tags
 ☐ para simplificar lineas en los controllers y hendlers debes
 hacer que los array sea de 2 columnas, y los query multimetodos sean inlinea
 ☐ Controladores solo tiene los CRUD y la logica de negocio va en los handlers en lo posible,
@@ -17,8 +32,30 @@ if (!file_exists($promptFile)) {
       throw new Exception("Prompt file not found: {$promptFile}");
 }
 busca donde esta recibo-img.txt cuando lo llama
-
+☐ Origen de la venta ponerlo en el chat en el start_sale
+1) start_sale = anuncio de facebook
+2) los upsell son luego de la compra asi siempre seran upsell luego de la compra
+3) sino compran y se lo continua entonces es new_offer.-
+☐ estoas serian los origenes por supuesto con la venta padre inicial del start_sale primero.
+☐ que detalle en el prompt los productos y los originenes mejor asi lo interpreta mejor
+edita el PROMPT para que vea lo que pasa en el historial del chat y en la cabecera
+☐ En la lista de los mensajes debe poner mas descripcicon como que se aumento o bajo de precio
+los metas deben tener mas detalle
+☐ Prueba mejr el buffer
+☐ SEGUIMIENTOS
+_ esto debe ser facil de manejarlo, tienes que explicar a la IA que cree un flujo demasiado
+sencillo, los seguimientos solo los tendras como crud y luego algo de coontroller por el CRON
+luego algo handlers pero de all ise va directo a la logica de negocio para poder tener 
+seguimientos  dinamicos etc....
+☐ Secuencias de ventas
+Anuncio -> upsell 1 (si compra) -> upsell 2 -> (sino compra) se acaban los seguimientos entonces comienza una nueva oferta
+en el flujo de seguimientos debe calcular bien cuando se termina un upsell y cuando empieiza una oferta nueva, si compra una nueva oferta ¿puede tener upsell?
+se continua con el upsell? puede que no poruqe la nueva oferta puede ser de otro producto, pero ese producto si puede tener upsell.
 Frontend (Aplicacion):
+☐ Agrega que se puede agregar varios upsell con el tiempo de ejecucion
+los upsell son preCompra....
+☐ Agrea que se pueda agregar nuevas ofertas seguidas, las ofertas comienzan cuando los 
+seguimientos terminan  y comienza una nueva oferta de seguimiento.
 ☐ Agregar el nombre del prompt y prompt de imagen en flujo de trabajo o bot
 revisa donde ponerlo pero debes ponerlo el nombre no mas
 ☐ Verificar si el archivo de workflow existe
@@ -27,4 +64,4 @@ tambien que verifique al momento de crear o actualizar un workflow si el archivo
 ☐ Agregar el aparatado de promtps de tipo 'conversation', 'image', 'audio' porque se necesita versionar
 entonces el bot puede seleccionar cuales son sus prompts aparte del agente y de ai, necesita seleccionar con 
 que prompt va a trabajar. Actualmente esta hardcodeado en message.php
-☐ Reorganizar todo el menu para una mejor entendimiento
+☐ Reorganizar todo el menu para una mejor entendimiento 

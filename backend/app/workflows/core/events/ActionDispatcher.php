@@ -16,7 +16,7 @@ class ActionDispatcher {
     $handler = $this->registry->getHandler($action);
 
     if (!$handler) {
-      log::warning("Action no registrado: {$action}", [], ['module' => 'action_dispatcher']);
+      log::warning("Action del bot no registrado: {$action}", [], ['module' => 'action_dispatcher']);
       return null;
     }
 

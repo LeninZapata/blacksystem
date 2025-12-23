@@ -14,24 +14,47 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $chat = $chatData['full_chat'] ?? [];
 
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
+    log::debug("ActiveConversationStrategy::execute - Prompt construido", $prompt, ['module' => 'active_conversation', 'tags' => ['prompt']]);
 
     $aiResponse = $this->callAI($prompt, $bot);
 
     if (!$aiResponse['success']) {
+      log::error("ActiveConversationStrategy::execute - Error en llamada a IA", [
+        'error' => $aiResponse['error'] ?? 'unknown'
+      ], ['module' => 'active_conversation']);
+
       return [
         'success' => false,
         'error' => $aiResponse['error'] ?? 'AI call failed'
       ];
     }
 
+    // ✅ LOG DE RESPUESTA DE LA IA
+    log::info("ActiveConversationStrategy::execute - Respuesta de IA recibida", [
+      'response_length' => strlen($aiResponse['response']),
+      'response_preview' => substr($aiResponse['response'], 0, 200) . '...'
+    ], ['module' => 'active_conversation']);
+
     $parsedResponse = $this->parseResponse($aiResponse['response']);
 
     if (!$parsedResponse) {
+      log::error("ActiveConversationStrategy::execute - JSON inválido de IA", [
+        'raw_response' => $aiResponse['response']
+      ], ['module' => 'active_conversation']);
+
       return [
         'success' => false,
         'error' => 'Invalid AI response'
       ];
     }
+
+    // ✅ LOG DE RESPUESTA PARSEADA
+    log::info("ActiveConversationStrategy::execute - Respuesta parseada correctamente", [
+      'message_length' => strlen($parsedResponse['message'] ?? ''),
+      'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150),
+      'has_metadata' => isset($parsedResponse['metadata']),
+      'action' => $parsedResponse['metadata']['action'] ?? 'none'
+    ], ['module' => 'active_conversation']);
 
     $this->sendMessages($parsedResponse, $context);
     $this->saveBotMessages($parsedResponse, $context);

@@ -88,7 +88,8 @@ class ProductHandler {
       'welcome' => 'welcome_messages',
       'welcome_upsell' => 'welcome_messages_upsell',
       'follow' => 'tracking_messages',
-      'follow_upsell' => 'tracking_messages_upsell'
+      'follow_upsell' => 'tracking_messages_upsell',
+      'template' => 'templates'
     ];
 
     if (!isset($typeMap[$type])) return null;

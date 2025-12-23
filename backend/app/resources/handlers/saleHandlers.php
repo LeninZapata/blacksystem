@@ -128,7 +128,7 @@ class SaleHandlers {
       'transaction_id' => $transactionId,
       'payment_method' => $paymentMethod,
       'payment_date' => $paymentDate ?? date('Y-m-d H:i:s'),
-      'process_status' => 'completed',
+      'process_status' => 'sale_confirmed',
       'du' => date('Y-m-d H:i:s'),
       'tu' => time()
     ];
@@ -160,7 +160,7 @@ class SaleHandlers {
       'by_status' => [
         'initiated' => db::table(self::$table)->where('process_status', 'initiated')->count(),
         'pending' => db::table(self::$table)->where('process_status', 'pending')->count(),
-        'completed' => db::table(self::$table)->where('process_status', 'completed')->count(),
+        'sale_confirmed' => db::table(self::$table)->where('process_status', 'sale_confirmed')->count(),
         'cancelled' => db::table(self::$table)->where('process_status', 'cancelled')->count()
       ],
       'by_type' => [

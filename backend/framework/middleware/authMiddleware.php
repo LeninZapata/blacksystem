@@ -4,9 +4,9 @@ class authMiddleware {
 
   function handle() {
     // Validar versión PHP (solo 1 vez por sesión)
-    if (!$this->validatePhpVersion()) {
+    /*if (!$this->validatePhpVersion()) {
       return false;
-    }
+    }*/
 
     $token = $this->getToken();
 

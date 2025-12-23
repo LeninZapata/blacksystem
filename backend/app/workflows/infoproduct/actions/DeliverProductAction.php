@@ -17,32 +17,55 @@ class DeliverProductAction {
       ];
     }
 
-    self::sendTemplates($templates, $person['number']);
+    $productTemplate = self::findProductTemplate($templates);
+
+    if (!$productTemplate) {
+      log::warning("No link_product template found for product: {$productId}", [], ['module' => 'deliver_product']);
+      return [
+        'success' => false,
+        'error' => 'No link_product template found'
+      ];
+    }
+
+    self::sendProductTemplate($productTemplate, $person['number']);
 
     self::registerDelivery($bot, $person, $chatData, $productId);
 
+    // Reconstruir chat JSON después de entregar
+    self::rebuildChatAfterDelivery($person['number'], $bot['id']);
+
     return [
       'success' => true,
-      'templates_sent' => count($templates)
+      'template_sent' => $productTemplate['template_id'] ?? 'unknown'
     ];
   }
 
   private static function loadProductTemplates($productId) {
-    return ProductHandler::getMessagesFile('template', $productId);
+    return productHandler::getMessagesFile('template', $productId);
   }
 
-  private static function sendTemplates($templates, $to) {
+  private static function findProductTemplate($templates) {
     foreach ($templates as $template) {
-      $message = $template['message'] ?? '';
-      $url = $template['url'] ?? '';
-      $delay = 2;
+      $templateType = $template['template_type'] ?? null;
 
-      if ($delay > 0) {
-        sleep($delay);
+      if ($templateType === 'link_product') {
+        return $template;
       }
-
-      chatapi::send($to, $message, $url);
     }
+
+    return null;
+  }
+
+  private static function sendProductTemplate($template, $to) {
+    $message = $template['message'] ?? '';
+    $url = $template['url'] ?? '';
+
+    log::info("DeliverProductAction - Enviando producto", [
+      'template_id' => $template['template_id'] ?? 'unknown',
+      'to' => $to
+    ], ['module' => 'deliver_product']);
+
+    chatapi::send($to, $message, $url);
   }
 
   private static function registerDelivery($bot, $person, $chatData, $productId) {
@@ -53,7 +76,7 @@ class DeliverProductAction {
       'delivered_at' => date('Y-m-d H:i:s')
     ];
 
-    ChatHandlers::register(
+    chatHandlers::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -65,7 +88,7 @@ class DeliverProductAction {
       $chatData['sale_id']
     );
 
-    ChatHandlers::addMessage([
+    chatHandlers::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -75,4 +98,15 @@ class DeliverProductAction {
       'metadata' => $metadata
     ], 'S');
   }
+
+  private static function rebuildChatAfterDelivery($number, $botId) {
+    log::info("DeliverProductAction - Reconstruyendo chat después de entrega", [
+      'number' => $number,
+      'bot_id' => $botId
+    ], ['module' => 'deliver_product']);
+
+    // Forzar reconstrucción desde DB
+    chatHandlers::rebuildFromDB($number, $botId);
+  }
+
 }
