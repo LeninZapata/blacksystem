@@ -1,6 +1,7 @@
 <?php
 
 class ImageInterpreter {
+  private static $logMeta = ['module' => 'workflow', 'layer' => 'app'];
 
   static function interpret($message, $bot) {
     $imageUrl = $message['media_url'] ?? null;
@@ -18,7 +19,7 @@ class ImageInterpreter {
       if (!$base64) {
         $imageData = file_get_contents($imageUrl);
         if ($imageData === false) {
-          throw new Exception('No se pudo descargar imagen');
+          log::throwError('No se pudo descargar imagen', [], self::$logMeta);
         }
         $base64 = base64_encode($imageData);
       }
@@ -29,7 +30,7 @@ class ImageInterpreter {
       $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo-img.txt';
 
       if (!file_exists($promptFile)) {
-        throw new Exception("Prompt file not found: {$promptFile}");
+        log::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
       }
 
       $instruction = file_get_contents($promptFile);

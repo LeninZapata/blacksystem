@@ -1,13 +1,13 @@
 <?php
 class ai {
 
-  private static $logMeta = ['module' => 'ai', 'layer' => 'service'];
+  private static $logMeta = ['module' => 'ai', 'layer' => 'framework'];
 
   // Chat completion con fallback automático
   public function getChatCompletion($prompt, $bot, $options = []) {
     try {
       $aiServices = $this->getServicesForTask($bot, 'conversation');
-      if (empty($aiServices)) throw new Exception(__('services.ai.no_services_available'));
+      if (empty($aiServices)) log::throwError(__('services.ai.no_services_available'), [], self::$logMeta);
 
       $attemptNumber = 0;
       $lastError = null;
@@ -43,7 +43,7 @@ class ai {
   public function transcribeAudio($audioUrl, $bot) {
     try {
       $aiServices = $this->getServicesForTask($bot, 'audio');
-      if (empty($aiServices)) throw new Exception(__('services.ai.no_services_for_task', ['task' => 'audio']));
+      if (empty($aiServices)) log::throwError(__('services.ai.no_services_for_task', ['task' => 'audio']), [], self::$logMeta);
 
       $attemptNumber = 0;
       $lastError = null;
@@ -73,7 +73,7 @@ class ai {
   public function analyzeImage($imageDataUri, $instruction, $bot) {
     try {
       $aiServices = $this->getServicesForTask($bot, 'image');
-      if (empty($aiServices)) throw new Exception(__('services.ai.no_services_for_task', ['task' => 'image']));
+      if (empty($aiServices)) log::throwError(__('services.ai.no_services_for_task', ['task' => 'image']), [], self::$logMeta);
 
       $attemptNumber = 0;
       $lastError = null;
@@ -111,11 +111,11 @@ class ai {
     ];
 
     $providerClass = $providerMap[$slug] ?? null;
-    if (!$providerClass) throw new Exception(__('services.ai.provider_not_supported', ['provider' => $slug]));
+    if (!$providerClass) log::throwError(__('services.ai.provider_not_supported', ['provider' => $slug]), [], self::$logMeta);
 
     // Autoload carga la clase automáticamente
     if (!class_exists($providerClass)) {
-      throw new Exception(__('services.ai.class_not_found', ['class' => $providerClass]));
+      log::throwError(__('services.ai.class_not_found', ['class' => $providerClass]), [], self::$logMeta);
     }
 
     return new $providerClass($config);

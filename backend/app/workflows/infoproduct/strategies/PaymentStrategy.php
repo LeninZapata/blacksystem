@@ -31,9 +31,30 @@ class PaymentStrategy implements ConversationStrategyInterface {
       return $this->handleDuplicateReceipt($context, $imageAnalysis);
     }
 
-    // ✅ PASO 3: Validar recibo (solo si hay venta activa)
+    // ✅ PASO 3: Detectar imagen sin venta pendiente (NO es recibo o recibo inválido)
+    if (!$currentSale && !$isProofPayment) {
+      log::info("PaymentStrategy - Imagen enviada sin venta pendiente", [
+        'number' => $person['number'],
+        'current_sale' => 'null',
+        'is_proof_payment' => false,
+        'ai_analysis' => $imageAnalysis['metadata']['description'] ?? null,
+        'action' => 'dejar_que_ia_interprete'
+      ], ['module' => 'payment_strategy']);
+
+      // ✅ Dejar que la IA interprete la imagen (no es contexto de pago)
+      return $this->handleImageWithoutSale($context, $imageAnalysis);
+    }
+
+    // ✅ PASO 4: Validar recibo (solo si hay venta activa)
     if (!$validation['is_valid']) {
       $errorMessage = "Lo siento, no pude validar el comprobante de pago. Por favor, envía una foto clara del recibo.";
+
+      log::info("PaymentStrategy - Recibo inválido (con venta activa)", [
+        'number' => $person['number'],
+        'current_sale' => $currentSale['sale_id'] ?? null,
+        'errors' => $validation['errors'],
+        'ai_analysis' => $validation['data']  // ✅ JSON completo de la IA
+      ], ['module' => 'payment_strategy']);
 
       chatapi::send($person['number'], $errorMessage);
 
@@ -59,7 +80,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $paymentData = $validation['data'];
     $saleId = $chatData['sale_id'];
 
-    // ✅ PASO 4: Procesar pago (solo si hay venta activa)
+    // ✅ PASO 5: Procesar pago (solo si hay venta activa)
     log::info("PaymentStrategy - Procesando pago válido", [
       'sale_id' => $saleId,
       'amount' => $paymentData['amount']
@@ -84,6 +105,82 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'success' => true,
       'payment_data' => $paymentData,
       'sale_id' => $saleId
+    ];
+  }
+
+  /**
+   * ✅ NUEVO: Manejar imagen sin venta pendiente
+   * Deja que la IA interprete la imagen en contexto conversacional
+   */
+  private function handleImageWithoutSale($context, $imageAnalysis) {
+    $bot = $context['bot'];
+    $person = $context['person'];
+    $chatData = $context['chat_data'];
+
+    log::info("PaymentStrategy::handleImageWithoutSale - Invocando IA", [
+      'number' => $person['number']
+    ], ['module' => 'payment_strategy']);
+
+    // Construir texto para la IA con descripción de la imagen
+    $resume = $imageAnalysis['metadata']['description']['resume'] ?? 'Imagen recibida';
+    $aiText = "[image]: {$resume}";
+
+    // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
+    $chat = ChatHandlers::getChat($person['number'], $bot['id'], true);
+
+    // Construir prompt igual que ActiveConversationStrategy
+    $prompt = $this->buildPrompt($bot, $chat, $aiText);
+
+    log::info("PaymentStrategy::handleImageWithoutSale - Prompt construido", $prompt, ['module' => 'payment_strategy']);
+
+    // Llamar a la IA
+    $aiResponse = $this->callAI($prompt, $bot);
+
+    if (!$aiResponse['success']) {
+      log::error("PaymentStrategy::handleImageWithoutSale - Error en IA: {$aiResponse['error']}", ['number' => $person['number']], ['module' => 'payment_strategy']);
+      return [
+        'success' => false,
+        'error' => $aiResponse['error'] ?? 'AI call failed'
+      ];
+    }
+
+    // ✅ LOG DE RESPUESTA DE LA IA
+    log::info("PaymentStrategy::handleImageWithoutSale - Respuesta de IA recibida", [
+      'response_length' => strlen($aiResponse['response']),
+      'response_preview' => substr($aiResponse['response'], 0, 200) . '...'
+    ], ['module' => 'payment_strategy']);
+
+    // Parsear respuesta
+    $parsedResponse = $this->parseResponse($aiResponse['response']);
+
+    if (!$parsedResponse) {
+      log::error("PaymentStrategy::handleImageWithoutSale - JSON inválido de IA", ['raw_response' => $aiResponse['response']], ['module' => 'payment_strategy']);
+      return [
+        'success' => false,
+        'error' => 'Invalid AI response'
+      ];
+    }
+
+    // ✅ LOG DE RESPUESTA PARSEADA
+    log::info("PaymentStrategy::handleImageWithoutSale - Respuesta parseada correctamente", [
+      'message_length' => strlen($parsedResponse['message'] ?? ''),
+      'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150),
+      'has_metadata' => isset($parsedResponse['metadata']),
+      'action' => $parsedResponse['metadata']['action'] ?? 'none'
+    ], ['module' => 'payment_strategy']);
+
+    // Enviar mensaje al cliente
+    $this->sendMessages($parsedResponse, $context);
+
+    // Guardar respuesta del bot (DB + JSON)
+    $this->saveBotMessages($parsedResponse, $context);
+
+    log::info("PaymentStrategy::handleImageWithoutSale - Completado exitosamente", [], ['module' => 'payment_strategy']);
+
+    return [
+      'success' => true,
+      'image_without_sale' => true,
+      'ai_response' => $parsedResponse
     ];
   }
 
@@ -174,14 +271,16 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $person = $context['person'];
     $chatData = $context['chat_data'];
 
-    $resume = $imageAnalysis['metadata']['description']['resume'] ?? 'Imagen de pago';
+    // ✅ Guardar JSON completo del análisis
+    $description = $imageAnalysis['metadata']['description'] ?? [];
+    $messageJson = json_encode($description, JSON_UNESCAPED_UNICODE);
 
     chatHandlers::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
       $person['number'],
-      $resume,
+      $messageJson,  // ✅ JSON completo
       'P',
       'image',
       $imageAnalysis['metadata'],
@@ -193,7 +292,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
       'sale_id' => $chatData['sale_id'],
-      'message' => $resume,
+      'message' => $messageJson,  // ✅ JSON completo
       'format' => 'image',
       'metadata' => $imageAnalysis['metadata']
     ], 'P');
@@ -355,7 +454,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo.txt';
 
     if (!file_exists($promptFile)) {
-      throw new Exception("Prompt file not found: {$promptFile}");
+      log::throwError("Prompt file not found: {$promptFile}", [], ['module' => 'workflow', 'layer' => 'app']);
     }
 
     $promptSystem = file_get_contents($promptFile);

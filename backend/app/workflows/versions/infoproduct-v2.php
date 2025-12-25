@@ -104,14 +104,9 @@ class InfoproductV2Handler {
       'has_conversation' => $hasConversation
     ], ['module' => 'infoproduct_v2']);
 
-    if ($hasConversation) {
-      log::info("InfoproductV2Handler::handle - Continuar conversación", [], ['module' => 'infoproduct_v2']);
-      $this->continueConversation($bot, $person, $message, $messageType);
-      return;
-    }
-
+    // PRIORIDAD 1: Detectar welcome SIEMPRE (incluso con conversación activa)
     log::debug("InfoproductV2Handler::handle - Detectando welcome", [], ['module' => 'infoproduct_v2']);
-
+    
     $welcomeCheck = WelcomeValidator::detect($bot, $message, $context);
 
     log::debug("InfoproductV2Handler::handle - Welcome detectado", [
@@ -121,10 +116,18 @@ class InfoproductV2Handler {
 
     if ($welcomeCheck['is_welcome']) {
       log::info("InfoproductV2Handler::handle - Ejecutar welcome", [
-        'product_id' => $welcomeCheck['product_id']
+        'product_id' => $welcomeCheck['product_id'],
+        'has_active_conversation' => $hasConversation
       ], ['module' => 'infoproduct_v2']);
 
       $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
+      return;
+    }
+
+    // PRIORIDAD 2: Continuar conversación (si no es welcome)
+    if ($hasConversation) {
+      log::info("InfoproductV2Handler::handle - Continuar conversación", [], ['module' => 'infoproduct_v2']);
+      $this->continueConversation($bot, $person, $message, $messageType);
       return;
     }
 
@@ -138,7 +141,7 @@ class InfoproductV2Handler {
 
     $chatData = ConversationValidator::getChatData($person['number'], $bot['id']);
 
-    // ✅ NUEVO: BYPASS del buffer para imágenes (respuesta inmediata)
+    // BYPASS del buffer para imágenes (respuesta inmediata)
     $isImage = strtoupper($messageType) === 'IMAGE';
 
     if ($isImage) {
@@ -147,12 +150,48 @@ class InfoproductV2Handler {
         'bypass_reason' => 'image_type'
       ], ['module' => 'infoproduct_v2']);
 
-      // Procesar imagen INMEDIATAMENTE (sin esperar 3 segundos)
       $this->processImageMessages([$message], $bot, $person, $chatData);
       return;
     }
 
-    // ✅ Para texto/audio: usar buffer normal (3 segundos)
+    // VALIDACIÓN: Rechazar documentos
+    $isDocument = strtoupper($messageType) === 'DOCUMENT';
+
+    if ($isDocument) {
+      log::info("InfoproductV2Handler::continueConversation - Documento detectado, rechazando", [
+        'number' => $person['number'],
+        'reject_reason' => 'document_not_supported'
+      ], ['module' => 'infoproduct_v2']);
+
+      $this->processDocumentMessages([$message], $bot, $person, $chatData);
+      return;
+    }
+
+    // VALIDACIÓN: Procesar videos
+    $isVideo = strtoupper($messageType) === 'VIDEO';
+
+    if ($isVideo) {
+      log::info("InfoproductV2Handler::continueConversation - Video detectado", [
+        'number' => $person['number']
+      ], ['module' => 'infoproduct_v2']);
+
+      $this->processVideoMessages([$message], $bot, $person, $chatData);
+      return;
+    }
+
+    // VALIDACIÓN: Rechazar stickers
+    $isSticker = strtoupper($messageType) === 'STICKER';
+
+    if ($isSticker) {
+      log::info("InfoproductV2Handler::continueConversation - Sticker detectado, rechazando", [
+        'number' => $person['number']
+      ], ['module' => 'infoproduct_v2']);
+
+      $this->processStickerMessages([$message], $bot, $person, $chatData);
+      return;
+    }
+
+    // Para texto/audio: usar buffer normal (3 segundos)
     log::debug("InfoproductV2Handler::continueConversation - Mensaje de texto/audio, usando buffer", [
       'type' => $messageType,
       'delay' => $this->bufferDelay
@@ -216,6 +255,106 @@ class InfoproductV2Handler {
       'image_analysis' => $result['analysis'],
       'chat_data' => $chatData
     ]);
+  }
+
+  private function processDocumentMessages($messages, $bot, $person, $chatData) {
+    log::info("InfoproductV2Handler::processDocumentMessages - INICIO", [], ['module' => 'infoproduct_v2']);
+
+    require_once APP_PATH . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
+    require_once APP_PATH . '/workflows/infoproduct/processors/DocumentMessageProcessor.php';
+
+    $processor = new DocumentMessageProcessor();
+    $result = $processor->process($messages, [
+      'bot' => $bot,
+      'person' => $person,
+      'chat_data' => $chatData
+    ]);
+
+    if (!$result['success']) {
+      log::error("Document processing failed", [
+        'error' => $result['error'] ?? 'Unknown'
+      ], ['module' => 'infoproduct_v2']);
+      return;
+    }
+
+    log::info("InfoproductV2Handler::processDocumentMessages - Documento rechazado exitosamente", [
+      'caption' => $result['caption'] ?? ''
+    ], ['module' => 'infoproduct_v2']);
+  }
+
+  private function processVideoMessages($messages, $bot, $person, $chatData) {
+    log::info("InfoproductV2Handler::processVideoMessages - INICIO", [], ['module' => 'infoproduct_v2']);
+
+    require_once APP_PATH . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
+    require_once APP_PATH . '/workflows/infoproduct/processors/VideoMessageProcessor.php';
+
+    $processor = new VideoMessageProcessor();
+    $result = $processor->process($messages, [
+      'bot' => $bot,
+      'person' => $person,
+      'chat_data' => $chatData
+    ]);
+
+    if (!$result['success']) {
+      log::error("Video processing failed", [
+        'error' => $result['error'] ?? 'Unknown'
+      ], ['module' => 'infoproduct_v2']);
+      return;
+    }
+
+    // Si el video NO tiene caption → No responder
+    if (isset($result['no_response']) && $result['no_response']) {
+      log::info("InfoproductV2Handler::processVideoMessages - Video sin caption registrado, sin respuesta", [], ['module' => 'infoproduct_v2']);
+      return;
+    }
+
+    // Si tiene caption → Procesar como texto con IA
+    log::info("InfoproductV2Handler::processVideoMessages - Video con caption, procesando con IA", [], ['module' => 'infoproduct_v2']);
+
+    require_once APP_PATH . '/workflows/infoproduct/strategies/ConversationStrategyInterface.php';
+    require_once APP_PATH . '/workflows/infoproduct/strategies/ActiveConversationStrategy.php';
+
+    $strategy = new ActiveConversationStrategy();
+    $strategyResult = $strategy->execute([
+      'bot' => $bot,
+      'person' => $person,
+      'processed_data' => $result,
+      'chat_data' => $chatData
+    ]);
+
+    if ($strategyResult['success'] && isset($strategyResult['ai_response']['metadata']['action'])) {
+      $action = $strategyResult['ai_response']['metadata']['action'];
+
+      $this->actionDispatcher->dispatch($action, [
+        'bot' => $bot,
+        'person' => $person,
+        'ai_response' => $strategyResult['ai_response'],
+        'chat_data' => $chatData
+      ]);
+    }
+  }
+
+  private function processStickerMessages($messages, $bot, $person, $chatData) {
+    log::info("InfoproductV2Handler::processStickerMessages - INICIO", [], ['module' => 'infoproduct_v2']);
+
+    require_once APP_PATH . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
+    require_once APP_PATH . '/workflows/infoproduct/processors/StickerMessageProcessor.php';
+
+    $processor = new StickerMessageProcessor();
+    $result = $processor->process($messages, [
+      'bot' => $bot,
+      'person' => $person,
+      'chat_data' => $chatData
+    ]);
+
+    if (!$result['success']) {
+      log::error("Sticker processing failed", [
+        'error' => $result['error'] ?? 'Unknown'
+      ], ['module' => 'infoproduct_v2']);
+      return;
+    }
+
+    log::info("InfoproductV2Handler::processStickerMessages - Sticker rechazado exitosamente", [], ['module' => 'infoproduct_v2']);
   }
 
   private function processTextMessages($messages, $bot, $person, $chatData) {

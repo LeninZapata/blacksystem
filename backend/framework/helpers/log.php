@@ -47,6 +47,10 @@ class log {
     self::write('WARNING', $msg, $ctx, $meta);
   }
 
+  static function warn($msg, $ctx = [], $meta = []) {
+    self::warning($msg, $ctx, $meta);
+  }
+
   static function error($msg, $ctx = [], $meta = []) {
     self::write('ERROR', $msg, $ctx, $meta);
   }

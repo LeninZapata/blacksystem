@@ -43,6 +43,7 @@ class infoproductProduct {
       'config.welcome_messages_upsell': messagesData.welcome_messages_upsell || [],
       'config.tracking_messages': messagesData.tracking_messages || [],
       'config.tracking_messages_upsell': messagesData.tracking_messages_upsell || [],
+      'config.upsell_products': messagesData.upsell_products || [],
       'config.templates': messagesData.templates || [],
       context: data.context || this.context
     });
@@ -52,12 +53,28 @@ class infoproductProduct {
     const validation = form.validate(formId);
     if (!validation.success) return toast.error(validation.message);
 
+    // Validar que no se seleccione el mismo producto como upsell
+    if (this.currentId && validation.data.config?.upsell_products) {
+      const hasSameProduct = validation.data.config.upsell_products.some(up => parseInt(up.product_id) === parseInt(this.currentId));
+      if (hasSameProduct) return toast.error(__('infoproduct.products.error.same_product_upsell'));
+    }
+
+    // Validar que no haya productos duplicados en upsell_products
+    if (validation.data.config?.upsell_products) {
+      const productIds = validation.data.config.upsell_products.map(up => up.product_id).filter(id => id);
+      const hasDuplicates = productIds.length !== new Set(productIds).size;
+      if (hasDuplicates) return toast.error(__('infoproduct.products.error.duplicate_upsell_products'));
+    }
+
     const body = this.buildBody(validation.data);
     const result = this.currentId
       ? await this.update(this.currentId, body)
       : await this.create(body);
 
     if (result) {
+      // Limpiar cache del select de productos para que se recargue con los datos actualizados
+      this.clearProductSelectCache();
+
       toast.success(this.currentId
         ? __('infoproduct.products.success.updated')
         : __('infoproduct.products.success.created')
@@ -99,6 +116,10 @@ class infoproductProduct {
 
     if (formData.config?.tracking_messages_upsell && Array.isArray(formData.config.tracking_messages_upsell)) {
       messages.tracking_messages_upsell = formData.config.tracking_messages_upsell;
+    }
+
+    if (formData.config?.upsell_products && Array.isArray(formData.config.upsell_products)) {
+      messages.upsell_products = formData.config.upsell_products;
     }
 
     if (formData.config?.templates && Array.isArray(formData.config.templates)) {
@@ -187,6 +208,24 @@ class infoproductProduct {
   // Refrescar datatable
   static refresh() {
     if (window.datatable) datatable.refreshFirst();
+  }
+
+  // Limpiar cache del select de productos
+  static clearProductSelectCache() {
+    if (!window.form || !form.selectCache) return;
+
+    // Buscar y eliminar todas las keys del cache que contengan '/api/product'
+    const keysToDelete = [];
+    form.selectCache.forEach((value, key) => {
+      if (key.includes('/api/product')) {
+        keysToDelete.push(key);
+      }
+    });
+
+    keysToDelete.forEach(key => {
+      form.selectCache.delete(key);
+      logger.debug('ext:infoproduct', `Cache eliminado: ${key}`);
+    });
   }
 }
 

@@ -62,7 +62,7 @@ class MessageBuffer {
       if ($timeSinceLast >= $this->delaySeconds) {
         @unlink($bufferFile);
         
-        log::success('Timer completado - Procesando ' . count($buffer['messages']) . ' mensajes', [], ['module' => 'buffer']);
+        log::info('Timer completado - Procesando ' . count($buffer['messages']) . ' mensajes', [], ['module' => 'buffer']);
         
         return $this->prepareMessages($buffer['messages']);
       }

@@ -4,6 +4,7 @@ class router {
   private $routes = [];
   private $prefix = '';
   private $groupMiddleware = [];
+  private static $logMeta = ['module' => 'router', 'layer' => 'framework'];
 
   // Middleware disponibles
   protected $middleware = [
@@ -72,12 +73,10 @@ class router {
 
     $path = parse_url($uri, PHP_URL_PATH);
 
-    // Remover slashes duplicados: //api/user -> /api/user
+    // Remover slashes duplicados
     $path = preg_replace('#/+#', '/', $path);
 
     // Remover el prefijo de la carpeta del proyecto si existe
-    // /factory-saas/api/system -> /api/system
-    // /blacksystem/blacksystem/api/auth/login -> /api/auth/login
     if (preg_match('#(/api/.*)$#', $path, $matches)) {
       $path = $matches[1];
     }
@@ -139,13 +138,13 @@ class router {
       list($class, $method) = explode('@', $handler);
 
       if (!class_exists($class)) {
-        throw new Exception(__('core.router.controller_not_found', ['controller' => $class]));
+        log::throwError(__('core.router.controller_not_found', ['controller' => $class]), [], self::$logMeta);
       }
 
       $controller = new $class();
 
       if (!method_exists($controller, $method)) {
-        throw new Exception(__('core.router.method_not_found_in_controller', ['method' => $method, 'controller' => $class]));
+        log::throwError(__('core.router.method_not_found_in_controller', ['method' => $method, 'controller' => $class]), [], self::$logMeta);
       }
 
       call_user_func_array([$controller, $method], $params);
@@ -153,7 +152,7 @@ class router {
     }
 
     $handlerType = is_object($handler) ? get_class($handler) : gettype($handler);
-    throw new Exception(__('core.router.invalid_handler') . " (tipo: {$handlerType})");
+    log::throwError(__('core.router.invalid_handler') . " (tipo: {$handlerType})", [], self::$logMeta);
   }
 
   // Ejecutar middleware
@@ -163,20 +162,20 @@ class router {
     $mwParams = isset($parts[1]) ? explode(',', $parts[1]) : [];
 
     if (!isset($this->middleware[$name])) {
-      throw new Exception(__('core.router.middleware_not_found', ['middleware' => $name]));
+      log::throwError(__('core.router.middleware_not_found', ['middleware' => $name]), [], self::$logMeta);
     }
 
     $mwClass = $this->middleware[$name];
     $mwFile = __DIR__ . '/../middleware/' . $mwClass . '.php';
 
     if (!file_exists($mwFile)) {
-      throw new Exception(__('core.router.middleware_file_not_found', ['middleware' => $mwClass]));
+      log::throwError(__('core.router.middleware_file_not_found', ['middleware' => $mwClass]), [], self::$logMeta);
     }
 
     require_once $mwFile;
 
     if (!class_exists($mwClass)) {
-      throw new Exception(__('core.router.middleware_class_not_found', ['middleware' => $mwClass]));
+      log::throwError(__('core.router.middleware_class_not_found', ['middleware' => $mwClass]), [], self::$logMeta);
     }
 
     $mw = new $mwClass();

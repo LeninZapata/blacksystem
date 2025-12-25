@@ -26,7 +26,7 @@ class routeDiscovery {
   // Obtener rutas desde archivos JSON
   private static function getResourceRoutes() {
     $routes = [];
-    $resourcesDir = BACKEND_PATH . '/resources';
+    $resourcesDir = APP_PATH . '/resources/schemas';
 
     if (!is_dir($resourcesDir)) return $routes;
 
@@ -39,7 +39,8 @@ class routeDiscovery {
 
       if (!$config) continue;
 
-      $globalMw = $config['middleware'] ?? [];
+        // Middleware eliminado
+        // $globalMw = $config['middleware'] ?? [];
 
       // Rutas CRUD estándar
       $crudRoutes = [
@@ -60,13 +61,13 @@ class routeDiscovery {
           continue;
         }
 
-        $routeMw = array_merge($globalMw, $routeConfig['middleware'] ?? []);
+        // Middleware eliminado, no se usa $globalMw ni $routeMw
 
         $routes[] = [
           'method' => $method,
           'path' => $path,
           'description' => $description,
-          'middleware' => $routeMw,
+          'middleware' => self::resolveMiddlewareForResourceRoute($resourceName, $key),
           'source' => "resource:{$resourceName}",
           'type' => 'crud'
         ];
@@ -91,6 +92,7 @@ class routeDiscovery {
 
       // Parsear el archivo PHP para extraer rutas
       $content = file_get_contents($filePath);
+      $GLOBALS['__routeDiscovery_content'] = $content;
       $parsedRoutes = self::parsePhpRoutes($content, $module);
 
       $routes = array_merge($routes, $parsedRoutes);
@@ -114,7 +116,7 @@ class routeDiscovery {
 
       // Buscar rutas dentro del grupo
       preg_match_all(
-        '/\$router->(get|post|put|delete)\(\[?[\'"]([^\'"]+)[\'"]\]?/',
+        '/\$router->(get|post|put|delete)\(\[?[\'\"]([^\'\"]+)[\'\"]\]?/',
         $groupContent,
         $innerMatches,
         PREG_SET_ORDER
@@ -126,24 +128,18 @@ class routeDiscovery {
         $fullPath = $prefix . $relativePath;
         $routeKey = $method . ':' . $fullPath;
 
-        // Evitar duplicados
+        // Evitar duplicados SOLO por path completo
         if (isset($foundPaths[$routeKey])) continue;
         $foundPaths[$routeKey] = true;
-        
-        // También marcar el path relativo para evitar que se procese como ruta directa
-        $foundPaths[$method . ':' . $relativePath] = true;
 
         // Extraer descripción del comentario antes de la ruta
         $description = self::extractDescriptionFromGroup($groupContent, $relativePath);
-
-        // Extraer middleware
-        $middleware = self::extractMiddlewareFromGroup($groupContent, $relativePath);
 
         $routes[] = [
           'method' => $method,
           'path' => $fullPath,
           'description' => $description,
-          'middleware' => $middleware,
+          'middleware' => self::resolveMiddlewareForManualRoute($module, $method, $fullPath),
           'source' => "manual:{$module}",
           'type' => 'manual'
         ];
@@ -152,7 +148,7 @@ class routeDiscovery {
 
     // Buscar rutas directas (fuera de grupos)
     preg_match_all(
-      '/\$router->(get|post|put|delete)\([\'"]([^\'"]+)[\'"]/',
+      '/\\$router->(get|post|put|delete)\\([\'\"]([^\'\"]+)[\'\"]/ ',
       $content,
       $directMatches,
       PREG_SET_ORDER
@@ -161,21 +157,28 @@ class routeDiscovery {
     foreach ($directMatches as $match) {
       $method = strtoupper($match[1]);
       $path = $match[2];
-      
-      // Solo agregar si no fue procesada como parte de un grupo
       $routeKey = $method . ':' . $path;
+      // Si ya existe una ruta con el mismo método y path (por ejemplo, con prefijo de grupo), NO agregar la versión sin prefijo
       if (isset($foundPaths[$routeKey])) continue;
-      
+
+      // Buscar si existe una ruta igual pero con algún prefijo de grupo
+      $alreadyWithPrefix = false;
+      foreach ($foundPaths as $existingKey => $v) {
+        if (strpos($existingKey, $method . ':') === 0 && substr($existingKey, -strlen($path)) === $path && $existingKey !== $routeKey) {
+          $alreadyWithPrefix = true;
+          break;
+        }
+      }
+      if ($alreadyWithPrefix) continue;
       $foundPaths[$routeKey] = true;
 
       $description = self::extractDescription($content, $path);
-      $middleware = self::extractMiddleware($content, $path);
 
       $routes[] = [
         'method' => $method,
         'path' => $path,
         'description' => $description,
-        'middleware' => $middleware,
+        'middleware' => self::resolveMiddlewareForManualRoute($module, $method, $path),
         'source' => "manual:{$module}",
         'type' => 'manual'
       ];
@@ -187,42 +190,30 @@ class routeDiscovery {
   // Extraer grupos usando conteo de llaves para capturar correctamente el contenido completo
   private static function extractGroups($content) {
     $groups = [];
-    $pattern = '/\$router->group\([\'"]([^\'"]+)[\'"]/';
-    
+    $pattern = '/\$router->group\([\'\"]([^\'\"]+)[\'\"]/';
     if (preg_match_all($pattern, $content, $matches, PREG_OFFSET_CAPTURE)) {
       foreach ($matches[0] as $index => $match) {
         $prefix = $matches[1][$index][0];
         $startPos = $match[1];
-        
-        // Encontrar el inicio de la función (después del '{')
         $funcStart = strpos($content, '{', $startPos);
         if ($funcStart === false) continue;
-        
         // Contar llaves para encontrar el final del grupo
         $braceCount = 1;
         $pos = $funcStart + 1;
         $length = strlen($content);
-        
         while ($pos < $length && $braceCount > 0) {
-          $char = $content[$pos];
-          if ($char === '{') {
-            $braceCount++;
-          } elseif ($char === '}') {
-            $braceCount--;
-          }
+          if ($content[$pos] === '{') $braceCount++;
+          if ($content[$pos] === '}') $braceCount--;
           $pos++;
         }
-        
         // Extraer el contenido del grupo
         $groupContent = substr($content, $funcStart + 1, $pos - $funcStart - 2);
-        
         $groups[] = [
           'prefix' => $prefix,
           'content' => $groupContent
         ];
       }
     }
-    
     return $groups;
   }
 
@@ -265,26 +256,130 @@ class routeDiscovery {
   // Extraer middleware de la ruta
   private static function extractMiddleware($content, $path) {
     $escapedPath = preg_quote($path, '/');
-    $pattern = '/' . $escapedPath . '[^;]+->middleware\(\[?[\'"]([^\'"]+)[\'"]/s';
-    
-    if (preg_match($pattern, $content, $match)) {
-      $mw = str_replace(['[', ']', "'", '"', ' '], '', $match[1]);
-      return array_filter(explode(',', $mw));
+    // 1. Buscar middleware directo (array o string)
+    $patternDirect = '/' . $escapedPath . '[^;]+->middleware\((\[.*?\]|[\'\"][^\'\"]+[\'\"])/s';
+    if (stripos($path, 'user') !== false) {
+      log::debug('extractMiddleware: [USER] debug antes de patrón directo', [
+        'content' => $content,
+        'escapedPath' => $escapedPath,
+        'path' => $path,
+        'patternDirect' => $patternDirect
+      ], ['module' => 'routeDiscovery']);
     }
-    
+    $matched = preg_match($patternDirect, $content, $match);
+    if (stripos($path, 'user') !== false) {
+      log::debug('extractMiddleware: [USER] resultado preg_match', [
+        'matched' => $matched,
+        'match' => $match ?? null,
+        'path' => $path
+      ], ['module' => 'routeDiscovery']);
+    }
+    if ($matched) {
+      $mwRaw = $match[1];
+      if (stripos($path, 'user') !== false) {
+        log::debug('extractMiddleware: [USER] valor extraído', [
+          'mwRaw' => $mwRaw,
+          'path' => $path
+        ], ['module' => 'routeDiscovery']);
+      }
+      // Si es array: ['json', 'auth']
+      if (preg_match('/^\[.*\]$/s', $mwRaw)) {
+        preg_match_all('/[\'\"]([^\'\"]+)[\'\"]/',$mwRaw, $allMatches);
+        if (stripos($path, 'user') !== false) {
+          log::debug('extractMiddleware: [USER] array extraído', [
+            'allMatches' => $allMatches[1],
+            'path' => $path
+          ], ['module' => 'routeDiscovery']);
+        }
+        return $allMatches[1];
+      }
+      // Si es string: 'auth' o "auth"
+      $mw = trim($mwRaw, "'\" ");
+      if (stripos($path, 'user') !== false) {
+        log::debug('extractMiddleware: [USER] string extraído', [
+          'mw' => $mw,
+          'path' => $path
+        ], ['module' => 'routeDiscovery']);
+      }
+      return [$mw];
+    }
+
+    // 2. Buscar middleware por variable (ej: ->middleware($middleware))
+    $patternVar = '/' . $escapedPath . '[^;]+->middleware\((\$[a-zA-Z0-9_]+)\)/s';
+    if (preg_match($patternVar, $content, $matchVar)) {
+      $varName = $matchVar[1];
+      log::debug('extractMiddleware: patrón variable', ['pattern' => $patternVar, 'match' => $matchVar, 'varName' => $varName, 'path' => $path], ['module' => 'routeDiscovery']);
+      // Buscar definición de la variable (ej: $middleware = ...;)
+      $varPattern = '/'.preg_quote($varName, '/').'\s*=\s*([^;]+);/';
+      if (preg_match($varPattern, $content, $varMatch)) {
+        $value = trim($varMatch[1]);
+        log::debug('extractMiddleware: valor de variable', ['varPattern' => $varPattern, 'varMatch' => $varMatch, 'value' => $value], ['module' => 'routeDiscovery']);
+        // Si es array: ['auth'] o ["auth"]
+        if (preg_match('/\[(.*?)\]/', $value, $arrMatch)) {
+          $arr = explode(',', $arrMatch[1]);
+          return array_map(function($v) {
+            return trim($v, "'\" ");
+          }, $arr);
+        }
+        // Si es string: 'auth' o "auth"
+        if (preg_match('/^[\'"](.*?)[\'"]$/', $value, $strMatch)) {
+          return [$strMatch[1]];
+        }
+      } else {
+        log::debug('extractMiddleware: variable no encontrada', ['varPattern' => $varPattern, 'varName' => $varName], ['module' => 'routeDiscovery']);
+      }
+    }
+    log::debug('extractMiddleware: sin middleware', ['path' => $path], ['module' => 'routeDiscovery']);
     return [];
   }
 
   // Extraer middleware dentro de un grupo
   private static function extractMiddlewareFromGroup($groupContent, $path) {
     $escapedPath = preg_quote($path, '/');
-    $pattern = '/' . $escapedPath . '[^;]+->middleware\(\[?[\'"]([^\'"]+)[\'"]/s';
-    
+    $pattern = '/' . $escapedPath . '[^;]+->middleware\((\[.*?\]|[\'\"][^\'\"]+[\'\"])/s';
     if (preg_match($pattern, $groupContent, $match)) {
-      $mw = str_replace(['[', ']', "'", '"', ' '], '', $match[1]);
-      return array_filter(explode(',', $mw));
+      $mwRaw = $match[1];
+      // Si es array: ['json', 'auth']
+      if (preg_match('/^\[.*\]$/s', $mwRaw)) {
+        preg_match_all('/[\'\"]([^\'\"]+)[\'\"]/',$mwRaw, $allMatches);
+        return $allMatches[1];
+      }
+      // Si es string: 'auth' o "auth"
+      $mw = trim($mwRaw, "'\" ");
+      return [$mw];
     }
-    
+    // Buscar middleware por variable (->middleware($middleware))
+    $patternVar = '/' . $escapedPath . '[^;]+->middleware\((\$[a-zA-Z0-9_]+)\)/s';
+    if (preg_match($patternVar, $groupContent, $matchVar)) {
+      $varName = $matchVar[1];
+      // Buscar definición de la variable dentro del grupo
+      $varPattern = '/'.preg_quote($varName, '/').'\s*=\s*([^;]+);/';
+      $found = false;
+      $value = null;
+      if (preg_match($varPattern, $groupContent, $varMatch)) {
+        $value = trim($varMatch[1]);
+        $found = true;
+      } else if (isset($GLOBALS['__routeDiscovery_content'])) {
+        // Buscar en el contenido completo del archivo si no está en el grupo
+        if (preg_match($varPattern, $GLOBALS['__routeDiscovery_content'], $varMatch2)) {
+          $value = trim($varMatch2[1]);
+          $found = true;
+        }
+      }
+      if ($found && $value !== null) {
+        // Si es array: ['auth'] o ["auth"]
+        if (preg_match('/\[(.*?)\]/', $value, $arrMatch)) {
+          $arr = explode(',', $arrMatch[1]);
+          return array_map(function($v) {
+            return trim($v, "'\" ");
+          }, $arr);
+        }
+        // Si es string: 'auth' o "auth"
+        if (preg_match('/^[\'\"](.*?)[\'\"]$/', $value, $strMatch)) {
+          return [$strMatch[1]];
+        }
+      }
+    }
     return [];
   }
 
@@ -338,7 +433,7 @@ class routeDiscovery {
               'path' => $path,
               'description' => $description,
               'middleware' => $resourceConfig['middleware'] ?? [],
-              'source' => "extension:{$extension}",
+                'middleware' => [],
               'type' => 'crud'
             ];
           }
@@ -349,6 +444,7 @@ class routeDiscovery {
       $routesFile = $extensionsDir . '/' . $extension . '/routes/routes.php';
       if (file_exists($routesFile)) {
         $content = file_get_contents($routesFile);
+        $GLOBALS['__routeDiscovery_content'] = $content;
         $parsedRoutes = self::parsePhpRoutes($content, "extension:{$extension}");
 
         // Agregar prefijo a las rutas
@@ -388,8 +484,7 @@ class routeDiscovery {
       'by_method' => [],
       'by_source' => [],
       'by_type' => [],
-      'with_auth' => 0,
-      'with_middleware' => 0
+        'with_auth' => 0
     ];
 
     foreach ($routes as $route) {
@@ -405,17 +500,119 @@ class routeDiscovery {
       $type = $route['type'];
       $stats['by_type'][$type] = ($stats['by_type'][$type] ?? 0) + 1;
 
-      // Con auth
-      if (in_array('auth', $route['middleware'])) {
-        $stats['with_auth']++;
-      }
 
-      // Con middleware
-      if (!empty($route['middleware'])) {
-        $stats['with_middleware']++;
-      }
     }
 
     return $stats;
   }
+
+    // Obtiene los middleware globales y específicos de cada ruta desde el schema
+  private static function resolveMiddlewareForResourceRoute($resourceName, $routeKey) {
+    $schemasDir = APP_PATH . '/resources/schemas';
+    $schemaFile = $schemasDir . '/' . $resourceName . '.json';
+    $middlewares = [];
+    if (file_exists($schemaFile)) {
+      $config = json_decode(file_get_contents($schemaFile), true);
+      // Middleware global (cabecera)
+      if (isset($config['middleware']) && is_array($config['middleware'])) {
+        $middlewares = array_merge($middlewares, $config['middleware']);
+      }
+      // Middleware específico de la ruta
+      if (isset($config['routes'][$routeKey]['middleware']) && is_array($config['routes'][$routeKey]['middleware'])) {
+        $middlewares = array_merge($middlewares, $config['routes'][$routeKey]['middleware']);
+      }
+    }
+    return $middlewares;
+  }
+
+  // Busca middlewares definidos en el archivo de rutas manuales para rutas tipo manual
+  private static function resolveMiddlewareForManualRoute($module, $method, $path) {
+    $apisDir = APP_PATH . '/routes/apis';
+    $filePath = $apisDir . '/' . $module . '.php';
+    $middlewares = [];
+    if (!file_exists($filePath)) return $middlewares;
+    $content = file_get_contents($filePath);
+    // Buscar coincidencia de ruta y método con middleware (path completo)
+    $escapedPath = preg_quote($path, '/');
+    $pattern = '/\\$router->' . strtolower($method) . '\\s*\\(\\s*[\'\"]' . $escapedPath . '[\'\"]\\s*[,\)](.+?)?->middleware\\(([^;]+)\\)/s';
+    $found = false;
+    if (preg_match($pattern, $content, $match)) {
+      $mwRaw = trim($match[2]);
+      // Si es variable: $middleware
+      if (preg_match('/^\$([a-zA-Z0-9_]+)$/', $mwRaw, $varMatch)) {
+        $varName = $varMatch[1];
+        $middlewares = array_merge($middlewares, self::resolveMiddlewareVariable($module, $varName));
+      } else if (preg_match('/^\s*\[.*\]\s*$/s', $mwRaw)) {
+        $middlewares = array_merge($middlewares, self::parsePhpArrayString($mwRaw));
+      } else {
+        // Si es string: 'auth' o "auth"
+        $val = trim($mwRaw, "'\" ");
+        if ($val !== '') $middlewares[] = $val;
+      }
+      $found = true;
+    }
+    // Si no se encontró, intentar buscar usando el path relativo (sin prefijo de grupo)
+    if (!$found && strpos($path, '/') !== false) {
+      $parts = explode('/', $path);
+      // Si el path tiene más de 2 partes (ej: /api/auth/login), probar con la última parte (ej: /login)
+      if (count($parts) > 2) {
+        $relativePath = '/' . end($parts);
+        $escapedRelPath = preg_quote($relativePath, '/');
+        $patternRel = '/\\$router->' . strtolower($method) . '\\s*\\(\\s*[\'\"]' . $escapedRelPath . '[\'\"]\\s*[,\)](.+?)?->middleware\\(([^;]+)\\)/s';
+        if (preg_match($patternRel, $content, $matchRel)) {
+          $mwRaw = trim($matchRel[2]);
+          if (preg_match('/^\$([a-zA-Z0-9_]+)$/', $mwRaw, $varMatch)) {
+            $varName = $varMatch[1];
+            $middlewares = array_merge($middlewares, self::resolveMiddlewareVariable($module, $varName));
+          } else if (preg_match('/^\s*\[.*\]\s*$/s', $mwRaw)) {
+            $middlewares = array_merge($middlewares, self::parsePhpArrayString($mwRaw));
+          } else {
+            $val = trim($mwRaw, "'\" ");
+            if ($val !== '') $middlewares[] = $val;
+          }
+        }
+      }
+    }
+    return $middlewares;
+  }
+
+    // Resuelve el valor de una variable middleware definida en el archivo PHP
+  private static function resolveMiddlewareVariable($module, $varName) {
+    $apisDir = APP_PATH . '/routes/apis';
+    $filePath = $apisDir . '/' . $module . '.php';
+    if (!file_exists($filePath)) return [];
+    $content = file_get_contents($filePath);
+    $varPattern = '/\$' . preg_quote($varName, '/') . '\s*=\s*([^;]+);/';
+    if (preg_match($varPattern, $content, $match)) {
+      $value = trim($match[1]);
+      // Si es expresión ternaria: IS_DEV ? [] : ['auth','other']
+      if (preg_match('/\?\s*\[.*?\]\s*:\s*(\[.*?\])/', $value, $ternaryMatch)) {
+        $arrayPart = $ternaryMatch[1];
+        return self::parsePhpArrayString($arrayPart);
+      }
+      // Si es array: ['auth'] o ["auth"]
+      if (preg_match('/\[.*\]/', $value)) {
+        return self::parsePhpArrayString($value);
+      }
+      // Si es string: 'auth' o "auth"
+      if (preg_match('/^[\'\"](.*?)[\'\"]$/', $value, $strMatch)) {
+        $val = $strMatch[1];
+        return $val !== '' ? [$val] : [];
+      }
+    } else {
+    }
+    return [];
+  }
+
+      // Utilidad: convierte array PHP de comillas simples a dobles y lo decodifica como JSON
+      private static function parsePhpArrayString($arrayString) {
+        // Reemplazar comillas simples por dobles solo en los valores del array
+        $json = preg_replace_callback(
+          "/'([^']*)'/",
+          function($m) { return '"' . $m[1] . '"'; },
+          $arrayString
+        );
+        $result = json_decode($json, true);
+        return is_array($result) ? $result : [];
+      }
 }

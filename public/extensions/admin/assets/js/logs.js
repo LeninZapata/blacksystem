@@ -16,7 +16,7 @@ class logs {
     const container = document.getElementById('logs-container');
 
     if (!container) {
-      logger.warn('ext:admin:logs','⚠️ Container logs-container no encontrado');
+      logger:warn('⚠️ Container logs-container no encontrado');
       return;
     }
 
@@ -28,11 +28,11 @@ class logs {
 
   // Filtrar por fecha
   static async filterByDate(daysAgo) {
-    logger.info(`📅 Filtrando logs: ${daysAgo === 0 ? 'Hoy' : daysAgo === 1 ? 'Ayer' : `Hace ${daysAgo} días`}`);
+    logger.info('ext:admin:logs',`📅 Filtrando logs: ${daysAgo === 0 ? 'Hoy' : daysAgo === 1 ? 'Ayer' : `Hace ${daysAgo} días`}`);
 
     const container = document.getElementById('logs-container');
     if (!container) {
-      logger.warn('ext:admin:logs','⚠️ Container logs-container no encontrado');
+      logger:warn('⚠️ Container logs-container no encontrado');
       return;
     }
 
@@ -77,7 +77,7 @@ class logs {
       let data = cache.get(cacheKey);
 
       if (data) {
-        logger.info(`✅ Logs obtenidos desde caché (${filterKey})`);
+        logger.info('ext:admin:logs',`✅ Logs obtenidos desde caché (${filterKey})`);
         this.logsData = data;
       } else {
 
@@ -107,7 +107,7 @@ class logs {
           endpoint = `/api/logs/search?from=${fromStr}&to=${toStr}&limit=1000`;
         }
 
-        // Hace petición al endpoint
+        // Hacer petición al endpoint
         const response = await api.get(endpoint);
 
         if (!response.success) {
@@ -124,7 +124,7 @@ class logs {
       this.renderLogs(container);
 
     } catch (error) {
-      logger.error('ext:admin:logs','❌ Error cargando logs:', error);
+      logger.error('❌ Error cargando logs:', error);
       container.innerHTML = `
         <div style="background: #7f1d1d; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #ef4444;">
           <h4 style="margin: 0 0 0.5rem; color: #fca5a5;">❌ Error al cargar logs</h4>
@@ -169,14 +169,27 @@ class logs {
           <div style="font-size: 1.5rem; font-weight: bold; color: #f87171;">${logs.filter(l => l.level === 'ERROR').length}</div>
           <div style="color: #94a3b8; font-size: 0.85rem;">ERROR</div>
         </div>
+        <div style="background: #1e293b; padding: 1rem; border-radius: 8px; border-left: 4px solid #475569;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: #94a3b8;">${logs.filter(l => l.level === 'DEBUG').length}</div>
+          <div style="color: #94a3b8; font-size: 0.85rem;">DEBUG</div>
+        </div>
+      </div>
+
+      <!-- Filtro por tag -->
+      <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+        <label style="color: #e2e8f0; font-size: 0.95rem; font-weight: 500;">🏷️ Tag:</label>
+        <input id="logs-tag-input" type="text" placeholder="Escribe el tag..." style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.9rem;" />
+        <button id="logs-tag-btn" style="padding: 0.4rem 1.2rem; border-radius: 6px; background: #3b82f6; color: white; border: none; font-weight: 500; cursor: pointer;">Buscar</button>
       </div>
 
       <!-- Logs Container -->
       <div style="background: #0f172a; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-height: 800px; overflow-y: auto;">
-        <div style="padding: 1rem; border-bottom: 1px solid #334155; background: #1e293b;">
+        <div style="padding: 1rem; border-bottom: 1px solid #334155; background: #1e293b; display: flex; align-items: center; justify-content: space-between;">
           <h4 style="margin: 0; color: #e2e8f0; font-size: 1rem;">📜 Registros del Sistema</h4>
+          <button id="logs-reload-btn" style="margin-left: auto; padding: 0.4rem 1.2rem; border-radius: 6px; background: #3b82f6; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.95rem;">🔄 Recargar Logs</button>
+          <button id="logs-delete-btn" style="margin-left: 0.5rem; padding: 0.4rem 1.2rem; border-radius: 6px; background: transparent; color: white; border: 1px dashed #ef4444; font-weight: 500; cursor: pointer; font-size: 0.95rem;">🗑️ Eliminar Log</button>
         </div>
-        <div style="font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.875rem;">
+        <div style="font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.875rem;" id="logs-list-container">
           ${logs.map(log => this.renderLogLine(log)).join('')}
         </div>
       </div>
@@ -185,6 +198,52 @@ class logs {
     container.innerHTML = html;
     this.updateLayerToolbar();
     this.updateLevelToolbar();
+
+    // Filtro por tag
+    const tagInput = document.getElementById('logs-tag-input');
+    const tagBtn = document.getElementById('logs-tag-btn');
+    const logsListContainer = document.getElementById('logs-list-container');
+    if (tagBtn && tagInput && logsListContainer) {
+      tagBtn.onclick = () => {
+        const tagValue = tagInput.value.trim().toLowerCase();
+        let filteredLogs = logs;
+        if (tagValue) {
+          filteredLogs = logs.filter(l => Array.isArray(l.tags) && l.tags.some(t => t.toLowerCase() === tagValue));
+        }
+        logsListContainer.innerHTML = filteredLogs.map(log => this.renderLogLine(log)).join('');
+      };
+      tagInput.onkeydown = (e) => {
+        if (e.key === 'Enter') tagBtn.click();
+      };
+    }
+
+    // Botón Recargar Logs
+    const reloadBtn = document.getElementById('logs-reload-btn');
+    if (reloadBtn) {
+      reloadBtn.onclick = () => this.forceReload();
+    }
+
+    // Botón Eliminar Log
+    const deleteBtn = document.getElementById('logs-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.onclick = async () => {
+        deleteBtn.disabled = true;
+        deleteBtn.innerText = 'Eliminando...';
+        try {
+          const res = await api.get('/api/cleanup/storage/logs');
+          if (res.success) {
+            toast.success('Logs eliminados correctamente');
+            await this.forceReload();
+          } else {
+            toast.error(res.error || 'Error al eliminar logs');
+          }
+        } catch (err) {
+          toast.error('Error al eliminar logs');
+        }
+        deleteBtn.disabled = false;
+        deleteBtn.innerText = '🗑️ Eliminar Log';
+      };
+    }
   }
 
   // Actualiza el estado visual de los botones de nivel
@@ -234,18 +293,18 @@ class logs {
   static renderLogLine(log) {
     const levelColors = {
       'DEBUG': { bg: '#1e293b', text: '#94a3b8', badge: '#475569' },
-      'INFO': { bg: '#0c4a6e', text: '#7dd3fc', badge: '#0284c7' },
+      'INFO': { bg: '#0c4a6e36', text: '#7dd3fc', badge: '#0d567c' },
       'SUCCESS': { bg: '#064e3b', text: '#6ee7b7', badge: '#059669' },
       'WARNING': { bg: '#78350f', text: '#fbbf24', badge: '#d97706' },
-      'ERROR': { bg: '#7f1d1d', text: '#fca5a5', badge: '#dc2626' }
+      'ERROR': { bg: '#7f1d1d33', text: '#fca5a5', badge: '#4b2020' }
     };
 
     const color = levelColors[log.level] || levelColors['DEBUG'];
     const contextStr = log.context ? JSON.stringify(log.context, null, 2) : '';
 
-    // Renderiza la fila de log con la columna de línea al final
+    // Renderiza la fila de log con la columna de línea al final y badges de tags
     return `
-      <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #1e293b; background: ${color.bg}; transition: background 0.2s;"
+      <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #292020ff; background: ${color.bg}; transition: background 0.2s;"
            onmouseover="this.style.background='#1e293b'"
            onmouseout="this.style.background='${color.bg}'">
         <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
@@ -261,8 +320,15 @@ class logs {
           <span style="color: #8b5cf6; min-width: 120px; font-size: 0.8rem;">
             ${log.module}
           </span>
-          <span style="color: ${color.text}; flex: 1;">
-            ${log.message}
+          <span style="color: ${color.text}; flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+            <span>${log.message}</span>
+            ${Array.isArray(log.tags) && log.tags.length > 0 ? `
+              <span style="display: flex; gap: 0.25rem; align-items: center;">
+                ${log.tags.map(tag => `
+                  <span style="background: rgba(0,0,0,0.1); color: #ffffff42; font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 6px; font-weight: 500;">${tag}</span>
+                `).join('')}
+              </span>
+            ` : ''}
           </span>
           ${log.location ? `<span style=\"color: #475569; min-width: 90px; font-size: 0.75rem; text-align: right;\"> ${log.location}</span>` : ''}
         </div>
@@ -281,7 +347,7 @@ class logs {
 
     const container = document.getElementById('logs-container');
     if (!container) {
-      logger.warn('ext:admin:logs','⚠️ Container logs-container no encontrado');
+      logger:warn('⚠️ Container logs-container no encontrado');
       return;
     }
 

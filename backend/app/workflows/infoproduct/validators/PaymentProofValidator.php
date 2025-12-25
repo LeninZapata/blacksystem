@@ -27,7 +27,7 @@ class PaymentProofValidator {
     return [
       'is_valid' => $isValid,
       'errors' => $errors,
-      'data' => $isValid ? self::extractPaymentData($analysis) : null
+      'data' => $isValid ? self::extractPaymentData($analysis) : $analysis
     ];
   }
 

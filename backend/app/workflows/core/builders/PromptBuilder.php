@@ -50,7 +50,6 @@ class PromptBuilder {
       $metadata = $msg['metadata'] ?? [];
       $action = $metadata['action'] ?? null;
 
-      // Recolectar productos cuando inicia venta
       if ($action === 'start_sale') {
         $productId = $metadata['product_id'] ?? null;
         $productName = $metadata['product_name'] ?? 'Desconocido';
@@ -74,16 +73,17 @@ class PromptBuilder {
         }
       }
 
-      // Recolectar ventas confirmadas
       if ($action === 'sale_confirmed') {
         $saleId = $metadata['sale_id'] ?? null;
         $receiptData = $metadata['receipt_data'] ?? [];
         $amountPaid = $receiptData['amount_found'] ?? '0.00';
+        $origin = $metadata['origin'] ?? 'organic';
         $fecha = $msg['date'] ?? 'N/A';
 
         if ($saleId) {
           $ventasConfirmadas[$saleId] = [
             'amount_paid' => $amountPaid,
+            'origin' => $origin,
             'date' => $fecha
           ];
         }
@@ -102,8 +102,18 @@ class PromptBuilder {
           $precioOfrecido = $prodData['price'];
           $precioPagado = $venta['amount_paid'];
           $fecha = $venta['date'];
+          $origin = $venta['origin'] ?? 'organic';
 
-          $prompt .= "- {$prodData['name']} (ID: {$prodId}) | Precio ofrecido: \${$precioOfrecido} | Precio pagado: \${$precioPagado} | Fecha: {$fecha} | Tipo: Principal\n";
+          $originMap = [
+            'ad' => 'Anuncio',
+            'upsell' => 'Upsell',
+            'downsell' => 'Downsell',
+            'offer' => 'Oferta',
+            'organic' => 'Orgánico'
+          ];
+          $originName = $originMap[$origin] ?? ucfirst($origin);
+
+          $prompt .= "- {$prodData['name']} (ID: {$prodId}) | Precio ofrecido: \${$precioOfrecido} | Precio pagado: \${$precioPagado} | Fecha: {$fecha} | Origen: {$originName}\n";
         }
       }
 
@@ -156,15 +166,21 @@ class PromptBuilder {
     }
 
     if (is_array($currentSale) && !empty($currentSale)) {
-      $saleType = $currentSale['sale_type'] ?? 'main';
-      $saleTypeMap = ['main' => 'Principal', 'ob' => 'Order Bump', 'us' => 'Upsell'];
-      $saleTypeName = $saleTypeMap[$saleType] ?? $saleType;
+      $origin = $currentSale['origin'] ?? 'organic';
+      $originMap = [
+        'ad' => 'Anuncio',
+        'upsell' => 'Upsell',
+        'downsell' => 'Downsell',
+        'offer' => 'Oferta',
+        'organic' => 'Orgánico'
+      ];
+      $originName = $originMap[$origin] ?? ucfirst($origin);
 
       $prompt .= "\n### VENTA ACTUAL:\n";
       $prompt .= "- ID de venta: " . ($currentSale['sale_id'] ?? 'N/A') . "\n";
       $prompt .= "- Producto: " . ($currentSale['product_name'] ?? 'N/A') . " (ID: " . ($currentSale['product_id'] ?? 'N/A') . ")\n";
       $prompt .= "- Estado: " . ($currentSale['sale_status'] ?? 'N/A') . "\n";
-      $prompt .= "- Tipo: {$saleTypeName}\n\n";
+      $prompt .= "- Origen: {$originName}\n\n";
     }
 
     return $prompt;
@@ -180,23 +196,63 @@ class PromptBuilder {
     if ($totalMessages > 0) {
       $prompt .= "---\n\n";
 
+      // Construir mapa de ventas confirmadas por fecha
+      $saleConfirmedDates = [];
+      foreach ($messages as $msg) {
+        $metadata = $msg['metadata'] ?? [];
+        if (($metadata['action'] ?? null) === 'sale_confirmed') {
+          $saleId = $metadata['sale_id'] ?? null;
+          $fecha = $msg['date'] ?? null;
+          if ($saleId && $fecha) {
+            $saleConfirmedDates[$saleId] = $fecha;
+          }
+        }
+      }
+
       foreach ($messages as $index => $msg) {
         $msgNum = $index + 1;
         $fecha = $msg['date'] ?? 'N/A';
         $type = $msg['type'] ?? 'N/A';
+        $format = $msg['format'] ?? 'text';
         $mensaje = $msg['message'] ?? '';
         $metadata = $msg['metadata'] ?? [];
 
+        // Convertir tipo a texto legible para la IA
         $emisor = match($type) {
-          'P', 'prospect' => '👤 CLIENTE',
-          'B', 'bot' => '🤖 BOT',
-          'S', 'system' => '⚙️ SISTEMA',
+          'P' => '👤 CLIENTE',
+          'B' => '🤖 BOT',
+          'S' => '⚙️ SISTEMA',
           default => strtoupper($type)
         };
 
         $prompt .= "**[Mensaje #{$msgNum}]** [{$fecha}] [{$emisor}]\n";
 
-        if (!empty($metadata)) {
+        // Calcular si había venta pendiente EN ESE MOMENTO
+        $hasPendingSale = false;
+        $pendingSaleId = null;
+
+        for ($i = $index - 1; $i >= 0; $i--) {
+          $prevMsg = $messages[$i];
+          $prevMeta = $prevMsg['metadata'] ?? [];
+          $prevAction = $prevMeta['action'] ?? null;
+
+          if ($prevAction === 'start_sale') {
+            $tempSaleId = $prevMeta['sale_id'] ?? null;
+
+            if ($tempSaleId) {
+              $confirmedDate = $saleConfirmedDates[$tempSaleId] ?? null;
+
+              if (!$confirmedDate || $confirmedDate > $fecha) {
+                $hasPendingSale = true;
+                $pendingSaleId = $tempSaleId;
+                break;
+              }
+            }
+          }
+        }
+
+        // MANEJAR METADATOS
+        if (!empty($metadata) || $format === 'image') {
           $prompt .= "(Metadatos:\n";
 
           if (isset($metadata['action'])) {
@@ -217,10 +273,44 @@ class PromptBuilder {
             $prompt .= "*Sale ID:* {$metadata['sale_id']}\n";
           }
 
+          // Metadata específico para imágenes
+          if ($format === 'image') {
+            $imageAnalysis = json_decode($mensaje, true);
+
+            if ($imageAnalysis && is_array($imageAnalysis)) {
+              $prompt .= "*Análisis IA de imagen:* " . ($imageAnalysis['resume'] ?? 'Sin descripción') . "\n";
+              $prompt .= "*Es comprobante:* " . (($imageAnalysis['is_proof_payment'] ?? false) ? 'Sí' : 'No') . "\n";
+
+              if ($imageAnalysis['is_proof_payment'] ?? false) {
+                $prompt .= "*Monto válido:* " . (($imageAnalysis['valid_amount'] ?? false) ? 'Sí' : 'No') . "\n";
+                $prompt .= "*Monto encontrado:* " . ($imageAnalysis['amount_found'] ?? 'N/A') . "\n";
+                $prompt .= "*Nombre válido:* " . (($imageAnalysis['valid_name'] ?? false) ? 'Sí' : 'No') . "\n";
+                $prompt .= "*Nombre encontrado:* " . ($imageAnalysis['name_found'] ?? 'N/A') . "\n";
+              }
+            } else {
+              $prompt .= "*Análisis IA de imagen:* {$mensaje}\n";
+            }
+
+            $prompt .= "*Venta pendiente:* " . ($hasPendingSale ? "Sí (Sale ID: {$pendingSaleId})" : 'No') . "\n";
+          }
+
           $prompt .= ")\n";
         }
 
-        $prompt .= "Mensaje: {$mensaje}\n\n";
+        // FORMATO DEL MENSAJE
+        if ($format === 'image') {
+          $imageAnalysis = json_decode($mensaje, true);
+
+          if ($imageAnalysis && is_array($imageAnalysis)) {
+            $jsonCompact = json_encode($imageAnalysis, JSON_UNESCAPED_UNICODE);
+            $prompt .= "Mensaje: [image: {$jsonCompact}]\n\n";
+          } else {
+            $prompt .= "Mensaje: [image: descripción en metadata]\n\n";
+          }
+        } else {
+          $prompt .= "Mensaje: {$mensaje}\n\n";
+        }
+
         $prompt .= "---\n\n";
       }
     } else {
@@ -232,7 +322,7 @@ class PromptBuilder {
 
   private static function buildCurrentMessage($aiText, $chat) {
     $lastActivity = $chat['last_activity'] ?? 'N/A';
-    
+
     $prompt = "## INFORMACIÓN DINÁMICA DE LA CONVERSACIÓN:\n\n";
     $prompt .= "**Última actividad:** {$lastActivity}\n";
     $prompt .= "**Hora actual:** " . date('Y-m-d H:i:s') . "\n\n";

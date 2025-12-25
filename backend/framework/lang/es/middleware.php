@@ -8,7 +8,7 @@ return [
   ],
   
   'auth' => [
-    'token_missing' => 'Token de autenticación no proporcionado',
+    'token_missing' => 'Token de autenticación no proporcionado (desde framework/middleware)',
     'token_invalid' => 'Token de autenticación inválido',
     'token_expired' => 'Token de autenticación expirado',
     'token_not_found' => 'Token no encontrado',

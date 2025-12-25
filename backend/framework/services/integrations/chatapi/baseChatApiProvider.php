@@ -1,6 +1,9 @@
 <?php
 abstract class baseChatApiProvider implements chatApiProviderInterface {
 
+  // Meta para logs
+  protected static $logMeta = ['module' => 'chatapi', 'layer' => 'framework'];
+
   protected $apiKey;
   protected $instance;
   protected $baseUrl;
@@ -15,8 +18,8 @@ abstract class baseChatApiProvider implements chatApiProviderInterface {
   }
 
   function validateConfig(): bool {
-    if (empty($this->apiKey)) throw new Exception(__('services.chatapi.api_key_required', ['provider' => $this->getProviderName()]));
-    if (empty($this->instance)) throw new Exception(__('services.chatapi.instance_required', ['provider' => $this->getProviderName()]));
+    if (empty($this->apiKey)) log::throwError(__('services.chatapi.api_key_required', ['provider' => $this->getProviderName()]), [], self::$logMeta);
+    if (empty($this->instance)) log::throwError(__('services.chatapi.instance_required', ['provider' => $this->getProviderName()]), [], self::$logMeta);
     return true;
   }
 

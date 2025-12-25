@@ -20,7 +20,10 @@
       "sourceValue": "id",
       "sourceLabel": "name",
       "options": [
-        {"value": "", "label": "i18n:core.form.select.placeholder"}
+        {
+          "value": "",
+          "label": "i18n:core.form.select.placeholder"
+        }
       ]
     },
     {
@@ -88,8 +91,14 @@
                   "label": "i18n:infoproduct.products.field.welcome_messages.type",
                   "type": "select",
                   "options": [
-                    {"value": "text", "label": "i18n:infoproduct.products.field.welcome_messages.type.text"},
-                    {"value": "media", "label": "i18n:infoproduct.products.field.welcome_messages.type.media"}
+                    {
+                      "value": "text",
+                      "label": "i18n:infoproduct.products.field.welcome_messages.type.text"
+                    },
+                    {
+                      "value": "media",
+                      "label": "i18n:infoproduct.products.field.welcome_messages.type.media"
+                    }
                   ]
                 },
                 {
@@ -107,7 +116,11 @@
                   "validation": "url",
                   "placeholder": "i18n:infoproduct.products.field.welcome_messages.url.placeholder",
                   "condition": [
-                    {"field": "type", "operator": "!=", "value": "text"}
+                    {
+                      "field": "type",
+                      "operator": "!=",
+                      "value": "text"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 }
@@ -134,8 +147,14 @@
                   "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type",
                   "type": "select",
                   "options": [
-                    {"value": "text", "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.text"},
-                    {"value": "media", "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.media"}
+                    {
+                      "value": "text",
+                      "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.text"
+                    },
+                    {
+                      "value": "media",
+                      "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.media"
+                    }
                   ]
                 },
                 {
@@ -153,7 +172,11 @@
                   "validation": "",
                   "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.url.placeholder",
                   "condition": [
-                    {"field": "type", "operator": "!=", "value": "text"}
+                    {
+                      "field": "type",
+                      "operator": "!=",
+                      "value": "text"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 }
@@ -195,8 +218,14 @@
                   "label": "i18n:infoproduct.products.field.tracking_messages.type",
                   "type": "select",
                   "options": [
-                    {"value": "text", "label": "i18n:infoproduct.products.field.tracking_messages.type.text"},
-                    {"value": "media", "label": "i18n:infoproduct.products.field.tracking_messages.type.media"}
+                    {
+                      "value": "text",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.type.text"
+                    },
+                    {
+                      "value": "media",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.type.media"
+                    }
                   ]
                 },
                 {
@@ -206,7 +235,11 @@
                   "validation": "url",
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages.url.placeholder",
                   "condition": [
-                    {"field": "type", "operator": "!=", "value": "text"}
+                    {
+                      "field": "type",
+                      "operator": "!=",
+                      "value": "text"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 },
@@ -215,13 +248,34 @@
                   "label": "i18n:infoproduct.products.field.tracking_messages.time_type",
                   "type": "select",
                   "options": [
-                    {"value": "minuto", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.minute"},
-                    {"value": "hora", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.hour"},
-                    {"value": "dia", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.day"},
-                    {"value": "esta_noche", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.tonight"},
-                    {"value": "fin_semana", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.weekend"},
-                    {"value": "quincena_actual", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.current_fortnight"},
-                    {"value": "inicio_mes_proximo", "label": "i18n:infoproduct.products.field.tracking_messages.time_type.next_month_start"}
+                    {
+                      "value": "minuto",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.minute"
+                    },
+                    {
+                      "value": "hora",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.hour"
+                    },
+                    {
+                      "value": "dia",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.day"
+                    },
+                    {
+                      "value": "esta_noche",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.tonight"
+                    },
+                    {
+                      "value": "fin_semana",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.weekend"
+                    },
+                    {
+                      "value": "quincena_actual",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.current_fortnight"
+                    },
+                    {
+                      "value": "inicio_mes_proximo",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.next_month_start"
+                    }
                   ]
                 },
                 {
@@ -232,7 +286,11 @@
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages.time_value.placeholder",
                   "defaultValue": "1",
                   "condition": [
-                    {"field": "time_type", "operator": "not-any", "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"}
+                    {
+                      "field": "time_type",
+                      "operator": "not-any",
+                      "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 },
@@ -243,7 +301,11 @@
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages.hour.placeholder",
                   "defaultValue": "20:00",
                   "condition": [
-                    {"field": "time_type", "operator": "not-any", "value": "hora,minuto"}
+                    {
+                      "field": "time_type",
+                      "operator": "not-any",
+                      "value": "hora,minuto"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 }
@@ -279,8 +341,14 @@
                   "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type",
                   "type": "select",
                   "options": [
-                    {"value": "text", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.text"},
-                    {"value": "media", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.media"}
+                    {
+                      "value": "text",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.text"
+                    },
+                    {
+                      "value": "media",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.media"
+                    }
                   ]
                 },
                 {
@@ -290,7 +358,11 @@
                   "validation": "url",
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.url.placeholder",
                   "condition": [
-                    {"field": "type", "operator": "!=", "value": "text"}
+                    {
+                      "field": "type",
+                      "operator": "!=",
+                      "value": "text"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 },
@@ -299,13 +371,34 @@
                   "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type",
                   "type": "select",
                   "options": [
-                    {"value": "minuto", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.minute"},
-                    {"value": "hora", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.hour"},
-                    {"value": "dia", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.day"},
-                    {"value": "esta_noche", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.tonight"},
-                    {"value": "fin_semana", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.weekend"},
-                    {"value": "quincena_actual", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.current_fortnight"},
-                    {"value": "inicio_mes_proximo", "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.next_month_start"}
+                    {
+                      "value": "minuto",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.minute"
+                    },
+                    {
+                      "value": "hora",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.hour"
+                    },
+                    {
+                      "value": "dia",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.day"
+                    },
+                    {
+                      "value": "esta_noche",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.tonight"
+                    },
+                    {
+                      "value": "fin_semana",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.weekend"
+                    },
+                    {
+                      "value": "quincena_actual",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.current_fortnight"
+                    },
+                    {
+                      "value": "inicio_mes_proximo",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.next_month_start"
+                    }
                   ]
                 },
                 {
@@ -316,7 +409,11 @@
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.time_value.placeholder",
                   "defaultValue": "1",
                   "condition": [
-                    {"field": "time_type", "operator": "not-any", "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"}
+                    {
+                      "field": "time_type",
+                      "operator": "not-any",
+                      "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 },
@@ -327,9 +424,68 @@
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.hour.placeholder",
                   "defaultValue": "20:00",
                   "condition": [
-                    {"field": "time_type", "operator": "not-any", "value": "hora,minuto"}
+                    {
+                      "field": "time_type",
+                      "operator": "not-any",
+                      "value": "hora,minuto"
+                    }
                   ],
                   "conditionContext": "repeatable"
+                }
+              ]
+            },
+            {
+              "name": "config.upsell_products",
+              "label": "i18n:infoproduct.products.field.upsell_products",
+              "type": "repeatable",
+              "buttonPosition": "bottom",
+              "addText": "i18n:infoproduct.products.field.upsell_products.add",
+              "removeText": "i18n:core.form.repeatable.remove",
+              "fields": [
+                {
+                  "name": "product_id",
+                  "label": "i18n:infoproduct.products.field.upsell_products.product",
+                  "type": "select",
+                  "options": [
+                    {
+                      "value": "",
+                      "label": "i18n:core.form.select.placeholder"
+                    }
+                  ],
+                  "source": "/api/product",
+                  "sourceValue": "id",
+                  "sourceLabel": "name"
+                },
+                {
+                  "type": "html",
+                  "content": "<div style=\"background: #e0f2fe2e; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; border-left: 3px solid #a2bcca; font-size: 0.9rem;\"><strong>⏰ ¿Desde cuándo empieza este Upsell luego de la compra?</strong></div>"
+                },
+                {
+                  "name": "time_type",
+                  "label": "i18n:infoproduct.products.field.upsell_products.time_type",
+                  "type": "select",
+                  "options": [
+                    {
+                      "value": "minuto",
+                      "label": "i18n:infoproduct.products.field.upsell_products.time_type.minute"
+                    },
+                    {
+                      "value": "hora",
+                      "label": "i18n:infoproduct.products.field.upsell_products.time_type.hour"
+                    },
+                    {
+                      "value": "dia",
+                      "label": "i18n:infoproduct.products.field.upsell_products.time_type.day"
+                    }
+                  ]
+                },
+                {
+                  "name": "time_value",
+                  "label": "i18n:infoproduct.products.field.upsell_products.time_value",
+                  "type": "text",
+                  "validation": "numeric|min:0|max:99",
+                  "placeholder": "i18n:infoproduct.products.field.upsell_products.time_value.placeholder",
+                  "defaultValue": "1"
                 }
               ]
             }
@@ -352,10 +508,22 @@
                   "label": "i18n:infoproduct.products.field.templates.template_type",
                   "type": "select",
                   "options": [
-                    {"value": "link_product", "label": "i18n:infoproduct.products.field.templates.template_type.link_product"},
-                    {"value": "link_payment_method", "label": "i18n:infoproduct.products.field.templates.template_type.link_payment_method"},
-                    {"value": "link_review", "label": "i18n:infoproduct.products.field.templates.template_type.link_review"},
-                    {"value": "link_media", "label": "i18n:infoproduct.products.field.templates.template_type.link_media"}
+                    {
+                      "value": "link_product",
+                      "label": "i18n:infoproduct.products.field.templates.template_type.link_product"
+                    },
+                    {
+                      "value": "link_payment_method",
+                      "label": "i18n:infoproduct.products.field.templates.template_type.link_payment_method"
+                    },
+                    {
+                      "value": "link_review",
+                      "label": "i18n:infoproduct.products.field.templates.template_type.link_review"
+                    },
+                    {
+                      "value": "link_media",
+                      "label": "i18n:infoproduct.products.field.templates.template_type.link_media"
+                    }
                   ]
                 },
                 {
@@ -371,8 +539,14 @@
                   "label": "i18n:infoproduct.products.field.templates.type",
                   "type": "select",
                   "options": [
-                    {"value": "text", "label": "i18n:infoproduct.products.field.templates.type.text"},
-                    {"value": "media", "label": "i18n:infoproduct.products.field.templates.type.media"}
+                    {
+                      "value": "text",
+                      "label": "i18n:infoproduct.products.field.templates.type.text"
+                    },
+                    {
+                      "value": "media",
+                      "label": "i18n:infoproduct.products.field.templates.type.media"
+                    }
                   ]
                 },
                 {
@@ -382,7 +556,11 @@
                   "validation": "url",
                   "placeholder": "i18n:infoproduct.products.field.templates.url.placeholder",
                   "condition": [
-                    {"field": "type", "operator": "!=", "value": "text"}
+                    {
+                      "field": "type",
+                      "operator": "!=",
+                      "value": "text"
+                    }
                   ],
                   "conditionContext": "repeatable"
                 },

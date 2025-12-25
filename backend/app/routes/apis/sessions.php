@@ -1,6 +1,6 @@
 <?php
-// routes/apis/session.php - Endpoints de sesiones
-
+// routes/apis/sessions.php - Endpoints de sesiones mejorados
+// desde CROM curl http://yourdomain.com/api/sessions/cleanup para eliminar session caducadas
 $router->group('/api/sessions', function($router) {
 
   $middleware = IS_DEV ? [] : ['auth'];
@@ -20,7 +20,7 @@ $router->group('/api/sessions', function($router) {
     $now = time();
 
     foreach (scandir($sessionsDir) as $file) {
-      if ($file === '.' || $file === '..') continue;
+      if ($file === '.' || $file === '..' || !str_ends_with($file, '.json')) continue;
 
       $parts = explode('_', $file);
       if (count($parts) < 3) continue;
@@ -38,10 +38,12 @@ $router->group('/api/sessions', function($router) {
       ];
 
       if ($expiresAt < $now) {
-        $session['expired_since'] = $now - $expiresAt;
+        $session['expired_since_seconds'] = $now - $expiresAt;
+        $session['expired_since_hours'] = round(($now - $expiresAt) / 3600, 2);
         $expired[] = $session;
       } else {
         $session['remaining_seconds'] = $expiresAt - $now;
+        $session['remaining_hours'] = round(($expiresAt - $now) / 3600, 2);
         $active[] = $session;
       }
     }
@@ -65,7 +67,8 @@ $router->group('/api/sessions', function($router) {
       response::success([
         'total' => 0,
         'active' => 0,
-        'expired' => 0
+        'expired' => 0,
+        'total_size_kb' => 0
       ]);
       return;
     }
@@ -73,14 +76,17 @@ $router->group('/api/sessions', function($router) {
     $total = 0;
     $active = 0;
     $expired = 0;
+    $totalSize = 0;
     $now = time();
 
     $files = scandir($sessionsDir);
 
     foreach ($files as $file) {
-      if ($file === '.' || $file === '..') continue;
+      if ($file === '.' || $file === '..' || !str_ends_with($file, '.json')) continue;
 
+      $filePath = $sessionsDir . $file;
       $total++;
+      $totalSize += filesize($filePath);
 
       try {
         $parts = explode('_', $file);
@@ -105,7 +111,9 @@ $router->group('/api/sessions', function($router) {
     response::success([
       'total' => $total,
       'active' => $active,
-      'expired' => $expired
+      'expired' => $expired,
+      'total_size_kb' => round($totalSize / 1024, 2),
+      'avg_size_kb' => $total > 0 ? round(($totalSize / $total) / 1024, 2) : 0
     ]);
   })->middleware($middleware);
 
@@ -137,16 +145,23 @@ $router->group('/api/sessions', function($router) {
       $expiresAt = (int)$parts[0];
       $tokenShort = str_replace('.json', '', $parts[2]);
 
-      // Solo sesiones activas
+      $session = [
+        'token_short' => $tokenShort,
+        'expires_at' => date('Y-m-d H:i:s', $expiresAt),
+        'expires_timestamp' => $expiresAt,
+        'file' => $filename,
+        'is_expired' => $expiresAt < $now
+      ];
+
       if ($expiresAt >= $now) {
-        $sessions[] = [
-          'token_short' => $tokenShort,
-          'expires_at' => date('Y-m-d H:i:s', $expiresAt),
-          'expires_timestamp' => $expiresAt,
-          'remaining_seconds' => $expiresAt - $now,
-          'file' => $filename
-        ];
+        $session['remaining_seconds'] = $expiresAt - $now;
+        $session['remaining_hours'] = round(($expiresAt - $now) / 3600, 2);
+      } else {
+        $session['expired_since_seconds'] = $now - $expiresAt;
+        $session['expired_since_hours'] = round(($now - $expiresAt) / 3600, 2);
       }
+
+      $sessions[] = $session;
     }
 
     response::success([
@@ -161,51 +176,74 @@ $router->group('/api/sessions', function($router) {
     $sessionsDir = STORAGE_PATH . '/sessions/';
 
     if (!is_dir($sessionsDir)) {
-      response::success(['cleaned' => 0, 'errors' => 0]);
+      response::success([
+        'cleaned' => 0,
+        'errors' => 0,
+        'size_freed_kb' => 0
+      ]);
       return;
     }
 
     $cleaned = 0;
     $errors = 0;
+    $totalSize = 0;
     $now = time();
 
     $files = scandir($sessionsDir);
 
     foreach ($files as $file) {
-      if ($file === '.' || $file === '..') continue;
+      if ($file === '.' || $file === '..' || !str_ends_with($file, '.json')) continue;
+
+      $filePath = $sessionsDir . $file;
 
       try {
+        $fileSize = filesize($filePath);
         $parts = explode('_', $file);
 
+        // Archivo con formato inválido
         if (count($parts) < 3) {
-          unlink($sessionsDir . $file);
+          unlink($filePath);
           $cleaned++;
+          $totalSize += $fileSize;
           continue;
         }
 
         $expiresAt = (int)$parts[0];
 
+        // Archivo expirado
         if ($expiresAt < $now) {
-          unlink($sessionsDir . $file);
+          unlink($filePath);
           $cleaned++;
+          $totalSize += $fileSize;
         }
       } catch (Exception $e) {
         $errors++;
-        log::error("Error procesando {$file}: ", $e->getMessage(), $logMeta);
+        log::error("Error limpiando sesión", [
+          'file' => $file,
+          'error' => $e->getMessage()
+        ], $logMeta);
       }
     }
 
     if ($cleaned > 0) {
-      log::info(__('api.session.cleanup_completed', ['cleaned' => $cleaned]), null, $logMeta);
+      log::info('Limpieza de sesiones completada', [
+        'cleaned' => $cleaned,
+        'errors' => $errors,
+        'size_freed_kb' => round($totalSize / 1024, 2)
+      ], $logMeta);
     }
 
-    response::success(['cleaned' => $cleaned, 'errors' => $errors], __('api.session.cleanup.success'));
+    response::success([
+      'cleaned' => $cleaned,
+      'errors' => $errors,
+      'size_freed_kb' => round($totalSize / 1024, 2)
+    ], __('api.session.cleanup.success', ['count' => $cleaned]));
   })->middleware($middleware);
 
   // Invalidar todas las sesiones de un usuario
   $router->delete('/user/{user_id}', function($userId) use ($logMeta) {
-    // Usar UserController::invalidateSessions para centralizar la lógica
     $cleaned = UserController::invalidateSessions($userId);
+    
     response::success([
       'user_id' => (int)$userId,
       'cleaned' => $cleaned

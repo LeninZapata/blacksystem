@@ -1,6 +1,7 @@
 <?php
 
 class webhookController {
+  private static $logMeta = ['module' => 'webhook', 'layer' => 'app'];
 
   function whatsapp() {
     try {
@@ -84,8 +85,8 @@ class webhookController {
     if (!file_exists($workflowPath)) {
       log::error('webhookController::resolveHandler - Archivo no existe', [
         'file' => $workflowFile
-      ], ['module' => 'webhook']);
-      throw new Exception("Workflow no encontrado: {$workflowFile}");
+      ], self::$logMeta);
+      log::throwError("Workflow no encontrado: {$workflowFile}", [], self::$logMeta);
     }
 
     require_once $workflowPath;
@@ -93,7 +94,7 @@ class webhookController {
     $className = $this->getClassNameFromFile($workflowFile);
 
     if (!class_exists($className)) {
-      throw new Exception("Clase no encontrada: {$className} en {$workflowFile}");
+      log::throwError("Clase no encontrada: {$className} en {$workflowFile}", [], self::$logMeta);
     }
 
     return new $className();

@@ -189,12 +189,19 @@ class form {
       if (formEl) {
         this.initRepeatables(instanceId, target);
         this.bindTransforms(instanceId, target);
-        
+
         // Aplicar valores por defecto ANTES de conditions
         this.applyDefaultValues(instanceId, target);
-        
+
         if (window.conditions) {
           conditions.init(instanceId);
+        }
+
+        // Enviar focus al campo que lo requiera
+        const focusField = instanceSchema.fields?.find(f => f.focus === true);
+        if (focusField) {
+          const input = formEl.querySelector(`[name="${focusField.name}"]`);
+          if (input) input.focus();
         }
 
         if (typeof afterRender === 'function') {
@@ -322,7 +329,7 @@ class form {
   static renderGrouper(field, parentPath, index = 0) {
     const mode = field.mode || 'linear';
     const grouperId = `grouper-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Generar fieldPath: usar name si existe, sino usar índice
     let fieldPath;
     if (field.name) {
@@ -442,14 +449,12 @@ class form {
           } else {
             section.classList.add('open');
             content.style.display = 'block';
-            
+
             // Re-evaluar condiciones al abrir sección
             if (window.conditions) {
               const formId = container.closest('form')?.id;
-              logger.debug('core:form', `[Linear] Sección abierta, re-evaluando condiciones. FormID: ${formId}`);
               if (formId) {
                 setTimeout(() => {
-                  logger.debug('core:form', `[Linear] Ejecutando conditions.evaluate(${formId})`);
                   conditions.evaluate(formId);
                 }, 50);
               } else {
@@ -467,13 +472,9 @@ class form {
       const tabButtons = container.querySelectorAll(':scope > .grouper-tabs-header > .grouper-tab-btn');
       const tabPanels = container.querySelectorAll(':scope > .grouper-tabs-content > .grouper-tab-panel');
 
-      logger.debug('core:form', `[Tabs] Grouper ${container.id} - ${tabButtons.length} tabs encontrados`);
-
       tabButtons.forEach(button => {
         button.addEventListener('click', () => {
           const index = parseInt(button.dataset.tabIndex);
-          
-          logger.debug('core:form', `[Tabs] Click en tab ${index}`);
 
           // Remover active de todos los botones de ESTE grouper
           tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -484,14 +485,12 @@ class form {
           // Activar el panel correspondiente de ESTE grouper
           if (tabPanels[index]) {
             tabPanels[index].classList.add('active');
-            
+
             // ✅ Re-evaluar condiciones al cambiar de tab
             if (window.conditions) {
               const formId = container.closest('form')?.id;
-              logger.debug('core:form', `[Tabs] Tab ${index} activado, re-evaluando condiciones. FormID: ${formId}`);
               if (formId) {
                 setTimeout(() => {
-                  logger.debug('core:form', `[Tabs] Ejecutando conditions.evaluate(${formId})`);
                   conditions.evaluate(formId);
                 }, 50);
               } else {
@@ -544,7 +543,7 @@ class form {
    */
   static getValidationAttributes(field) {
     const attrs = [];
-    
+
     if (!field.validation) return '';
 
     const rules = field.validation.split('|');
@@ -621,7 +620,7 @@ class form {
     switch(field.type) {
       case 'button':
         const buttonI18n = field.label?.startsWith('i18n:') ? `data-i18n="${field.label.replace('i18n:', '')}"` : '';
-        
+
         // Extraer y remover type de props si existe (solo para buttons)
         let btnPropsAttr = propsAttr;
         let extractedType = null;
@@ -631,7 +630,7 @@ class form {
           delete propsWithoutType.type;
           btnPropsAttr = this.buildPropsAttr(propsWithoutType);
         }
-        
+
         // Determinar el click handler
         let clickHandler = '';
 
@@ -664,14 +663,33 @@ class form {
         const sourceValue = field.sourceValue || 'value';
         const sourceLabel = field.sourceLabel || 'label';
         const sourceData = hasSource ? `data-source-value="${sourceValue}" data-source-label="${sourceLabel}"` : '';
-        
+
         const staticOptions = field.options?.map(opt => {
           const optI18n = opt.label?.startsWith('i18n:') ? `data-i18n="${opt.label.replace('i18n:', '')}"` : '';
           return `<option value="${opt.value}" ${optI18n}>${this.t(opt.label)}</option>`;
         }).join('') || '';
 
         if (field.source) {
-          setTimeout(() => this.loadSelectFromAPI(selectId, field.source, sourceValue, sourceLabel), 10);
+          setTimeout(() => {
+            
+            // ✅ Verificar si el select existe
+            const existingSelect = document.getElementById(selectId);
+            
+            if (!existingSelect) {
+              this.loadSelectFromAPI(selectId, field.source, sourceValue, sourceLabel);
+              return;
+            }
+            
+            // Verificar si ya fue cargado
+            const alreadyLoaded = existingSelect.options.length > 1;
+            const hasValue = existingSelect.value && existingSelect.value !== '';
+            
+            if (alreadyLoaded || hasValue) {
+              return;
+            }
+            
+            this.loadSelectFromAPI(selectId, field.source, sourceValue, sourceLabel);
+          }, 10);
         }
 
         const selectHint = field.hint ? `<small class="form-hint">${this.t(field.hint)}</small>` : '';
@@ -684,6 +702,9 @@ class form {
             ${selectHint}
             <span class="form-error"></span>
           </div>`;
+
+
+
 
       case 'textarea':
         const textareaHint = field.hint ? `<small class="form-hint">${this.t(field.hint)}</small>` : '';
@@ -736,6 +757,23 @@ class form {
         if (item && confirm('¿Eliminar este elemento?')) {
           item.remove();
         }
+      }
+    });
+
+    // 🔥 NUEVO: Marcar campos cuando el usuario los modifica
+    document.addEventListener('input', (e) => {
+      const input = e.target;
+      if (input.closest('form') && (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT')) {
+        // Marcar que el usuario modificó este campo
+        input.dataset.userModified = 'true';
+      }
+    });
+
+    document.addEventListener('change', (e) => {
+      const input = e.target;
+      if (input.closest('form') && input.tagName === 'SELECT') {
+        // Marcar que el usuario modificó este select
+        input.dataset.userModified = 'true';
       }
     });
 
@@ -852,10 +890,10 @@ class form {
     const schema = this.schemas.get(formId);
     if (!schema || !schema.fields) return;
 
-    const formEl = container 
+    const formEl = container
       ? container.querySelector(`#${formId}`)
       : document.getElementById(formId);
-    
+
     if (!formEl) return;
 
     // Recorrer todos los campos y aplicar defaults
@@ -883,10 +921,10 @@ class form {
       } else if (field.defaultValue !== undefined && field.defaultValue !== null && field.name) {
         // Aplicar default al campo
         const fieldEl = formEl.querySelector(`[name="${fieldPath}"]`);
-        
+
         if (fieldEl) {
           const processedValue = this.processDefaultValue(field.defaultValue);
-          
+
           if (fieldEl.type === 'checkbox' || fieldEl.type === 'radio') {
             fieldEl.checked = !!processedValue;
           } else {
@@ -1006,7 +1044,6 @@ class form {
     const itemPath = `${path}[${newIndex}]`;
 
     // 4. Renderizar cada field del schema (incluyendo repetibles anidados)
-    // 4. Renderizar cada field del schema (incluyendo repetibles anidados)
     const itemFields = fieldSchema.map((field, fieldIndex) => {
       const fieldPath = `${itemPath}.${field.name}`;
 
@@ -1050,6 +1087,16 @@ class form {
     container.insertAdjacentHTML('beforeend', itemHtml);
     container.dataset.itemCount = (newIndex + 1).toString();
 
+    // 🚨 VERIFICAR IDS DUPLICADOS
+    const selectIds = new Set();
+    const allSelectsAfter = document.querySelectorAll(`select[id^="select-${path.replace(/\./g, '-')}"]`);
+    allSelectsAfter.forEach(sel => {
+      if (selectIds.has(sel.id)) {
+        logger.error('core:form', `   ❌ ID DUPLICADO DETECTADO: ${sel.id}`);
+      }
+      selectIds.add(sel.id);
+    });
+
     // 8. Aplicar valores por defecto a los campos
     const addedItem = container.lastElementChild;
     if (addedItem) {
@@ -1057,11 +1104,11 @@ class form {
         if (field.defaultValue !== undefined && field.defaultValue !== null) {
           const fieldPath = `${itemPath}.${field.name}`;
           const fieldEl = addedItem.querySelector(`[name="${fieldPath}"]`);
-          
+
           if (fieldEl) {
             // Procesar valor por defecto especial (tokens como {hash:10})
             const processedValue = this.processDefaultValue(field.defaultValue);
-            
+
             if (fieldEl.type === 'checkbox' || fieldEl.type === 'radio') {
               fieldEl.checked = !!processedValue;
             } else {
@@ -1076,7 +1123,6 @@ class form {
     const formId = container.closest('form')?.id;
     if (formId) {
       setTimeout(() => {
-
         if (addedItem && addedItem.classList.contains('repeatable-item')) {
           const nestedRepeatables = this.findNestedRepeatables(fieldSchema, itemPath);
 
@@ -1087,7 +1133,6 @@ class form {
               if (nestedContainer) {
                 this.initRepeatableContainer(nestedContainer, field, nestedPath);
               }
-              // No reportar error si no se encuentra - es normal para repetibles de niveles más profundos
             });
           }
         } else {
@@ -1199,14 +1244,14 @@ class form {
 
         if (originalValue !== value) {
           e.target.value = value;
-          
+
           // Ajustar cursor: si el valor cambió de longitud o caracteres, mantener posición relativa
           const lengthDiff = value.length - originalValue.length;
           let newCursorPos = cursorPos + lengthDiff;
-          
+
           // Asegurar que el cursor no se salga del rango
           newCursorPos = Math.max(0, Math.min(newCursorPos, value.length));
-          
+
           e.target.setSelectionRange(newCursorPos, newCursorPos);
         }
       });
@@ -1229,8 +1274,6 @@ class form {
       logger.warn('core:form', `Schema para ${formId} no encontrado`);
       return;
     }
-
-    logger.debug('core:form', `📝 Llenando formulario ${formId}${skipRepeatables ? ' (solo selects)' : ''}`);
 
     // ✅ Guardar data en el formulario para reutilizar después
     if (!formEl.dataset.formData) {
@@ -1308,22 +1351,20 @@ class form {
     } else {
       processAllFields(schema.fields);
     }
-    
+
     // ✅ Registrar listener SOLO UNA VEZ para reintentar seleccionar valores cuando selects carguen
     if (!formEl.dataset.fillListenerRegistered) {
       let selectLoadCount = 0;
-      
+
       formEl.addEventListener('select:afterLoad', (e) => {
         selectLoadCount++;
-        logger.debug('core:form', `🔄 Select #${selectLoadCount} cargado (${e.detail.fromCache ? 'cache' : 'API'}): ${e.detail.selectId}`);
-        
+
         // Solo reintentar seleccionar valores en selects, NO recrear repeatables
         const savedData = JSON.parse(formEl.dataset.formData || '{}');
         processFieldsForSelects(schema.fields);
       });
-      
+
       formEl.dataset.fillListenerRegistered = 'true';
-      logger.debug('core:form', `✅ Listener registrado para ${formId}`);
     }
   }
 
@@ -1333,7 +1374,6 @@ class form {
     const items = data[fieldName];
 
     if (!Array.isArray(items) || items.length === 0) {
-      logger.debug('core:form', `No hay datos para: ${fieldName}`);
       return;
     }
 
@@ -1342,7 +1382,6 @@ class form {
 
     // Pausar evaluaciones de condiciones durante el llenado masivo
     if (window.conditions && items.length >= 1) {
-      logger.debug('core:form', `⏸️ Pausando evaluaciones durante llenado de ${items.length} items`);
       conditions.pauseEvaluations();
     }
 
@@ -1374,8 +1413,6 @@ class form {
     // Agregar items uno por uno
     items.forEach((itemData, index) => {
       setTimeout(() => {
-        logger.debug('core:form', `Agregando item ${index + 1}/${items.length} de ${fullPath}`);
-
         // Click en "Agregar"
         addButton.click();
 
@@ -1391,13 +1428,10 @@ class form {
 
   // Llenar un item específico del repeatable (RECURSIVO)
   static fillRepeatableItem(container, fieldName, index, itemData, fieldSchema, parentPath, isLastItem = false) {
-    logger.debug('core:form', `Llenando item [${index}] de ${parentPath || fieldName}:`, itemData);
-
     // Reanudar evaluaciones si es el último item
     if (isLastItem && window.conditions) {
       const formEl = container.closest('form');
       setTimeout(() => {
-        logger.debug('core:form', `✅ Último item de ${parentPath}, reanudando evaluaciones`);
         conditions.resumeEvaluations(formEl?.id);
       }, 200);
     }
@@ -1413,17 +1447,14 @@ class form {
 
     // ✅ Obtener el índice REAL del DOM (no del array)
     const domIndex = parseInt(currentItem.dataset.index || index);
-    
+
     // Calcular path del item usando el índice del DOM
     const itemPath = parentPath ? `${parentPath}[${domIndex}]` : `${fieldName}[${domIndex}]`;
-
-    logger.debug('core:form', `Llenando item [${index}] de ${parentPath || fieldName}:`, itemData);
 
     // Iterar sobre cada campo del schema
     fieldSchema.forEach(subField => {
       if (subField.type === 'repeatable') {
         // ✅ RECURSIÓN: Llenar repeatable anidado
-        logger.debug('core:form', `🔄 Procesando repeatable anidado: ${subField.name}`);
 
         // Llamar recursivamente pasando el item actual como contenedor
         this.fillRepeatable(currentItem, subField, itemData, itemPath);
@@ -1442,7 +1473,6 @@ class form {
 
         if (input) {
           this.setInputValue(input, value, true);
-          logger.debug('core:form', `✓ ${inputName} = ${value}`);
         } else {
           logger.warn('core:form', `Campo no encontrado: ${inputName}`);
         }
@@ -1454,7 +1484,6 @@ class form {
       const formEl = container.closest('form');
       if (formEl?.dataset.formData) {
         const originalData = JSON.parse(formEl.dataset.formData);
-        logger.debug('core:form', '🔄 Último item procesado, re-ejecutando fill() para selects');
         this.fill(formEl.id, originalData, null, true); // skipRepeatables=true
       }
     }
@@ -1465,7 +1494,7 @@ class form {
     // ✅ Obtener el índice REAL del DOM
     const domIndex = parseInt(item.dataset.index || index);
     const itemPath = parentPath ? `${parentPath}[${domIndex}]` : `${fieldName}[${domIndex}]`;
-    
+
     fieldSchema.forEach(subField => {
       if (subField.type === 'repeatable') {
         // Recursivo: procesar repeatables anidados
@@ -1492,7 +1521,6 @@ class form {
           const input = item.querySelector(`[name="${inputName}"]`);
           if (input) {
             this.setInputValue(input, value, true);
-            logger.debug('core:form', `🔄 Campo actualizado: ${inputName} = ${value} (${input.tagName})`);
           } else {
             logger.warn('core:form', `Campo no encontrado: ${inputName}`);
           }
@@ -1502,21 +1530,42 @@ class form {
   }
 
   // Asignar valor a un input
-  static setInputValue(input, value, silent = false) {
-    if (input.type === 'checkbox') {
+  static setInputValue(input, value, isFromFill = false) {
+    if (!input) return;
+
+    // 🔥 SOLUCIÓN: Si el valor viene de un fill() y el usuario ya modificó el campo, NO sobrescribir
+    if (isFromFill && input.dataset.userModified === 'true') {
+      return;
+    }
+
+    const inputType = input.type?.toLowerCase();
+
+    if (inputType === 'checkbox' || inputType === 'radio') {
       input.checked = !!value;
-    } else if (input.type === 'radio') {
-      if (input.value === value) {
-        input.checked = true;
+    } else if (input.tagName === 'SELECT') {
+      // Para selects, esperar a que estén cargados
+      if (input.options.length <= 1 && value) {
+        // Select aún no cargado, esperar al evento afterLoad
+        input.dataset.pendingValue = value;
+        
+        const waitForLoad = (e) => {
+          if (e.target === input || e.detail?.selectId === input.id) {
+            input.value = value;
+            delete input.dataset.pendingValue;
+            input.removeEventListener('select:afterLoad', waitForLoad);
+          }
+        };
+        
+        input.addEventListener('select:afterLoad', waitForLoad);
+      } else {
+        input.value = value;
       }
     } else {
       input.value = value;
     }
 
-    // Disparar evento change solo si no es modo silencioso
-    if (!silent) {
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    // ✅ TRIGGER: Disparar evento change para que conditions se actualicen
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
 
@@ -1557,10 +1606,10 @@ class form {
       const input = formEl.querySelector(`[name="${fieldPath}"]`);
       if (input) {
         const fieldContainer = input.closest('.form-group, .form-checkbox, .form-html-wrapper');
-        
+
         // Si el campo está oculto (por condiciones o cualquier otro motivo), no validar
         if (fieldContainer && (
-          fieldContainer.classList.contains('wpfw-depend-on') || 
+          fieldContainer.classList.contains('wpfw-depend-on') ||
           fieldContainer.style.display === 'none' ||
           window.getComputedStyle(fieldContainer).display === 'none'
         )) {
@@ -1675,12 +1724,12 @@ class form {
         else if (field.type === 'repeatable' && field.fields) {
           const repeatableFieldPath = basePath ? `${basePath}.${field.name}` : field.name;
           const repeatableData = getValueByPath(formData, repeatableFieldPath);
-          
+
           // Si hay datos en el repeatable (array de items)
           if (Array.isArray(repeatableData) && repeatableData.length > 0) {
             repeatableData.forEach((itemData, index) => {
               const itemPath = `${repeatableFieldPath}[${index}]`;
-              
+
               // Validar cada campo dentro del item
               field.fields.forEach(subField => {
                 if (subField.type === 'repeatable' && subField.fields) {
@@ -1841,7 +1890,7 @@ class form {
 
     formEl.querySelectorAll('.form-error').forEach(el => {
       el.textContent = '';
-      el.style.display = 'none';
+      el.style.display = 'none'
     });
     formEl.querySelectorAll('.form-group').forEach(el => el.classList.remove('has-error'));
   }
@@ -1853,17 +1902,17 @@ class form {
       return;
     }
 
-    // ✅ Guardar placeholder ANTES de hacer cualquier cosa
+    // Guardar placeholder ANTES de hacer cualquier cosa
     const firstOption = selectEl.querySelector('option[value=""]');
     const placeholder = firstOption ? firstOption.cloneNode(true) : null;
 
-    // ✅ Verificar cache primero
+    // Verificar cache primero
     const cacheKey = `${source}|${valueField}|${labelField}`;
     if (this.selectCache.has(cacheKey)) {
-      logger.debug('core:form', `📦 Usando cache para ${selectId} desde ${source}`);
       const cachedData = this.selectCache.get(cacheKey);
+
       this.populateSelect(selectEl, cachedData, valueField, labelField, placeholder);
-      
+
       // Disparar evento
       selectEl.dispatchEvent(new CustomEvent('select:afterLoad', {
         bubbles: true,
@@ -1874,36 +1923,38 @@ class form {
 
     try {
       selectEl.disabled = true;
-      
-      logger.debug('core:form', `🌐 Cargando ${selectId} desde API: ${source}`);
+
       const data = await api.get(source);
       const items = Array.isArray(data) ? data : (data.data || []);
 
-      // ✅ Guardar en cache
+      // Guardar en cache
       this.selectCache.set(cacheKey, items);
 
       this.populateSelect(selectEl, items, valueField, labelField, placeholder);
 
       selectEl.disabled = false;
-      logger.debug('core:form', `Select ${selectId} cargado con ${items.length} items desde ${source}`);
-      
-      // ✅ Disparar evento afterLoad para que se intente seleccionar el valor
+
+      // Disparar evento afterLoad para que se intente seleccionar el valor
       selectEl.dispatchEvent(new CustomEvent('select:afterLoad', {
         bubbles: true,
         detail: { selectId, source, itemCount: items.length, fromCache: false }
       }));
-      
+
     } catch (error) {
       logger.error('core:form', `Error cargando select ${selectId} desde ${source}:`, error);
       selectEl.disabled = false;
     }
   }
 
-  // ✅ Método helper para poblar select
+  // Versión mejorada de populateSelect con logs detallados
   static populateSelect(selectEl, items, valueField, labelField, placeholder = null) {
+    // Guardar información del estado actual
+    const selectId = selectEl.id;
+    const currentValue = selectEl.value;
+
     selectEl.innerHTML = '';
-    
-    // ✅ Agregar placeholder primero si existe
+
+    // Agregar placeholder primero si existe
     if (placeholder) {
       selectEl.appendChild(placeholder);
     }
@@ -1914,6 +1965,11 @@ class form {
       option.textContent = item[labelField];
       selectEl.appendChild(option);
     });
+
+    // Restaurar valor si existía
+    if (currentValue) {
+      selectEl.value = currentValue;
+    }
   }
 
   /**

@@ -1,6 +1,7 @@
 <?php
 
 class ActiveConversationStrategy implements ConversationStrategyInterface {
+  private static $logMeta = ['module' => 'workflow', 'layer' => 'app'];
 
   public function execute(array $context): array {
     $bot = $context['bot'];
@@ -102,7 +103,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo.txt';
 
     if (!file_exists($promptFile)) {
-      throw new Exception("Prompt file not found: {$promptFile}");
+      log::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
     }
 
     $promptSystem = file_get_contents($promptFile);

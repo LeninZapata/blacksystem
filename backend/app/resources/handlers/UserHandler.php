@@ -1,52 +1,40 @@
 <?php
-// UserHandler - Handlers personalizados para user
 class UserHandler {
-  // Nombre de la tabla asociada a este handler
   protected static $table = DB_TABLES['users'];
-
   private static $logMeta = ['module' => 'user', 'layer' => 'app'];
 
-  /**
-   * Profile optimizado - SIN consulta a BD
-   * Usa sesión del archivo para obtener datos del usuario
-   */
   static function profile($params) {
     $token = request::bearerToken();
 
     if (!$token) {
+      log::warn('profile - token no recibido', [], self::$logMeta);
       return ['success' => false, 'error' => __('auth.token.missing')];
     }
 
-    // Verificar cache primero
-    $cacheKey = 'auth_session_' . substr($token, 0, 16);
-    $cachedSession = cache::get($cacheKey);
-
-    // Si hay cache válido, usarlo
-    if ($cachedSession && $cachedSession['expires_timestamp'] >= time() && $cachedSession['token'] === $token) {
-      return ['success' => true, 'data' => $cachedSession['user']];
-    }
-
-    // Buscar en archivo
+    // Buscar en archivo directamente
     $session = self::getSessionFromToken($token);
 
     if (!$session) {
+      log::error('profile - sesión no encontrada en archivo', [
+        'token_short' => substr($token, 0, 16)
+      ], self::$logMeta);
       return ['success' => false, 'error' => __('auth.token.invalid')];
     }
 
     // Verificar expiración
     if ($session['expires_timestamp'] < time()) {
+      log::warn('profile - sesión expirada', [
+        'user_id' => $session['user_id'],
+        'expired_since' => time() - $session['expires_timestamp']
+      ], self::$logMeta);
+      
       self::deleteSession($token);
-      cache::forget($cacheKey);
       return ['success' => false, 'error' => __('auth.token.expired')];
     }
-
-    // Guardar en cache
-    cache::set($cacheKey, $session);
 
     return ['success' => true, 'data' => $session['user']];
   }
 
-  // Actualizar config del usuario
   static function updateConfig($params) {
     $id = $params['id'];
     $data = request::data();
@@ -55,7 +43,6 @@ class UserHandler {
       return ['success' => false, 'error' => __('user.config.required')];
     }
 
-    // Validar JSON
     $config = is_string($data['config']) ? $data['config'] : json_encode($data['config']);
 
     if (json_decode($config) === null) {
@@ -68,7 +55,6 @@ class UserHandler {
       'tu' => time()
     ]);
 
-    // Actualizar también en la sesión activa
     $token = request::bearerToken();
     if ($token) {
       self::updateSessionUserData($token, ['config' => json_decode($config, true)]);
@@ -81,16 +67,11 @@ class UserHandler {
     ];
   }
 
-  // ============ MÉTODOS PRIVADOS HELPERS ============
-
-  /**
-   * Obtener sesión desde archivo optimizado
-   * Busca usando patrón con primeros 16 chars del token
-   */
   private static function getSessionFromToken($token) {
     $sessionsDir = STORAGE_PATH . '/sessions/';
 
     if (!is_dir($sessionsDir)) {
+      log::error('getSessionFromToken - directorio no existe', ['dir' => $sessionsDir], self::$logMeta);
       return null;
     }
 
@@ -105,26 +86,24 @@ class UserHandler {
     $session = json_decode(file_get_contents($files[0]), true);
 
     if (!$session || !isset($session['user_id']) || $session['token'] !== $token) {
+      log::error('getSessionFromToken - sesión inválida en archivo', [
+        'file' => basename($files[0])
+      ], self::$logMeta);
       return null;
     }
 
     return $session;
   }
 
-  /**
-   * Actualizar datos del usuario en sesión
-   */
   private static function updateSessionUserData($token, $updates) {
     $session = self::getSessionFromToken($token);
 
     if (!$session) return false;
 
-    // Actualizar campos específicos del usuario
     foreach ($updates as $key => $value) {
       $session['user'][$key] = $value;
     }
 
-    // Guardar de nuevo (mantener nombre de archivo)
     $tokenShort = substr($token, 0, 16);
     $pattern = STORAGE_PATH . "/sessions/*_*_{$tokenShort}.json";
     $files = glob($pattern);
@@ -136,9 +115,6 @@ class UserHandler {
     return true;
   }
 
-  /**
-   * Eliminar sesión
-   */
   private static function deleteSession($token) {
     $sessionsDir = STORAGE_PATH . '/sessions/';
     $tokenShort = substr($token, 0, 16);

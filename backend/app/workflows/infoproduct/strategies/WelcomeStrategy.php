@@ -2,6 +2,37 @@
 
 class WelcomeStrategy implements ConversationStrategyInterface {
   
+  /**
+   * FLUJO DE BIENVENIDAS Y PRODUCTOS
+   * 
+   * CASO 1: Dentro de 2 días + NO es welcome
+   *   → continueConversation() → IA maneja todo
+   *   → NO se ejecuta WelcomeStrategy
+   * 
+   * CASO 2: Dentro de 2 días + SÍ es welcome (nuevo producto)
+   *   → executeWelcome() → handleNewProductWelcome()
+   *   → Envía bienvenida + CREA NUEVA VENTA
+   *   → Ahora tiene 2 ventas activas (producto A y B)
+   *   → current_sale se actualiza al nuevo producto B
+   * 
+   * CASO 3: Después de 2 días + MISMO producto
+   *   → executeWelcome() → hasAlreadyPurchased(producto X) = TRUE
+   *   → handleReWelcome() → Envía bienvenida SIN crear venta
+   *   → Registra: type='S', action='re_welcome', sale_id=0
+   * 
+   * CASO 4: Después de 2 días + PRODUCTO DIFERENTE
+   *   → executeWelcome() → hasAlreadyPurchased(producto Y) = FALSE
+   *   → handleNewProductWelcome() → Envía bienvenida + CREA NUEVA VENTA
+   *   → Registra: type='S', action='start_sale', sale_id=NEW
+   * 
+   * VALIDACIÓN:
+   *   - Por bot_id + product_id (un número puede tener múltiples productos)
+   *   - Si tiene producto A y B pendientes, el bot ve ambos en historial
+   *   - current_sale siempre apunta a la última venta iniciada
+   *   - El bot debe atender según el contexto del último mensaje
+   *   - PromptBuilder incluye TODAS las ventas en "PRODUCTOS EN CONVERSACIÓN"
+   */
+  
   public function execute(array $context): array {   
     $bot = $context['bot'];
     $person = $context['person'];
@@ -9,48 +40,44 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     $rawContext = $context['context'] ?? [];
 
     $product = $this->loadProduct($productId);
+    if (!$product) return ['success' => false, 'error' => 'Producto no encontrado'];
 
-    if (!$product) {
-      return [
-        'success' => false,
-        'error' => 'Producto no encontrado'
-      ];
-    }
-
-    // ✅ NUEVO: Detectar si ya existe conversación previa (sin límite de días)
+    // ✅ Detectar si ya existe conversación previa (sin límite de días)
     $existingChat = $this->checkExistingConversation($person['number'], $bot['id']);
 
     if ($existingChat) {
-      // ✅ Ya tiene conversación previa (puede ser mismo producto u otro)
+      // Ya tiene conversación previa
       $alreadyPurchased = $this->hasAlreadyPurchased($existingChat, $productId);
 
       if ($alreadyPurchased) {
-        log::info("WelcomeStrategy - Re-welcome detectado (mismo producto ya comprado)", [
-          'number' => $person['number'],
+        // CASO 1: Mismo producto ya comprado → Re-welcome (sin venta)
+        log::info("WelcomeStrategy - CASO: Re-welcome (producto ya comprado)", [
+          'number' => $person['number'], 
           'product_id' => $productId,
           'action' => 'enviar_bienvenida_sin_crear_venta'
         ], ['module' => 'welcome_strategy']);
-
-        // Enviar mensajes de bienvenida pero NO crear venta
+        
         return $this->handleReWelcome($bot, $person, $product, $existingChat);
       } else {
-        log::info("WelcomeStrategy - Nuevo producto para cliente existente", [
+        // CASO 2: Producto diferente → Nueva venta
+        log::info("WelcomeStrategy - CASO: Producto diferente (cliente existente)", [
           'number' => $person['number'],
-          'product_id' => $productId,
-          'previous_products' => $existingChat['summary']['purchased_products'] ?? []
+          'new_product_id' => $productId,
+          'previous_products' => $existingChat['summary']['purchased_products'] ?? [],
+          'action' => 'crear_nueva_venta'
         ], ['module' => 'welcome_strategy']);
-
-        // Producto diferente, crear venta normal
+        
         return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
       }
     }
 
-    // ✅ Cliente completamente nuevo
-    log::info("WelcomeStrategy - Cliente nuevo", [
+    // CASO 3: Cliente completamente nuevo → Nueva venta
+    log::info("WelcomeStrategy - CASO: Cliente nuevo", [
       'number' => $person['number'],
-      'product_id' => $productId
+      'product_id' => $productId,
+      'action' => 'crear_primera_venta'
     ], ['module' => 'welcome_strategy']);
-
+    
     return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
   }
 
@@ -71,37 +98,43 @@ class WelcomeStrategy implements ConversationStrategyInterface {
   }
 
   /**
-   * ✅ NUEVO: Verificar si ya compró este producto
+   * ✅ MEJORADO: Verificar si ya compró ESTE producto específico
+   * Busca en mensajes con action='sale_confirmed' que tengan este product_id
    */
   private function hasAlreadyPurchased($chat, $productId) {
-    $purchasedProducts = $chat['summary']['purchased_products'] ?? [];
     $messages = $chat['messages'] ?? [];
 
-    // Método 1: Buscar en summary
+    // Buscar sale_confirmed de este producto específico
     foreach ($messages as $msg) {
       $metadata = $msg['metadata'] ?? [];
       $action = $metadata['action'] ?? null;
 
       if ($action === 'sale_confirmed') {
-        // Buscar el start_sale asociado
         $saleId = $metadata['sale_id'] ?? null;
         
         if ($saleId) {
+          // Buscar el start_sale asociado a esta venta confirmada
           foreach ($messages as $startMsg) {
             $startMeta = $startMsg['metadata'] ?? [];
+            
             if (
               ($startMeta['action'] ?? null) === 'start_sale' &&
               ($startMeta['sale_id'] ?? null) == $saleId &&
               ($startMeta['product_id'] ?? null) == $productId
             ) {
-              return true; // Ya compró este producto
+              log::debug("WelcomeStrategy - Producto ya comprado detectado", [
+                'product_id' => $productId,
+                'sale_id' => $saleId
+              ], ['module' => 'welcome_strategy']);
+              
+              return true; // Ya compró ESTE producto
             }
           }
         }
       }
     }
 
-    return false;
+    return false; // NO ha comprado este producto
   }
 
   /**
@@ -109,9 +142,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
    * Solo envía mensajes + registra en chat, NO crea venta
    */
   private function handleReWelcome($bot, $person, $product, $existingChat) {
-    log::info("WelcomeStrategy::handleReWelcome - INICIO", [
-      'product_id' => $product['id']
-    ], ['module' => 'welcome_strategy']);
+    log::info("WelcomeStrategy::handleReWelcome - INICIO", ['product_id' => $product['id']], ['module' => 'welcome_strategy']);
 
     // 1. Enviar mensajes de bienvenida
     $messages = ProductHandler::getMessagesFile('welcome', $product['id']);
@@ -149,13 +180,14 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       $messagesSent++;
     }
 
-    // 2. Registrar mensaje de sistema (NO start_sale)
+    // 2. Registrar mensaje de sistema en BD
     $systemMessage = "Bienvenida repetida enviada: {$product['name']} (ya comprado anteriormente)";
     $metadata = [
       'action' => 're_welcome',
       'product_id' => $product['id'],
       'product_name' => $product['name'],
-      'reason' => 'producto_ya_comprado'
+      'reason' => 'producto_ya_comprado',
+      'messages_sent' => $messagesSent
     ];
 
     ChatHandlers::register(
@@ -167,7 +199,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'S',
       'text',
       $metadata,
-      0 // sale_id = 0 (no hay venta nueva)
+      0
     );
 
     ChatHandlers::addMessage([
@@ -180,14 +212,15 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'metadata' => $metadata
     ], 'S');
 
-    log::info("WelcomeStrategy::handleReWelcome - Completado", [
-      'messages_sent' => $messagesSent
-    ], ['module' => 'welcome_strategy']);
+    // ✅ 3. Reconstruir chat JSON para actualizar cabecera
+    ChatHandlers::rebuildFromDB($person['number'], $bot['id']);
+
+    log::info("WelcomeStrategy::handleReWelcome - Completado", ['messages_sent' => $messagesSent, 'chat_rebuilt' => true], ['module' => 'welcome_strategy']);
 
     return [
       'success' => true,
       'client_id' => $existingChat['client_id'],
-      'sale_id' => null, // No se crea venta nueva
+      'sale_id' => null,
       'messages_sent' => $messagesSent,
       're_welcome' => true
     ];
@@ -223,6 +256,15 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     if ($clientId && $saleId) {
       $this->registerStartSale($bot, $person, $product, $clientId, $saleId);
     }
+
+    // ✅ Reconstruir chat JSON para actualizar cabecera (current_sale, summary, etc)
+    ChatHandlers::rebuildFromDB($person['number'], $bot['id']);
+
+    log::info("WelcomeStrategy::handleNewProductWelcome - Completado", [
+      'sale_id' => $saleId,
+      'messages_sent' => $welcomeResult['messages_sent'],
+      'chat_rebuilt' => true
+    ], ['module' => 'welcome_strategy']);
 
     return [
       'success' => true,

@@ -76,6 +76,8 @@ $router->group('/api/system', function($router) {
     ]);
   });*/
 
+  $router->get('/logs-test', function() {
+    log::debug('This is a debug log test from /api/system/logs-test',['data' => 1], ['module' => 'apis', 'layer' => 'app', 'tags' => ['test-tag', '098989899']] );
+  });
 
-  
 });

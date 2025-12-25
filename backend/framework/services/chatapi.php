@@ -4,7 +4,7 @@ class chatapi {
   private static $botData = null;
   private static $provider = null;
   private static $providers = [];
-  private static $logMeta = ['module' => 'chatapi', 'layer' => 'service'];
+  private static $logMeta = ['module' => 'chatapi', 'layer' => 'framework'];
 
   static function setConfig(array $botData, string $provider = null) {
     self::$botData = $botData;
@@ -29,7 +29,7 @@ class chatapi {
   }
 
   static function send(string $to, string $message, string $media = ''): array {
-    if (!self::$config) throw new Exception(__('services.chatapi.not_configured'));
+    if (!self::$config) log::throwError(__('services.chatapi.not_configured'), [], self::$logMeta);
 
     $lastError = null;
     foreach (self::$config as $index => $apiConfig) {
@@ -51,7 +51,7 @@ class chatapi {
       }
     }
 
-    log::throwError('chatapi::send - Fallback completo falló', ['error' => $lastError, 'to' => $to], self::$logMeta);
+    log::throwError(__('services.chatapi.all_providers_failed'), ['error' => $lastError, 'to' => $to], self::$logMeta);
   }
 
   static function sendPresence(string $to, string $presenceType, int $delay = 1200): array {
@@ -73,7 +73,7 @@ class chatapi {
   }
 
   static function sendArchive(string $chatNumber, string $lastMessageId = 'archive', bool $archive = true): array {
-    if (!self::$config) throw new Exception(__('services.chatapi.not_configured'));
+    if (!self::$config) log::throwError(__('services.chatapi.not_configured'), [], self::$logMeta);
 
     $results = [];
     $successCount = 0;
@@ -102,7 +102,7 @@ class chatapi {
 
   private static function getProviderInstance(array $apiConfig) {
     $type = $apiConfig['config']['type_value'] ?? null;
-    if (!$type) throw new Exception(__('services.chatapi.api_type_required'));
+    if (!$type) log::throwError(__('services.chatapi.api_type_required'), [], self::$logMeta);
 
     $cacheKey = md5(json_encode($apiConfig));
     if (isset(self::$providers[$cacheKey])) return self::$providers[$cacheKey];
@@ -116,7 +116,7 @@ class chatapi {
     $provider = match($type) {
       'evolutionapi' => new evolutionProvider($config),
       'testing' => new testingProvider($config),
-      default => throw new Exception(__('services.chatapi.provider_not_supported', ['provider' => $type]))
+      default => log::throwError(__('services.chatapi.provider_not_supported', ['provider' => $type]), [], self::$logMeta)
     };
 
     self::$providers[$cacheKey] = $provider;

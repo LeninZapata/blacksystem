@@ -1,6 +1,7 @@
 <?php
 class service {
   private static $instances = [];
+  private static $logMeta = ['module' => 'service', 'layer' => 'framework'];
 
   // Método principal - Envoltura optimizada para acceso rápido a servicios
   static function integration($category) {
@@ -13,7 +14,7 @@ class service {
     $serviceFile = SERVICES_PATH . "/{$category}.php";
 
     if (!file_exists($serviceFile)) {
-      throw new Exception(__('core.service.not_found', ['category' => $category]));
+      log::throwError(__('core.service.not_found', ['category' => $category]), [], self::$logMeta);
     }
 
     require_once $serviceFile;
@@ -50,11 +51,11 @@ class service {
     $class = $provider . $className;
 
     if (!class_exists($class)) {
-      throw new Exception(__('core.service.class_not_found', ['class' => $class]));
+      log::throwError(__('core.service.class_not_found', ['class' => $class]), [], self::$logMeta);
     }
 
     if (!method_exists($class, $method)) {
-      throw new Exception(__('core.service.method_not_found', ['class' => $class, 'method' => $method]));
+      log::throwError(__('core.service.method_not_found', ['class' => $class, 'method' => $method]), [], self::$logMeta);
     }
 
     return call_user_func_array([$class, $method], $args);

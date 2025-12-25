@@ -1,47 +1,11 @@
-Claude:
-  https://claude.ai/chat/708d9a4c-81e1-49fd-a899-95c6075fb141
-  ok el flujo es asi, y da 2 bievenidas dentro de los 2 dias entonces el segunda bienvenida lo maneja el bot e igual queda registrado el texto de bienvenida como un chat normal, ahora si paso los 2 dias, entonces se le da la bievenida  re registra un re_welcome y todo pero sin duplicar venta ni cliente. 
-
-Por cierto todas estas validaciones son con el bot_id verdad? bueno arregla ese flujo de bienvenida para que quede muy logico para la venta e interpretacion.
 Backend (Aplicacion):
-☐ revisar si cuando la persona te escribe te escribe con una foto con caption y tu tienes
-que identificar el caption, creo que ya hay un webhook que envia con caption pero debes v
-ver con ese nuevo sistema.
-☐ que pasa si te compra 2 veces el mismo producto en el sentido que te envia el recibo una segunda vez
-entonces se debe validar que lo resuelva el bot porque no hay venta activa
-☐ el orden cuando se chatea es se envia mensaje -> se guarda en el json -> se guarda en db (ya que es mas lento guardar en la db)
-☐ el orden cuando envian la foto es se se guarda en el json -> se envia el producto -> se guarda en db
-este orden debes pedirle a la IA que lo separe para solo ordenarlo facilmente
-☐ Hacer las pruebas con el imagen+caption, video solo, video con caption, stickers, reaction
-☐ debes tener un intersector de mensaje por ejemplo si es un stickers no es necesario parasar por nada
-mas que un mensaje de que no leen los stickers y guardar en json + db, lo mismo para otros tipos
-☐ tienes un flujo mas separado y modular asi que la IA no se confunde y lo puede editar rapdio
-☐ maneja los log:: mejor porque necesito saber el flujo de lo que apsa con el webhook agrega tags
-☐ para simplificar lineas en los controllers y hendlers debes
-hacer que los array sea de 2 columnas, y los query multimetodos sean inlinea
 ☐ Controladores solo tiene los CRUD y la logica de negocio va en los handlers en lo posible,
 y si el handler se hace muy grande se puede dividir en varios handlers por funcionalidad o ayudadores del mismo
 handler pero es como ultima instancia, son capas de abstraccion para separar responsabilidades.
 nivel 1 CRUD en controller
 nivel 2 logica de negocio en handler
 nivel 3 ayudadores del handler en otros handlers o helpers
-☐ Los throws deben tener keys, y debe ser lanzados en el return porque sino no hay error y te dice 
-siempre que el webhook es correcto.
-☐ en la siguiente linea poner el manejador de errores fatales porque sino encuentra un prompt se quiebra todo
-if (!file_exists($promptFile)) {
-      throw new Exception("Prompt file not found: {$promptFile}");
-}
-busca donde esta recibo-img.txt cuando lo llama
-☐ Origen de la venta ponerlo en el chat en el start_sale
-1) start_sale = anuncio de facebook
-2) los upsell son luego de la compra asi siempre seran upsell luego de la compra
-3) sino compran y se lo continua entonces es new_offer.-
-☐ estoas serian los origenes por supuesto con la venta padre inicial del start_sale primero.
-☐ que detalle en el prompt los productos y los originenes mejor asi lo interpreta mejor
-edita el PROMPT para que vea lo que pasa en el historial del chat y en la cabecera
-☐ En la lista de los mensajes debe poner mas descripcicon como que se aumento o bajo de precio
-los metas deben tener mas detalle
-☐ Prueba mejr el buffer
+
 ☐ SEGUIMIENTOS
 _ esto debe ser facil de manejarlo, tienes que explicar a la IA que cree un flujo demasiado
 sencillo, los seguimientos solo los tendras como crud y luego algo de coontroller por el CRON
@@ -51,6 +15,26 @@ seguimientos  dinamicos etc....
 Anuncio -> upsell 1 (si compra) -> upsell 2 -> (sino compra) se acaban los seguimientos entonces comienza una nueva oferta
 en el flujo de seguimientos debe calcular bien cuando se termina un upsell y cuando empieiza una oferta nueva, si compra una nueva oferta ¿puede tener upsell?
 se continua con el upsell? puede que no poruqe la nueva oferta puede ser de otro producto, pero ese producto si puede tener upsell.
+☐ En la lista de los mensajes debe poner mas descripcicon como que se aumento o bajo de precio
+los metas deben tener mas detalle
+☐ Cuando se elimine un producto debe eliminarse sus archivos de JSON
+☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
+☐ Cree un producto y me envio este error:
+{
+  "code": 201,
+  "data": {
+    "success": true,
+    "message": "product.create.success",
+    "data": {
+      "id": "11"
+    }
+  }
+}
+☐ Recuerda que si hay otro welcomer los seguimientos del primero se terminan
+y comienza el nuevo welcomer.
+☐ Eliminar del chat el campo 'image_url' porque no sirve para nada no se puede ver la imagen nunca
+☐ Verificar si last_activity se actualiza bien con respecto a otros paises
+☐ Prueba mejr el buffer
 Frontend (Aplicacion):
 ☐ Agrega que se puede agregar varios upsell con el tiempo de ejecucion
 los upsell son preCompra....

@@ -43,7 +43,6 @@ class ChatHandlers {
 
     if (!is_array($chats)) $chats = [];
 
-    // Decodificar metadata
     foreach ($chats as &$chat) {
       if (isset($chat['metadata']) && is_string($chat['metadata'])) {
         $chat['metadata'] = json_decode($chat['metadata'], true);
@@ -66,7 +65,6 @@ class ChatHandlers {
 
     if (!is_array($chats)) $chats = [];
 
-    // Decodificar metadata
     foreach ($chats as &$chat) {
       if (isset($chat['metadata']) && is_string($chat['metadata'])) {
         $chat['metadata'] = json_decode($chat['metadata'], true);
@@ -87,7 +85,6 @@ class ChatHandlers {
 
     if (!is_array($chats)) $chats = [];
 
-    // Decodificar metadata
     foreach ($chats as &$chat) {
       if (isset($chat['metadata']) && is_string($chat['metadata'])) {
         $chat['metadata'] = json_decode($chat['metadata'], true);
@@ -112,7 +109,6 @@ class ChatHandlers {
 
     if (!is_array($chats)) $chats = [];
 
-    // Decodificar metadata
     foreach ($chats as &$chat) {
       if (isset($chat['metadata']) && is_string($chat['metadata'])) {
         $chat['metadata'] = json_decode($chat['metadata'], true);
@@ -187,7 +183,6 @@ class ChatHandlers {
 
     if (!is_array($chats)) $chats = [];
 
-    // Decodificar metadata
     foreach ($chats as &$chat) {
       if (isset($chat['metadata']) && is_string($chat['metadata'])) {
         $chat['metadata'] = json_decode($chat['metadata'], true);
@@ -198,7 +193,7 @@ class ChatHandlers {
   }
 
   // Agregar mensaje al chat JSON
-  static function addMessage($data, $type = 'p') {
+  static function addMessage($data, $type = 'P') {
     $required = ['number', 'bot_id', 'client_id', 'sale_id'];
     foreach ($required as $field) {
       if (!isset($data[$field])) {
@@ -212,25 +207,26 @@ class ChatHandlers {
     $chatId = "chat_{$number}_bot_{$botId}";
     $chatFile = SHARED_PATH . '/chats/infoproduct/' . $chatId . '.json';
 
-    // Obtener o crear estructura del chat
     $chatData = self::getOrCreateChatStructure($chatFile, $data);
 
-    // Construir mensaje según tipo
+    // Normalizar tipo a 'P', 'B', 'S'
+    $normalizedType = self::normalizeType($type);
+
     $message = [
       'date' => date('Y-m-d H:i:s'),
-      'type' => self::normalizeType($type),
+      'type' => $normalizedType,
       'format' => $data['format'] ?? 'text',
       'message' => $data['message'] ?? '',
       'metadata' => $data['metadata'] ?? null
     ];
 
-    // Agregar mensaje al array
     $chatData['messages'][] = $message;
 
-    // Actualizar last_activity
-    $chatData['last_activity'] = date('Y-m-d H:i:s');
+    // Actualizar last_activity solo si es mensaje del cliente (tipo 'P')
+    if ($normalizedType === 'P') {
+      $chatData['last_activity'] = date('Y-m-d H:i:s');
+    }
 
-    // Guardar archivo
     return self::saveChatFile($chatFile, $chatData);
   }
 
@@ -239,7 +235,6 @@ class ChatHandlers {
     $chatId = "chat_{$number}_bot_{$botId}";
     $chatFile = SHARED_PATH . '/chats/infoproduct/' . $chatId . '.json';
 
-    // Usar file::getJson con callback de reconstrucción
     return file::getJson($chatFile, function() use ($number, $botId, $skipReconstruction) {
       return $skipReconstruction ? null : self::rebuildFromDB($number, $botId);
     });
@@ -248,7 +243,6 @@ class ChatHandlers {
   // Reconstruir chat desde BD
   static function rebuildFromDB($number, $botId) {
     try {
-      // Buscar cliente
       $client = db::table('clients')->where('number', $number)->first();
       if (!$client) {
         log::warning('ChatHandlers::rebuildFromDB - Cliente no encontrado', ['number' => $number], ['module' => 'chat']);
@@ -258,7 +252,6 @@ class ChatHandlers {
       $clientId = $client['id'];
       $clientName = $client['name'] ?? '';
 
-      // Buscar mensajes del chat
       $messages = db::table(self::$table)
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
@@ -270,7 +263,6 @@ class ChatHandlers {
         return false;
       }
 
-      // Buscar venta actual (última venta no completada)
       $currentSale = db::table('sales')
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
@@ -278,14 +270,33 @@ class ChatHandlers {
         ->orderBy('dc', 'DESC')
         ->first();
 
-      // Buscar ventas completadas
+      $salesInProcess = db::table('sales')
+        ->where('client_id', $clientId)
+        ->where('bot_id', $botId)
+        ->whereIn('process_status', ['initiated', 'pending'])
+        ->get();
+
       $completedSales = db::table('sales')
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
         ->where('process_status', 'sale_confirmed')
         ->get();
 
-      // Construir estructura del chat
+      // Calcular last_activity (último mensaje del cliente tipo 'P')
+      $lastActivity = null;
+      $conversationStarted = $messages[0]['dc'] ?? date('Y-m-d H:i:s');
+
+      for ($i = count($messages) - 1; $i >= 0; $i--) {
+        if (($messages[$i]['type'] ?? null) === 'P') {
+          $lastActivity = $messages[$i]['dc'];
+          break;
+        }
+      }
+
+      if (!$lastActivity) {
+        $lastActivity = $conversationStarted;
+      }
+
       $chatData = [
         'chat_id' => "chat_{$number}_bot_{$botId}",
         'number' => $number,
@@ -293,19 +304,20 @@ class ChatHandlers {
         'client_name' => $clientName,
         'bot_id' => $botId,
         'purchase_method' => 'Recibo de pago',
-        'conversation_started' => $messages[0]['dc'] ?? date('Y-m-d H:i:s'),
-        'last_activity' => end($messages)['dc'] ?? date('Y-m-d H:i:s'),
+        'conversation_started' => $conversationStarted,
+        'last_activity' => $lastActivity,
         'current_sale' => $currentSale ? [
           'sale_id' => $currentSale['id'],
           'product_id' => $currentSale['product_id'],
           'product_name' => $currentSale['product_name'],
           'sale_status' => $currentSale['process_status'],
-          'sale_type' => $currentSale['sale_type']
+          'sale_type' => $currentSale['sale_type'],
+          'origin' => $currentSale['origin'] ?? 'organic'
         ] : null,
         'last_sale' => $currentSale['id'] ?? ($completedSales ? end($completedSales)['id'] : 0),
         'summary' => [
           'completed_sales' => count($completedSales),
-          'sales_in_process' => $currentSale ? 1 : 0,
+          'sales_in_process' => count($salesInProcess),
           'total_value' => self::calculateTotalValue($completedSales),
           'purchased_products' => array_column($completedSales, 'product_name'),
           'upsells_offered' => []
@@ -313,7 +325,6 @@ class ChatHandlers {
         'messages' => []
       ];
 
-      // Convertir mensajes de BD a formato JSON
       foreach ($messages as $msg) {
         $metadata = isset($msg['metadata']) && is_string($msg['metadata']) 
           ? json_decode($msg['metadata'], true) 
@@ -328,7 +339,6 @@ class ChatHandlers {
         ];
       }
 
-      // Guardar archivo reconstruido
       $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
       if (self::saveChatFile($chatFile, $chatData)) {
         log::info('ChatHandlers::rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
@@ -353,7 +363,6 @@ class ChatHandlers {
       }
     }
 
-    // Crear estructura inicial
     $client = db::table('clients')->find($data['client_id']);
     $clientName = $client['name'] ?? '';
 
@@ -406,29 +415,28 @@ class ChatHandlers {
     return true;
   }
 
-  // Normalizar tipo de mensaje
+  // Normalizar tipo de mensaje a 'P', 'B', 'S'
   private static function normalizeType($type) {
     $type = strtolower($type);
     
     $map = [
-      'start_sale' => 'system',
-      's' => 'system',
-      'system' => 'system',
-      'b' => 'bot',
-      'bot' => 'bot',
-      'p' => 'prospect',
-      'prospect' => 'prospect',
-      'prospecto' => 'prospect'
+      'start_sale' => 'S',
+      's' => 'S',
+      'system' => 'S',
+      'b' => 'B',
+      'bot' => 'B',
+      'p' => 'P',
+      'prospect' => 'P',
+      'prospecto' => 'P'
     ];
 
-    return $map[$type] ?? 'prospect';
+    return $map[$type] ?? 'P';
   }
 
   private static function calculateTotalValue($sales) {
     $total = 0;
 
     foreach ($sales as $sale) {
-      // Usar billed_amount si existe, sino usar amount
       $value = $sale['billed_amount'] ?? $sale['amount'] ?? 0;
       $total += (float)$value;
     }

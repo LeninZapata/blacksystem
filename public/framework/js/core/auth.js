@@ -69,7 +69,7 @@ class auth {
 
       if (response.success && response.data) {
         // Actualizar usuario en cache (sin TTL específico, el backend maneja expiración)
-        cache.setLocal(`${this.config.storageKey}_user`, response.data);
+        cache.setLocal(`${this.config.storageKey}_user`, response.data, this.config.tokenTTL);
         logger.success('core:auth', 'Sesión válida');
         return true;
       }
@@ -118,8 +118,8 @@ class auth {
         }
 
         // Guardar en cache (sin TTL, el backend maneja expiración)
-        cache.setLocal(`${this.config.storageKey}_token`, token);
-        cache.setLocal(`${this.config.storageKey}_user`, user);
+        cache.setLocal(`${this.config.storageKey}_token`, token, ttl_ms);
+        cache.setLocal(`${this.config.storageKey}_user`, user, ttl_ms);
 
         // Guardar usuario en memoria
         this.user = user;
