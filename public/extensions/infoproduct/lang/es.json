@@ -131,5 +131,7 @@
   "infoproduct.products.field.upsell_products.time_value": "Valor de Tiempo",
   "infoproduct.products.field.upsell_products.time_value.placeholder": "Ej: 5",
   "infoproduct.products.error.same_product_upsell": "No se puede seleccionar el mismo producto como upsell",
-  "infoproduct.products.error.duplicate_upsell_products": "No puede haber productos upsell repetidos"
+  "infoproduct.products.error.duplicate_upsell_products": "No puede haber productos upsell repetidos",
+  "infoproduct.products.field.tracking_messages.instruction": "Instrucción",
+  "infoproduct.products.field.tracking_messages.instruction.placeholder": "Ej: se hizo un descuento especial"
 }

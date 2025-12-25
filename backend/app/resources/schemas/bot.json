@@ -40,6 +40,7 @@
     { "name": "personality", "type": "string", "maxLength": 200 },
     { "name": "type", "type": "string", "required": true },
     { "name": "mode", "type": "string", "required": true },
+    { "name": "status", "type": "int", "required": false, "default": 1, "description": "0: inactivo, 1: activo" },
     { "name": "config", "type": "json" },
     { "name": "dc", "type": "datetime" },
     { "name": "da", "type": "datetime" },

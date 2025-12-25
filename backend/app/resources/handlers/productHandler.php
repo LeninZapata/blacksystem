@@ -21,16 +21,15 @@ class ProductHandler {
     try {
       $currentBotId = $productData['bot_id'] ?? null;
       $productId = $productData['id'] ?? null;
-      
+
       // Si cambió el bot (solo en update)
       if ($action === 'update' && $oldBotId && $oldBotId !== $currentBotId) {
         // Regenerar activators del bot antiguo (sin este producto)
-        // Nombre de las tablas asociadas a este handler
         $oldBot = db::table(self::$tableBots)->find($oldBotId);
         if ($oldBot) {
           self::generateActivatorsFile($oldBot['number'], $oldBotId, 'update');
         }
-        
+
         // Regenerar activators del bot nuevo (con este producto)
         $newBot = db::table(self::$tableBots)->find($currentBotId);
         if ($newBot) {
@@ -40,7 +39,7 @@ class ProductHandler {
         // Regenerar activators del bot actual
         self::generateActivatorsFile(null, $currentBotId, $action);
       }
-      
+
       // Generar archivos del producto
       if ($productId) {
         self::generateProductFile($productId, $action);
@@ -49,13 +48,87 @@ class ProductHandler {
         self::generateMessagesFile('follow', $productId, $action);
         self::generateMessagesFile('follow_upsell', $productId, $action);
         self::generateTemplatesFile($productId, $action);
+        self::generateUpsellFile($productId, $action);
       }
-      
+
       return true;
     } catch (Exception $e) {
       log::error('ProductHandler::handleInfoproduct - Error', ['message' => $e->getMessage()], ['module' => 'product']);
       return false;
     }
+  }
+
+  /**
+   * Eliminar todos los archivos asociados a un producto
+   */
+  static function deleteProductFiles($productId, $botId = null) {
+    $deletedFiles = [];
+    $errors = [];
+
+    // 1. Archivo principal del producto
+    $productFile = SHARED_PATH . '/bots/infoproduct/' . $productId . '.json';
+    if (file_exists($productFile)) {
+      if (@unlink($productFile)) {
+        $deletedFiles[] = $productFile;
+      } else {
+        $errors[] = $productFile;
+      }
+    }
+
+    // 2. Archivos de mensajes
+    $messageTypes = ['welcome', 'welcome_upsell', 'follow', 'follow_upsell'];
+    foreach ($messageTypes as $type) {
+      $messageFile = SHARED_PATH . '/bots/infoproduct/messages/' . $type . '_' . $productId . '.json';
+      if (file_exists($messageFile)) {
+        if (@unlink($messageFile)) {
+          $deletedFiles[] = $messageFile;
+        } else {
+          $errors[] = $messageFile;
+        }
+      }
+    }
+
+    // 3. Archivo de templates
+    $templateFile = SHARED_PATH . '/bots/infoproduct/messages/template_' . $productId . '.json';
+    if (file_exists($templateFile)) {
+      if (@unlink($templateFile)) {
+        $deletedFiles[] = $templateFile;
+      } else {
+        $errors[] = $templateFile;
+      }
+    }
+
+    // 4. Archivo de upsell
+    $upsellFile = SHARED_PATH . '/bots/infoproduct/messages/upsell_' . $productId . '.json';
+    if (file_exists($upsellFile)) {
+      if (@unlink($upsellFile)) {
+        $deletedFiles[] = $upsellFile;
+      } else {
+        $errors[] = $upsellFile;
+      }
+    }
+
+    // 5. Regenerar activators del bot (si se proporciona botId)
+    if ($botId) {
+      $bot = db::table(self::$tableBots)->find($botId);
+      if ($bot) {
+        self::generateActivatorsFile($bot['number'], $botId, 'update');
+      }
+    }
+
+    log::info('ProductHandler::deleteProductFiles - Archivos eliminados', [
+      'product_id' => $productId,
+      'deleted_count' => count($deletedFiles),
+      'errors_count' => count($errors),
+      'deleted_files' => $deletedFiles,
+      'errors' => $errors
+    ], ['module' => 'product']);
+
+    return [
+      'success' => empty($errors),
+      'deleted' => $deletedFiles,
+      'errors' => $errors
+    ];
   }
 
   // Obtener archivo de activators
@@ -89,13 +162,17 @@ class ProductHandler {
       'welcome_upsell' => 'welcome_messages_upsell',
       'follow' => 'tracking_messages',
       'follow_upsell' => 'tracking_messages_upsell',
-      'template' => 'templates'
+      'template' => 'templates',
+      'upsell' => 'upsell_products'
     ];
 
     if (!isset($typeMap[$type])) return null;
 
     $path = SHARED_PATH . '/bots/infoproduct/messages/' . $type . '_' . $productId . '.json';
     return file::getJson($path, function() use ($type, $productId) {
+      if ($type === 'upsell') {
+        return self::generateUpsellFile($productId, 'rebuild');
+      }
       return self::generateMessagesFile($type, $productId, 'rebuild');
     });
   }
@@ -108,6 +185,14 @@ class ProductHandler {
     });
   }
 
+  // Obtener archivo de upsell
+  static function getUpsellFile($productId) {
+    $path = SHARED_PATH . '/bots/infoproduct/messages/upsell_' . $productId . '.json';
+    return file::getJson($path, function() use ($productId) {
+      return self::generateUpsellFile($productId, 'rebuild');
+    });
+  }
+
   /**
    * Generar archivo individual del producto /bots/infoproduct/{product_id}.json
    * NO incluye config.messages
@@ -117,8 +202,8 @@ class ProductHandler {
     if (!$product) return false;
 
     // Parsear config
-    $config = isset($product['config']) && is_string($product['config']) 
-      ? json_decode($product['config'], true) 
+    $config = isset($product['config']) && is_string($product['config'])
+      ? json_decode($product['config'], true)
       : ($product['config'] ?? []);
 
     // Remover messages del config
@@ -144,8 +229,8 @@ class ProductHandler {
     $product = db::table(self::$table)->find($productId);
     if (!$product) return false;
 
-    $config = isset($product['config']) && is_string($product['config']) 
-      ? json_decode($product['config'], true) 
+    $config = isset($product['config']) && is_string($product['config'])
+      ? json_decode($product['config'], true)
       : ($product['config'] ?? []);
 
     $typeMap = [
@@ -167,13 +252,27 @@ class ProductHandler {
     $product = db::table(self::$table)->find($productId);
     if (!$product) return false;
 
-    $config = isset($product['config']) && is_string($product['config']) 
-      ? json_decode($product['config'], true) 
+    $config = isset($product['config']) && is_string($product['config'])
+      ? json_decode($product['config'], true)
       : ($product['config'] ?? []);
 
     $templates = $config['messages']['templates'] ?? [];
     $path = SHARED_PATH . '/bots/infoproduct/messages/template_' . $productId . '.json';
     return file::saveJson($path, $templates, 'product', $action);
+  }
+
+  // Generar archivo de upsell
+  static function generateUpsellFile($productId, $action = 'create') {
+    $product = db::table(self::$table)->find($productId);
+    if (!$product) return false;
+
+    $config = isset($product['config']) && is_string($product['config'])
+      ? json_decode($product['config'], true)
+      : ($product['config'] ?? []);
+
+    $upsells = $config['messages']['upsell_products'] ?? [];
+    $path = SHARED_PATH . '/bots/infoproduct/messages/upsell_' . $productId . '.json';
+    return file::saveJson($path, $upsells, 'product', $action);
   }
 
   // Generar archivo de activators
@@ -204,12 +303,12 @@ class ProductHandler {
     $activators = [];
 
     foreach ($products as $product) {
-      $config = isset($product['config']) && is_string($product['config']) 
-        ? json_decode($product['config'], true) 
+      $config = isset($product['config']) && is_string($product['config'])
+        ? json_decode($product['config'], true)
         : ($product['config'] ?? []);
 
       $welcomeTriggers = $config['welcome_triggers'] ?? '';
-      
+
       if (!empty($welcomeTriggers)) {
         $triggers = array_map('trim', explode(',', $welcomeTriggers));
         $triggers = array_filter($triggers, function($t) { return !empty($t); });

@@ -99,7 +99,10 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $this->processPayment($paymentData, $saleId);
 
     // 5. Entregar producto
-    $this->deliverProduct($chatData, $context);
+    $this->deliverProduct($chatData, $context);  // ← DEJAR ESTE
+
+    // 6. Procesar upsell (cancelar followups + registrar upsell si aplica)  // ← AGREGAR ESTE
+    $this->processUpsell($chatData, $bot);
 
     return [
       'success' => true,
@@ -525,5 +528,23 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'format' => 'text',
       'metadata' => $metadata
     ], 'B');
+  }
+
+  private function processUpsell($chatData, $bot) {
+    $currentSale = $chatData['full_chat']['current_sale'] ?? null;
+    if (!$currentSale) return;
+
+    $saleData = [
+      'sale_id' => $currentSale['sale_id'],
+      'product_id' => $currentSale['product_id'],
+      'client_id' => $chatData['client_id'],
+      'bot_id' => $bot['id'],
+      'number' => $chatData['full_chat']['number'],
+      'origin' => $currentSale['origin'] ?? 'organic'
+    ];
+
+    $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
+
+    UpsellHandlers::processAfterSale($saleData, $botTimezone);
   }
 }

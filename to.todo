@@ -1,22 +1,4 @@
 Backend (Aplicacion):
-☐ Controladores solo tiene los CRUD y la logica de negocio va en los handlers en lo posible,
-y si el handler se hace muy grande se puede dividir en varios handlers por funcionalidad o ayudadores del mismo
-handler pero es como ultima instancia, son capas de abstraccion para separar responsabilidades.
-nivel 1 CRUD en controller
-nivel 2 logica de negocio en handler
-nivel 3 ayudadores del handler en otros handlers o helpers
-
-☐ SEGUIMIENTOS
-_ esto debe ser facil de manejarlo, tienes que explicar a la IA que cree un flujo demasiado
-sencillo, los seguimientos solo los tendras como crud y luego algo de coontroller por el CRON
-luego algo handlers pero de all ise va directo a la logica de negocio para poder tener 
-seguimientos  dinamicos etc....
-☐ Secuencias de ventas
-Anuncio -> upsell 1 (si compra) -> upsell 2 -> (sino compra) se acaban los seguimientos entonces comienza una nueva oferta
-en el flujo de seguimientos debe calcular bien cuando se termina un upsell y cuando empieiza una oferta nueva, si compra una nueva oferta ¿puede tener upsell?
-se continua con el upsell? puede que no poruqe la nueva oferta puede ser de otro producto, pero ese producto si puede tener upsell.
-☐ En la lista de los mensajes debe poner mas descripcicon como que se aumento o bajo de precio
-los metas deben tener mas detalle
 ☐ Cuando se elimine un producto debe eliminarse sus archivos de JSON
 ☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
 ☐ Cree un producto y me envio este error:
@@ -30,22 +12,35 @@ los metas deben tener mas detalle
     }
   }
 }
-☐ Recuerda que si hay otro welcomer los seguimientos del primero se terminan
-y comienza el nuevo welcomer.
+
 ☐ Eliminar del chat el campo 'image_url' porque no sirve para nada no se puede ver la imagen nunca
 ☐ Verificar si last_activity se actualiza bien con respecto a otros paises
 ☐ Prueba mejr el buffer
+✔ Recueda el action que dice 'ya no desea el producto' debe procesar todos los seguimientos @done(25-12-2025 17:18)
+☐ valida el nombre igual en los CRUD de producto, credenecial, bot, workflow.. 
+☐ existen muchos ::debug que eliminar o analizar
+☐ Analizar e ltema de la nueva_oferta porque puede ser confuso esto no es upsell, entonces
+puede que la nueva oferta seea luego que se acaben lso seguimientos  totalmente ya sea de producto
+principal o de upsell. pero es una posibilidad, para eso habria que tener muchos productos
+que ofrecer en si.
+☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
+  ☐ grafica de productos vendidos
+  ☐ grafica de ingresos por producto
+  ☐ grafica de ingresos totales
+  ☐ graficas de chats vs ventas
+  ☐ graficas de conversiones
+  ☐ chat por dias | horas
+  ☐ ventas por dias | horas
+
 Frontend (Aplicacion):
-☐ Agrega que se puede agregar varios upsell con el tiempo de ejecucion
-los upsell son preCompra....
-☐ Agrea que se pueda agregar nuevas ofertas seguidas, las ofertas comienzan cuando los 
-seguimientos terminan  y comienza una nueva oferta de seguimiento.
-☐ Agregar el nombre del prompt y prompt de imagen en flujo de trabajo o bot
-revisa donde ponerlo pero debes ponerlo el nombre no mas
 ☐ Verificar si el archivo de workflow existe
 puede ser dentro del mismo listado de workflow en un boton tipo editar con eso que muestra un toast si exsite o no el archivo
 tambien que verifique al momento de crear o actualizar un workflow si el archivo existe en donde estaran estos archivos y si no existe que muestre un error
 ☐ Agregar el aparatado de promtps de tipo 'conversation', 'image', 'audio' porque se necesita versionar
 entonces el bot puede seleccionar cuales son sus prompts aparte del agente y de ai, necesita seleccionar con 
 que prompt va a trabajar. Actualmente esta hardcodeado en message.php
+☐ Agregar el nombre del prompt y prompt de imagen en flujo de trabajo o bot
+revisa donde ponerlo pero debes ponerlo el nombre no mas
 ☐ Reorganizar todo el menu para una mejor entendimiento 
+☐ Agrea que se pueda agregar nuevas ofertas seguidas, las ofertas comienzan cuando los 
+seguimientos terminan  y comienza una nueva oferta de seguimiento.

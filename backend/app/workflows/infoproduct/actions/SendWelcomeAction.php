@@ -3,38 +3,31 @@
 class SendWelcomeAction {
 
   static function send($dataSale) {
-    $person = $dataSale['person'];
-    $productId = $dataSale['product_id'];
     $bot = $dataSale['bot'];
+    $person = $dataSale['person'];
+    $product = $dataSale['product'];
+    $productId = $dataSale['product_id'];
 
     $from = $person['number'];
     $name = $person['name'];
 
-    $product = ProductHandler::getProductFile($productId);
+    $messages = ProductHandler::getMessagesFile('welcome', $productId);
 
-    if (!$product) {
+    if (!$messages) {
+      log::error("SendWelcomeAction::send - No existe mensaje de bienvenida para este producto", [
+        'product_id' => $productId,
+        'product_name' => $product['name']
+      ], ['module' => 'infoproduct', 'layer' => 'app']);
       return [
         'success' => false,
-        'total_messages' => 0,
-        'messages_sent' => 0,
-        'client_id' => null,
-        'sale_id' => null,
-        'error' => 'Producto no encontrado'
+        'error' => 'welcome_file_not_found'
       ];
     }
 
-    $dataSale['product'] = $product;
-
-    $messages = ProductHandler::getMessagesFile('welcome', $productId);
-
-    if (!$messages || empty($messages)) {
+    if (empty($messages)) {
       return [
         'success' => false,
-        'total_messages' => 0,
-        'messages_sent' => 0,
-        'client_id' => null,
-        'sale_id' => null,
-        'error' => 'Mensajes de bienvenida no encontrados'
+        'error' => 'no_messages_configured'
       ];
     }
 
@@ -69,12 +62,30 @@ class SendWelcomeAction {
       $messagesSent++;
 
       if ($messagesSent === 1 && $result['success']) {
-        require_once APP_PATH . '/workflows/infoproduct/actions/CreateSaleAction.php';
         $saleResult = CreateSaleAction::create($dataSale);
 
         if ($saleResult['success']) {
           $clientId = $saleResult['client_id'];
           $saleId = $saleResult['sale_id'];
+
+          // Registrar followups
+          $followups = ProductHandler::getMessagesFile('follow', $productId);
+
+          if (!empty($followups)) {
+            $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
+
+            FollowupHandlers::registerFromSale(
+              [
+                'sale_id' => $saleId,
+                'product_id' => $productId,
+                'client_id' => $clientId,
+                'bot_id' => $bot['id'],
+                'number' => $from
+              ],
+              $followups,
+              $botTimezone
+            );
+          }
         }
       }
     }

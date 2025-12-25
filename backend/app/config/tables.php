@@ -8,6 +8,7 @@ return [
   'sales' => 'sales',
   'users' => 'users',
   'work_flows' => 'work_flows',
+  'followups' => 'followups',
     //'roles' => 'roles',
     //'permissions' => 'permissions',
     //'sessions' => 'sessions',

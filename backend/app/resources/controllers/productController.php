@@ -1,6 +1,5 @@
 <?php
 class ProductController extends controller {
-  // Nombre de la tabla asociada a este controlador
   protected static $table = DB_TABLES['products'];
 
   function __construct() {
@@ -74,7 +73,6 @@ class ProductController extends controller {
 
       if ($affected > 0 && isset($data['context'])) {
         $data['id'] = $id;
-        // Pasar oldBotId solo si cambió
         ProductHandler::handleByContext($data, 'update', $botChanged ? $oldBotId : null);
       }
 
@@ -116,10 +114,35 @@ class ProductController extends controller {
     $item = db::table(self::$table)->find($id);
     if (!$item) response::notFound(__('product.not_found'));
 
+    $botId = $item['bot_id'] ?? null;
+    $context = $item['context'] ?? null;
+
     try {
+      // Eliminar archivos asociados si es infoproduct
+      if ($context === 'infoproductws' && $botId) {
+        $filesDeletion = ProductHandler::deleteProductFiles($id, $botId);
+        
+        log::info('productController::delete - Archivos eliminados', [
+          'product_id' => $id,
+          'files_deleted' => count($filesDeletion['deleted'] ?? []),
+          'errors' => count($filesDeletion['errors'] ?? [])
+        ], ['module' => 'product']);
+      }
+
+      // Eliminar registro de BD
       $affected = db::table(self::$table)->where('id', $id)->delete();
-      response::success(['affected' => $affected], __('product.delete.success'));
+
+      response::success([
+        'affected' => $affected,
+        'files_deleted' => isset($filesDeletion) ? count($filesDeletion['deleted'] ?? []) : 0
+      ], __('product.delete.success'));
+
     } catch (Exception $e) {
+      log::error('productController::delete - Error', [
+        'product_id' => $id,
+        'error' => $e->getMessage()
+      ], ['module' => 'product']);
+
       response::serverError(__('product.delete.error'), IS_DEV ? $e->getMessage() : null);
     }
   }

@@ -103,7 +103,7 @@ class PromptBuilder {
           $precioPagado = $venta['amount_paid'];
           $fecha = $venta['date'];
           $origin = $venta['origin'] ?? 'organic';
-
+          
           $originMap = [
             'ad' => 'Anuncio',
             'upsell' => 'Upsell',
@@ -238,10 +238,10 @@ class PromptBuilder {
 
           if ($prevAction === 'start_sale') {
             $tempSaleId = $prevMeta['sale_id'] ?? null;
-
+            
             if ($tempSaleId) {
               $confirmedDate = $saleConfirmedDates[$tempSaleId] ?? null;
-
+              
               if (!$confirmedDate || $confirmedDate > $fecha) {
                 $hasPendingSale = true;
                 $pendingSaleId = $tempSaleId;
@@ -264,6 +264,17 @@ class PromptBuilder {
               if (isset($metadata['price'])) {
                 $prompt .= "*Precio inicial:* \${$metadata['price']}\n";
               }
+            } elseif ($metadata['action'] === 'followup_sent') {
+              $prompt .= "*[Mensaje de seguimiento enviado]*\n";
+              if (isset($metadata['followup_id'])) {
+                $prompt .= "*Followup ID:* {$metadata['followup_id']}\n";
+              }
+              if (isset($metadata['tracking_id']) && !empty($metadata['tracking_id'])) {
+                $prompt .= "*Tracking ID:* {$metadata['tracking_id']}\n";
+              }
+              if (isset($metadata['instruction']) && !empty($metadata['instruction'])) {
+                $prompt .= "*Instrucción:* {$metadata['instruction']}\n";
+              }
             } else {
               $prompt .= "*Acción:* {$metadata['action']}\n";
             }
@@ -276,11 +287,11 @@ class PromptBuilder {
           // Metadata específico para imágenes
           if ($format === 'image') {
             $imageAnalysis = json_decode($mensaje, true);
-
+            
             if ($imageAnalysis && is_array($imageAnalysis)) {
               $prompt .= "*Análisis IA de imagen:* " . ($imageAnalysis['resume'] ?? 'Sin descripción') . "\n";
               $prompt .= "*Es comprobante:* " . (($imageAnalysis['is_proof_payment'] ?? false) ? 'Sí' : 'No') . "\n";
-
+              
               if ($imageAnalysis['is_proof_payment'] ?? false) {
                 $prompt .= "*Monto válido:* " . (($imageAnalysis['valid_amount'] ?? false) ? 'Sí' : 'No') . "\n";
                 $prompt .= "*Monto encontrado:* " . ($imageAnalysis['amount_found'] ?? 'N/A') . "\n";
@@ -300,7 +311,7 @@ class PromptBuilder {
         // FORMATO DEL MENSAJE
         if ($format === 'image') {
           $imageAnalysis = json_decode($mensaje, true);
-
+          
           if ($imageAnalysis && is_array($imageAnalysis)) {
             $jsonCompact = json_encode($imageAnalysis, JSON_UNESCAPED_UNICODE);
             $prompt .= "Mensaje: [image: {$jsonCompact}]\n\n";
@@ -322,7 +333,7 @@ class PromptBuilder {
 
   private static function buildCurrentMessage($aiText, $chat) {
     $lastActivity = $chat['last_activity'] ?? 'N/A';
-
+    
     $prompt = "## INFORMACIÓN DINÁMICA DE LA CONVERSACIÓN:\n\n";
     $prompt .= "**Última actividad:** {$lastActivity}\n";
     $prompt .= "**Hora actual:** " . date('Y-m-d H:i:s') . "\n\n";

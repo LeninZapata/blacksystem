@@ -12,6 +12,7 @@ class ClientHandlers {
 
       $sales = db::table('sales')->where('client_id', $id)->delete();
       $chats = db::table('chats')->where('client_id', $id)->delete();
+      $followups = db::table('followups')->where('number', $number)->delete();
       db::table(self::$table)->where('id', $id)->delete();
 
       // Eliminar todos los archivos chat del cliente
@@ -24,6 +25,7 @@ class ClientHandlers {
           'client' => 1,
           'sales' => $sales,
           'chats' => $chats,
+          'followups' => $followups,
           'files' => $deletedFiles
         ]
       ];

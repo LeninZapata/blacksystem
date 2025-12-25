@@ -261,17 +261,30 @@ class form {
     const addText = this.t(field.addText) || __('core.form.repeatable.add');
     const buttonPosition = field.buttonPosition || 'top';
 
+    // ✅ Agregar description si existe
+    const description = field.description
+      ? `<p class="repeatable-description">${this.t(field.description)}</p>`
+      : '';
+
     const addButton = `
       <button type="button" class="btn btn-primary btn-sm repeatable-add" data-path="${path}">
         ${addText}
       </button>
     `;
 
+    // ✅ Envolver h4 y description en un div para que queden verticalmente
+    const headerContent = `
+      <div class="repeatable-header-content">
+        <h4>${this.t(field.label)}</h4>
+        ${description}
+      </div>
+    `;
+
     if (buttonPosition === 'middle') {
       return `
         <div class="form-repeatable" data-field-path="${path}">
           <div class="repeatable-header">
-            <h4>${this.t(field.label)}</h4>
+            ${headerContent}
           </div>
           <div class="repeatable-add-container" style="margin: 0.5rem 0;">
             ${addButton}
@@ -283,7 +296,7 @@ class form {
       return `
         <div class="form-repeatable" data-field-path="${path}">
           <div class="repeatable-header">
-            <h4>${this.t(field.label)}</h4>
+            ${headerContent}
           </div>
           <div class="repeatable-items" data-path="${path}"></div>
           <div class="repeatable-add-container" style="margin: 0.5rem 0; text-align: center;">
@@ -292,10 +305,11 @@ class form {
         </div>
       `;
     } else {
+      // top (default)
       return `
         <div class="form-repeatable" data-field-path="${path}">
           <div class="repeatable-header">
-            <h4>${this.t(field.label)}</h4>
+            ${headerContent}
             ${addButton}
           </div>
           <div class="repeatable-items" data-path="${path}"></div>
@@ -671,23 +685,23 @@ class form {
 
         if (field.source) {
           setTimeout(() => {
-            
+
             // ✅ Verificar si el select existe
             const existingSelect = document.getElementById(selectId);
-            
+
             if (!existingSelect) {
               this.loadSelectFromAPI(selectId, field.source, sourceValue, sourceLabel);
               return;
             }
-            
+
             // Verificar si ya fue cargado
             const alreadyLoaded = existingSelect.options.length > 1;
             const hasValue = existingSelect.value && existingSelect.value !== '';
-            
+
             if (alreadyLoaded || hasValue) {
               return;
             }
-            
+
             this.loadSelectFromAPI(selectId, field.source, sourceValue, sourceLabel);
           }, 10);
         }
@@ -1547,7 +1561,7 @@ class form {
       if (input.options.length <= 1 && value) {
         // Select aún no cargado, esperar al evento afterLoad
         input.dataset.pendingValue = value;
-        
+
         const waitForLoad = (e) => {
           if (e.target === input || e.detail?.selectId === input.id) {
             input.value = value;
@@ -1555,7 +1569,7 @@ class form {
             input.removeEventListener('select:afterLoad', waitForLoad);
           }
         };
-        
+
         input.addEventListener('select:afterLoad', waitForLoad);
       } else {
         input.value = value;

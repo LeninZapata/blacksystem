@@ -24,6 +24,7 @@ class ChatHandlers {
       return [ 'success' => true, 'chat_id' => $id, 'data' => array_merge($data, ['id' => $id])
       ];
     } catch (Exception $e) {
+      log::error('ChatHandlers::register - Error', ['message' => $e->getMessage()], ['module' => 'chat', 'layer' => 'app']);
       return [
         'success' => false, 'error' => __('chat.create.error'), 'details' => IS_DEV ? $e->getMessage() : null
       ];
@@ -207,6 +208,12 @@ class ChatHandlers {
     $chatId = "chat_{$number}_bot_{$botId}";
     $chatFile = SHARED_PATH . '/chats/infoproduct/' . $chatId . '.json';
 
+    log::debug("ChatHandlers::addMessage - Agregando mensaje al chat", [
+      'chat_file' => $chatFile,
+      'message_type' => $type,
+      'message_format' => $data['format'] ?? 'text',
+      'data' => $data
+    ], ['module' => 'chat']);
     $chatData = self::getOrCreateChatStructure($chatFile, $data);
 
     // Normalizar tipo a 'P', 'B', 'S'
@@ -231,12 +238,18 @@ class ChatHandlers {
   }
 
   // Obtener chat desde JSON con opción de reconstrucción
-  static function getChat($number, $botId, $skipReconstruction = false) {
+  static function getChat($number, $botId, $forceReconstruction = false) {
     $chatId = "chat_{$number}_bot_{$botId}";
     $chatFile = SHARED_PATH . '/chats/infoproduct/' . $chatId . '.json';
 
-    return file::getJson($chatFile, function() use ($number, $botId, $skipReconstruction) {
-      return $skipReconstruction ? null : self::rebuildFromDB($number, $botId);
+    // Si se fuerza reconstrucción, regenerar desde DB directamente
+    if ($forceReconstruction) {
+      return self::rebuildFromDB($number, $botId);
+    }
+
+    // Si no, intentar leer archivo JSON, si no existe entonces reconstruir desde DB
+    return file::getJson($chatFile, function() use ($number, $botId) {
+      return self::rebuildFromDB($number, $botId);
     });
   }
 

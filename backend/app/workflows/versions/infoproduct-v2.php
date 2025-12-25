@@ -8,11 +8,20 @@ require_once APP_PATH . '/workflows/core/support/MessageClassifier.php';
 require_once APP_PATH . '/workflows/core/validators/ConversationValidator.php';
 require_once APP_PATH . '/workflows/core/validators/WelcomeValidator.php';
 
+// Cargar action handlers
+require_once APP_PATH . '/workflows/infoproduct/actions/DoesNotWantProductAction.php';
+
 class InfoproductV2Handler {
 
   private $actionDispatcher;
   private $maxConversationDays = 2;
   private $bufferDelay = 3;
+
+  // Configuración de followups
+  private $followupStartHour = 8;
+  private $followupEndHour = 22;
+  private $followupMinutesBefore = 15;
+  private $followupMinutesAfter = 15;
 
   public function __construct() {
     log::debug("InfoproductV2Handler::__construct - INICIO", [], ['module' => 'infoproduct_v2']);
@@ -20,6 +29,10 @@ class InfoproductV2Handler {
     $this->actionDispatcher = new ActionDispatcher();
 
     log::debug("InfoproductV2Handler::__construct - ActionDispatcher creado", [], ['module' => 'infoproduct_v2']);
+
+    // Configurar horarios y variación para followups
+    FollowupHandlers::setAllowedHours($this->followupStartHour, $this->followupEndHour);
+    FollowupHandlers::setMinutesVariation($this->followupMinutesBefore, $this->followupMinutesAfter);
 
     $this->registerActionHandlers();
 
@@ -31,9 +44,7 @@ class InfoproductV2Handler {
 
     $registry = $this->actionDispatcher->getRegistry();
 
-    // $registry->register('sale_confirmed', 'SaleConfirmedHandler');
-    // $registry->register('delivered_product', 'DeliveredProductHandler');
-    // $registry->register('payment_method_template', 'PaymentMethodTemplateHandler');
+    $registry->register('does_not_want_the_product', 'DoesNotWantProductAction');
 
     log::debug("InfoproductV2Handler::registerActionHandlers - FIN", [], ['module' => 'infoproduct_v2']);
   }
@@ -199,14 +210,9 @@ class InfoproductV2Handler {
 
     require_once APP_PATH . '/workflows/core/support/MessageBuffer.php';
     $buffer = new MessageBuffer($this->bufferDelay);
+    $result = $buffer->process($person['number'], $bot['id'], $message);
 
-    $result = $buffer->process(
-      $person['number'],
-      $bot['id'],
-      $message
-    );
-
-    if ($result === null) {
+    if (!$result) {
       log::debug("InfoproductV2Handler::continueConversation - Esperando buffer", [], ['module' => 'infoproduct_v2']);
       return;
     }
@@ -329,7 +335,8 @@ class InfoproductV2Handler {
         'bot' => $bot,
         'person' => $person,
         'ai_response' => $strategyResult['ai_response'],
-        'chat_data' => $chatData
+        'chat_data' => $chatData,
+        'metadata' => $strategyResult['ai_response']['metadata']
       ]);
     }
   }
@@ -387,7 +394,8 @@ class InfoproductV2Handler {
         'bot' => $bot,
         'person' => $person,
         'ai_response' => $result['ai_response'],
-        'chat_data' => $chatData
+        'chat_data' => $chatData,
+        'metadata' => $result['ai_response']['metadata']
       ]);
     }
   }

@@ -15,7 +15,7 @@ window.appConfig = {
     enabled: true,
     loginView: 'auth/login',
     redirectAfterLogin: 'dashboard/dashboard',
-    storageKey: 'sb_auth',
+    storageKey: 'factory_auth',
     tokenTTL: 24 * 60 * 60 * 1000, // ← Solo informativo, NO controla backend
     sessionCheckInterval: 1*60*1000, // Cada cuánto verifica (1 minuto)
     api: {
