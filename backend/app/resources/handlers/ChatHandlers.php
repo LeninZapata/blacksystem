@@ -3,7 +3,7 @@ class ChatHandlers {
 
   private static $table = DB_TABLES['chats'];
 
-  // Registrar mensaje de chat - Método simplificado
+  // Registrar mensaje de chat
   static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type = 'P', $format = 'text', $metadata = null, $saleId = 0) {
     $data = [
       'bot_id' => $botId,
@@ -21,8 +21,7 @@ class ChatHandlers {
 
     try {
       $id = db::table(self::$table)->insert($data);
-      return [ 'success' => true, 'chat_id' => $id, 'data' => array_merge($data, ['id' => $id])
-      ];
+      return ['success' => true, 'chat_id' => $id, 'data' => array_merge($data, ['id' => $id])];
     } catch (Exception $e) {
       log::error('ChatHandlers::register - Error', ['message' => $e->getMessage()], ['module' => 'chat', 'layer' => 'app']);
       return [
@@ -206,7 +205,7 @@ class ChatHandlers {
     $number = $data['number'];
     $botId = $data['bot_id'];
     $chatId = "chat_{$number}_bot_{$botId}";
-    $chatFile = SHARED_PATH . '/chats/infoproduct/' . $chatId . '.json';
+    $chatFile = CHATS_STORAGE_PATH . '/' . $chatId . '.json';
 
     log::debug("ChatHandlers::addMessage - Agregando mensaje al chat", [
       'chat_file' => $chatFile,
@@ -214,6 +213,7 @@ class ChatHandlers {
       'message_format' => $data['format'] ?? 'text',
       'data' => $data
     ], ['module' => 'chat']);
+
     $chatData = self::getOrCreateChatStructure($chatFile, $data);
 
     // Normalizar tipo a 'P', 'B', 'S'
@@ -240,7 +240,7 @@ class ChatHandlers {
   // Obtener chat desde JSON con opción de reconstrucción
   static function getChat($number, $botId, $forceReconstruction = false) {
     $chatId = "chat_{$number}_bot_{$botId}";
-    $chatFile = SHARED_PATH . '/chats/infoproduct/' . $chatId . '.json';
+    $chatFile = CHATS_STORAGE_PATH . '/' . $chatId . '.json';
 
     // Si se fuerza reconstrucción, regenerar desde DB directamente
     if ($forceReconstruction) {
@@ -352,7 +352,7 @@ class ChatHandlers {
         ];
       }
 
-      $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
+      $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
       if (self::saveChatFile($chatFile, $chatData)) {
         log::info('ChatHandlers::rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
         return $chatData;

@@ -10,13 +10,13 @@ class ClientHandlers {
 
     try {
 
-      $sales = db::table('sales')->where('client_id', $id)->delete();
-      $chats = db::table('chats')->where('client_id', $id)->delete();
+      $chats = db::table('chats')->where('client_number', $number)->delete();
       $followups = db::table('followups')->where('number', $number)->delete();
-      db::table(self::$table)->where('id', $id)->delete();
+      $sales = db::table('sales')->where('number', $number)->delete();
+      db::table(self::$table)->where('number', $number)->delete();
 
       // Eliminar todos los archivos chat del cliente
-      $deletedFiles = file::deletePattern(SHARED_PATH . "/chats/infoproduct/chat_{$number}_bot_*.json");
+      $deletedFiles = file::deletePattern(CHATS_STORAGE_PATH . "/chat_{$number}_bot_*.json");
 
       return [
         'success' => true,

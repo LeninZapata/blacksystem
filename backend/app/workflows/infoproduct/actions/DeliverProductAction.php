@@ -10,7 +10,7 @@ class DeliverProductAction {
     $templates = self::loadProductTemplates($productId);
 
     if (!$templates || empty($templates)) {
-      log::warning("No templates found for product: {$productId}", [], ['module' => 'deliver_product']);
+      log::error("No templates found for product: {$productId}", [], ['module' => 'deliver_product']);
       return [
         'success' => false,
         'error' => 'No templates found'

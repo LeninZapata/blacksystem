@@ -1,7 +1,7 @@
 <?php
 class deepSeekProvider extends baseAIProvider {
   private $baseUrl = 'https://api.deepseek.com';
-  protected static $logMeta = ['module' => 'ai', 'layer' => 'framework'];
+  protected static $logMeta = ['module' => 'ai', 'layer' => 'service'];
 
   public function getProviderName(): string {
     return 'deepseek';
@@ -22,12 +22,14 @@ class deepSeekProvider extends baseAIProvider {
       ]);
 
       if (!$response['success']){
-        log::throwError(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')', $response, self::$logMeta);
+        log::error('Error HTTP en chat completion', $response, self::$logMeta);
+        throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
       }
 
       $data = $response['data'];
       if (!isset($data['choices'][0]['message']['content'])){
-        log::throwError(__('services.ai.invalid_response'), ['response_data' => $data], self::$logMeta);
+        log::error('Respuesta con formato inválido', ['response_data' => $data], self::$logMeta);
+        throw new Exception(__('services.ai.invalid_response'));
       }
 
       $usage = $data['usage'] ?? [];
@@ -72,7 +74,7 @@ class deepSeekProvider extends baseAIProvider {
         'timeout' => 60
       ]);
 
-      if (!$response['success']) log::throwError(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')', [], self::$logMeta);
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
       $description = $data['choices'][0]['message']['content'] ?? '';

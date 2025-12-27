@@ -60,7 +60,7 @@ $router->group('/api/chat', function($router) {
   $router->delete('/delete/{number}/{bot_id}', function($number, $bot_id) {
     if (empty($number) || empty($bot_id)) response::error('Parámetros requeridos: number, bot_id', 400);
 
-    $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $bot_id . '.json';
+    $chatFile = CHATS_INFOPRODUCT_PATH . '/chat_' . $number . '_bot_' . $bot_id . '.json';
     if (!file_exists($chatFile)) response::error('Chat JSON no encontrado', 404);
 
     if (unlink($chatFile)) {

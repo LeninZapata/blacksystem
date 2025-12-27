@@ -1,6 +1,5 @@
 Backend (Aplicacion):
-☐ Cuando se elimine un producto debe eliminarse sus archivos de JSON
-☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
+✔ Cuando se elimine un producto debe eliminarse sus archivos de JSON @done(25-12-2025 18:14)
 ☐ Cree un producto y me envio este error:
 {
   "code": 201,
@@ -12,17 +11,6 @@ Backend (Aplicacion):
     }
   }
 }
-
-☐ Eliminar del chat el campo 'image_url' porque no sirve para nada no se puede ver la imagen nunca
-☐ Verificar si last_activity se actualiza bien con respecto a otros paises
-☐ Prueba mejr el buffer
-✔ Recueda el action que dice 'ya no desea el producto' debe procesar todos los seguimientos @done(25-12-2025 17:18)
-☐ valida el nombre igual en los CRUD de producto, credenecial, bot, workflow.. 
-☐ existen muchos ::debug que eliminar o analizar
-☐ Analizar e ltema de la nueva_oferta porque puede ser confuso esto no es upsell, entonces
-puede que la nueva oferta seea luego que se acaben lso seguimientos  totalmente ya sea de producto
-principal o de upsell. pero es una posibilidad, para eso habria que tener muchos productos
-que ofrecer en si.
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
   ☐ grafica de productos vendidos
   ☐ grafica de ingresos por producto
@@ -31,6 +19,21 @@ que ofrecer en si.
   ☐ graficas de conversiones
   ☐ chat por dias | horas
   ☐ ventas por dias | horas
+☐ Eliminar del chat el campo 'image_url' porque no sirve para nada no se puede ver la imagen nunca
+☐ Verificar si last_activity se actualiza bien con respecto a otros paises
+☐ Prueba mejr el buffer
+✔ Recueda el action que dice 'ya no desea el producto' debe procesar todos los seguimientos @done(25-12-2025 17:18)
+✘ valida el nombre igual en los CRUD de producto, credenecial, bot, workflow.. @cancelled(26-12-2025 09:23)
+no entiendo que puse aqui
+☐ existen muchos ::debug que eliminar o analizar
+✘ Analizar e ltema de la nueva_oferta porque puede ser confuso esto no es upsell, entonces @cancelled(26-12-2025 09:23)
+puede que la nueva oferta seea luego que se acaben lso seguimientos  totalmente ya sea de producto
+principal o de upsell. pero es una posibilidad, para eso habria que tener muchos productos
+que ofrecer en si.
+NO APLICA AHORITA, SE DEJA PARA FUTURO
+☐ parece que los upsell cuando ya son digamos 22:30 y son de minutos o horass se sigue ejecutando en ese dia
+cuando tuvo que irse para el otro dia
+☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
 
 Frontend (Aplicacion):
 ☐ Verificar si el archivo de workflow existe

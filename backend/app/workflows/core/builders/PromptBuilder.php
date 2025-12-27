@@ -58,8 +58,10 @@ class PromptBuilder {
         $productPrice = $metadata['price'] ?? '0.00';
         $saleId = $metadata['sale_id'] ?? null;
 
-        $templatesFile = SHARED_PATH . '/bots/infoproduct/messages/template_' . $productId . '.json';
-        $templates = file::getJson($templatesFile) ?? [];
+        //$templatesFile = BOTS_INFOPRODUCT_MESSAGES_PATH . '/template_' . $productId . '.json';
+        //$templatesFile = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/' . 'template_' . $productId . '.json';
+        //$templates = file::getJson($templatesFile) ?? [];
+        $templates = ProductHandler::getTemplatesFile($productId);
 
         if ($productId && !isset($productosEnConversacion[$productId])) {
           $productosEnConversacion[$productId] = [

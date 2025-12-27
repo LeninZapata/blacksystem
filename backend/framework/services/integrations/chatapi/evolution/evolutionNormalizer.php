@@ -208,10 +208,12 @@ class evolutionNormalizer {
 
   // Detectar tipo de mensaje
   private static function detectMessageType($data, $contextInfo) {
+    // Si viene de FB Ads
     if (!empty($contextInfo['conversionSource']) && $contextInfo['conversionSource'] === 'FB_Ads') {
       return 'fb_ads_lead';
     }
 
+    // Tipo de mensaje según Evolution
     return $data['messageType'] ?? 'conversation';
   }
 
@@ -242,24 +244,16 @@ class evolutionNormalizer {
       return $message['conversation'];
     }
 
-    // Prioridad 3: Texto extendido
     if (isset($message['extendedTextMessage']['text'])) {
       return $message['extendedTextMessage']['text'];
     }
 
-    // Prioridad 4: Caption de imagen
     if (isset($message['imageMessage']['caption'])) {
       return $message['imageMessage']['caption'];
     }
 
-    // Prioridad 5: Caption de video
     if (isset($message['videoMessage']['caption'])) {
       return $message['videoMessage']['caption'];
-    }
-
-    // Prioridad 6: Caption de documento
-    if (isset($message['documentMessage']['caption'])) {
-      return $message['documentMessage']['caption'];
     }
 
     return '';

@@ -64,6 +64,27 @@
 		"terminal.integrated.fontFamily": "'Monaspace Neon Var', Fira Code, Monaco, monospace",
 		"terminal.integrated.fontSize": 11,
 		"terminal.integrated.fontWeight": 450,
-		"terminal.integrated.fontWeightBold": 800,
+    "terminal.integrated.fontWeightBold": 800,
+    "dbcode.connections": [
+      {
+        "connectionId": "MBEHNtaG-giiqiSznTK5e",
+        "name": "backsystem",
+        "driver": "mysql",
+        "connectionType": "host",
+        "host": "localhost",
+        "port": 3306,
+        "ssl": false,
+        "username": "root",
+        "savePassword": "secretStorage",
+        "database": "blacksystem",
+        "readOnly": false,
+        "postConnectionSqlType": "inline",
+        "connectionTimeout": 30,
+        "driverOptions": {
+          "retrievePublickey": true,
+          "disableMultiStatements": false
+        }
+      }
+    ],
 	}
 }

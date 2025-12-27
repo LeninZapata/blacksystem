@@ -81,11 +81,9 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
   }
 
-  /**
-   * ✅ NUEVO: Verificar si existe conversación previa (sin límite de días)
-   */
+  // Verificar si existe conversación previa (sin límite de días)
   private function checkExistingConversation($number, $botId) {
-    $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
+    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
 
     if (!file_exists($chatFile)) {
       return null;
@@ -97,10 +95,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     return $chat;
   }
 
-  /**
-   * ✅ MEJORADO: Verificar si ya compró ESTE producto específico
-   * Busca en mensajes con action='sale_confirmed' que tengan este product_id
-   */
+  // Verificar si ya compró ESTE producto específico - Busca en mensajes con action='sale_confirmed' que tengan este product_id
   private function hasAlreadyPurchased($chat, $productId) {
     $messages = $chat['messages'] ?? [];
 
@@ -137,10 +132,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     return false; // NO ha comprado este producto
   }
 
-  /**
-   * ✅ NUEVO: Manejar re-welcome (mismo producto ya comprado)
-   * Solo envía mensajes + registra en chat, NO crea venta
-   */
+  // Manejar re-welcome (mismo producto ya comprado) * Solo envía mensajes + registra en chat, NO crea venta
   private function handleReWelcome($bot, $person, $product, $existingChat) {
     log::info("WelcomeStrategy::handleReWelcome - INICIO", ['product_id' => $product['id']], ['module' => 'welcome_strategy']);
 

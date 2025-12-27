@@ -9,27 +9,23 @@ class logReader {
 
   /**
    * Obtener configuración de columnas desde log.php
-   * Usa reflection para acceder a la configuración privada
    */
   private static function getLogConfig() {
     static $config = null;
-    
+
     if ($config === null) {
-      // Intentar obtener config de log.php mediante reflection
-      try {
-        $reflection = new ReflectionClass('log');
-        $property = $reflection->getProperty('config');
-        $property->setAccessible(true);
-        $config = $property->getValue();
-      } catch (Exception $e) {
+      // Obtener config directamente desde log.php
+      if (class_exists('log') && method_exists('log', 'getConfig')) {
+        $config = log::getConfig();
+      } else {
         // Fallback: configuración por defecto
         $config = [
-          'columns' => ['timestamp', 'level', 'layer', 'module', 'message', 'context', 'file_line', 'user_id', 'tags'],
+          'columns' => ['timestamp', 'sequence', 'level', 'layer', 'module', 'message', 'context', 'file_line', 'user_id', 'tags'],
           'separator' => "\t"
         ];
       }
     }
-    
+
     return $config;
   }
 
@@ -72,6 +68,10 @@ class logReader {
         switch ($columnName) {
           case 'timestamp':
             $log['timestamp'] = trim($value, '[]');
+            break;
+
+          case 'sequence':
+            $log['sequence'] = (int)$value;
             break;
 
           case 'context':
@@ -221,7 +221,15 @@ class logReader {
     }
 
     usort($allLogs, function($a, $b) {
-      return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+      // Ordenar por timestamp con microsegundos
+      $timeCompare = strcmp($b['timestamp'], $a['timestamp']);
+
+      if ($timeCompare === 0) {
+        // Fallback a sequence si timestamps son idénticos (muy raro)
+        return ($b['sequence'] ?? 0) <=> ($a['sequence'] ?? 0);
+      }
+
+      return $timeCompare;
     });
 
     return $limit > 0 ? array_slice($allLogs, 0, $limit) : $allLogs;
@@ -359,7 +367,15 @@ class logReader {
     }
 
     usort($allLogs, function($a, $b) {
-      return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+      // Ordenar por timestamp con microsegundos
+      $timeCompare = strcmp($b['timestamp'], $a['timestamp']);
+
+      if ($timeCompare === 0) {
+        // Fallback a sequence si timestamps son idénticos (muy raro)
+        return ($b['sequence'] ?? 0) <=> ($a['sequence'] ?? 0);
+      }
+
+      return $timeCompare;
     });
 
     return $limit > 0 ? array_slice($allLogs, 0, $limit) : $allLogs;

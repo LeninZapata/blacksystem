@@ -3,6 +3,7 @@ window.appConfig = {
   version: VERSION,
   isDevelopment: IS_DEV,
   frameworkPath: 'framework',
+  proyect_slug: PROYECT_SLUG,
 
   i18n: {
     enabled: true,
@@ -15,7 +16,7 @@ window.appConfig = {
     enabled: true,
     loginView: 'auth/login',
     redirectAfterLogin: 'dashboard/dashboard',
-    storageKey: 'factory_auth',
+    storageKey: PROYECT_SLUG,
     tokenTTL: 24 * 60 * 60 * 1000, // ← Solo informativo, NO controla backend
     sessionCheckInterval: 1*60*1000, // Cada cuánto verifica (1 minuto)
     api: {

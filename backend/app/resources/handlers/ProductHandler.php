@@ -65,8 +65,11 @@ class ProductHandler {
     $deletedFiles = [];
     $errors = [];
 
+    // Ruta base del producto
+    $productBasePath = BOTS_INFOPRODUCT_RAPID_PATH . '/' . $productId;
+
     // 1. Archivo principal del producto
-    $productFile = SHARED_PATH . '/bots/infoproduct/' . $productId . '.json';
+    $productFile = $productBasePath . '/' . $productId . '.json';
     if (file_exists($productFile)) {
       if (@unlink($productFile)) {
         $deletedFiles[] = $productFile;
@@ -76,9 +79,9 @@ class ProductHandler {
     }
 
     // 2. Archivos de mensajes
-    $messageTypes = ['welcome', 'welcome_upsell', 'follow', 'follow_upsell'];
+    $messageTypes = ['welcome', 'welcome_upsell', 'follow', 'follow_upsell', 'template', 'upsell'];
     foreach ($messageTypes as $type) {
-      $messageFile = SHARED_PATH . '/bots/infoproduct/messages/' . $type . '_' . $productId . '.json';
+      $messageFile = $productBasePath . '/messages/' . $type . '_' . $productId . '.json';
       if (file_exists($messageFile)) {
         if (@unlink($messageFile)) {
           $deletedFiles[] = $messageFile;
@@ -89,7 +92,7 @@ class ProductHandler {
     }
 
     // 3. Archivo de templates
-    $templateFile = SHARED_PATH . '/bots/infoproduct/messages/template_' . $productId . '.json';
+    $templateFile = $productBasePath . '/messages/template_' . $productId . '.json';
     if (file_exists($templateFile)) {
       if (@unlink($templateFile)) {
         $deletedFiles[] = $templateFile;
@@ -99,7 +102,7 @@ class ProductHandler {
     }
 
     // 4. Archivo de upsell
-    $upsellFile = SHARED_PATH . '/bots/infoproduct/messages/upsell_' . $productId . '.json';
+    $upsellFile = $productBasePath . '/messages/upsell_' . $productId . '.json';
     if (file_exists($upsellFile)) {
       if (@unlink($upsellFile)) {
         $deletedFiles[] = $upsellFile;
@@ -108,7 +111,12 @@ class ProductHandler {
       }
     }
 
-    // 5. Regenerar activators del bot (si se proporciona botId)
+    // 5. Intentar eliminar directorios vacíos
+    @rmdir($productBasePath . '/messages');
+    @rmdir($productBasePath . '/rapid');
+    @rmdir($productBasePath);
+
+    // 6. Regenerar activators del bot (si se proporciona botId)
     if ($botId) {
       $bot = db::table(self::$tableBots)->find($botId);
       if ($bot) {
@@ -141,7 +149,7 @@ class ProductHandler {
       $botNumber = $bot['number'];
     }
 
-    $path = SHARED_PATH . '/bots/infoproduct/rapid/activators_' . $botNumber . '.json';
+    $path = BOTS_INFOPRODUCT_RAPID_PATH . '/activators_' . $botNumber . '.json';
     return file::getJson($path, function() use ($botNumber, $botId) {
       return self::generateActivatorsFile($botNumber, $botId, 'rebuild');
     });
@@ -149,7 +157,7 @@ class ProductHandler {
 
   // Obtener archivo de producto
   static function getProductFile($productId) {
-    $path = SHARED_PATH . '/bots/infoproduct/' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/' . $productId . '.json';
     return file::getJson($path, function() use ($productId) {
       return self::generateProductFile($productId, 'rebuild');
     });
@@ -168,10 +176,13 @@ class ProductHandler {
 
     if (!isset($typeMap[$type])) return null;
 
-    $path = SHARED_PATH . '/bots/infoproduct/messages/' . $type . '_' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/' . $type . '_' . $productId . '.json';
     return file::getJson($path, function() use ($type, $productId) {
       if ($type === 'upsell') {
         return self::generateUpsellFile($productId, 'rebuild');
+      }
+      if ($type === 'template') {
+        return self::generateMessagesFile('template', $productId, 'rebuild');
       }
       return self::generateMessagesFile($type, $productId, 'rebuild');
     });
@@ -179,7 +190,7 @@ class ProductHandler {
 
   // Obtener archivo de templates
   static function getTemplatesFile($productId) {
-    $path = SHARED_PATH . '/bots/infoproduct/messages/template_' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/template_' . $productId . '.json';
     return file::getJson($path, function() use ($productId) {
       return self::generateTemplatesFile($productId, 'rebuild');
     });
@@ -187,15 +198,15 @@ class ProductHandler {
 
   // Obtener archivo de upsell
   static function getUpsellFile($productId) {
-    $path = SHARED_PATH . '/bots/infoproduct/messages/upsell_' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/upsell_' . $productId . '.json';
     return file::getJson($path, function() use ($productId) {
       return self::generateUpsellFile($productId, 'rebuild');
     });
   }
 
   /**
-   * Generar archivo individual del producto /bots/infoproduct/{product_id}.json
-   * NO incluye config.messages
+   * Generar archivo individual del producto
+   * /bots/infoproduct/{product_id}/{product_id}.json
    */
   static function generateProductFile($productId, $action = 'create') {
     $product = db::table(self::$table)->find($productId);
@@ -220,7 +231,7 @@ class ProductHandler {
       'config' => $config
     ];
 
-    $path = SHARED_PATH . '/bots/infoproduct/' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/' . $productId . '.json';
     return file::saveJson($path, $productData, 'product', $action);
   }
 
@@ -237,13 +248,15 @@ class ProductHandler {
       'welcome' => 'welcome_messages',
       'welcome_upsell' => 'welcome_messages_upsell',
       'follow' => 'tracking_messages',
-      'follow_upsell' => 'tracking_messages_upsell'
+      'follow_upsell' => 'tracking_messages_upsell',
+      'template' => 'templates',
+      'upsell' => 'upsell_products'
     ];
 
     if (!isset($typeMap[$type])) return false;
 
     $messages = $config['messages'][$typeMap[$type]] ?? [];
-    $path = SHARED_PATH . '/bots/infoproduct/messages/' . $type . '_' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/' . $type . '_' . $productId . '.json';
     return file::saveJson($path, $messages, 'product', $action);
   }
 
@@ -257,7 +270,7 @@ class ProductHandler {
       : ($product['config'] ?? []);
 
     $templates = $config['messages']['templates'] ?? [];
-    $path = SHARED_PATH . '/bots/infoproduct/messages/template_' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/template_' . $productId . '.json';
     return file::saveJson($path, $templates, 'product', $action);
   }
 
@@ -271,11 +284,11 @@ class ProductHandler {
       : ($product['config'] ?? []);
 
     $upsells = $config['messages']['upsell_products'] ?? [];
-    $path = SHARED_PATH . '/bots/infoproduct/messages/upsell_' . $productId . '.json';
+    $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/upsell_' . $productId . '.json';
     return file::saveJson($path, $upsells, 'product', $action);
   }
 
-  // Generar archivo de activators
+  // Generar archivo de activators (compartido por bot)
   static function generateActivatorsFile($botNumber = null, $botId = null, $action = 'create') {
     if (!$botId && !$botNumber) return false;
 
@@ -318,7 +331,7 @@ class ProductHandler {
       }
     }
 
-    $path = SHARED_PATH . '/bots/infoproduct/rapid/activators_' . $botNumber . '.json';
+    $path = BOTS_INFOPRODUCT_RAPID_PATH . '/activators_' . $botNumber . '.json';
     return file::saveJsonItems($path, $activators, 'product', $action);
   }
 }

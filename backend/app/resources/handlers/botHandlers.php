@@ -1,6 +1,5 @@
 <?php
 class BotHandlers {
-  // Nombre de la tabla asociada a este handler
   protected static $table = DB_TABLES['bots'];
 
   /**
@@ -34,7 +33,7 @@ class BotHandlers {
 
   // Obtener archivo workflow del bot
   static function getWorkflowFile($botNumber) {
-    $path = SHARED_PATH . '/bots/infoproduct/rapid/workflow_' . $botNumber . '.json';
+    $path = BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json';
     return file::getJson($path, function() use ($botNumber) {
       return self::generateWorkflowFile($botNumber);
     });
@@ -42,7 +41,7 @@ class BotHandlers {
 
   // Obtener archivo data del bot
   static function getDataFile($botNumber) {
-    $path = SHARED_PATH . '/bots/data/' . $botNumber . '.json';
+    $path = BOTS_DATA_PATH . '/' . $botNumber . '.json';
     return file::getJson($path, function() use ($botNumber) {
       return self::generateDataFile($botNumber);
     });
@@ -72,7 +71,7 @@ class BotHandlers {
       }
     }
 
-    $path = SHARED_PATH . '/bots/infoproduct/rapid/workflow_' . $botNumber . '.json';
+    $path = BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json';
     return file::saveJson($path, ['file_path' => $filePath], 'bot', $action);
   }
 
@@ -130,21 +129,21 @@ class BotHandlers {
       $data['config']['apis']['chat'] = $resolvedChat;
     }
 
-    $path = SHARED_PATH . '/bots/data/' . $botNumber . '.json';
+    $path = BOTS_DATA_PATH . '/' . $botNumber . '.json';
     return file::saveJson($path, $data, 'bot', $action);
   }
 
   // Eliminar archivos de contexto antiguos
   private static function deleteContextFiles($botNumber) {
     $files = [
-      SHARED_PATH . '/bots/data/' . $botNumber . '.json',
-      SHARED_PATH . '/bots/infoproduct/rapid/workflow_' . $botNumber . '.json',
-      SHARED_PATH . '/bots/infoproduct/rapid/activators_' . $botNumber . '.json'
+      BOTS_DATA_PATH . '/' . $botNumber . '.json',
+      BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json',
+      BOTS_INFOPRODUCT_RAPID_PATH . '/activators_' . $botNumber . '.json'
     ];
 
     foreach ($files as $file) {
       if (file_exists($file)) {
-        unlink($file);
+        @unlink($file);
       }
     }
   }

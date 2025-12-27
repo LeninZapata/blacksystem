@@ -68,9 +68,10 @@ class logs {
     `;
 
     try {
-      // Cache key específico por filtro de fecha
+
+      // Usar PROYECT_SLUG para las keys de caché
       const filterKey = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}days`;
-      const cacheKey = `system_logs_${filterKey}`;
+      const cacheKey = PROYECT_SLUG + '_logs_' + filterKey;
       const cacheTTL = 5 * 60 * 1000; // 5 minutos
 
       // Intentar obtener del caché primero
@@ -80,7 +81,6 @@ class logs {
         logger.info('ext:admin:logs',`✅ Logs obtenidos desde caché (${filterKey})`);
         this.logsData = data;
       } else {
-
         let endpoint = '/api/logs';
 
         // Determinar endpoint según filtro
@@ -295,7 +295,7 @@ class logs {
       'DEBUG': { bg: '#1e293b', text: '#94a3b8', badge: '#475569' },
       'INFO': { bg: '#0c4a6e36', text: '#7dd3fc', badge: '#0d567c' },
       'SUCCESS': { bg: '#064e3b', text: '#6ee7b7', badge: '#059669' },
-      'WARNING': { bg: '#78350f', text: '#fbbf24', badge: '#d97706' },
+      'WARNING': { bg: '#78350f36', text: '#fbbf24', badge: '#9b5300' },
       'ERROR': { bg: '#7f1d1d33', text: '#fca5a5', badge: '#4b2020' }
     };
 
@@ -309,6 +309,7 @@ class logs {
            onmouseout="this.style.background='${color.bg}'">
         <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
           <span style="background: ${color.badge}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; min-width: 70px; text-align: center;">
+            <span style="font-size: 0.65rem; color:#898989;">${log.sequence}</span>
             ${log.level}
           </span>
           <span style="color: #64748b; min-width: 140px; font-size: 0.8rem;">
@@ -351,12 +352,13 @@ class logs {
       return;
     }
 
-    // Eliminar todos los caches de logs
-    cache.delete('system_logs_today');
-    cache.delete('system_logs_yesterday');
-    cache.delete('system_logs_7days');
-    cache.delete('system_logs_15days');
-    cache.delete('system_logs_30days');
+
+    // Eliminar todos los caches de logs usando PROYECT_SLUG
+    cache.delete(PROYECT_SLUG + '_logs_today');
+    cache.delete(PROYECT_SLUG + '_logs_yesterday');
+    cache.delete(PROYECT_SLUG + '_logs_7days');
+    cache.delete(PROYECT_SLUG + '_logs_15days');
+    cache.delete(PROYECT_SLUG + '_logs_30days');
     logger.info('ext:admin:logs','✅ Caché eliminado');
 
     // Determinar cuál filtro está activo

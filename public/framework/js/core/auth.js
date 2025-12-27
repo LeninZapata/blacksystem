@@ -559,7 +559,6 @@ class auth {
       logger.success('core:auth', 'Extensions cargados y filtrados');
     }
 
-    // ✅ AHORA SÍ INICIALIZAR SIDEBAR (con menús disponibles)
     if (window.sidebar) {
       await sidebar.init();
     }

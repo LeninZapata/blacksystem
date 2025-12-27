@@ -5,7 +5,7 @@ class MessageBuffer {
   private $delaySeconds;
 
   function __construct($delaySeconds = 10) {
-    $this->bufferDir = SHARED_PATH . '/chats/buffer/';
+    $this->bufferDir = CHATS_BUFFER_PATH . '/';
     $this->delaySeconds = $delaySeconds;
 
     if (!is_dir($this->bufferDir)) {
@@ -79,7 +79,7 @@ class MessageBuffer {
 
   private function prepareMessages($messages) {
     return [
-      'messages' => $messages,  // ← CAMBIO: usar 'messages' en vez de todo el objeto
+      'messages' => $messages,
       'accumulated' => true,
       'count' => count($messages)
     ];

@@ -253,6 +253,136 @@ class routeDiscovery {
     return '';
   }
 
+  // Extraer middleware de la ruta
+  private static function extractMiddleware($content, $path) {
+    $escapedPath = preg_quote($path, '/');
+    // 1. Buscar middleware directo (array o string)
+    $patternDirect = '/' . $escapedPath . '[^;]+->middleware\((\[.*?\]|[\'\"][^\'\"]+[\'\"])/s';
+    if (stripos($path, 'user') !== false) {
+      log::debug('extractMiddleware: [USER] debug antes de patrón directo', [
+        'content' => $content,
+        'escapedPath' => $escapedPath,
+        'path' => $path,
+        'patternDirect' => $patternDirect
+      ], ['module' => 'routeDiscovery']);
+    }
+    $matched = preg_match($patternDirect, $content, $match);
+    if (stripos($path, 'user') !== false) {
+      log::debug('extractMiddleware: [USER] resultado preg_match', [
+        'matched' => $matched,
+        'match' => $match ?? null,
+        'path' => $path
+      ], ['module' => 'routeDiscovery']);
+    }
+    if ($matched) {
+      $mwRaw = $match[1];
+      if (stripos($path, 'user') !== false) {
+        log::debug('extractMiddleware: [USER] valor extraído', [
+          'mwRaw' => $mwRaw,
+          'path' => $path
+        ], ['module' => 'routeDiscovery']);
+      }
+      // Si es array: ['json', 'auth']
+      if (preg_match('/^\[.*\]$/s', $mwRaw)) {
+        preg_match_all('/[\'\"]([^\'\"]+)[\'\"]/',$mwRaw, $allMatches);
+        if (stripos($path, 'user') !== false) {
+          log::debug('extractMiddleware: [USER] array extraído', [
+            'allMatches' => $allMatches[1],
+            'path' => $path
+          ], ['module' => 'routeDiscovery']);
+        }
+        return $allMatches[1];
+      }
+      // Si es string: 'auth' o "auth"
+      $mw = trim($mwRaw, "'\" ");
+      if (stripos($path, 'user') !== false) {
+        log::debug('extractMiddleware: [USER] string extraído', [
+          'mw' => $mw,
+          'path' => $path
+        ], ['module' => 'routeDiscovery']);
+      }
+      return [$mw];
+    }
+
+    // 2. Buscar middleware por variable (ej: ->middleware($middleware))
+    $patternVar = '/' . $escapedPath . '[^;]+->middleware\((\$[a-zA-Z0-9_]+)\)/s';
+    if (preg_match($patternVar, $content, $matchVar)) {
+      $varName = $matchVar[1];
+      log::debug('extractMiddleware: patrón variable', ['pattern' => $patternVar, 'match' => $matchVar, 'varName' => $varName, 'path' => $path], ['module' => 'routeDiscovery']);
+      // Buscar definición de la variable (ej: $middleware = ...;)
+      $varPattern = '/'.preg_quote($varName, '/').'\s*=\s*([^;]+);/';
+      if (preg_match($varPattern, $content, $varMatch)) {
+        $value = trim($varMatch[1]);
+        log::debug('extractMiddleware: valor de variable', ['varPattern' => $varPattern, 'varMatch' => $varMatch, 'value' => $value], ['module' => 'routeDiscovery']);
+        // Si es array: ['auth'] o ["auth"]
+        if (preg_match('/\[(.*?)\]/', $value, $arrMatch)) {
+          $arr = explode(',', $arrMatch[1]);
+          return array_map(function($v) {
+            return trim($v, "'\" ");
+          }, $arr);
+        }
+        // Si es string: 'auth' o "auth"
+        if (preg_match('/^[\'"](.*?)[\'"]$/', $value, $strMatch)) {
+          return [$strMatch[1]];
+        }
+      } else {
+        log::debug('extractMiddleware: variable no encontrada', ['varPattern' => $varPattern, 'varName' => $varName], ['module' => 'routeDiscovery']);
+      }
+    }
+    log::debug('extractMiddleware: sin middleware', ['path' => $path], ['module' => 'routeDiscovery']);
+    return [];
+  }
+
+  // Extraer middleware dentro de un grupo
+  private static function extractMiddlewareFromGroup($groupContent, $path) {
+    $escapedPath = preg_quote($path, '/');
+    $pattern = '/' . $escapedPath . '[^;]+->middleware\((\[.*?\]|[\'\"][^\'\"]+[\'\"])/s';
+    if (preg_match($pattern, $groupContent, $match)) {
+      $mwRaw = $match[1];
+      // Si es array: ['json', 'auth']
+      if (preg_match('/^\[.*\]$/s', $mwRaw)) {
+        preg_match_all('/[\'\"]([^\'\"]+)[\'\"]/',$mwRaw, $allMatches);
+        return $allMatches[1];
+      }
+      // Si es string: 'auth' o "auth"
+      $mw = trim($mwRaw, "'\" ");
+      return [$mw];
+    }
+    // Buscar middleware por variable (->middleware($middleware))
+    $patternVar = '/' . $escapedPath . '[^;]+->middleware\((\$[a-zA-Z0-9_]+)\)/s';
+    if (preg_match($patternVar, $groupContent, $matchVar)) {
+      $varName = $matchVar[1];
+      // Buscar definición de la variable dentro del grupo
+      $varPattern = '/'.preg_quote($varName, '/').'\s*=\s*([^;]+);/';
+      $found = false;
+      $value = null;
+      if (preg_match($varPattern, $groupContent, $varMatch)) {
+        $value = trim($varMatch[1]);
+        $found = true;
+      } else if (isset($GLOBALS['__routeDiscovery_content'])) {
+        // Buscar en el contenido completo del archivo si no está en el grupo
+        if (preg_match($varPattern, $GLOBALS['__routeDiscovery_content'], $varMatch2)) {
+          $value = trim($varMatch2[1]);
+          $found = true;
+        }
+      }
+      if ($found && $value !== null) {
+        // Si es array: ['auth'] o ["auth"]
+        if (preg_match('/\[(.*?)\]/', $value, $arrMatch)) {
+          $arr = explode(',', $arrMatch[1]);
+          return array_map(function($v) {
+            return trim($v, "'\" ");
+          }, $arr);
+        }
+        // Si es string: 'auth' o "auth"
+        if (preg_match('/^[\'\"](.*?)[\'\"]$/', $value, $strMatch)) {
+          return [$strMatch[1]];
+        }
+      }
+    }
+    return [];
+  }
+
   // Obtener rutas de extensiones
   private static function getExtensionRoutes() {
     $routes = [];

@@ -3,7 +3,7 @@
  * Log - Sistema de logging minimalista
  *
  * Responsabilidad: SOLO escribir logs
- * Formato: [timestamp] [level] [module] [message] [context_json] [file:line] [user_id] [tags]
+ * Formato: [timestamp] [sequence] [level] [layer] [module] [message] [context] [file:line] [user_id] [tags]
  */
 class log {
 
@@ -13,7 +13,7 @@ class log {
     'level' => 'debug',
     'max_size' => 1048576,
     'enabled' => true,
-    'columns' => ['timestamp', 'level', 'layer', 'module', 'message', 'context', 'file_line', 'user_id', 'tags'],
+    'columns' => ['timestamp', 'sequence', 'level', 'layer', 'module', 'message', 'context', 'file_line', 'user_id', 'tags'],
     'separator' => "\t"
   ];
 
@@ -25,9 +25,14 @@ class log {
   ];
 
   private static $isFatalError = false;
+  private static $executionSequence = 0;
 
   static function setConfig($config) {
     self::$config = array_merge(self::$config, $config);
+  }
+
+  static function getConfig() {
+    return self::$config;
   }
 
   static function debug($msg, $ctx = [], $meta = []) {
@@ -69,8 +74,7 @@ class log {
   }
 
   /**
-   * Escribir log
-   * Formato: [timestamp] [level] [module] [message] [context_json] [file:line] [user_id] [tags]
+   * Escribir log con microsegundos y secuencia
    */
   private static function write($level, $msg, $ctx = [], $meta = []) {
     if (!self::$config['enabled']) return;
@@ -78,6 +82,13 @@ class log {
     $minLevel = self::$levels[self::$config['level']] ?? 0;
     $currentLevel = self::$levels[strtolower($level)] ?? 0;
     if ($currentLevel < $minLevel) return;
+
+    // Incrementar secuencia
+    self::$executionSequence++;
+
+    // Timestamp con microsegundos
+    $microtime = microtime(true);
+    $timestamp = date('Y-m-d H:i:s', (int)$microtime) . '.' . str_pad(substr(explode('.', (string)$microtime)[1] ?? '000000', 0, 6), 6, '0');
 
     // Auto-detectar file y line
     $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
@@ -112,8 +123,6 @@ class log {
       $customVars = array_merge($customVars, $meta['custom']);
     }
 
-    $timestamp = date('Y-m-d H:i:s');
-
     // Extraer user_id si existe (para columna separada)
     $userId = $customVars['user_id'] ?? ($GLOBALS['auth_user_id'] ?? null);
     $userIdStr = $userId ? (string)$userId : '';
@@ -128,6 +137,7 @@ class log {
     // Preparar datos para columnas
     $columnData = [
       'timestamp' => "[$timestamp]",
+      'sequence' => self::$executionSequence,
       'level' => $level,
       'layer' => $layer,
       'module' => $module,
@@ -174,11 +184,6 @@ class log {
   // Handler para errores fatales - vacío por ahora, listo para notificaciones
   private static function handleFatalError($level, $msg, $ctx, $meta) {
     // TODO: Implementar notificaciones (email, Slack, SMS, etc)
-    // Ejemplo futuro:
-    // - Enviar email al admin
-    // - Notificar a Slack/Discord
-    // - Guardar en base de datos de errores críticos
-    // - Incrementar contador de errores en Redis
   }
 
   // Obtener ruta del archivo según formato

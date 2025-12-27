@@ -99,9 +99,9 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $this->processPayment($paymentData, $saleId);
 
     // 5. Entregar producto
-    $this->deliverProduct($chatData, $context);  // ← DEJAR ESTE
+    $this->deliverProduct($chatData, $context);
 
-    // 6. Procesar upsell (cancelar followups + registrar upsell si aplica)  // ← AGREGAR ESTE
+    // 6. Procesar upsell (cancelar followups + registrar upsell si aplica)
     $this->processUpsell($chatData, $bot);
 
     return [

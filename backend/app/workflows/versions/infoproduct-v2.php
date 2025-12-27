@@ -117,7 +117,6 @@ class InfoproductV2Handler {
 
     // PRIORIDAD 1: Detectar welcome SIEMPRE (incluso con conversación activa)
     log::debug("InfoproductV2Handler::handle - Detectando welcome", [], ['module' => 'infoproduct_v2']);
-    
     $welcomeCheck = WelcomeValidator::detect($bot, $message, $context);
 
     log::debug("InfoproductV2Handler::handle - Welcome detectado", [

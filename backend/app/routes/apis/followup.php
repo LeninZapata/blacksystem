@@ -187,7 +187,7 @@ $router->group('/api/followup', function($router) {
       'upsells_executed' => $upsellsExecuted
     ]);
 
-  })->middleware(['throttle:10,1']);
+  })->middleware(['throttle:20,1']);
 
   // Cancelar followups por venta - PUT /api/followup/cancel/{sale_id}
   $router->put('/cancel/{sale_id}', function($sale_id) {

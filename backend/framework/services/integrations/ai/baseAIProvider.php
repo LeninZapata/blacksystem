@@ -2,7 +2,7 @@
 abstract class baseAIProvider implements aiProviderInterface {
   protected $apiKey;
   protected $config;
-  protected static $baseLogMeta = ['module' => 'ai', 'layer' => 'framework'];
+  protected static $logMeta = ['module' => 'ai', 'layer' => 'service'];
 
   public function __construct(array $config) {
     $this->config = $config;
@@ -12,7 +12,8 @@ abstract class baseAIProvider implements aiProviderInterface {
 
   public function validateConfig(): bool {
     if (empty($this->apiKey)) {
-      log::throwError(__('services.ai.api_key_missing', ['provider' => $this->getProviderName()]), [], self::$baseLogMeta);
+      log::error('API key no configurada para ' . $this->getProviderName(), [], self::$logMeta);
+      throw new Exception(__('services.ai.api_key_missing', ['provider' => $this->getProviderName()]));
     }
     return true;
   }
@@ -28,7 +29,7 @@ abstract class baseAIProvider implements aiProviderInterface {
   }
 
   protected function log($message, $data = []): void {
-    log::debug(sprintf('[%s] %s', $this->getProviderName(), $message), $data, self::$baseLogMeta);
+    log::debug(sprintf('[%s] %s', $this->getProviderName(), $message), $data, self::$logMeta);
   }
 
   protected function buildMessages($prompt): array {

@@ -3,7 +3,7 @@
 class ConversationValidator {
 
   static function quickCheck($number, $botId, $maxDays = 2) {
-    $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
+    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
 
     if (!file_exists($chatFile)) {
       return false;
@@ -23,7 +23,7 @@ class ConversationValidator {
     if ($reconstruct) {
       $chat = ChatHandlers::getChat($number, $botId, false);
     } else {
-      $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
+      $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
 
       if (!file_exists($chatFile)) {
         return null;
@@ -53,7 +53,7 @@ class ConversationValidator {
   }
 
   static function chatExists($number, $botId) {
-    $chatFile = SHARED_PATH . '/chats/infoproduct/chat_' . $number . '_bot_' . $botId . '.json';
+    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
     return file_exists($chatFile);
   }
 }

@@ -1,7 +1,5 @@
 <?php
 class openAiProvider extends baseAIProvider {
-  // Meta para logs
-  private $logMeta = ['module' => 'openai', 'layer' => 'framework'];
   private $baseUrl = 'https://api.openai.com/v1';
 
   public function getProviderName(): string {
@@ -22,10 +20,10 @@ class openAiProvider extends baseAIProvider {
         'timeout' => 60
       ]);
 
-      if (!$response['success']) log::throwError(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')', [], $this->logMeta);
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
-      if (!isset($data['choices'][0]['message']['content'])) log::throwError(__('services.ai.invalid_response'), [], $this->logMeta);
+      if (!isset($data['choices'][0]['message']['content'])) throw new Exception(__('services.ai.invalid_response'));
 
       return [
         'success' => true,
@@ -37,7 +35,7 @@ class openAiProvider extends baseAIProvider {
       ];
 
     } catch (Exception $e) {
-      $this->log('Error en chat completion', ['error' => $e->getMessage()], $this->logMeta);
+      $this->log('Error en chat completion', ['error' => $e->getMessage()]);
       return $this->errorResponse($e->getMessage());
     }
   }
@@ -45,7 +43,7 @@ class openAiProvider extends baseAIProvider {
   public function transcribeAudio($audioUrl): array {
     try {
       $audioContent = file_get_contents($audioUrl);
-      if ($audioContent === false) log::throwError(__('services.ai.transcription_failed') . ': No se pudo descargar el audio', [], $this->logMeta);
+      if ($audioContent === false) throw new Exception(__('services.ai.transcription_failed') . ': No se pudo descargar el audio');
 
       $boundary = 'boundary' . uniqid();
       $body = "--{$boundary}\r\n";
@@ -66,7 +64,7 @@ class openAiProvider extends baseAIProvider {
         'raw' => true
       ]);
 
-      if (!$response['success']) log::throwError(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')', [], $this->logMeta);
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
       $text = $data['text'] ?? '';
@@ -74,7 +72,7 @@ class openAiProvider extends baseAIProvider {
       return ['success' => true, 'provider' => $this->getProviderName(), 'text' => trim($text), 'model' => 'whisper-1'];
 
     } catch (Exception $e) {
-      $this->log('Error transcribiendo audio', ['error' => $e->getMessage()], $this->logMeta);
+      $this->log('Error transcribiendo audio', ['error' => $e->getMessage()]);
       return $this->errorResponse($e->getMessage());
     }
   }
@@ -101,7 +99,7 @@ class openAiProvider extends baseAIProvider {
         'timeout' => 60
       ]);
 
-      if (!$response['success']) log::throwError(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')', [], $this->logMeta);
+      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
 
       $data = $response['data'];
       $description = $data['choices'][0]['message']['content'] ?? '';
@@ -115,7 +113,7 @@ class openAiProvider extends baseAIProvider {
       ];
 
     } catch (Exception $e) {
-      $this->log('Error analizando imagen', ['error' => $e->getMessage()], $this->logMeta);
+      $this->log('Error analizando imagen', ['error' => $e->getMessage()]);
       return $this->errorResponse($e->getMessage());
     }
   }

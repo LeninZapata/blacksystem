@@ -13,6 +13,21 @@ define('DB_CHARSET', $dbConfig['charset']);
 $tables = require __DIR__ . '/tables.php';
 define('DB_TABLES', $tables);
 
+define('JSON_STORAGE_PATH', STORAGE_PATH . '/json');
+
+// Rutas de almacenamiento de bots
+define('BOTS_STORAGE_PATH', JSON_STORAGE_PATH . '/bots');
+define('BOTS_DATA_PATH', BOTS_STORAGE_PATH . '/data');
+define('BOTS_INFOPRODUCT_PATH', BOTS_STORAGE_PATH . '/infoproduct');
+define('BOTS_INFOPRODUCT_MESSAGES_PATH', BOTS_INFOPRODUCT_PATH . '/messages');
+define('BOTS_INFOPRODUCT_RAPID_PATH', BOTS_INFOPRODUCT_PATH . '/rapid');
+define('BOTS_INFOPRODUCT_CHAT_PATH', BOTS_INFOPRODUCT_PATH . '/chats');
+
+// Rutas de almacenamiento de chats
+define('CHATS_STORAGE_PATH', JSON_STORAGE_PATH . '/chats');
+define('CHATS_INFOPRODUCT_PATH', CHATS_STORAGE_PATH . '/infoproduct');
+define('CHATS_BUFFER_PATH', CHATS_STORAGE_PATH . '/buffer');
+
 
 // Aquí puedes agregar más constantes específicas del proyecto
 // define('APP_NAME', 'Factory SaaS');

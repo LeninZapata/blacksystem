@@ -1,23 +1,38 @@
 class cache {
   static memoryCache = new Map();
   static defaultTTL = 60 * 60 * 1000;
+  static prefix = null;
+
+  static getPrefix() {
+    if (!this.prefix) {
+      const slug = window.appConfig?.proyect_slug || 'default';
+      this.prefix = `cache_${slug}_`;
+    }
+    return this.prefix;
+  }
+
+  static getPrefixedKey(key) {
+    return `${this.getPrefix()}${key}`;
+  }
 
   static setMemory(key, data, ttl = this.defaultTTL) {
+    const prefixedKey = this.getPrefixedKey(key);
     const item = {
       data,
       expiry: Date.now() + ttl,
       ttl
     };
-    this.memoryCache.set(key, item);
+    this.memoryCache.set(prefixedKey, item);
     return true;
   }
 
   static getMemory(key) {
-    const item = this.memoryCache.get(key);
+    const prefixedKey = this.getPrefixedKey(key);
+    const item = this.memoryCache.get(prefixedKey);
     if (!item) return null;
 
     if (Date.now() > item.expiry) {
-      this.memoryCache.delete(key);
+      this.memoryCache.delete(prefixedKey);
       return null;
     }
 
@@ -26,12 +41,13 @@ class cache {
 
   static setLocal(key, data, ttl = this.defaultTTL) {
     try {
+      const prefixedKey = this.getPrefixedKey(key);
       const item = {
         data,
         expiry: Date.now() + ttl,
         ttl
       };
-      localStorage.setItem(`cache_${key}`, JSON.stringify(item));
+      localStorage.setItem(prefixedKey, JSON.stringify(item));
       return true;
     } catch (error) {
       return false;
@@ -40,12 +56,13 @@ class cache {
 
   static getLocal(key) {
     try {
-      const stored = localStorage.getItem(`cache_${key}`);
+      const prefixedKey = this.getPrefixedKey(key);
+      const stored = localStorage.getItem(prefixedKey);
       if (!stored) return null;
 
       const item = JSON.parse(stored);
       if (Date.now() > item.expiry) {
-        localStorage.removeItem(`cache_${key}`);
+        localStorage.removeItem(prefixedKey);
         return null;
       }
 
@@ -75,20 +92,30 @@ class cache {
   }
 
   static delete(key) {
-    this.memoryCache.delete(key);
-    localStorage.removeItem(`cache_${key}`);
+    const prefixedKey = this.getPrefixedKey(key);
+    this.memoryCache.delete(prefixedKey);
+    localStorage.removeItem(prefixedKey);
   }
 
   static clear() {
-    this.memoryCache.clear();
+    const prefix = this.getPrefix();
+    
+    // Limpiar memoryCache solo del proyecto actual
+    for (const key of this.memoryCache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.memoryCache.delete(key);
+      }
+    }
 
+    // Limpiar localStorage solo del proyecto actual
     Object.keys(localStorage)
-      .filter(key => key.startsWith('cache_'))
+      .filter(key => key.startsWith(prefix))
       .forEach(key => localStorage.removeItem(key));
   }
 
   static isExpired(key) {
-    const stored = localStorage.getItem(`cache_${key}`);
+    const prefixedKey = this.getPrefixedKey(key);
+    const stored = localStorage.getItem(prefixedKey);
     if (!stored) return true;
 
     try {
@@ -100,7 +127,8 @@ class cache {
   }
 
   static getTimeToExpire(key) {
-    const stored = localStorage.getItem(`cache_${key}`);
+    const prefixedKey = this.getPrefixedKey(key);
+    const stored = localStorage.getItem(prefixedKey);
     if (!stored) return 0;
 
     try {
@@ -113,10 +141,14 @@ class cache {
   }
 
   static getStats() {
-    const memoryKeys = Array.from(this.memoryCache.keys());
+    const prefix = this.getPrefix();
+    const memoryKeys = Array.from(this.memoryCache.keys())
+      .filter(key => key.startsWith(prefix))
+      .map(key => key.replace(prefix, ''));
+    
     const localKeys = Object.keys(localStorage)
-      .filter(key => key.startsWith('cache_'))
-      .map(key => key.replace('cache_', ''));
+      .filter(key => key.startsWith(prefix))
+      .map(key => key.replace(prefix, ''));
 
     return {
       memory: {
@@ -132,16 +164,19 @@ class cache {
 
   static cleanup() {
     let cleaned = 0;
+    const prefix = this.getPrefix();
 
+    // Limpiar memoryCache
     for (const [key, item] of this.memoryCache.entries()) {
-      if (Date.now() > item.expiry) {
+      if (key.startsWith(prefix) && Date.now() > item.expiry) {
         this.memoryCache.delete(key);
         cleaned++;
       }
     }
 
+    // Limpiar localStorage
     Object.keys(localStorage)
-      .filter(key => key.startsWith('cache_'))
+      .filter(key => key.startsWith(prefix))
       .forEach(key => {
         try {
           const item = JSON.parse(localStorage.getItem(key));
@@ -171,7 +206,8 @@ class cache {
       get: (key) => this.get(key),
       delete: (key) => this.delete(key),
       isExpired: (key) => this.isExpired(key),
-      timeToExpire: (key) => this.getTimeToExpire(key)
+      timeToExpire: (key) => this.getTimeToExpire(key),
+      prefix: () => this.getPrefix()
     };
   }
 }
@@ -182,7 +218,6 @@ window.addEventListener('load', () => cache.cleanup());
 
 window.cache = cache;
 
-// Guard para appConfig - puede no estar definido al cargar cache.js
 if (window.appConfig?.isDevelopment) {
   cache.enableDebug();
 }
