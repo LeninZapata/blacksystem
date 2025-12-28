@@ -20,12 +20,12 @@ class ChatHandlers {
     ];
 
     try {
-      $id = db::table(self::$table)->insert($data);
+      $id = ogDb::table(self::$table)->insert($data);
       return ['success' => true, 'chat_id' => $id, 'data' => array_merge($data, ['id' => $id])];
     } catch (Exception $e) {
-      log::error('ChatHandlers::register - Error', ['message' => $e->getMessage()], ['module' => 'chat', 'layer' => 'app']);
+      ogLog::error('ChatHandlers::register - Error', ['message' => $e->getMessage()], ['module' => 'chat', 'layer' => 'app']);
       return [
-        'success' => false, 'error' => __('chat.create.error'), 'details' => IS_DEV ? $e->getMessage() : null
+        'success' => false, 'error' => __('chat.create.error'), 'details' => OG_IS_DEV ? $e->getMessage() : null
       ];
     }
   }
@@ -33,9 +33,9 @@ class ChatHandlers {
   // Obtener historial de chat por cliente
   static function getByClient($params) {
     $clientId = $params['client_id'];
-    $limit = request::query('limit', 50);
+    $limit = ogRequest::query('limit', 50);
 
-    $chats = db::table(self::$table)
+    $chats = ogDb::table(self::$table)
       ->where('client_id', $clientId)
       ->orderBy('dc', 'DESC')
       ->limit($limit)
@@ -55,9 +55,9 @@ class ChatHandlers {
   // Obtener historial de chat por bot
   static function getByBot($params) {
     $botId = $params['bot_id'];
-    $limit = request::query('limit', 50);
+    $limit = ogRequest::query('limit', 50);
 
-    $chats = db::table(self::$table)
+    $chats = ogDb::table(self::$table)
       ->where('bot_id', $botId)
       ->orderBy('dc', 'DESC')
       ->limit($limit)
@@ -78,7 +78,7 @@ class ChatHandlers {
   static function getBySale($params) {
     $saleId = $params['sale_id'];
 
-    $chats = db::table(self::$table)
+    $chats = ogDb::table(self::$table)
       ->where('sale_id', $saleId)
       ->orderBy('dc', 'ASC')
       ->get();
@@ -98,9 +98,9 @@ class ChatHandlers {
   static function getConversation($params) {
     $botId = $params['bot_id'];
     $clientId = $params['client_id'];
-    $limit = request::query('limit', 100);
+    $limit = ogRequest::query('limit', 100);
 
-    $chats = db::table(self::$table)
+    $chats = ogDb::table(self::$table)
       ->where('bot_id', $botId)
       ->where('client_id', $clientId)
       ->orderBy('dc', 'ASC')
@@ -123,7 +123,7 @@ class ChatHandlers {
     $clientId = $params['client_id'];
 
     try {
-      $affected = db::table(self::$table)->where('client_id', $clientId)->delete();
+      $affected = ogDb::table(self::$table)->where('client_id', $clientId)->delete();
       return [
         'success' => true,
         'message' => __('chat.delete_all.success'),
@@ -133,7 +133,7 @@ class ChatHandlers {
       return [
         'success' => false,
         'error' => __('chat.delete_all.error'),
-        'details' => IS_DEV ? $e->getMessage() : null
+        'details' => OG_IS_DEV ? $e->getMessage() : null
       ];
     }
   }
@@ -142,7 +142,7 @@ class ChatHandlers {
   static function getStats($params) {
     $botId = $params['bot_id'] ?? null;
 
-    $query = db::table(self::$table);
+    $query = ogDb::table(self::$table);
     if ($botId) {
       $query = $query->where('bot_id', $botId);
     }
@@ -150,16 +150,16 @@ class ChatHandlers {
     $stats = [
       'total_messages' => $query->count(),
       'by_type' => [
-        'system' => db::table(self::$table)->where('type', 'S')->count(),
-        'bot' => db::table(self::$table)->where('type', 'B')->count(),
-        'prospect' => db::table(self::$table)->where('type', 'P')->count()
+        'system' => ogDb::table(self::$table)->where('type', 'S')->count(),
+        'bot' => ogDb::table(self::$table)->where('type', 'B')->count(),
+        'prospect' => ogDb::table(self::$table)->where('type', 'P')->count()
       ],
       'by_format' => [
-        'text' => db::table(self::$table)->where('format', 'text')->count(),
-        'audio' => db::table(self::$table)->where('format', 'audio')->count(),
-        'image' => db::table(self::$table)->where('format', 'image')->count(),
-        'video' => db::table(self::$table)->where('format', 'video')->count(),
-        'document' => db::table(self::$table)->where('format', 'document')->count()
+        'text' => ogDb::table(self::$table)->where('format', 'text')->count(),
+        'audio' => ogDb::table(self::$table)->where('format', 'audio')->count(),
+        'image' => ogDb::table(self::$table)->where('format', 'image')->count(),
+        'video' => ogDb::table(self::$table)->where('format', 'video')->count(),
+        'document' => ogDb::table(self::$table)->where('format', 'document')->count()
       ]
     ];
 
@@ -169,13 +169,13 @@ class ChatHandlers {
   // Buscar mensajes por texto
   static function search($params) {
     $searchText = $params['text'] ?? '';
-    $limit = request::query('limit', 50);
+    $limit = ogRequest::query('limit', 50);
 
     if (empty($searchText)) {
       return ['success' => false, 'error' => __('chat.search_text_required')];
     }
 
-    $chats = db::table(self::$table)
+    $chats = ogDb::table(self::$table)
       ->where('message', 'LIKE', "%{$searchText}%")
       ->orderBy('dc', 'DESC')
       ->limit($limit)
@@ -197,7 +197,7 @@ class ChatHandlers {
     $required = ['number', 'bot_id', 'client_id', 'sale_id'];
     foreach ($required as $field) {
       if (!isset($data[$field])) {
-        log::error('ChatHandlers::addMessage - Campo requerido faltante', ['field' => $field], ['module' => 'chat']);
+        ogLog::error('ChatHandlers::addMessage - Campo requerido faltante', ['field' => $field], ['module' => 'chat']);
         return false;
       }
     }
@@ -207,7 +207,7 @@ class ChatHandlers {
     $chatId = "chat_{$number}_bot_{$botId}";
     $chatFile = CHATS_STORAGE_PATH . '/' . $chatId . '.json';
 
-    log::debug("ChatHandlers::addMessage - Agregando mensaje al chat", [
+    ogLog::debug("ChatHandlers::addMessage - Agregando mensaje al chat", [
       'chat_file' => $chatFile,
       'message_type' => $type,
       'message_format' => $data['format'] ?? 'text',
@@ -248,7 +248,7 @@ class ChatHandlers {
     }
 
     // Si no, intentar leer archivo JSON, si no existe entonces reconstruir desde DB
-    return file::getJson($chatFile, function() use ($number, $botId) {
+    return ogFile::getJson($chatFile, function() use ($number, $botId) {
       return self::rebuildFromDB($number, $botId);
     });
   }
@@ -256,40 +256,40 @@ class ChatHandlers {
   // Reconstruir chat desde BD
   static function rebuildFromDB($number, $botId) {
     try {
-      $client = db::table('clients')->where('number', $number)->first();
+      $client = ogDb::table('clients')->where('number', $number)->first();
       if (!$client) {
-        log::warning('ChatHandlers::rebuildFromDB - Cliente no encontrado', ['number' => $number], ['module' => 'chat']);
+        ogLog::warning('ChatHandlers::rebuildFromDB - Cliente no encontrado', ['number' => $number], ['module' => 'chat']);
         return false;
       }
 
       $clientId = $client['id'];
       $clientName = $client['name'] ?? '';
 
-      $messages = db::table(self::$table)
+      $messages = ogDb::table(self::$table)
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
         ->orderBy('dc', 'ASC')
         ->get();
 
       if (!$messages || count($messages) === 0) {
-        log::info('ChatHandlers::rebuildFromDB - No hay mensajes para reconstruir', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
+        ogLog::info('ChatHandlers::rebuildFromDB - No hay mensajes para reconstruir', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
         return false;
       }
 
-      $currentSale = db::table('sales')
+      $currentSale = ogDb::table('sales')
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
         ->whereIn('process_status', ['initiated', 'pending'])
         ->orderBy('dc', 'DESC')
         ->first();
 
-      $salesInProcess = db::table('sales')
+      $salesInProcess = ogDb::table('sales')
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
         ->whereIn('process_status', ['initiated', 'pending'])
         ->get();
 
-      $completedSales = db::table('sales')
+      $completedSales = ogDb::table('sales')
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
         ->where('process_status', 'sale_confirmed')
@@ -354,14 +354,14 @@ class ChatHandlers {
 
       $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
       if (self::saveChatFile($chatFile, $chatData)) {
-        log::info('ChatHandlers::rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
+        ogLog::info('ChatHandlers::rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
         return $chatData;
       }
 
       return false;
 
     } catch (Exception $e) {
-      log::error('ChatHandlers::rebuildFromDB - Error', ['error' => $e->getMessage()], ['module' => 'chat']);
+      ogLog::error('ChatHandlers::rebuildFromDB - Error', ['error' => $e->getMessage()], ['module' => 'chat']);
       return false;
     }
   }
@@ -376,7 +376,7 @@ class ChatHandlers {
       }
     }
 
-    $client = db::table('clients')->find($data['client_id']);
+    $client = ogDb::table('clients')->find($data['client_id']);
     $clientName = $client['name'] ?? '';
 
     return [
@@ -413,7 +413,7 @@ class ChatHandlers {
 
     if (!is_dir($dir)) {
       if (!mkdir($dir, 0755, true)) {
-        log::error('ChatHandlers::saveChatFile - No se pudo crear directorio', ['dir' => $dir], ['module' => 'chat']);
+        ogLog::error('ChatHandlers::saveChatFile - No se pudo crear directorio', ['dir' => $dir], ['module' => 'chat']);
         return false;
       }
     }
@@ -421,7 +421,7 @@ class ChatHandlers {
     $json = json_encode($chatData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
     if (file_put_contents($chatFile, $json) === false) {
-      log::error('ChatHandlers::saveChatFile - Error al escribir archivo', ['file' => $chatFile], ['module' => 'chat']);
+      ogLog::error('ChatHandlers::saveChatFile - Error al escribir archivo', ['ogFile' => $chatFile], ['module' => 'chat']);
       return false;
     }
 

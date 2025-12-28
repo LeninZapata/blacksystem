@@ -1,7 +1,7 @@
 class adminHooks {
   // Hook para el dashboard
   static hook_dashboard() {
-    logger.debug('ext:admin', 'hook_dashboard ejecutado');
+    ogLogger.debug('ext:admin', 'hook_dashboard ejecutado');
 
     return [
       {
@@ -32,7 +32,7 @@ class adminHooks {
               <span style="color: #78350f; font-size: 0.9rem;"> 5 usuarios conectados ahora</span>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <button class="btn btn-sm btn-primary" onclick="view.loadView('admin|sections/admin-panel'); toast.info('Cargando panel...')" style="width: 100%;">
+              <button class="btn btn-sm btn-primary" onclick="view.loadView('admin|sections/admin-panel'); ogToast.info('Cargando panel...')" style="width: 100%;">
                 📋 Panel Admin
               </button>
               <button class="btn btn-sm btn-success" onclick="modal.open('core:user/forms/user-form', {title: '➕ Nuevo Usuario', width: '90%', maxWidth: '900px'})" style="width: 100%;">
@@ -94,10 +94,10 @@ class adminHooks {
           <div style="background: #fff3cd; padding: 1rem; border-radius: 6px;">
             <strong>⚡ Acciones Rápidas</strong>
             <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-              <button class="btn btn-primary btn-sm" onclick="toast.info('Crear usuario')">
+              <button class="btn btn-primary btn-sm" onclick="ogToast.info('Crear usuario')">
                 ➕ Crear Usuario
               </button>
-              <button class="btn btn-secondary btn-sm" onclick="toast.info('Ver roles')">
+              <button class="btn btn-secondary btn-sm" onclick="ogToast.info('Ver roles')">
                 🔐 Gestionar Roles
               </button>
             </div>
@@ -109,7 +109,7 @@ class adminHooks {
 
   // 🎯 Ejemplo de hook para el tab específico de usuarios dentro de admin-panel
   static hook_adminPanelUsers() {
-    logger.debug('ext:admin', 'hook_adminPanelUsers ejecutado');
+    ogLogger.debug('ext:admin', 'hook_adminPanelUsers ejecutado');
 
     return [
       {

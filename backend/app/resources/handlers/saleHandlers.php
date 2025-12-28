@@ -19,7 +19,7 @@ class SaleHandlers {
     $data['is_downsell'] = $data['is_downsell'] ?? 0;
 
     try {
-      $id = db::table(self::$table)->insert($data);
+      $id = ogDb::table(self::$table)->insert($data);
       return [
         'success' => true,
         'sale_id' => $id,
@@ -29,7 +29,7 @@ class SaleHandlers {
       return [
         'success' => false,
         'error' => __('sale.create.error'),
-        'details' => IS_DEV ? $e->getMessage() : null
+        'details' => OG_IS_DEV ? $e->getMessage() : null
       ];
     }
   }
@@ -37,9 +37,9 @@ class SaleHandlers {
   // Obtener ventas por cliente
   static function getByClient($params) {
     $clientId = $params['client_id'];
-    $limit = request::query('limit', 50);
+    $limit = ogRequest::query('limit', 50);
 
-    $sales = db::table(self::$table)
+    $sales = ogDb::table(self::$table)
       ->where('client_id', $clientId)
       ->orderBy('dc', 'DESC')
       ->limit($limit)
@@ -51,9 +51,9 @@ class SaleHandlers {
   // Obtener ventas por bot
   static function getByBot($params) {
     $botId = $params['bot_id'];
-    $limit = request::query('limit', 50);
+    $limit = ogRequest::query('limit', 50);
 
-    $sales = db::table(self::$table)
+    $sales = ogDb::table(self::$table)
       ->where('bot_id', $botId)
       ->orderBy('dc', 'DESC')
       ->limit($limit)
@@ -65,9 +65,9 @@ class SaleHandlers {
   // Obtener ventas por producto
   static function getByProduct($params) {
     $productId = $params['product_id'];
-    $limit = request::query('limit', 50);
+    $limit = ogRequest::query('limit', 50);
 
-    $sales = db::table(self::$table)
+    $sales = ogDb::table(self::$table)
       ->where('product_id', $productId)
       ->orderBy('dc', 'DESC')
       ->limit($limit)
@@ -79,9 +79,9 @@ class SaleHandlers {
   // Obtener ventas por estado
   static function getByStatus($params) {
     $status = $params['status'];
-    $limit = request::query('limit', 50);
+    $limit = ogRequest::query('limit', 50);
 
-    $sales = db::table(self::$table)
+    $sales = ogDb::table(self::$table)
       ->where('process_status', $status)
       ->orderBy('dc', 'DESC')
       ->limit($limit)
@@ -92,7 +92,7 @@ class SaleHandlers {
 
   // Actualizar estado de venta
   static function updateStatus($saleId, $status) {
-    $sale = db::table(self::$table)->find($saleId);
+    $sale = ogDb::table(self::$table)->find($saleId);
     
     if (!$sale) {
       return ['success' => false, 'error' => __('sale.not_found')];
@@ -105,20 +105,20 @@ class SaleHandlers {
     ];
 
     try {
-      db::table(self::$table)->where('id', $saleId)->update($data);
+      ogDb::table(self::$table)->where('id', $saleId)->update($data);
       return ['success' => true, 'data' => $data];
     } catch (Exception $e) {
       return [
         'success' => false,
         'error' => __('sale.update.error'),
-        'details' => IS_DEV ? $e->getMessage() : null
+        'details' => OG_IS_DEV ? $e->getMessage() : null
       ];
     }
   }
 
   // Registrar pago
   static function registerPayment($saleId, $transactionId, $paymentMethod, $paymentDate = null) {
-    $sale = db::table(self::$table)->find($saleId);
+    $sale = ogDb::table(self::$table)->find($saleId);
     
     if (!$sale) {
       return ['success' => false, 'error' => __('sale.not_found')];
@@ -134,13 +134,13 @@ class SaleHandlers {
     ];
 
     try {
-      db::table(self::$table)->where('id', $saleId)->update($data);
+      ogDb::table(self::$table)->where('id', $saleId)->update($data);
       return ['success' => true, 'data' => $data];
     } catch (Exception $e) {
       return [
         'success' => false,
         'error' => __('sale.update.error'),
-        'details' => IS_DEV ? $e->getMessage() : null
+        'details' => OG_IS_DEV ? $e->getMessage() : null
       ];
     }
   }
@@ -149,7 +149,7 @@ class SaleHandlers {
   static function getStats($params) {
     $botId = $params['bot_id'] ?? null;
 
-    $query = db::table(self::$table);
+    $query = ogDb::table(self::$table);
     if ($botId) {
       $query = $query->where('bot_id', $botId);
     }
@@ -158,15 +158,15 @@ class SaleHandlers {
       'total_sales' => $query->count(),
       'total_amount' => $query->sum('amount'),
       'by_status' => [
-        'initiated' => db::table(self::$table)->where('process_status', 'initiated')->count(),
-        'pending' => db::table(self::$table)->where('process_status', 'pending')->count(),
-        'sale_confirmed' => db::table(self::$table)->where('process_status', 'sale_confirmed')->count(),
-        'cancelled' => db::table(self::$table)->where('process_status', 'cancelled')->count()
+        'initiated' => ogDb::table(self::$table)->where('process_status', 'initiated')->count(),
+        'pending' => ogDb::table(self::$table)->where('process_status', 'pending')->count(),
+        'sale_confirmed' => ogDb::table(self::$table)->where('process_status', 'sale_confirmed')->count(),
+        'cancelled' => ogDb::table(self::$table)->where('process_status', 'cancelled')->count()
       ],
       'by_type' => [
-        'main' => db::table(self::$table)->where('sale_type', 'main')->count(),
-        'ob' => db::table(self::$table)->where('sale_type', 'ob')->count(),
-        'us' => db::table(self::$table)->where('sale_type', 'us')->count()
+        'main' => ogDb::table(self::$table)->where('sale_type', 'main')->count(),
+        'ob' => ogDb::table(self::$table)->where('sale_type', 'ob')->count(),
+        'us' => ogDb::table(self::$table)->where('sale_type', 'us')->count()
       ]
     ];
 
@@ -177,13 +177,13 @@ class SaleHandlers {
   static function getWithRelated($params) {
     $saleId = $params['sale_id'];
 
-    $mainSale = db::table(self::$table)->find($saleId);
+    $mainSale = ogDb::table(self::$table)->find($saleId);
     if (!$mainSale) {
       return ['success' => false, 'error' => __('sale.not_found')];
     }
 
     // Buscar order bumps y upsells relacionados
-    $related = db::table(self::$table)
+    $related = ogDb::table(self::$table)
       ->where('parent_sale_id', $saleId)
       ->get();
 
@@ -200,7 +200,7 @@ class SaleHandlers {
   static function getByTransactionId($params) {
     $transactionId = $params['transaction_id'];
 
-    $sale = db::table(self::$table)
+    $sale = ogDb::table(self::$table)
       ->where('transaction_id', $transactionId)
       ->first();
 
@@ -216,7 +216,7 @@ class SaleHandlers {
     $clientId = $params['client_id'];
 
     try {
-      $affected = db::table(self::$table)->where('client_id', $clientId)->delete();
+      $affected = ogDb::table(self::$table)->where('client_id', $clientId)->delete();
       return [
         'success' => true,
         'message' => __('sale.delete_all.success'),
@@ -226,7 +226,7 @@ class SaleHandlers {
       return [
         'success' => false,
         'error' => __('sale.delete_all.error'),
-        'details' => IS_DEV ? $e->getMessage() : null
+        'details' => OG_IS_DEV ? $e->getMessage() : null
       ];
     }
   }

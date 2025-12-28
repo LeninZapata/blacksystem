@@ -9,14 +9,14 @@ class logs {
   static async init() {
 
     if (this.initialized) {
-      logger.info('ext:admin:logs','⚠️ logs ya estaba inicializado, reiniciando...');
+      ogLogger.info('ext:admin:logs','⚠️ logs ya estaba inicializado, reiniciando...');
     }
 
     // Verificar que el container exista
     const container = document.getElementById('logs-container');
 
     if (!container) {
-      logger:warn('⚠️ Container logs-container no encontrado');
+      ogLogger:warn('⚠️ Container logs-container no encontrado');
       return;
     }
 
@@ -28,11 +28,11 @@ class logs {
 
   // Filtrar por fecha
   static async filterByDate(daysAgo) {
-    logger.info('ext:admin:logs',`📅 Filtrando logs: ${daysAgo === 0 ? 'Hoy' : daysAgo === 1 ? 'Ayer' : `Hace ${daysAgo} días`}`);
+    ogLogger.info('ext:admin:logs',`📅 Filtrando logs: ${daysAgo === 0 ? 'Hoy' : daysAgo === 1 ? 'Ayer' : `Hace ${daysAgo} días`}`);
 
     const container = document.getElementById('logs-container');
     if (!container) {
-      logger:warn('⚠️ Container logs-container no encontrado');
+      ogLogger:warn('⚠️ Container logs-container no encontrado');
       return;
     }
 
@@ -75,10 +75,10 @@ class logs {
       const cacheTTL = 5 * 60 * 1000; // 5 minutos
 
       // Intentar obtener del caché primero
-      let data = cache.get(cacheKey);
+      let data = ogCache.get(cacheKey);
 
       if (data) {
-        logger.info('ext:admin:logs',`✅ Logs obtenidos desde caché (${filterKey})`);
+        ogLogger.info('ext:admin:logs',`✅ Logs obtenidos desde caché (${filterKey})`);
         this.logsData = data;
       } else {
         let endpoint = '/api/logs';
@@ -108,7 +108,7 @@ class logs {
         }
 
         // Hacer petición al endpoint
-        const response = await api.get(endpoint);
+        const response = await ogApi.get(endpoint);
 
         if (!response.success) {
           throw new Error(response.error || 'Error al cargar logs');
@@ -117,14 +117,14 @@ class logs {
         this.logsData = response.data;
 
         // Guardar en caché
-        cache.set(cacheKey, response.data, cacheTTL);
+        ogCache.set(cacheKey, response.data, cacheTTL);
       }
 
       // Renderizar los logs con el filtro de layer actual
       this.renderLogs(container);
 
     } catch (error) {
-      logger.error('❌ Error cargando logs:', error);
+      ogLogger.error('❌ Error cargando logs:', error);
       container.innerHTML = `
         <div style="background: #7f1d1d; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #ef4444;">
           <h4 style="margin: 0 0 0.5rem; color: #fca5a5;">❌ Error al cargar logs</h4>
@@ -230,15 +230,15 @@ class logs {
         deleteBtn.disabled = true;
         deleteBtn.innerText = 'Eliminando...';
         try {
-          const res = await api.get('/api/cleanup/storage/logs');
+          const res = await ogApi.get('/api/cleanup/storage/logs');
           if (res.success) {
-            toast.success('Logs eliminados correctamente');
+            ogToast.success('Logs eliminados correctamente');
             await this.forceReload();
           } else {
-            toast.error(res.error || 'Error al eliminar logs');
+            ogToast.error(res.error || 'Error al eliminar logs');
           }
         } catch (err) {
-          toast.error('Error al eliminar logs');
+          ogToast.error('Error al eliminar logs');
         }
         deleteBtn.disabled = false;
         deleteBtn.innerText = '🗑️ Eliminar Log';
@@ -260,7 +260,7 @@ class logs {
     });
   }
 
-  // Filtro por nivel usando el cache actual
+  // Filtro por nivel usando el ogCache actual
   static filterByLevel(level) {
     this.currentLevel = level;
     const container = document.getElementById('logs-container');
@@ -282,7 +282,7 @@ class logs {
     });
   }
 
-  // Filtro por layer usando el cache actual
+  // Filtro por layer usando el ogCache actual
   static filterByLayer(layer) {
     this.currentLayer = layer;
     const container = document.getElementById('logs-container');
@@ -303,8 +303,10 @@ class logs {
     const contextStr = log.context ? JSON.stringify(log.context, null, 2) : '';
 
     // Renderiza la fila de log con la columna de línea al final y badges de tags
+    // Si sequence === 1, agrega margin-bottom
+    const extraMargin = log.sequence === 1 ? 'margin-bottom: 1.5rem;' : '';
     return `
-      <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #292020ff; background: ${color.bg}; transition: background 0.2s;"
+      <div class="log-register" style="padding: 0.75rem 1rem; border-bottom: 1px solid #292020ff; background: ${color.bg}; transition: background 0.2s; ${extraMargin}"
            onmouseover="this.style.background='#1e293b'"
            onmouseout="this.style.background='${color.bg}'">
         <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
@@ -344,22 +346,22 @@ class logs {
 
   // Forzar recarga sin caché
   static async forceReload() {
-    logger.info('ext:admin:logs','🔄 Forzando recarga sin caché...');
+    ogLogger.info('ext:admin:logs','🔄 Forzando recarga sin caché...');
 
     const container = document.getElementById('logs-container');
     if (!container) {
-      logger:warn('⚠️ Container logs-container no encontrado');
+      ogLogger:warn('⚠️ Container logs-container no encontrado');
       return;
     }
 
 
     // Eliminar todos los caches de logs usando PROYECT_SLUG
-    cache.delete(PROYECT_SLUG + '_logs_today');
-    cache.delete(PROYECT_SLUG + '_logs_yesterday');
-    cache.delete(PROYECT_SLUG + '_logs_7days');
-    cache.delete(PROYECT_SLUG + '_logs_15days');
-    cache.delete(PROYECT_SLUG + '_logs_30days');
-    logger.info('ext:admin:logs','✅ Caché eliminado');
+    ogCache.delete(PROYECT_SLUG + '_logs_today');
+    ogCache.delete(PROYECT_SLUG + '_logs_yesterday');
+    ogCache.delete(PROYECT_SLUG + '_logs_7days');
+    ogCache.delete(PROYECT_SLUG + '_logs_15days');
+    ogCache.delete(PROYECT_SLUG + '_logs_30days');
+    ogLogger.info('ext:admin:logs','✅ Caché eliminado');
 
     // Determinar cuál filtro está activo
     const activeBtn = document.querySelector('[data-filter][style*="rgb(59, 130, 246)"]');

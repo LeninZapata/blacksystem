@@ -14,7 +14,7 @@ class SendWelcomeAction {
     $messages = ProductHandler::getMessagesFile('welcome', $productId);
 
     if (!$messages) {
-      log::error("SendWelcomeAction::send - No existe mensaje de bienvenida para este producto", [
+      ogLog::error("SendWelcomeAction::send - No existe mensaje de bienvenida para este producto", [
         'product_id' => $productId,
         'product_name' => $product['name']
       ], ['module' => 'infoproduct', 'layer' => 'app']);
@@ -50,7 +50,7 @@ class SendWelcomeAction {
           $durationMs = $duration * 1000;
 
           try {
-            chatapi::sendPresence($from, 'composing', $durationMs);
+            ogChatApi::sendPresence($from, 'composing', $durationMs);
           } catch (Exception $e) {
             sleep($duration);
             continue;
@@ -58,7 +58,7 @@ class SendWelcomeAction {
         }
       }
 
-      $result = chatapi::send($from, $text, $url);
+      $result = ogChatApi::send($from, $text, $url);
       $messagesSent++;
 
       if ($messagesSent === 1 && $result['success']) {

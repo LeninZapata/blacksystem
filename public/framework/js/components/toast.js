@@ -1,8 +1,14 @@
-class toast {
+class ogToast {
   static containers = {}; // Mapa de contenedores por posición
   static queue = [];
   static active = [];
   static maxVisible = 5;
+
+  static getModules() {
+    return {
+      i18n: window.ogFramework?.core?.i18n || window.i18n
+    };
+  }
 
   static show(message, options = {}) {
     const config = {
@@ -46,7 +52,7 @@ class toast {
     toastEl.innerHTML = `
       <span class="toast-icon">${this.getIcon(config.type)}</span>
       <span class="toast-message">${translatedMessage}</span>
-      <button class="toast-close" onclick="toast.remove(this.parentElement)">×</button>
+      <button class="toast-close" onclick="ogToast.remove(this.parentElement)">×</button>
     `;
 
     container.appendChild(toastEl);
@@ -124,4 +130,10 @@ class toast {
   }
 }
 
-window.toast = toast;
+// ✅ Exponer GLOBALMENTE como ogToast (usado en onclick y en código JS)
+window.ogToast = ogToast;
+
+// Registrar en ogFramework
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.components.toast = ogToast;
+}

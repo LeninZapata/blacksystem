@@ -8,7 +8,7 @@ class BotHandlers {
    */
   static function saveContextFile($botData, $action = 'create', $oldNumber = null) {
     if (!isset($botData['id']) || !isset($botData['number'])) {
-      log::error('BotHandlers::saveContextFile - Datos insuficientes', null, ['module' => 'bot']);
+      ogLog::error('BotHandlers::saveContextFile - Datos insuficientes', null, ['module' => 'bot']);
       return false;
     }
 
@@ -21,6 +21,7 @@ class BotHandlers {
       self::deleteContextFiles($oldNumber);
 
       // Regenerar activators con el nuevo número
+      ogApp()->loadHandler('ProductHandler');
       ProductHandler::generateActivatorsFile($currentNumber, $botData['id'], 'update');
     }
 
@@ -34,7 +35,11 @@ class BotHandlers {
   // Obtener archivo workflow del bot
   static function getWorkflowFile($botNumber) {
     $path = BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json';
-    return file::getJson($path, function() use ($botNumber) {
+
+    // Cargar ogFile bajo demanda
+    $file = ogApp()->helper('file');
+
+    return $file->getJson($path, function() use ($botNumber) {
       return self::generateWorkflowFile($botNumber);
     });
   }
@@ -42,7 +47,11 @@ class BotHandlers {
   // Obtener archivo data del bot
   static function getDataFile($botNumber) {
     $path = BOTS_DATA_PATH . '/' . $botNumber . '.json';
-    return file::getJson($path, function() use ($botNumber) {
+
+    // Cargar ogFile bajo demanda
+    $file = ogApp()->helper('file');
+
+    return $file->getJson($path, function() use ($botNumber) {
       return self::generateDataFile($botNumber);
     });
   }
@@ -50,9 +59,9 @@ class BotHandlers {
   // Generar archivo workflow_{numero}.json
   static function generateWorkflowFile($botNumber, $botData = null, $action = 'create') {
     if (!$botData) {
-      $botData = db::table(self::$table)->where('number', $botNumber)->first();
+      $botData = ogDb::table(self::$table)->where('number', $botNumber)->first();
       if (!$botData) {
-        log::error("BotHandlers::generateWorkflowFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
+        ogLog::error("BotHandlers::generateWorkflowFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
         return false;
       }
     }
@@ -65,23 +74,27 @@ class BotHandlers {
     $workflowId = $config['workflow_id'] ?? null;
 
     if ($workflowId) {
-      $workflow = db::table('work_flows')->find($workflowId);
+      $workflow = ogDb::table('work_flows')->find($workflowId);
       if ($workflow) {
         $filePath = $workflow['file_path'] ?? null;
       }
     }
 
     $path = BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json';
-    return file::saveJson($path, ['file_path' => $filePath], 'bot', $action);
+
+    // Cargar ogFile bajo demanda
+    $file = ogApp()->helper('file');
+
+    return $file->saveJson($path, ['file_path' => $filePath], 'bot', $action);
   }
 
   // Generar archivo data/{numero}.json
   static function generateDataFile($botNumber, $botData = null, $action = 'create') {
 
     if (!$botData) {
-      $botData = db::table(self::$table)->where('number', $botNumber)->first();
+      $botData = ogDb::table(self::$table)->where('number', $botNumber)->first();
       if (!$botData) {
-        log::error("BotHandlers::generateDataFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
+        ogLog::error("BotHandlers::generateDataFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
         return false;
       }
     }
@@ -99,7 +112,7 @@ class BotHandlers {
         $resolvedAi[$task] = [];
         if (is_array($credentialIds)) {
           foreach ($credentialIds as $credId) {
-            $credential = db::table('credentials')->find($credId);
+            $credential = ogDb::table('credentials')->find($credId);
             if ($credential) {
               if (isset($credential['config']) && is_string($credential['config'])) {
                 $credential['config'] = json_decode($credential['config'], true);
@@ -117,7 +130,7 @@ class BotHandlers {
     if (isset($data['config']['apis']['chat']) && is_array($data['config']['apis']['chat'])) {
       $resolvedChat = [];
       foreach ($data['config']['apis']['chat'] as $credId) {
-        $credential = db::table('credentials')->find($credId);
+        $credential = ogDb::table('credentials')->find($credId);
         if ($credential) {
           if (isset($credential['config']) && is_string($credential['config'])) {
             $credential['config'] = json_decode($credential['config'], true);
@@ -130,7 +143,11 @@ class BotHandlers {
     }
 
     $path = BOTS_DATA_PATH . '/' . $botNumber . '.json';
-    return file::saveJson($path, $data, 'bot', $action);
+
+    // Cargar ogFile bajo demanda
+    $file = ogApp()->helper('file');
+
+    return $file->saveJson($path, $data, 'bot', $action);
   }
 
   // Eliminar archivos de contexto antiguos

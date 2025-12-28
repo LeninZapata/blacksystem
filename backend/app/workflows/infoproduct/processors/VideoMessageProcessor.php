@@ -32,7 +32,7 @@ class VideoMessageProcessor implements MessageProcessorInterface {
 
     // Si NO tiene caption → Solo registrar, NO responder
     if (empty($caption)) {
-      log::info("VideoMessageProcessor - Video sin caption, solo registrado", [
+      ogLog::info("VideoMessageProcessor - Video sin caption, solo registrado", [
         'number' => $person['number']
       ], ['module' => 'video_processor']);
 
@@ -44,7 +44,7 @@ class VideoMessageProcessor implements MessageProcessorInterface {
     }
 
     // Si tiene caption → Procesar con IA
-    log::info("VideoMessageProcessor - Video con caption, procesando texto", [
+    ogLog::info("VideoMessageProcessor - Video con caption, procesando texto", [
       'number' => $person['number'],
       'caption' => $caption
     ], ['module' => 'video_processor']);

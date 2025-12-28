@@ -15,7 +15,7 @@ class webhookHandlers {
 
     // Detectar ChatAPI (WhatsApp, Telegram, etc)
     if (isset($data['body']['event']) && isset($data['body']['instance'])) {
-      return 'chatapi';
+      return 'ogChatApi';
     }
 
     // Detectar Email webhook (ej: SendGrid, Postmark)

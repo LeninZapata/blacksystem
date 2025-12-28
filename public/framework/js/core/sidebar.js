@@ -1,25 +1,42 @@
-class sidebar {
+class ogSidebar {
   static menuData = {
     menu: []
   };
 
+  static getModules() {
+    return {
+      view: window.ogFramework?.core?.view || window.ogView,
+      hook: window.ogFramework?.core?.hook || window.ogHook,
+      auth: window.ogFramework?.core?.auth || window.ogAuth,
+      cache: window.ogFramework?.core?.cache || window.ogCache,
+    };
+  }
+
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
+  }
+
   static async init() {
+    const { view } = this.getModules();
+    
     await this.loadMenu();
 
     const firstView = this.getFirstView();
     if (firstView) {
-      if (window.view && typeof view.loadView === 'function') {
+      if (view && typeof view.loadView === 'function') {
         await view.loadView(firstView);
       }
     }
   }
 
   static async loadMenu() {
+    const { hook } = this.getModules();
+    
     try {
-      if (window.hook && typeof hook.getMenuItems === 'function') {
+      if (hook && typeof hook.getMenuItems === 'function') {
         const pluginMenus = hook.getMenuItems();
         
-        logger.info('core:sidebar', `Menús cargados: ${pluginMenus.length}`);
+        ogLogger?.info('core:sidebar', `Menús cargados: ${pluginMenus.length}`);
 
         const baseMenu = [
           {
@@ -40,7 +57,7 @@ class sidebar {
         this.menuData.menu = filteredMenuItems;
 
       } else {
-        logger.warn('core:sidebar', 'hook.getMenuItems no disponible, usando menú básico');
+        ogLogger?.warn('core:sidebar', 'hook.getMenuItems no disponible, usando menú básico');
         this.menuData.menu = [
           {
             id: "dashboard",
@@ -54,7 +71,7 @@ class sidebar {
       this.renderMenu();
 
     } catch (error) {
-      logger.error('core:sidebar', 'Error cargando menú:', error);
+      ogLogger?.error('core:sidebar', 'Error cargando menú:', error);
       this.menuData.menu = [
         {
           id: "dashboard",
@@ -114,7 +131,8 @@ class sidebar {
   }
 
   static generateLogoutButton() {
-    const user = window.auth?.user;
+    const { auth } = this.getModules();
+    const user = auth?.user;
     const userName = user?.user || user?.email || __('core.sidebar.user_default');
 
     return `
@@ -132,7 +150,9 @@ class sidebar {
   }
 
   static bindLogoutEvent() {
+    const { auth } = this.getModules();
     const logoutBtn = document.getElementById('btn-logout');
+    
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
         const confirmed = confirm(__('core.sidebar.logout_confirm'));
@@ -144,6 +164,7 @@ class sidebar {
   }
 
   static bindMenuEvents() {
+    const { view } = this.getModules();
     const menuItems = document.querySelectorAll('.menu-item');
 
     menuItems.forEach(item => {
@@ -201,32 +222,35 @@ class sidebar {
   }
 
   static async preloadView(viewPath, extensionName) {
+    const { cache } = this.getModules();
+    const config = this.getConfig();
+    
     try {
       let basePath, fullPath, cacheKey;
 
       if (extensionName) {
-        basePath = window.appConfig?.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
-        fullPath = `${window.BASE_URL}${basePath}/${viewPath}.json`;
+        basePath = config.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
+        fullPath = `${config.baseUrl || window.BASE_URL}${basePath}/${viewPath}.json`;
         cacheKey = `view_${extensionName}_${viewPath.replace(/\//g, '_')}`;
       } else {
-        basePath = window.appConfig?.routes?.coreViews || 'js/views';
-        fullPath = `${window.BASE_URL}${basePath}/${viewPath}.json`;
+        basePath = config.routes?.coreViews || 'js/views';
+        fullPath = `${config.baseUrl || window.BASE_URL}${basePath}/${viewPath}.json`;
         cacheKey = `view_${viewPath.replace(/\//g, '_')}`;
       }
 
-      if (window.cache?.get(cacheKey)) {
+      if (cache?.get(cacheKey)) {
         return;
       }
 
-      const cacheBuster = `?v=${window.VERSION}`;
+      const cacheBuster = `?v=${config.version || window.VERSION}`;
       const response = await fetch(fullPath + cacheBuster);
 
       if (response.ok) {
         const viewData = await response.json();
-        window.cache?.set(cacheKey, viewData);
+        cache?.set(cacheKey, viewData);
       }
     } catch (error) {
-      logger.warn('core:sidebar', `No se pudo precargar: ${extensionName ? extensionName + '/' : ''}${viewPath}`);
+      ogLogger?.warn('core:sidebar', `No se pudo precargar: ${extensionName ? extensionName + '/' : ''}${viewPath}`);
     }
   }
 
@@ -258,6 +282,8 @@ class sidebar {
   }
 
   static detectPluginFromMenuId(menuId) {
+    const { view } = this.getModules();
+    
     for (const [extensionName, pluginConfig] of Object.entries(view.loadedExtensions)) {
       if (menuId.startsWith(`${extensionName}-`)) {
         return extensionName;
@@ -322,11 +348,13 @@ class sidebar {
 
   // Validar acceso por role (igual que form.js)
   static hasRoleAccess(menuItem) {
+    const { auth } = this.getModules();
+    
     // Si el menú no tiene restricción de role, permitir acceso
     if (!menuItem.role) return true;
 
     // Obtener role del usuario actual
-    const userRole = window.auth?.user?.role;
+    const userRole = auth?.user?.role;
 
     // Si no hay usuario autenticado, denegar acceso
     if (!userRole) return false;
@@ -360,4 +388,10 @@ class sidebar {
   }
 }
 
-window.sidebar = sidebar;
+// Global
+window.ogSidebar = ogSidebar;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.sidebar = ogSidebar;
+}

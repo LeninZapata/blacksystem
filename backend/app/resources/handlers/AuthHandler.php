@@ -4,23 +4,23 @@ class AuthHandler {
   private static $logMeta = ['module' => 'auth', 'layer' => 'app'];
 
   static function login($params) {
-    $data = request::data();
+    $data = ogRequest::data();
 
     if (!isset($data['user']) || !isset($data['pass'])) {
       return ['success' => false, 'error' => __('auth.credentials.required')];
     }
 
-    $user = db::table(self::$table)
+    $user = ogDb::table(self::$table)
       ->where('user', $data['user'])
       ->orWhere('email', $data['user'])
       ->first();
 
     if (!$user || !password_verify($data['pass'], $user['pass'])) {
-      log::warning('Login fallido', ['user' => $data['user']], self::$logMeta);
+      ogLog::warning('Login fallido', ['user' => $data['user']], self::$logMeta);
       return ['success' => false, 'error' => __('auth.credentials.invalid')];
     }
 
-    $token = utils::token(64);
+    $token = ogUtils::token(64);
     $expiresAt = time() + SESSION_TTL;
     $expiresAtFormatted = date('Y-m-d H:i:s', $expiresAt);
 
@@ -33,12 +33,12 @@ class AuthHandler {
     // Guardar sesión solo en archivo
     self::saveSession($user, $token, $expiresAt);
 
-    db::table(self::$table)->where('id', $user['id'])->update([
+    ogDb::table(self::$table)->where('id', $user['id'])->update([
       'du' => date('Y-m-d H:i:s'),
       'tu' => time()
     ]);
 
-    log::info('Login exitoso', ['user' => $user['user'], 'id' => $user['id']], self::$logMeta);
+    ogLog::info('Login exitoso', ['user' => $user['user'], 'id' => $user['id']], self::$logMeta);
 
     return [
       'success' => true,
@@ -54,7 +54,7 @@ class AuthHandler {
   }
 
   static function logout($params) {
-    $token = request::bearerToken();
+    $token = ogRequest::bearerToken();
 
     if (!$token) {
       return ['success' => false, 'error' => __('auth.token.missing')];
@@ -64,7 +64,7 @@ class AuthHandler {
     $deleted = self::deleteSessionByToken($token);
 
     if ($deleted) {
-      log::info('Logout exitoso', ['token' => substr($token, 0, 10) . '...'], self::$logMeta);
+      ogLog::info('Logout exitoso', ['token' => substr($token, 0, 10) . '...'], self::$logMeta);
     }
 
     return ['success' => true, 'message' => __('auth.logout.success')];
@@ -87,8 +87,8 @@ class AuthHandler {
       'token' => $token,
       'expires_at' => date('Y-m-d H:i:s', $expiresAt),
       'expires_timestamp' => $expiresAt,
-      'ip_address' => request::ip(),
-      'user_agent' => request::userAgent(),
+      'ip_address' => ogRequest::ip(),
+      'user_agent' => ogRequest::userAgent(),
       'created_at' => date('Y-m-d H:i:s')
     ], JSON_UNESCAPED_UNICODE));
   }
@@ -104,10 +104,10 @@ class AuthHandler {
     $pattern = $sessionsDir . "*_*_{$tokenShort}.json";
     $files = glob($pattern);
 
-    foreach ($files as $file) {
-      $session = json_decode(file_get_contents($file), true);
+    foreach ($files as $ogFile) {
+      $session = json_decode(file_get_contents($ogFile), true);
       if ($session && $session['token'] === $token) {
-        unlink($file);
+        unlink($ogFile);
         return true;
       }
     }

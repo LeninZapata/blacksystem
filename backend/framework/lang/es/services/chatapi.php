@@ -1,5 +1,5 @@
 <?php
-// framework/lang/es/services/chatapi.php
+// framework/lang/es/services/ogChatApi.php
 return [
   'not_configured' => 'ChatAPI no configurado',
   'provider_not_supported' => 'Proveedor de ChatAPI no soportado: {provider}',

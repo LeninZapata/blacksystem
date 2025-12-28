@@ -11,7 +11,7 @@ class infoproductProduct {
     this.currentId = null;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    form.clearAllErrors(realId);
+    ogForm.clearAllErrors(realId);
   }
 
   // Abrir form con datos
@@ -20,7 +20,7 @@ class infoproductProduct {
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
 
-    form.clearAllErrors(realId);
+    ogForm.clearAllErrors(realId);
     const data = await this.get(id);
     if (!data) return;
 
@@ -32,7 +32,7 @@ class infoproductProduct {
     const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
     const messagesData = configData.messages || {};
 
-    form.fill(formId, {
+    ogForm.fill(formId, {
       name: data.name,
       bot_id: data.bot_id ? String(data.bot_id) : '',
       price: data.price || '',
@@ -50,20 +50,20 @@ class infoproductProduct {
   }
 
   static async save(formId) {
-    const validation = form.validate(formId);
-    if (!validation.success) return toast.error(validation.message);
+    const validation = ogForm.validate(formId);
+    if (!validation.success) return ogToast.error(validation.message);
 
     // Validar que no se seleccione el mismo producto como upsell
     if (this.currentId && validation.data.config?.upsell_products) {
       const hasSameProduct = validation.data.config.upsell_products.some(up => parseInt(up.product_id) === parseInt(this.currentId));
-      if (hasSameProduct) return toast.error(__('infoproduct.products.error.same_product_upsell'));
+      if (hasSameProduct) return ogToast.error(__('infoproduct.products.error.same_product_upsell'));
     }
 
     // Validar que no haya productos duplicados en upsell_products
     if (validation.data.config?.upsell_products) {
       const productIds = validation.data.config.upsell_products.map(up => up.product_id).filter(id => id);
       const hasDuplicates = productIds.length !== new Set(productIds).size;
-      if (hasDuplicates) return toast.error(__('infoproduct.products.error.duplicate_upsell_products'));
+      if (hasDuplicates) return ogToast.error(__('infoproduct.products.error.duplicate_upsell_products'));
     }
 
     const body = this.buildBody(validation.data);
@@ -75,12 +75,12 @@ class infoproductProduct {
       // Limpiar cache del select de productos para que se recargue con los datos actualizados
       this.clearProductSelectCache();
 
-      toast.success(this.currentId
+      ogToast.success(this.currentId
         ? __('infoproduct.products.success.updated')
         : __('infoproduct.products.success.created')
       );
       setTimeout(() => {
-        modal.closeAll();
+        ogForm.closeAll();
         this.refresh();
       }, 100);
     }
@@ -149,7 +149,7 @@ class infoproductProduct {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:infoproduct', error);
-      toast.error(__('infoproduct.products.error.create_failed'));
+      ogToast.error(__('infoproduct.products.error.create_failed'));
       return null;
     }
   }
@@ -160,7 +160,7 @@ class infoproductProduct {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:infoproduct', error);
-      toast.error(__('infoproduct.products.error.load_failed'));
+      ogToast.error(__('infoproduct.products.error.load_failed'));
       return null;
     }
   }
@@ -173,7 +173,7 @@ class infoproductProduct {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:infoproduct', error);
-      toast.error(__('infoproduct.products.error.update_failed'));
+      ogToast.error(__('infoproduct.products.error.update_failed'));
       return null;
     }
   }
@@ -182,15 +182,15 @@ class infoproductProduct {
     try {
       const res = await api.delete(`${this.apis.product}/${id}`);
       if (res.success === false) {
-        toast.error(__('infoproduct.products.error.delete_failed'));
+        ogToast.error(__('infoproduct.products.error.delete_failed'));
         return null;
       }
-      toast.success(__('infoproduct.products.success.deleted'));
+      ogToast.success(__('infoproduct.products.success.deleted'));
       this.refresh();
       return res.data || res;
     } catch (error) {
       logger.error('ext:infoproduct', error);
-      toast.error(__('infoproduct.products.error.delete_failed'));
+      ogToast.error(__('infoproduct.products.error.delete_failed'));
       return null;
     }
   }
@@ -212,18 +212,18 @@ class infoproductProduct {
 
   // Limpiar cache del select de productos
   static clearProductSelectCache() {
-    if (!window.form || !form.selectCache) return;
+    if (!window.form || !ogForm.selectCache) return;
 
     // Buscar y eliminar todas las keys del cache que contengan '/api/product'
     const keysToDelete = [];
-    form.selectCache.forEach((value, key) => {
+    ogForm.selectCache.forEach((value, key) => {
       if (key.includes('/api/product')) {
         keysToDelete.push(key);
       }
     });
 
     keysToDelete.forEach(key => {
-      form.selectCache.delete(key);
+      ogForm.selectCache.delete(key);
       logger.debug('ext:infoproduct', `Cache eliminado: ${key}`);
     });
   }

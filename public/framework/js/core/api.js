@@ -1,50 +1,87 @@
-class api {
-  static baseURL = window.BASE_URL || window.appConfig?.api?.baseURL || '';
-  static headers = { 'Content-Type': 'application/json', ...window.appConfig?.api?.headers };
+class ogApi {
+  static getModules() {
+    return {
+      toast: window.ogFramework?.components?.toast,
+      auth: window.ogFramework?.core?.auth
+    };
+  }
+
+  static getConfig(options = {}) {
+    // Si viene contexto en las opciones, usarlo (prioridad)
+    if (options._context) {
+      return options._context;
+    }
+
+    // Fallback a activeConfig
+    return window.ogFramework?.activeConfig || {};
+  }
+
+  static getBaseURL(options = {}) {
+    const config = this.getConfig(options);
+    return config.baseUrl || config.api?.baseURL || '';
+  }
+
+  static getHeaders(options = {}) {
+    const config = this.getConfig(options);
+    return {
+      'Content-Type': 'application/json',
+      ...config.api?.headers
+    };
+  }
 
   static async request(endpoint, options = {}) {
-    let fullURL = `${this.baseURL}${endpoint}`;
+    const baseURL = this.getBaseURL(options);
+    let fullURL = `${baseURL}${endpoint}`;
+
     const protocolMatch = fullURL.match(/^(https?:\/\/)/);
     const protocol = protocolMatch ? protocolMatch[1] : '';
     const urlWithoutProtocol = protocol ? fullURL.slice(protocol.length) : fullURL;
     const normalizedPath = urlWithoutProtocol.replace(/\/+/g, '/');
     fullURL = protocol + normalizedPath;
 
-    logger.info('core:api', `📡 Ejecutando: ${options.method || 'GET'} ${fullURL}`);
+    const config = this.getConfig(options);
+    console.group(`🌐 API ${options.method || 'GET'} ${endpoint}`);
+    console.log('Slug:', config.slug || 'default');
+    console.log('URL:', fullURL);
+    console.groupEnd();
 
-    const headers = { ...this.headers };
+    const headers = { ...this.getHeaders(options) };
+    const { auth } = this.getModules();
 
     if (!options.skipAuth) {
       const token = auth?.getToken?.();
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        const tokenDisplay = window.IS_DEV ? token : `${token.substring(0, 20)}...`;
-        logger.debug('core:api', `🔐 Token incluido: ${tokenDisplay}`);
+
+        if (config.isDevelopment) {
+          const tokenDisplay = token.substring(0, 20) + '...';
+          ogLogger.debug('core:api', `🔑 Token incluido: ${tokenDisplay}`);
+        }
       } else {
-        logger.warn('core:api', '⚠️ NO se encontró token para esta petición');
+        ogLogger.warn('core:api', '⚠️ NO se encontró token para esta petición');
       }
     }
 
     try {
       const res = await fetch(fullURL, { ...options, headers });
 
-      // ❌ ELIMINADO: No manejar 401 aquí, dejarlo al caller (auth.checkSessionWithServer)
-      // if (res.status === 401) {...}
-
       if (res.status === 400) {
-        logger.error('core:api', `❌ Bad Request (400) - ${fullURL}`);
+
+        ogLogger.error('core:api', `❌ Bad Request (400) - ${fullURL}`);
+
         const contentType = res.headers.get('content-type') || '';
-        let errorMsg = __('core.api.bad_request');
+        let errorMsg = window.__?.('core.api.bad_request') || 'Bad Request';
 
         if (contentType.includes('application/json')) {
           try {
             const errorData = await res.json();
-            errorMsg = errorData.error || errorData.message || __('core.api.bad_request');
+            errorMsg = errorData.error || errorData.message || errorMsg;
           } catch (parseError) {}
         }
 
-        if (window.toast && typeof toast.error === 'function') {
-          toast.error(errorMsg);
+        if (toast && typeof ogToast.error === 'function') {
+          ogToast.error(errorMsg);
         }
 
         throw new Error(errorMsg);
@@ -58,16 +95,21 @@ class api {
 
           try {
             const errorData = JSON.parse(text);
-            logger.error('core:api', `❌ Error ${res.status}:`, errorData);
+
+            ogLogger.error('core:api', `❌ Error ${res.status}:`, errorData);
+
             const errorMsg = errorData.message || errorData.error || `HTTP ${res.status}`;
 
-            if (window.toast && typeof toast.error === 'function') {
-              toast.error(errorMsg);
+            if (toast && typeof ogToast.error === 'function') {
+              ogToast.error(errorMsg);
             }
 
             throw new Error(errorMsg);
+
           } catch (parseError) {
-            logger.error('core:api', `❌ Error ${res.status} - JSON corrupto`);
+
+            ogLogger.error('core:api', `❌ Error ${res.status} - JSON corrupto`);
+
             console.group(`🚨 JSON Corrupto - ${fullURL}`);
             console.error('Status:', res.status);
             console.error('Content-Type:', contentType);
@@ -77,23 +119,27 @@ class api {
             console.groupEnd();
 
             const errorMatch = text.match(/<b>(Warning|Fatal error|Error)<\/b>:([^<]+)/);
-            const errorMsg = errorMatch ? errorMatch[2].trim() : __('core.api.json_corrupted');
-            throw new Error(`${__('core.api.backend_error')}: ${errorMsg}`);
+            const errorMsg = errorMatch ? errorMatch[2].trim() : (window.__?.('core.api.json_corrupted') || 'JSON corrupto');
+            throw new Error(`${window.__?.('core.api.backend_error') || 'Error de backend'}: ${errorMsg}`);
           }
         } else if (contentType.includes('text/html')) {
           const htmlError = await res.text();
-          logger.error('core:api', `❌ Error ${res.status} - Respuesta HTML`);
+
+          ogLogger.error('core:api', `❌ Error ${res.status} - Respuesta HTML`);
+
           console.group(`🚨 Error HTML Backend - ${fullURL}`);
           console.error('Status:', res.status);
           console.log(htmlError);
           console.groupEnd();
 
           const errorMatch = htmlError.match(/<b>(Warning|Fatal error|Error)<\/b>:([^<]+)/);
-          const errorMsg = errorMatch ? errorMatch[2].trim() : __('core.api.backend_error');
-          throw new Error(`${__('core.api.backend_error')}: ${errorMsg}`);
+          const errorMsg = errorMatch ? errorMatch[2].trim() : (window.__?.('core.api.backend_error') || 'Error de backend');
+          throw new Error(`${window.__?.('core.api.backend_error') || 'Error de backend'}: ${errorMsg}`);
         } else {
           const textError = await res.text();
-          logger.error('core:api', `❌ Error ${res.status}`);
+
+          ogLogger.error('core:api', `❌ Error ${res.status}`);
+
           throw new Error(`HTTP ${res.status}: ${textError.substring(0, 100)}`);
         }
       }
@@ -106,34 +152,39 @@ class api {
         try {
           return JSON.parse(text);
         } catch (parseError) {
-          logger.error('core:api', `⚠️ Respuesta exitosa pero JSON corrupto`);
+
+          ogLogger.error('core:api', `⚠️ Respuesta exitosa pero JSON corrupto`);
+
           console.group(`⚠️ JSON Corrupto (200 OK) - ${fullURL}`);
           console.warn('Status:', res.status);
           console.error('Parse Error:', parseError.message);
           console.log(text);
           console.groupEnd();
 
-          throw new Error(__('core.api.json_corrupted_success'));
+          throw new Error(window.__?.('core.api.json_corrupted_success') || 'JSON corrupto en respuesta exitosa');
         }
       } else if (contentType.includes('text/html')) {
         const htmlResponse = await res.text();
-        logger.error('core:api', `⚠️ Backend devolvió HTML en lugar de JSON`);
+
+        ogLogger.error('core:api', `⚠️ Backend devolvió HTML en lugar de JSON`);
+
         console.group(`⚠️ Respuesta HTML inesperada - ${fullURL}`);
         console.log(htmlResponse);
         console.groupEnd();
 
-        throw new Error(__('core.api.html_instead_json'));
+        throw new Error(window.__?.('core.api.html_instead_json') || 'Backend devolvió HTML en lugar de JSON');
       } else {
         const text = await res.text();
         try {
           return JSON.parse(text);
         } catch {
-          throw new Error(`${__('core.api.invalid_content_type')}: ${contentType}`);
+          throw new Error(`${window.__?.('core.api.invalid_content_type') || 'Content-Type inválido'}: ${contentType}`);
         }
       }
 
     } catch (error) {
-      logger.error('core:api', `Error: ${fullURL}`, error.message);
+
+      ogLogger.error('core:api', `Error: ${fullURL}`, error.message);
       throw error;
     }
   }
@@ -144,4 +195,10 @@ class api {
   static delete = (e, opts = {}) => this.request(e, { method: 'DELETE', ...opts });
 }
 
-window.api = api;
+// Global
+window.ogApi = ogApi;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.api = ogApi;
+}

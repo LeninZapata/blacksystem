@@ -1,11 +1,13 @@
-class cache {
+class ogCache {
   static memoryCache = new Map();
   static defaultTTL = 60 * 60 * 1000;
   static prefix = null;
 
   static getPrefix() {
     if (!this.prefix) {
-      const slug = window.appConfig?.proyect_slug || 'default';
+      // Priorizar ogFramework.activeConfig, luego window.appConfig
+      const config = window.ogFramework?.activeConfig || window.appConfig;
+      const slug = config?.slug || config?.proyect_slug || 'default';
       this.prefix = `cache_${slug}_`;
     }
     return this.prefix;
@@ -13,6 +15,10 @@ class cache {
 
   static getPrefixedKey(key) {
     return `${this.getPrefix()}${key}`;
+  }
+
+  static resetPrefix() {
+    this.prefix = null;
   }
 
   static setMemory(key, data, ttl = this.defaultTTL) {
@@ -99,7 +105,7 @@ class cache {
 
   static clear() {
     const prefix = this.getPrefix();
-    
+
     // Limpiar memoryCache solo del proyecto actual
     for (const key of this.memoryCache.keys()) {
       if (key.startsWith(prefix)) {
@@ -145,7 +151,7 @@ class cache {
     const memoryKeys = Array.from(this.memoryCache.keys())
       .filter(key => key.startsWith(prefix))
       .map(key => key.replace(prefix, ''));
-    
+
     const localKeys = Object.keys(localStorage)
       .filter(key => key.startsWith(prefix))
       .map(key => key.replace(prefix, ''));
@@ -193,8 +199,16 @@ class cache {
     return cleaned;
   }
 
-  static enableDebug() {
-    window.debugCache = {
+  static enableDebug(slug = null) {
+    // Si no se pasa slug, usar el del activeConfig
+    if (!slug) {
+      const config = window.ogFramework?.activeConfig || window.appConfig;
+      slug = config?.slug || 'default';
+    }
+
+    const debugKey = `debugCache_${slug}`;
+
+    window[debugKey] = {
       stats: () => this.getStats(),
       clear: () => this.clear(),
       list: (type = 'all') => {
@@ -207,8 +221,14 @@ class cache {
       delete: (key) => this.delete(key),
       isExpired: (key) => this.isExpired(key),
       timeToExpire: (key) => this.getTimeToExpire(key),
-      prefix: () => this.getPrefix()
+      prefix: () => this.getPrefix(),
+      slug: () => slug
     };
+
+    // También mantener window.debugCache genérico (apunta al último)
+    window.debugCache = window[debugKey];
+
+    ogLogger.debug('core:cache', `Cache debug enabled for: ${slug} (access via window.${debugKey})`);
   }
 }
 
@@ -216,8 +236,10 @@ setInterval(() => cache.cleanup(), 5 * 60 * 1000);
 
 window.addEventListener('load', () => cache.cleanup());
 
-window.cache = cache;
+// Global
+window.ogCache = ogCache;
 
-if (window.appConfig?.isDevelopment) {
-  cache.enableDebug();
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.cache = ogCache;
 }

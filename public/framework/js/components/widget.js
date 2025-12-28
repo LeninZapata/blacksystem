@@ -1,15 +1,37 @@
-class widget {
+class ogWidget {
   static grids = new Map();
   static draggedWidget = null;
 
+  static getModules() {
+    return {
+      view: window.ogFramework?.core?.view,
+      form: window.ogFramework?.core?.form
+    };
+  }
+
+  // Helper para obtener componentes dinámicamente
+  static getComponent(componentName) {
+    // Buscar primero en ogFramework.components
+    if (window.ogFramework?.components?.[componentName]) {
+      return window.ogFramework.components[componentName];
+    }
+
+    // Fallback a window directo (compatibilidad temporal)
+    if (window[componentName]) {
+      return window[componentName];
+    }
+
+    return null;
+  }
+
   static async render(config, container) {
     if (!container || typeof container.appendChild !== 'function') {
-      logger.error('com:widget', 'Container no válido');
+      ogLogger.error('com:widget', 'Container no válido');
       return;
     }
 
     if (!config || !config.widgets) {
-      logger.error('com:widget', 'Config no válido o sin widgets');
+      ogLogger.error('com:widget', 'Config no válido o sin widgets');
       return;
     }
 
@@ -64,8 +86,10 @@ class widget {
   }
 
   static async loadWidgetContent(body, config) {
+    const { view, form } = this.getModules();
+
     if (!body) {
-      logger.error('com:widget', `Body no válido`);
+      ogLogger.error('com:widget', `Body no válido`);
       return;
     }
 
@@ -77,10 +101,13 @@ class widget {
         body.innerHTML = '';
         body.appendChild(placeholder);
 
-        if (window[config.component]?.render) {
-          await window[config.component].render(compConfig, placeholder);
+        // ✅ Usar getComponent helper
+        const component = this.getComponent(config.component);
+
+        if (component && typeof component.render === 'function') {
+          await component.render(compConfig, placeholder);
         } else {
-          logger.error('com:widget', `Componente ${config.component} no existe en window`);
+          ogLogger.error('com:widget', `Componente ${config.component} no encontrado`);
         }
       } else if (config.view) {
         await view.loadView(config.view, body);
@@ -92,7 +119,7 @@ class widget {
         body.innerHTML = this.renderContent(config.content);
       }
     } catch (error) {
-      logger.error('com:widget', `Error cargando widget:`, error);
+      ogLogger.error('com:widget', `Error cargando widget:`, error);
       body.innerHTML = `<div class="widget-error">${__('com.widget.error_loading')}</div>`;
     }
   }
@@ -144,4 +171,10 @@ class widget {
   }
 }
 
-window.widget = widget;
+// Global
+window.ogWidget = ogWidget;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.components.widget = ogWidget;
+}

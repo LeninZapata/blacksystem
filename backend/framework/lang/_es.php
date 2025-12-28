@@ -16,7 +16,7 @@ return [
   // Servicios del framework
   'services'   => [
     'ai'       => file_exists($langPath . 'services/ai.php') ? require $langPath . 'services/ai.php' : [],
-    'chatapi'  => file_exists($langPath . 'services/chatapi.php') ? require $langPath . 'services/chatapi.php' : [],
+    'ogChatApi'  => file_exists($langPath . 'services/ogChatApi.php') ? require $langPath . 'services/ogChatApi.php' : [],
     'evolution'=> file_exists($langPath . 'services/evolution.php') ? require $langPath . 'services/evolution.php' : [],
     'webhook'  => file_exists($langPath . 'services/webhook.php') ? require $langPath . 'services/webhook.php' : [],
     'email'    => file_exists($langPath . 'services/email.php') ? require $langPath . 'services/email.php' : [],

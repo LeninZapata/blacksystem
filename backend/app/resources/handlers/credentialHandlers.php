@@ -6,15 +6,15 @@ class CredentialHandlers {
   // Actualiza archivos JSON de todos los bots que usan esta credencial
   static function updateBotsContext($credentialId) {
     if (!$credentialId) {
-      log::warning('CredentialHandlers::updateBotsContext - credential_id no proporcionado', [], ['module' => 'credential']);
+      ogLog::warning('CredentialHandlers::updateBotsContext - credential_id no proporcionado', [], ['module' => 'credential']);
       return 0;
     }
 
     // Buscar todos los bots que usan esta credencial en config.apis
-    $bots = db::table(self::$tableBots)->get();
+    $bots = ogDb::table(self::$tableBots)->get();
 
     if (empty($bots)) {
-      log::info('CredentialHandlers::updateBotsContext - No hay bots en el sistema', [
+      ogLog::info('CredentialHandlers::updateBotsContext - No hay bots en el sistema', [
         'credential_id' => $credentialId
       ], ['module' => 'credential']);
       return 0;
@@ -43,7 +43,7 @@ class CredentialHandlers {
 
         if ($result) {
           $updated++;
-          log::info('CredentialHandlers::updateBotsContext - Bot actualizado', [
+          ogLog::info('CredentialHandlers::updateBotsContext - Bot actualizado', [
             'bot_id' => $bot['id'],
             'bot_number' => $botNumber,
             'credential_id' => $credentialId
@@ -52,7 +52,7 @@ class CredentialHandlers {
       }
     }
 
-    log::info('CredentialHandlers::updateBotsContext - Proceso completado', [
+    ogLog::info('CredentialHandlers::updateBotsContext - Proceso completado', [
       'credential_id' => $credentialId,
       'bots_updated' => $updated,
       'bots_checked' => count($bots)

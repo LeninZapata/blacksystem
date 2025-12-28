@@ -1,6 +1,18 @@
-class modal {
+class ogModal {
   static modals = new Map();
   static counter = 0;
+
+  static getModules() {
+    return {
+      form: window.ogFramework?.core?.form || window.form,
+      view: window.ogFramework?.core?.view || window.view,
+      dataLoader: window.ogFramework?.core?.dataLoader || window.dataLoader,
+      hook: window.ogFramework?.core?.hook || window.hook,
+      toast: window.ogFramework?.components?.toast || window.toast,
+      tabs: window.ogFramework?.components?.tabs || window.tabs,
+      i18n: window.ogFramework?.core?.i18n || window.i18n
+    };
+  }
 
   static open(resource, options = {}) {
     const modalId = `modal-${++this.counter}`;
@@ -22,7 +34,7 @@ class modal {
     const processedTitle = this.processI18nInString(options.title) || __('com.modal.title');
     header.innerHTML = `
       <h3>${processedTitle}</h3>
-      <button class="modal-close" onclick="modal.close('${modalId}')">&times;</button>
+      <button class="modal-close" onclick="ogModal.close('${modalId}')">&times;</button>
     `;
 
     // Content
@@ -37,7 +49,7 @@ class modal {
       footer.innerHTML = this.processI18nInString(options.footer);
     } else if (options.showFooter !== false) {
       footer.innerHTML = `
-        <button class="btn btn-secondary" onclick="modal.close('${modalId}')">${__('com.modal.close')}</button>
+        <button class="btn btn-secondary" onclick="ogModal.close('${modalId}')">${__('com.modal.close')}</button>
       `;
     }
 
@@ -60,6 +72,7 @@ class modal {
   }
 
   static async loadContent(modalId, resource, options) {
+    const { form, view } = this.getModules();
     const content = document.querySelector(`#${modalId} .modal-content`);
 
     try {
@@ -138,7 +151,7 @@ class modal {
       throw new Error('Formato de recurso no válido');
 
     } catch (error) {
-      logger.error('com:modal', 'Error cargando contenido:', error);
+      ogLogger.error('com:modal', 'Error cargando contenido:', error);
       content.innerHTML = `
         <div class="alert alert-danger">
           <h4>${__('com.modal.error')}</h4>
@@ -149,11 +162,13 @@ class modal {
   }
 
   static close(modalId) {
+    const { tabs } = this.getModules();
     const overlay = this.modals.get(modalId);
+
     if (overlay) {
       overlay.remove();
       this.modals.delete(modalId);
-      tabs.clearCache();
+      tabs?.clearCache();
     }
   }
 
@@ -162,8 +177,10 @@ class modal {
   }
 
   static async openWithData(resource, options = {}) {
+    const { dataLoader, hook, toast, form } = this.getModules();
+
     if (!options.id) {
-      logger.warn('com:modal', 'No se especificó ID para cargar datos');
+      ogLogger.warn('com:modal', 'No se especificó ID para cargar datos');
       const result = this.open(resource, options);
       return result.modalId;
     }
@@ -186,7 +203,7 @@ class modal {
     }
 
     if (!dataLoaderConfig && extensionName) {
-      const pluginConfig = window.hook?.getPluginConfig(extensionName);
+      const pluginConfig = hook?.getPluginConfig(extensionName);
       if (pluginConfig?.backend) {
         dataLoaderConfig = {
           type: 'auto',
@@ -199,7 +216,7 @@ class modal {
       }
     }
 
-    if (dataLoaderConfig && window.dataLoader) {
+    if (dataLoaderConfig && dataLoader) {
       try {
         await loadPromise;
         const data = await dataLoader.loadDetail(dataLoaderConfig, options.id, extensionName);
@@ -208,27 +225,27 @@ class modal {
         const formElement = modalContent?.querySelector('form');
 
         if (!formElement) {
-          logger.error('com:modal', 'No se encontró ningún formulario en el modal');
-          if (window.toast) {
-            toast.error(__('com.modal.form_not_found'));
+          ogLogger.error('com:modal', 'No se encontró ningún formulario en el modal');
+          if (toast) {
+            ogToast.error(__('com.modal.form_not_found'));
           }
           return modalId;
         }
 
         const realFormId = formElement.getAttribute('id');
 
-        if (window.form) {
+        if (form) {
           form.fill(realFormId, data, modalContent);
         }
 
       } catch (error) {
-        logger.error('com:modal', 'Error cargando datos', error);
-        if (window.toast) {
-          toast.error(__('com.modal.error_loading_data'));
+        ogLogger.error('com:modal', 'Error cargando datos', error);
+        if (toast) {
+          ogToast.error(__('com.modal.error_loading_data'));
         }
       }
     } else {
-      logger.warn('com:modal', 'No se pudo cargar datos (sin dataLoader)');
+      ogLogger.warn('com:modal', 'No se pudo cargar datos (sin dataLoader)');
     }
 
     return modalId;
@@ -245,7 +262,7 @@ class modal {
           const elapsed = Date.now() - startTime;
           resolve(formElement);
         } else if (Date.now() - startTime >= timeout) {
-          logger.error('com:modal', `Timeout - Formulario "${formId}" no encontrado`);
+          ogLogger.error('com:modal', `Timeout - Formulario "${formId}" no encontrado`);
           reject(new Error(`Formulario ${formId} no encontrado`));
         } else {
           requestAnimationFrame(checkForm);
@@ -258,16 +275,23 @@ class modal {
 
   // Procesar cadenas i18n en contenido (usa i18n.processString)
   static processI18nInString(str) {
-    return window.i18n ? i18n.processString(str) : str;
+    const { i18n } = this.getModules();
+    return i18n ? i18n.processString(str) : str;
   }
 }
 
-window.modal = modal;
+// ✅ Exponer GLOBALMENTE como ogModal (usado en onclick de HTML)
+window.ogModal = ogModal;
+
+// Registrar en ogFramework
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.components.modal = ogModal;
+}
 
 // Cerrar modal al hacer clic en el overlay
 document.addEventListener('click', (e) => {
   if (e.target.classList.contains('modal-overlay')) {
     const modalId = e.target.id;
-    modal.close(modalId);
+    ogModal.close(modalId);
   }
 });

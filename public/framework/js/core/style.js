@@ -1,8 +1,8 @@
 /**
- * styleHandler - Sistema de Design Tokens
+ * ogStyle - Sistema de Design Tokens
  * Convierte tokens abstractos a CSS (web) o StyleSheet (React Native)
  */
-class styleHandler {
+class ogStyle {
   static tokens = {
     colors: {
       primary: '#007bff',
@@ -155,4 +155,10 @@ class styleHandler {
   }
 }
 
-window.styleHandler = styleHandler;
+// global
+window.ogStyle = ogStyle;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.style = ogStyle;
+}

@@ -12,7 +12,7 @@ class DoesNotWantProductAction implements ActionHandler {
     $saleId = $metadata['sale_id'] ?? $chatData['current_sale']['sale_id'] ?? null;
 
     if (!$saleId) {
-      log::warning("DoesNotWantProductAction - No sale_id encontrado", [
+      ogLog::warning("DoesNotWantProductAction - No sale_id encontrado", [
         'number' => $person['number']
       ], ['module' => 'does_not_want_product']);
 
@@ -34,7 +34,7 @@ class DoesNotWantProductAction implements ActionHandler {
     // Reconstruir chat JSON
     ChatHandlers::rebuildFromDB($person['number'], $bot['id']);
 
-    log::info("DoesNotWantProductAction - Venta cancelada", [
+    ogLog::info("DoesNotWantProductAction - Venta cancelada", [
       'sale_id' => $saleId,
       'followups_cancelled' => $cancelResult,
       'sale_updated' => $saleUpdateResult
@@ -69,7 +69,7 @@ class DoesNotWantProductAction implements ActionHandler {
 
       return $affected > 0;
     } catch (Exception $e) {
-      log::error("DoesNotWantProductAction::updateSaleStatus - Error", [
+      ogLog::error("DoesNotWantProductAction::updateSaleStatus - Error", [
         'error' => $e->getMessage()
       ], ['module' => 'does_not_want_product']);
 

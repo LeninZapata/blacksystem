@@ -595,7 +595,7 @@
       "name": "cancel",
       "type": "button",
       "label": "i18n:core.cancel",
-      "action": "call:modal.closeAll",
+      "action": "call:ogModal.closeAll",
       "style": "secondary"
     },
     {

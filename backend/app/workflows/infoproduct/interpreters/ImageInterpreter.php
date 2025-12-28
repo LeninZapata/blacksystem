@@ -19,7 +19,7 @@ class ImageInterpreter {
       if (!$base64) {
         $imageData = file_get_contents($imageUrl);
         if ($imageData === false) {
-          log::throwError('No se pudo descargar imagen', [], self::$logMeta);
+          ogLog::throwError('No se pudo descargar imagen', [], self::$logMeta);
         }
         $base64 = base64_encode($imageData);
       }
@@ -30,7 +30,7 @@ class ImageInterpreter {
       $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo-img.txt';
 
       if (!file_exists($promptFile)) {
-        log::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
+        ogLog::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
       }
 
       $instruction = file_get_contents($promptFile);
@@ -40,7 +40,7 @@ class ImageInterpreter {
         $instruction .= "\n\n---\n\n## INFORMACIÓN ADICIONAL DEL BOT:\n" . $bot['personality'];
       }
 
-      $ai = service::integration('ai');
+      $ai = ogService::integration('ai');
       $result = $ai->analyzeImage($dataUri, $instruction, $bot);
 
       if (!$result['success']) {
@@ -52,7 +52,7 @@ class ImageInterpreter {
 
       $description = $result['description'] ?? '';
 
-      if (!str::isJson($description)) {
+      if (!ogStr::isJson($description)) {
         return [
           'success' => false,
           'error' => 'Invalid JSON response from AI',

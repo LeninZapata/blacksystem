@@ -5,10 +5,16 @@
  * 
  * Preparado para React Native (mismo API)
  */
-class navigation {
+class ogNavigation {
   static history = [];
   static currentScreen = null;
   static maxHistory = 50;
+
+  static getModules() {
+    return {
+      view: window.ogFramework?.core?.view || window.view,
+    };
+  }
 
   /**
    * Navegar a una vista
@@ -16,8 +22,10 @@ class navigation {
    * @param {object} params - Parámetros opcionales
    */
   static navigate(screen, params = {}) {
+    const { view } = this.getModules();
+    
     if (!screen) {
-      logger.warn('core:navigation', 'Screen no especificado');
+      ogLogger?.warn('core:navigation', 'Screen no especificado');
       return;
     }
 
@@ -38,14 +46,14 @@ class navigation {
     this.currentScreen = screen;
 
     // Web: usar view.loadView()
-    if (window.view && typeof view.loadView === 'function') {
+    if (view && typeof view.loadView === 'function') {
       const container = params.container || null;
       const extension = params.extension || null;
       const menuId = params.menuId || null;
       
       view.loadView(screen, container, extension, null, null, menuId);
     } else {
-      logger.error('core:navigation', 'view.loadView() no disponible');
+      ogLogger?.error('core:navigation', 'view.loadView() no disponible');
     }
 
     // React Native (futuro):
@@ -58,16 +66,18 @@ class navigation {
    * Volver a la vista anterior
    */
   static goBack() {
+    const { view } = this.getModules();
+    
     if (this.history.length === 0) {
-      logger.warn('core:navigation', 'No hay historial para volver');
+      ogLogger?.warn('core:navigation', 'No hay historial para volver');
       return false;
     }
 
     const previous = this.history.pop();
 
     this.currentScreen = previous.screen;
-
-    if (window.view && typeof view.loadView === 'function') {
+    
+    if (view && typeof view.loadView === 'function') {
       view.loadView(previous.screen);
     }
 
@@ -88,7 +98,9 @@ class navigation {
     // No agregar al historial, solo reemplazar
     this.currentScreen = screen;
 
-    if (window.view && typeof view.loadView === 'function') {
+    const { view } = this.getModules();
+    
+    if (view && typeof view.loadView === 'function') {
       const container = params.container || null;
       const extension = params.extension || null;
       const menuId = params.menuId || null;
@@ -105,7 +117,9 @@ class navigation {
     this.history = [];
     this.currentScreen = screen;
 
-    if (window.view && typeof view.loadView === 'function') {
+    const { view } = this.getModules();
+    
+    if (view && typeof view.loadView === 'function') {
       view.loadView(screen);
     }
   }
@@ -132,4 +146,10 @@ class navigation {
   }
 }
 
-window.navigation = navigation;
+// Global
+window.ogNavigation = ogNavigation;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.navigation = ogNavigation;
+}

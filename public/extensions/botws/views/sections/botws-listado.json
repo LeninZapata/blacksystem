@@ -13,7 +13,7 @@
     },
     {
       "type": "html",
-      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"modal.open('botws|forms/bot-form', {title: '{i18n:botws.modal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){botws.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='botws.refresh();toast.info(\"{i18n:botws.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('botws|forms/bot-form', {title: '{i18n:botws.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){botws.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='botws.refresh();ogToast.info(\"{i18n:botws.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
       "order": 1
     },
     {
@@ -56,7 +56,7 @@
         "actions": {
           "edit": {
             "name": "i18n:core.edit",
-            "onclick": "modal.open('botws|forms/bot-form', {title: '{i18n:botws.modal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){botws.openEdit(formId, {id});}})"
+            "onclick": "ogModal.open('botws|forms/bot-form', {title: '{i18n:botws.ogModal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){botws.openEdit(formId, {id});}})"
           },
           "delete": {
             "name": "i18n:core.delete",

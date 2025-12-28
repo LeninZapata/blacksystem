@@ -1,5 +1,4 @@
-// validator.js - Agregar a tu framework
-class validator {
+class ogValidator {
   static schemas = {
     view: {
       required: ['id', 'title'],
@@ -67,4 +66,10 @@ class validator {
   }
 }
 
-window.validator = validator;
+// Mantener en window para compatibilidad (temporal)
+window.ogValidator = ogValidator;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.validator = ogValidator;
+}

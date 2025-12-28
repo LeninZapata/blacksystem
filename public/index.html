@@ -9,41 +9,126 @@
 <body>
 <div id="app"></div>
 <script>
-  let version = '0.0.1';
-  var PROYECT_SLUG = 'blacksystem';
-
+  // ==========================================
   // DETECCIÓN AUTOMÁTICA DE RUTAS
-  // Como .htaccess redirige internamente a public/,
-  // BASE_URL NO debe incluir /public/
+  // ==========================================
+  
+  let version = '0.4.1';
+  
   var pathname = window.location.pathname;
-
-  // Remover index.html si está al final
   if (pathname.endsWith('/index.html')) {
     pathname = pathname.replace('/index.html', '/');
   }
-
-  // Remover /public/ si está en la ruta (no debería estar por .htaccess)
   pathname = pathname.replace('/public/', '/');
-
-  // Si termina en /, perfecto. Si no, agregar /
   if (!pathname.endsWith('/')) {
     pathname += '/';
   }
 
   var BASE_URL = pathname;
   var FRAMEWORK_URL = BASE_URL + 'framework/';
-  var PUBLIC_URL = window.location.origin + pathname; // URL completa con protocolo
+  var PUBLIC_URL = window.location.origin + pathname;
 
-  var IS_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) || 
+  var OG_IS_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) || 
               ['3000', '5173', '8080'].includes(window.location.port);
 
-  var VERSION = IS_DEV ? `dev-${Date.now()}` : version;
+  var VERSION = OG_IS_DEV ? `dev-${Date.now()}` : version;
   console.log(`App Version: ${VERSION}`);
 
-  const script = document.createElement('script');
-  script.type = 'module';
-  script.src = `${FRAMEWORK_URL}js/main.js?v=${VERSION}`;
-  document.head.appendChild(script);
+  // ==========================================
+  // CONFIGURACIÓN ÚNICA DEL PROYECTO
+  // ==========================================
+  // Esta es la ÚNICA variable que debe existir
+  // Similar a como WordPress registra variables de plugins
+  
+  var appConfig_factory_saas = {
+    // Identificación del proyecto
+    slug: 'backsystem',
+    
+    // Versión y entorno
+    version: VERSION,
+    environment: OG_IS_DEV ? 'development' : 'production',
+    isDevelopment: OG_IS_DEV,
+    
+    // Paths y URLs
+    baseUrl: BASE_URL,
+    frameworkUrl: FRAMEWORK_URL,
+    publicUrl: PUBLIC_URL,
+    frameworkPath: 'framework',
+    
+    // UI
+    container: '#app',
+
+    // Internacionalización
+    i18n: {
+      enabled: true,
+      defaultLang: 'es',
+      availableLangs: ['es', 'en'],
+      refreshOnChange: false
+    },
+
+    // Autenticación
+    auth: {
+      enabled: true,
+      loginView: 'auth/login',
+      redirectAfterLogin: 'dashboard/dashboard',
+      sessionCheckInterval: 1 * 60 * 1000,
+      api: {
+        login: '/api/auth/login',
+        logout: '/api/auth/logout',
+        me: '/api/user/profile'
+      }
+    },
+
+    // Rutas
+    routes: {
+      coreViews: 'framework/js/views',
+      extensionViews: 'extensions/{extensionName}/views',
+      coreModels: 'framework/js/models',
+      components: 'framework/js/components',
+      utils: 'framework/js/utils',
+      validation: 'framework/js/validation'
+    },
+
+    // Caché
+    cache: {
+      modals: !OG_IS_DEV,
+      forms: !OG_IS_DEV,
+      views: !OG_IS_DEV,
+      viewNavigation: !OG_IS_DEV,
+      validation: !OG_IS_DEV,
+      ttl: 60 * 60 * 1000
+    }
+  };
+
+  // ==========================================
+  // CARGA DEL FRAMEWORK
+  // ==========================================
+  
+  (function() {
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = appConfig_factory_saas.frameworkUrl + 'js/main.js?v=' + appConfig_factory_saas.version;
+    script.onload = function() {
+      if (window.ogFramework) {
+        window.ogFramework.init('appConfig_factory_saas');
+      } else {
+        console.error('❌ ogFramework no se cargó correctamente');
+      }
+    };
+    script.onerror = function() {
+      console.error('❌ Error cargando ogFramework');
+      document.getElementById('app').innerHTML = `
+        <div style="padding: 20px; color: #dc3545; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; margin: 20px;">
+          <h2>Error de Carga</h2>
+          <p>No se pudo cargar el framework. Por favor, recarga la página.</p>
+          <button onclick="location.reload()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+            Recargar
+          </button>
+        </div>
+      `;
+    };
+    document.head.appendChild(script);
+  })();
 </script>
 </body>
 </html>

@@ -1,14 +1,22 @@
-class conditions {
+class ogConditions {
   static rules = new Map();
   static watchers = new Map();
   static initialized = false;
   static evaluateTimeout = null;
-  static isFillingForm = false; // Flag para indicar si se está llenando el formulario
+  static isFillingForm = false;
+
+  static getModules() {
+    return {
+      form: window.ogFramework?.core?.form,
+      events: window.ogFramework?.core?.events
+    };
+  }
 
   static init(formId) {
     if (!formId) return;
 
-    const schema = window.form?.schemas?.get(formId);
+    const { form } = this.getModules();
+    const schema = form?.schemas?.get(formId);
     if (!schema || !schema.fields) return;
 
     // Limpiar reglas anteriores de este formulario
@@ -105,7 +113,7 @@ class conditions {
   static extractConditions(fields, rulesMap, parentPath = '') {
     fields.forEach((field, index) => {
       let fieldPath;
-      
+
       // Construir fieldPath según el tipo de campo
       if (field.name) {
         fieldPath = parentPath ? `${parentPath}.${field.name}` : field.name;
@@ -131,7 +139,7 @@ class conditions {
       if (field.type === 'repeatable' && field.fields) {
         this.extractConditions(field.fields, rulesMap, fieldPath);
       }
-      
+
       // Recursivo para grouper
       if (field.type === 'grouper') {
         if (field.groups && Array.isArray(field.groups)) {
@@ -144,7 +152,7 @@ class conditions {
           this.extractConditions(field.fields, rulesMap, parentPath);
         }
       }
-      
+
       // Recursivo para groups
       if (field.type === 'group' && field.fields) {
         this.extractConditions(field.fields, rulesMap, parentPath);
@@ -153,6 +161,7 @@ class conditions {
   }
 
   static setupWatchers(formId) {
+    const { events } = this.getModules();
     const formEl = document.getElementById(formId);
     if (!formEl) return;
 
@@ -167,7 +176,7 @@ class conditions {
     });
 
     // Registrar evento de cambio delegado
-    const watcherId = window.events.on(
+    const watcherId = events.on(
       `#${formId} input, #${formId} select, #${formId} textarea`,
       'change',
       (e) => {
@@ -185,7 +194,7 @@ class conditions {
     );
 
     // También escuchar input para fields de texto (cambios en tiempo real)
-    const inputWatcherId = window.events.on(
+    const inputWatcherId = events.on(
       `#${formId} input[type="text"], #${formId} input[type="email"], #${formId} input[type="number"], #${formId} textarea`,
       'input',
       (e) => {
@@ -241,7 +250,7 @@ class conditions {
   // Método auxiliar para reanudar y ejecutar evaluación final
   static resumeEvaluations(formId) {
     this.isFillingForm = false;
-    
+
     // Ejecutar evaluación final después de un pequeño delay
     setTimeout(() => {
       if (formId) {
@@ -267,7 +276,7 @@ class conditions {
       const normalizedPath = dataPath.replace(/\[\d+\]/g, '');
       return normalizedPath === repeatablePath;
     });
-    
+
     if (repeatableContainers.length === 0) {
       return;
     }
@@ -288,7 +297,7 @@ class conditions {
         // Buscar el campo target dentro de este item específico
         // Puede ser un input/select (con name), un repeatable anidado, o un grouper (con data-field-path)
         let targetField = item.querySelector(`[name*=".${fieldName}"]`);
-        
+
         // Si no se encuentra por name, buscar por data-field-path (repeatables anidados o groupers)
         if (!targetField) {
           const allFieldPaths = item.querySelectorAll('.form-repeatable[data-field-path], .grouper[data-field-path]');
@@ -299,7 +308,7 @@ class conditions {
             // Comparar si termina con el fieldName
             return normalizedFieldPath.endsWith(`.${fieldName}`) || normalizedFieldPath === fieldName;
           });
-          
+
           // Si hay múltiples candidatos, tomar el de path más corto (el más cercano al nivel actual)
           if (candidates.length > 0) {
             targetField = candidates.reduce((shortest, current) => {
@@ -309,7 +318,7 @@ class conditions {
             });
           }
         }
-        
+
         if (targetField) {
           const fieldElement = targetField.closest('.form-group, .form-checkbox, .form-repeatable, .grouper');
 
@@ -362,7 +371,7 @@ class conditions {
     const fieldElement = this.findFieldElement(formEl, fieldPath);
 
     if (!fieldElement) {
-      logger.warn('core:conditions', `No se encontró el elemento para "${fieldPath}"`);
+      ogLogger?.warn('core:conditions', `No se encontró el elemento para "${fieldPath}"`);
       return;
     }
 
@@ -422,7 +431,7 @@ class conditions {
     }
 
     if (!fieldEl) {
-      logger.warn('core:conditions', `[checkCondition] ❌ Campo "${field}" no encontrado en contexto`);
+      ogLogger?.warn('core:conditions', `[checkCondition] ❌ Campo "${field}" no encontrado en contexto`);
       return false;
     }
 
@@ -488,7 +497,7 @@ class conditions {
         return !String(fieldValue).toLowerCase().includes(String(targetValue).toLowerCase());
 
       default:
-        logger.warn('core:conditions', `Operador desconocido "${operator}"`);
+        ogLogger?.warn('core:conditions', `Operador desconocido "${operator}"`);
         return false;
     }
   }
@@ -628,16 +637,23 @@ class conditions {
   }
 
   static debug(formId) {
-    logger.info('core:conditions', `Debug: ${formId}`);
+
+    ogLogger?.info('core:conditions', `Debug: ${formId}`);
 
     const rules = this.rules.get(formId);
     if (!rules) {
-      logger.info('core:conditions', 'No hay reglas registradas para este formulario');
+      ogLogger?.info('core:conditions', 'No hay reglas registradas para este formulario');
       return;
     }
 
-    logger.info('core:conditions', `Reglas activas: ${rules.size}`);
+    ogLogger?.info('core:conditions', `Reglas activas: ${rules.size}`);
   }
 }
 
-window.conditions = conditions;
+// Global
+window.ogConditions = ogConditions;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.conditions = ogConditions;
+}

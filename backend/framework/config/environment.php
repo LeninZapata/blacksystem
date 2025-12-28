@@ -1,3 +1,3 @@
 <?php
 // Configuración de entorno - Control centralizado de modo desarrollo/producción
-define('IS_DEV', isLocalhost());
+define('OG_IS_DEV', isLocalhost());

@@ -22,7 +22,7 @@
         },
         {
           "type": "html",
-          "content": "<div class='view-toolbar' style='display: flex; gap: 0.5rem; margin: 1rem 0;'><button class='btn btn-primary' onclick=\"modal.open('core:user/forms/user-form', {title: '👤 Nuevo Usuario', width: '90%', maxWidth: '900px', showFooter: false, afterRender: function(formId){admin.openNew(formId);}})\">➕ Nuevo Usuario</button><button class='btn btn-secondary' onclick='admin.refresh();toast.info(\"i18n:admin.refresh.success\")'>🔄 Actualizar</button></div>"
+          "content": "<div class='view-toolbar' style='display: flex; gap: 0.5rem; margin: 1rem 0;'><button class='btn btn-primary' onclick=\"ogModal.open('core:user/forms/user-form', {title: '👤 Nuevo Usuario', width: '90%', maxWidth: '900px', showFooter: false, afterRender: function(formId){admin.openNew(formId);}})\">➕ Nuevo Usuario</button><button class='btn btn-secondary' onclick='admin.refresh();ogToast.info(\"i18n:admin.refresh.success\")'>🔄 Actualizar</button></div>"
         },
         {
           "type": "component",
@@ -71,7 +71,7 @@
               "edit": {
                 "name": "✏️ Editar",
                 "role": "admin",
-                "onclick": "modal.open('core:user/forms/user-form', {title: '✏️ Editar Usuario', width: '90%', maxWidth: '900px', showFooter: false, afterRender: function(formId){admin.openEdit(formId, {id});}})"
+                "onclick": "ogModal.open('core:user/forms/user-form', {title: '✏️ Editar Usuario', width: '90%', maxWidth: '900px', showFooter: false, afterRender: function(formId){admin.openEdit(formId, {id});}})"
               },
               "delete": {
                 "name": "🗑️ Eliminar",

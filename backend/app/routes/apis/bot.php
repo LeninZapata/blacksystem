@@ -8,7 +8,7 @@ $router->group('/api/bot', function($router) {
   // Ejemplo:
   // $router->get('/active', function() {
   //   $bots = db::table('bots')->where('status', 'active')->get();
-  //   response::success($bots);
+  //   ogResponse::success($bots);
   // })->middleware('auth');
 
 });

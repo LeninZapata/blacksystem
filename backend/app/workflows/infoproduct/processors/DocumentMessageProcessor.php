@@ -51,7 +51,7 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
     $message .= "3️⃣ Envíame la imagen aquí\n\n";
     $message .= "Así podré verificar tu pago y confirmar tu pedido. ✅";
 
-    chatapi::send($to, $message);
+    ogChatApi::send($to, $message);
   }
 
   private function saveUserDocumentMessage($documentMessage, $caption, $context) {

@@ -1,4 +1,4 @@
-class events {
+class ogEvents {
   static listeners = new Map();
   static counter = 0;
 
@@ -64,4 +64,10 @@ class events {
   }
 }
 
-window.events = events;
+// Global
+window.ogEvents = ogEvents;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.events = ogEvents;
+}

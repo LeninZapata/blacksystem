@@ -13,7 +13,7 @@
     },
     {
       "type": "html",
-      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"modal.open('product|forms/product-form', {title: '{i18n:product.modal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){product.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='product.refresh();toast.info(\"{i18n:product.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('product|forms/product-form', {title: '{i18n:product.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){product.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='product.refresh();ogToast.info(\"{i18n:product.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
       "order": 1
     },
     {
@@ -49,7 +49,7 @@
         "actions": {
           "edit": {
             "name": "i18n:core.edit",
-            "onclick": "modal.open('product|forms/product-form', {title: '{i18n:product.modal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){product.openEdit(formId, {id});}})"
+            "onclick": "ogModal.open('product|forms/product-form', {title: '{i18n:product.ogModal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){product.openEdit(formId, {id});}})"
           },
           "delete": {
             "name": "i18n:core.delete",

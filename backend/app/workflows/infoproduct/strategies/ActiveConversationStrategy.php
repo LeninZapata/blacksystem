@@ -15,12 +15,12 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $chat = $chatData['full_chat'] ?? [];
 
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
-    log::debug("ActiveConversationStrategy::execute - Prompt construido", $prompt, ['module' => 'active_conversation', 'tags' => ['prompt']]);
+    ogLog::debug("ActiveConversationStrategy::execute - Prompt construido", $prompt, ['module' => 'active_conversation', 'tags' => ['prompt']]);
 
     $aiResponse = $this->callAI($prompt, $bot);
 
     if (!$aiResponse['success']) {
-      log::error("ActiveConversationStrategy::execute - Error en llamada a IA", [
+      ogLog::error("ActiveConversationStrategy::execute - Error en llamada a IA", [
         'error' => $aiResponse['error'] ?? 'unknown'
       ], ['module' => 'active_conversation']);
 
@@ -31,7 +31,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     }
 
     // ✅ LOG DE RESPUESTA DE LA IA
-    log::info("ActiveConversationStrategy::execute - Respuesta de IA recibida", [
+    ogLog::info("ActiveConversationStrategy::execute - Respuesta de IA recibida", [
       'response_length' => strlen($aiResponse['response']),
       'response_preview' => substr($aiResponse['response'], 0, 200) . '...'
     ], ['module' => 'active_conversation']);
@@ -39,7 +39,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $parsedResponse = $this->parseResponse($aiResponse['response']);
 
     if (!$parsedResponse) {
-      log::error("ActiveConversationStrategy::execute - JSON inválido de IA", [
+      ogLog::error("ActiveConversationStrategy::execute - JSON inválido de IA", [
         'raw_response' => $aiResponse['response']
       ], ['module' => 'active_conversation']);
 
@@ -50,7 +50,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     }
 
     // ✅ LOG DE RESPUESTA PARSEADA
-    log::info("ActiveConversationStrategy::execute - Respuesta parseada correctamente", [
+    ogLog::info("ActiveConversationStrategy::execute - Respuesta parseada correctamente", [
       'message_length' => strlen($parsedResponse['message'] ?? ''),
       'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150),
       'has_metadata' => isset($parsedResponse['metadata']),
@@ -103,7 +103,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo.txt';
 
     if (!file_exists($promptFile)) {
-      log::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
+      ogLog::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
     }
 
     $promptSystem = file_get_contents($promptFile);
@@ -115,7 +115,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
 
   private function callAI($prompt, $bot) {
     try {
-      $ai = service::integration('ai');
+      $ai = ogService::integration('ai');
       return $ai->getChatCompletion($prompt, $bot, []);
     } catch (Exception $e) {
       return [
@@ -141,7 +141,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $sourceUrl = $parsedResponse['source_url'] ?? '';
 
     if (!empty($message)) {
-      chatapi::send($person['number'], $message, $sourceUrl);
+      ogChatApi::send($person['number'], $message, $sourceUrl);
     }
   }
 

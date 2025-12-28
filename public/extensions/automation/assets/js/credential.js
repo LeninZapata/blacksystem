@@ -9,7 +9,7 @@ class credential {
     this.currentId = null;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    form.clearAllErrors(realId);
+    ogForm.clearAllErrors(realId);
   }
 
   static async openEdit(formId, id) {
@@ -17,7 +17,7 @@ class credential {
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
     
-    form.clearAllErrors(realId);
+    ogForm.clearAllErrors(realId);
     const data = await this.get(id);
     if (!data) return;
     
@@ -47,12 +47,12 @@ class credential {
       }
     }
 
-    form.fill(formId, fillData);
+    ogForm.fill(formId, fillData);
   }
 
   static async save(formId) {
-    const validation = form.validate(formId);
-    if (!validation.success) return toast.error(validation.message);
+    const validation = ogForm.validate(formId);
+    if (!validation.success) return ogToast.error(validation.message);
 
     const body = this.buildBody(validation.data);
     if (!body) return;
@@ -62,12 +62,12 @@ class credential {
       : await this.create(body);
 
     if (result) {
-      toast.success(this.currentId 
+      ogToast.success(this.currentId 
         ? __('automation.credentials.success.updated') 
         : __('automation.credentials.success.created')
       );
       setTimeout(() => {
-        modal.closeAll();
+        ogForm.closeAll();
         this.refresh();
       }, 100);
     }
@@ -106,7 +106,7 @@ class credential {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:automation', error);
-      toast.error(__('automation.credentials.error.create_failed'));
+      ogToast.error(__('automation.credentials.error.create_failed'));
       return null;
     }
   }
@@ -117,7 +117,7 @@ class credential {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:automation', error);
-      toast.error(__('automation.credentials.error.load_failed'));
+      ogToast.error(__('automation.credentials.error.load_failed'));
       return null;
     }
   }
@@ -130,7 +130,7 @@ class credential {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:automation', error);
-      toast.error(__('automation.credentials.error.update_failed'));
+      ogToast.error(__('automation.credentials.error.update_failed'));
       return null;
     }
   }
@@ -139,15 +139,15 @@ class credential {
     try {
       const res = await api.delete(`${this.apis.credential}/${id}`);
       if (res.success === false) {
-        toast.error(__('automation.credentials.error.delete_failed'));
+        ogToast.error(__('automation.credentials.error.delete_failed'));
         return null;
       }
-      toast.success(__('automation.credentials.success.deleted'));
+      ogToast.success(__('automation.credentials.success.deleted'));
       this.refresh();
       return res.data || res;
     } catch (error) {
       logger.error('ext:automation', error);
-      toast.error(__('automation.credentials.error.delete_failed'));
+      ogToast.error(__('automation.credentials.error.delete_failed'));
       return null;
     }
   }

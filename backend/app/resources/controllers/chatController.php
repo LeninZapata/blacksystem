@@ -1,5 +1,5 @@
 <?php
-class ChatController extends controller {
+class ChatController extends ogController {
 
   // Nombre de la tabla asociada a este controlador
   protected static $table = DB_TABLES['chats'];
@@ -9,22 +9,22 @@ class ChatController extends controller {
   }
 
   function create() {
-    $data = request::data();
+    $data = ogRequest::data();
 
     if (!isset($data['bot_id']) || empty($data['bot_id'])) {
-      response::json(['success' => false, 'error' => __('chat.bot_id_required')], 200);
+      ogResponse::json(['success' => false, 'error' => __('chat.bot_id_required')], 200);
     }
 
     if (!isset($data['client_id']) || empty($data['client_id'])) {
-      response::json(['success' => false, 'error' => __('chat.client_id_required')], 200);
+      ogResponse::json(['success' => false, 'error' => __('chat.client_id_required')], 200);
     }
 
     if (!isset($data['bot_number']) || empty($data['bot_number'])) {
-      response::json(['success' => false, 'error' => __('chat.bot_number_required')], 200);
+      ogResponse::json(['success' => false, 'error' => __('chat.bot_number_required')], 200);
     }
 
     if (!isset($data['client_number']) || empty($data['client_number'])) {
-      response::json(['success' => false, 'error' => __('chat.client_number_required')], 200);
+      ogResponse::json(['success' => false, 'error' => __('chat.client_number_required')], 200);
     }
 
     // Convertir metadata a JSON si es array
@@ -39,18 +39,18 @@ class ChatController extends controller {
     $data['sale_id'] = $data['sale_id'] ?? 0;
 
     try {
-      $id = db::table(self::$table)->insert($data);
-      response::success(['id' => $id], __('chat.create.success'), 201);
+      $id = ogDb::table(self::$table)->insert($data);
+      ogResponse::success(['id' => $id], __('chat.create.success'), 201);
     } catch (Exception $e) {
-      response::serverError(__('chat.create.error'), IS_DEV ? $e->getMessage() : null);
+      ogResponse::serverError(__('chat.create.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
 
   function update($id) {
-    $exists = db::table(self::$table)->find($id);
-    if (!$exists) response::notFound(__('chat.not_found'));
+    $exists = ogDb::table(self::$table)->find($id);
+    if (!$exists) ogResponse::notFound(__('chat.not_found'));
 
-    $data = request::data();
+    $data = ogRequest::data();
 
     // Convertir metadata a JSON si es array
     if (isset($data['metadata']) && is_array($data['metadata'])) {
@@ -61,27 +61,27 @@ class ChatController extends controller {
     $data['tu'] = time();
 
     try {
-      $affected = db::table(self::$table)->where('id', $id)->update($data);
-      response::success(['affected' => $affected], __('chat.update.success'));
+      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      ogResponse::success(['affected' => $affected], __('chat.update.success'));
     } catch (Exception $e) {
-      response::serverError(__('chat.update.error'), IS_DEV ? $e->getMessage() : null);
+      ogResponse::serverError(__('chat.update.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
 
   function show($id) {
-    $data = db::table(self::$table)->find($id);
-    if (!$data) response::notFound(__('chat.not_found'));
+    $data = ogDb::table(self::$table)->find($id);
+    if (!$data) ogResponse::notFound(__('chat.not_found'));
 
     // Decodificar metadata si es string
     if (isset($data['metadata']) && is_string($data['metadata'])) {
       $data['metadata'] = json_decode($data['metadata'], true);
     }
 
-    response::success($data);
+    ogResponse::success($data);
   }
 
   function list() {
-    $query = db::table(self::$table);
+    $query = ogDb::table(self::$table);
 
     // Filtros
     foreach ($_GET as $key => $value) {
@@ -90,13 +90,13 @@ class ChatController extends controller {
     }
 
     // Ordenamiento
-    $sort = request::query('sort', 'id');
-    $order = request::query('order', 'DESC');
+    $sort = ogRequest::query('sort', 'id');
+    $order = ogRequest::query('order', 'DESC');
     $query = $query->orderBy($sort, $order);
 
     // Paginación
-    $page = request::query('page', 1);
-    $perPage = request::query('per_page', 50);
+    $page = ogRequest::query('page', 1);
+    $perPage = ogRequest::query('per_page', 50);
     $data = $query->paginate($page, $perPage)->get();
 
     if (!is_array($data)) $data = [];
@@ -108,18 +108,18 @@ class ChatController extends controller {
       }
     }
 
-    response::success($data);
+    ogResponse::success($data);
   }
 
   function delete($id) {
-    $item = db::table(self::$table)->find($id);
-    if (!$item) response::notFound(__('chat.not_found'));
+    $item = ogDb::table(self::$table)->find($id);
+    if (!$item) ogResponse::notFound(__('chat.not_found'));
 
     try {
-      $affected = db::table(self::$table)->where('id', $id)->delete();
-      response::success(['affected' => $affected], __('chat.delete.success'));
+      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      ogResponse::success(['affected' => $affected], __('chat.delete.success'));
     } catch (Exception $e) {
-      response::serverError(__('chat.delete.error'), IS_DEV ? $e->getMessage() : null);
+      ogResponse::serverError(__('chat.delete.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
 }

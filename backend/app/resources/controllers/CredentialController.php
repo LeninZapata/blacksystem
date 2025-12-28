@@ -1,5 +1,5 @@
 <?php
-class CredentialController extends controller {
+class CredentialController extends ogController {
   // Nombre de la tabla asociada a este controlador
   protected static $table = DB_TABLES['credentials'];
 
@@ -8,20 +8,20 @@ class CredentialController extends controller {
   }
 
   function create() {
-    $data = request::data();
+    $data = ogRequest::data();
 
     if (isset($GLOBALS['auth_user_id'])) {
       $data['user_id'] = $GLOBALS['auth_user_id'];
     } else {
-      response::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }
     
     if (!isset($data['name']) || empty($data['name'])) {
-      response::json(['success' => false, 'error' => __('credential.name_required')], 200);
+      ogResponse::json(['success' => false, 'error' => __('credential.name_required')], 200);
     }
 
     if (!isset($data['type']) || empty($data['type'])) {
-      response::json(['success' => false, 'error' => __('credential.type_required')], 200);
+      ogResponse::json(['success' => false, 'error' => __('credential.type_required')], 200);
     }
 
     if (isset($data['config']) && is_array($data['config'])) {
@@ -32,18 +32,18 @@ class CredentialController extends controller {
     $data['ta'] = time();
 
     try {
-      $id = db::table(self::$table)->insert($data);
-      response::success(['id' => $id], __('credential.create.success'), 201);
+      $id = ogDb::table(self::$table)->insert($data);
+      ogResponse::success(['id' => $id], __('credential.create.success'), 201);
     } catch (Exception $e) {
-      response::serverError(__('credential.create.error'), IS_DEV ? $e->getMessage() : null);
+      ogResponse::serverError(__('credential.create.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
 
   function update($id) {
-    $exists = db::table(self::$table)->find($id);
-    if (!$exists) response::notFound(__('credential.not_found'));
+    $exists = ogDb::table(self::$table)->find($id);
+    if (!$exists) ogResponse::notFound(__('credential.not_found'));
 
-    $data = request::data();
+    $data = ogRequest::data();
 
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
@@ -53,50 +53,50 @@ class CredentialController extends controller {
     $data['tu'] = time();
 
     try {
-      $affected = db::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
       
       // Actualizar archivos JSON de todos los bots que usan esta credencial
       $botsUpdated = CredentialHandlers::updateBotsContext($id);
       
-      log::info('credentialController - Credencial actualizada', [
+      ogLog::info('credentialController - Credencial actualizada', [
         'id' => $id,
         'bots_updated' => $botsUpdated
       ], ['module' => 'credential']);
       
-      response::success([
+      ogResponse::success([
         'affected' => $affected,
         'bots_updated' => $botsUpdated
       ], __('credential.update.success'));
     } catch (Exception $e) {
-      response::serverError(__('credential.update.error'), IS_DEV ? $e->getMessage() : null);
+      ogResponse::serverError(__('credential.update.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
 
   function show($id) {
-    $data = db::table(self::$table)->find($id);
-    if (!$data) response::notFound(__('credential.not_found'));
+    $data = ogDb::table(self::$table)->find($id);
+    if (!$data) ogResponse::notFound(__('credential.not_found'));
 
     if (isset($data['config']) && is_string($data['config'])) {
       $data['config'] = json_decode($data['config'], true);
     }
 
-    response::success($data);
+    ogResponse::success($data);
   }
 
   function list() {
-    $query = db::table(self::$table);
+    $query = ogDb::table(self::$table);
     
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
       $query = $query->where($key, $value);
     }
 
-    $sort = request::query('sort', 'id');
-    $order = request::query('order', 'DESC');
+    $sort = ogRequest::query('sort', 'id');
+    $order = ogRequest::query('order', 'DESC');
     $query = $query->orderBy($sort, $order);
 
-    $page = request::query('page', 1);
-    $perPage = request::query('per_page', 50);
+    $page = ogRequest::query('page', 1);
+    $perPage = ogRequest::query('per_page', 50);
     $data = $query->paginate($page, $perPage)->get();
 
     if (!is_array($data)) $data = [];
@@ -107,18 +107,18 @@ class CredentialController extends controller {
       }
     }
 
-    response::success($data);
+    ogResponse::success($data);
   }
 
   function delete($id) {
-    $item = db::table(self::$table)->find($id);
-    if (!$item) response::notFound(__('credential.not_found'));
+    $item = ogDb::table(self::$table)->find($id);
+    if (!$item) ogResponse::notFound(__('credential.not_found'));
 
     try {
-      $affected = db::table(self::$table)->where('id', $id)->delete();
-      response::success(['affected' => $affected], __('credential.delete.success'));
+      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      ogResponse::success(['affected' => $affected], __('credential.delete.success'));
     } catch (Exception $e) {
-      response::serverError(__('credential.delete.error'), IS_DEV ? $e->getMessage() : null);
+      ogResponse::serverError(__('credential.delete.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
 }

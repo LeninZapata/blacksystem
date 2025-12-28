@@ -12,7 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
   exit();
 }
 
-require_once __DIR__ . '/app/config/init.php';
+// Bootstrap ya fue cargado desde wp.php → bootstrap.php → api.php
+// NO cargar bootstrap aquí (causaría loop infinito)
 
-$app = new Application();
+// Ejecutar aplicación
+$app = new ogApplication();
 $app->run();

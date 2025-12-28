@@ -41,10 +41,10 @@
   "modal.confirm": "¿Está seguro?",
   "modal.loading": "Cargando contenido...",
 
-  "toast.success": "Éxito",
-  "toast.error": "Error",
-  "toast.warning": "Advertencia",
-  "toast.info": "Información",
+  "ogToast.success": "Éxito",
+  "ogToast.error": "Error",
+  "ogToast.warning": "Advertencia",
+  "ogToast.info": "Información",
 
   "datatable.empty": "No hay datos disponibles",
   "datatable.loading": "Cargando datos...",

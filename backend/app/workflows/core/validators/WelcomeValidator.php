@@ -30,6 +30,7 @@ class WelcomeValidator {
       return null;
     }
 
+    ogApp()->loadHandler('ProductHandler');
     $activators = ProductHandler::getActivatorsFile($botNumber);
     
     if (empty($activators)) {
@@ -93,7 +94,7 @@ class WelcomeValidator {
 
   static function searchInFields($needle, $fields) {
     foreach ($fields as $field) {
-      if (str::containsAllWords($needle, $field)) {
+      if (ogApp()->helper('str')::containsAllWords($needle, $field)) {
         return true;
       }
     }

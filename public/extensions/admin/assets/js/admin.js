@@ -7,12 +7,33 @@ class admin {
 
   static currentId = null;
 
+  static getModules() {
+    return {
+      api: window.ogFramework?.core?.api,
+      form: window.ogFramework?.core?.form,
+      cache: window.ogFramework?.core?.cache,
+
+      // Componentes
+      modal: window.ogFramework?.components?.modal,
+      toast: window.ogFramework?.components?.toast
+    };
+  }
+
+  static getComponent(){
+    return {
+      datatable : window.ogFramework?.components?.datatable,
+    }
+  }
+
+
   // ============================================
   // FORMULARIOS
   // ============================================
 
   // Abrir form nuevo
   static openNew(formId) {
+    const { form } = this.getModules();
+
     this.currentId = null;
     // Extraer el real-id del formulario
     const formEl = document.getElementById(formId);
@@ -24,6 +45,7 @@ class admin {
 
   // Abrir form con datos
   static async openEdit(formId, id) {
+    const { form } = this.getModules();
     this.currentId = id;
     // Extraer el real-id del formulario
     const formEl = document.getElementById(formId);
@@ -39,6 +61,7 @@ class admin {
 
   // Llenar formulario
   static fillForm(formId, data) {
+    const { form } = this.getModules();
     const config = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
 
     form.fill(formId, {
@@ -56,6 +79,7 @@ class admin {
   // ============================================
 
   static async save(formId) {
+    const { api, form, toast, modal, cache } = this.getModules();
     const validation = form.validate(formId);
     if (!validation.success) return toast.error(validation.message);
 
@@ -85,6 +109,7 @@ class admin {
 
   // Construir body para API
   static buildBody(formData, formId) {
+    const { toast, form } = this.getModules();
     // Validar password_confirm solo si se proporcionó password
     if (formData.password && formData.password !== formData.password_confirm) {
       toast.error(__('admin.user.error.passwords_not_match'));
@@ -112,7 +137,7 @@ class admin {
       email: formData.email,
       role: formData.role,
       pass: formData.password || undefined,
-      config
+      config: JSON.stringify(config)
     };
   }
 
@@ -121,36 +146,40 @@ class admin {
   // ============================================
 
   static async create(data) {
+    const { api } = this.getModules();
     try {
       const res = await api.post(this.apis.user, data);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:admin', error);
+      ogLogger.error('ext:admin', error);
       return null;
     }
   }
 
   static async get(id) {
+    const { api } = this.getModules();
     try {
       const res = await api.get(`${this.apis.user}/${id}`);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:admin', error);
+      ogLogger.error('ext:admin', error);
       return null;
     }
   }
 
   static async update(id, data) {
+    const { api } = this.getModules();
     try {
       const res = await api.put(`${this.apis.user}/${id}`, {...data, id});
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:admin', error);
+      ogLogger.error('ext:admin', error);
       return null;
     }
   }
 
   static async delete(id) {
+    const { api, toast, cache } = this.getModules();
     // Obtener usuarios del caché (quitar / inicial para que coincida con la clave)
     const source = this.apis.user.replace(/^\//, ''); // Quitar / del inicio
     const cacheKey = `datatable_${source.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -177,18 +206,19 @@ class admin {
       this.refresh();
       return res.data || res;
     } catch (error) {
-      logger.error('ext:admin', error);
+      ogLogger.error('ext:admin', error);
       toast.error('admin.user.error.delete_failed');
       return null;
     }
   }
 
   static async list() {
+    const { api } = this.getModules();
     try {
       const res = await api.get(this.apis.user);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:admin', error);
+      ogLogger.error('ext:admin', error);
       return [];
     }
   }
@@ -199,16 +229,18 @@ class admin {
 
   // Refrescar datatable
   static refresh() {
-    if (window.datatable) datatable.refreshFirst();
+    const { datatable } = this.getComponent();
+    datatable.refreshFirst();
   }
 
   // Cargar select options
   static async loadRoles() {
+    const { api } = this.getModules();
     try {
       const res = await api.get(this.apis.roles);
       return res.success === false ? [] : (res.data || res);
     } catch (error) {
-      logger.error('ext:admin', error);
+      ogLogger.error('ext:admin', error);
       return [];
     }
   }

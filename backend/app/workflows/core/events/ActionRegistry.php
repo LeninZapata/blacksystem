@@ -8,7 +8,7 @@ class ActionRegistry {
   public function register($actionName, $handlerClass) {
     $this->handlerClasses[$actionName] = $handlerClass;
     
-    log::debug("Action registrado (lazy): {$actionName}", [
+    ogLog::debug("Action registrado (lazy): {$actionName}", [
       'class' => $handlerClass
     ], ['module' => 'action_registry']);
   }
@@ -25,14 +25,14 @@ class ActionRegistry {
     $handlerClass = $this->handlerClasses[$actionName];
 
     if (!class_exists($handlerClass)) {
-      log::error("Clase de handler no encontrada: {$handlerClass}", [], ['module' => 'action_registry']);
+      ogLog::error("Clase de handler no encontrada: {$handlerClass}", [], ['module' => 'action_registry']);
       return null;
     }
 
     $handler = new $handlerClass();
     $this->handlers[$actionName] = $handler;
 
-    log::info("Handler instanciado (lazy): {$actionName}", [
+    ogLog::info("Handler instanciado (lazy): {$actionName}", [
       'class' => $handlerClass
     ], ['module' => 'action_registry']);
 

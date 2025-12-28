@@ -2,7 +2,7 @@
 window.initLangSelector = function() {
   const header = document.querySelector('.header, #header');
   if (!header) {
-    logger.warn('com:langSelector', 'Header no encontrado');
+    ogLogger.warn('com:langSelector', 'Header no encontrado');
     return;
   }
 
@@ -51,3 +51,8 @@ window.initLangSelector = function() {
     }
   });
 };
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.components.langSelector = { init: window.initLangSelector };
+}

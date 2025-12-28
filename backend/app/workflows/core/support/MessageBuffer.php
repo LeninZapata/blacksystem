@@ -22,7 +22,7 @@ class MessageBuffer {
       $buffer['last_update'] = time();
       $this->writeBuffer($bufferFile, $buffer);
 
-      log::debug('Mensaje agregado a buffer activo', [
+      ogLog::debug('Mensaje agregado a buffer activo', [
         'total_messages' => count($buffer['messages'])
       ], ['module' => 'buffer']);
       
@@ -33,7 +33,7 @@ class MessageBuffer {
       $accumulated = $buffer['messages'];
       @unlink($bufferFile);
 
-      log::info('Buffer expirado - Procesando mensajes', [
+      ogLog::info('Buffer expirado - Procesando mensajes', [
         'total' => count($accumulated)
       ], ['module' => 'buffer']);
       
@@ -42,7 +42,7 @@ class MessageBuffer {
 
     $this->createBuffer($bufferFile, $message);
     
-    log::info('Primer mensaje - Iniciando espera de ' . $this->delaySeconds . 's', [], ['module' => 'buffer']);
+    ogLog::info('Primer mensaje - Iniciando espera de ' . $this->delaySeconds . 's', [], ['module' => 'buffer']);
 
     return $this->waitAndProcess($bufferFile);
   }
@@ -62,7 +62,7 @@ class MessageBuffer {
       if ($timeSinceLast >= $this->delaySeconds) {
         @unlink($bufferFile);
         
-        log::info('Timer completado - Procesando ' . count($buffer['messages']) . ' mensajes', [], ['module' => 'buffer']);
+        ogLog::info('Timer completado - Procesando ' . count($buffer['messages']) . ' mensajes', [], ['module' => 'buffer']);
         
         return $this->prepareMessages($buffer['messages']);
       }
@@ -70,7 +70,7 @@ class MessageBuffer {
       if (time() - $startTime > 60) {
         @unlink($bufferFile);
         
-        log::warning('Timeout alcanzado - Procesando buffer', [], ['module' => 'buffer']);
+        ogLog::warning('Timeout alcanzado - Procesando buffer', [], ['module' => 'buffer']);
         
         return $this->prepareMessages($buffer['messages']);
       }
@@ -127,7 +127,7 @@ class MessageBuffer {
     }
 
     if ($cleaned > 0) {
-      log::info('Buffers antiguos limpiados', [
+      ogLog::info('Buffers antiguos limpiados', [
         'count' => $cleaned
       ], ['module' => 'buffer']);
     }

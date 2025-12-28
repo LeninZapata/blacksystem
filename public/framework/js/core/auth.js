@@ -1,20 +1,36 @@
-class auth {
+class ogAuth {
   static config = {};
   static user = null;
   static userPermissions = null;
   static userPreferences = null;
   static sessionCheckInterval = null;
 
+  static getModules() {
+    return {
+      cache: window.ogFramework?.core?.cache,
+      api: window.ogFramework?.core?.api,
+      view: window.ogFramework?.core?.view,
+      form: window.ogFramework?.core?.form,
+      hook: window.ogFramework?.core?.hook,
+      sidebar: window.ogFramework?.core?.sidebar,
+      layout: window.ogFramework?.core?.layout,
+      events: window.ogFramework?.core?.events,
+      toast: window.ogFramework?.components?.toast,
+    };
+  }
+
   // ============================================
   // INICIALIZACIÓN
   // ============================================
 
   static async init(config) {
+    const globalConfig = window.ogFramework?.activeConfig || window.appConfig || {};
+
     this.config = {
       enabled: true,
       loginView: 'auth/login',
       redirectAfterLogin: 'dashboard',
-      storageKey: 'factory_auth',
+      storageKey: globalConfig.slug || 'factory_auth',
       sessionCheckInterval: 5 * 60 * 1000,
       tokenTTL: 24 * 60 * 60 * 1000,
       api: {
@@ -27,12 +43,10 @@ class auth {
 
     if (!this.config.enabled) return;
 
-    logger.info('core:auth', 'Inicializando autenticación...');
+    ogLogger.info('core:auth', 'Inicializando autenticación...');
 
-    // Interceptar formulario de login
     this.setupLoginHandler();
 
-    // Verificar si hay sesión válida
     const isAuth = await this.check();
 
     if (isAuth) {
@@ -57,29 +71,23 @@ class auth {
       return false;
     }
 
-    // ❌ REMOVIDO: No verificar expiración local, el backend es la fuente de verdad
-    // if (cache.isExpired(`${this.config.storageKey}_token`)) {
-    //   logger.warn('core:auth', 'Token expirado en cache local');
-    //   this.clearSession();
-    //   return false;
-    // }
-
     try {
+      const { api } = this.getModules();
       const response = await api.get(this.config.api.me);
 
       if (response.success && response.data) {
-        // Actualizar usuario en cache (sin TTL específico, el backend maneja expiración)
+        const { cache } = this.getModules();
         cache.setLocal(`${this.config.storageKey}_user`, response.data, this.config.tokenTTL);
-        logger.success('core:auth', 'Sesión válida');
+        ogLogger.success('core:auth', 'Sesión válida');
         return true;
       }
 
-      logger.warn('core:auth', 'Respuesta inesperada del servidor');
+      ogLogger.warn('core:auth', 'Respuesta inesperada del servidor');
       this.clearSession();
       return false;
 
     } catch (error) {
-      logger.warn('core:auth', 'Token inválido o expirado:', error.message);
+      ogLogger.warn('core:auth', 'Token inválido o expirado:', error.message);
       this.clearSession();
       return false;
     }
@@ -87,20 +95,18 @@ class auth {
 
   static async login(formIdOrCredentials) {
     try {
-      logger.info('core:auth', 'Iniciando login...');
+      ogLogger.info('core:auth', 'Iniciando login...');
+      const { form, api, cache, toast } = this.getModules();
 
-      // Determinar si es formId o credentials
       let credentials;
       if (typeof formIdOrCredentials === 'string') {
-        // Es formId, extraer datos del formulario
         const validation = form.validate(formIdOrCredentials);
         if (!validation.success) {
-          toast.error(validation.message);
+          ogToast.error(validation.message);
           return { success: false, error: validation.message };
         }
         credentials = validation.data;
       } else {
-        // Es un objeto con las credenciales directamente
         credentials = formIdOrCredentials;
       }
 
@@ -110,24 +116,21 @@ class auth {
         const { token, user, ttl_ms } = response.data;
 
         if (!token || !user) {
-          logger.error('core:auth', 'Respuesta incompleta del servidor');
+          ogLogger.error('core:auth', 'Respuesta incompleta del servidor');
           return {
             success: false,
             error: __('core.auth.error.server_response')
           };
         }
 
-        // Guardar en cache (sin TTL, el backend maneja expiración)
         cache.setLocal(`${this.config.storageKey}_token`, token, ttl_ms);
         cache.setLocal(`${this.config.storageKey}_user`, user, ttl_ms);
 
-        // Guardar usuario en memoria
         this.user = user;
 
-        logger.success('core:auth', `Login exitoso para: ${user.user}`);
-        logger.info('core:auth', `Token expira en: ${Math.round(ttl_ms / 1000 / 60)} minutos`);
+        ogLogger.success('core:auth', `Login exitoso para: ${user.user}`);
+        ogLogger.info('core:auth', `Token expira en: ${Math.round(ttl_ms / 1000 / 60)} minutos`);
 
-        // Cargar permisos y mostrar app
         this.normalizeConfig();
         this.loadUserPermissions();
         await this.showApp();
@@ -136,14 +139,14 @@ class auth {
         return { success: true, user, token, ttl_ms };
       }
 
-      logger.warn('core:auth', 'Credenciales incorrectas');
+      ogLogger.warn('core:auth', 'Credenciales incorrectas');
       return {
         success: false,
         error: response.error || __('core.auth.error.invalid_credentials')
       };
 
     } catch (error) {
-      logger.error('core:auth', 'Error en login:', error.message);
+      ogLogger.error('core:auth', 'Error en login:', error.message);
       return {
         success: false,
         error: __('core.auth.error.connection')
@@ -158,10 +161,11 @@ class auth {
 
     if (token) {
       try {
+        const { api } = this.getModules();
         await api.post(this.config.api.logout);
-        logger.success('core:auth', 'Logout en backend exitoso');
+        ogLogger.success('core:auth', 'Logout en backend exitoso');
       } catch (error) {
-        logger.warn('core:auth', 'Error en logout:', error.message);
+        ogLogger.warn('core:auth', 'Error en logout:', error.message);
       }
     }
 
@@ -169,7 +173,7 @@ class auth {
     this.clearSession();
     this.user = null;
 
-    logger.info('core:auth', 'Sesión cerrada');
+    ogLogger.info('core:auth', 'Sesión cerrada');
 
     window.location.reload();
   }
@@ -179,12 +183,13 @@ class auth {
   // ============================================
 
   static setupLoginHandler() {
-    if (!window.events) {
-      logger.error('core:auth', 'events.js no está cargado');
+    const { events } = this.getModules();
+
+    if (!events) {
+      ogLogger.error('core:auth', 'events no está cargado');
       return;
     }
 
-    // Listener una sola vez para evitar duplicados
     if (this._loginHandlerRegistered) return;
     this._loginHandlerRegistered = true;
 
@@ -197,9 +202,8 @@ class auth {
       const formData = new FormData(form);
       const data = Object.fromEntries(formData);
 
-      // Validar campos requeridos
       if (!data.user || !data.pass) {
-        auth.showLoginError(form, __('core.auth.error.required_fields'));
+        ogAuth.showLoginError(form, __('core.auth.error.required_fields'));
         return;
       }
 
@@ -210,8 +214,7 @@ class auth {
         btn.textContent = __('core.auth.login.loading');
       }
 
-      // Login
-      const result = await auth.login(data);
+      const result = await ogAuth.login(data);
 
       if (btn) {
         btn.disabled = false;
@@ -219,16 +222,16 @@ class auth {
       }
 
       if (!result.success) {
-        auth.showLoginError(form, result.error || __('core.auth.error.login_failed'));
+        ogAuth.showLoginError(form, result.error || __('core.auth.error.login_failed'));
       }
     }, document);
 
-    logger.info('core:auth', 'Handler de login registrado');
+    ogLogger.info('core:auth', 'Handler de login registrado');
   }
 
   static showLoginError(form, message) {
     let error = form.querySelector('.form-error');
-    
+
     if (!error) {
       error = document.createElement('div');
       error.className = 'form-error';
@@ -249,14 +252,17 @@ class auth {
   // ============================================
 
   static getToken() {
+    const { cache } = this.getModules();
     return cache.getLocal(`${this.config.storageKey}_token`);
   }
 
   static async getUser() {
+    const { cache } = this.getModules();
     return cache.getLocal(`${this.config.storageKey}_user`);
   }
 
   static clearSession() {
+    const { cache } = this.getModules();
     cache.delete(`${this.config.storageKey}_token`);
     cache.delete(`${this.config.storageKey}_user`);
   }
@@ -277,33 +283,11 @@ class auth {
     const intervalSeconds = Math.round(this.config.sessionCheckInterval / 1000);
     const endpoint = this.config.api.me;
 
-    logger.info('core:auth', `⏱️ Iniciando monitoreo de sesión cada ${intervalSeconds} segundos`);
-    logger.info('core:auth', `📡 Endpoint de verificación: ${endpoint}`);
+    ogLogger.info('core:auth', `⏱️ Iniciando monitoreo de sesión cada ${intervalSeconds} segundos`);
+    ogLogger.debug('core:auth', `Endpoint de verificación: ${endpoint}`);
 
     this.sessionCheckInterval = setInterval(async () => {
-      const result = await this.checkSessionWithServer();
-
-      if (!result.valid) {
-        logger.warn('core:auth', 'Sesión inválida detectada');
-        this.handleExpiredSession();
-        return;
-      }
-
-      logger.success('core:auth', '✅ Sesión válida');
-
-      if (result.updated) {
-        logger.info('core:auth', '🔄 Cambios detectados en la sesión, recargando permisos...');
-
-        this.user = result.user;
-        this.clearAppCaches();
-        this.loadUserPermissions();
-        await this.reloadAppAfterPermissionChange();
-
-        toast.show('✅ Tus permisos han sido actualizados', {
-          type: 'success',
-          duration: 3000
-        });
-      }
+      await this.checkSessionWithServer();
     }, this.config.sessionCheckInterval);
   }
 
@@ -311,64 +295,54 @@ class auth {
     if (this.sessionCheckInterval) {
       clearInterval(this.sessionCheckInterval);
       this.sessionCheckInterval = null;
-      logger.info('core:auth', 'Monitoreo de sesión detenido');
+      ogLogger.info('core:auth', '⏱️ Monitoreo de sesión detenido');
     }
   }
 
   static async checkSessionWithServer() {
+    const token = this.getToken();
+
+    if (!token) {
+      ogLogger.warn('core:auth', '🔐 Token no encontrado en verificación periódica');
+      this.handleSessionExpired();
+      return;
+    }
+
     try {
-      const endpoint = this.config.api.me;
-      const response = await api.get(endpoint);
+      const { api } = this.getModules();
+      const response = await api.get(this.config.api.me);
 
       if (response.success && response.data) {
-        return {
-          valid: true,
-          updated: false,
-          user: response.data,
-          expiresIn: null
-        };
+        ogLogger.debug('core:auth', '✅ Sesión válida (verificación periódica)');
+      } else {
+        ogLogger.warn('core:auth', '⚠️ Respuesta inesperada en verificación de sesión');
+        this.handleSessionExpired();
       }
 
-      logger.warn('core:auth', 'Respuesta inesperada del servidor:', response);
-      return { valid: false };
     } catch (error) {
-      // ✅ FIX: Solo retornar valid:false en errores 401 (token inválido/expirado)
-      // Para otros errores (red, 500, etc), mantener sesión activa
-      if (error.status === 401 || error.response?.status === 401 || error.message?.includes('401')) {
-        logger.warn('core:auth', '❌ Sesión inválida (401 Unauthorized)');
-        return { valid: false };
+      if (error.message.includes('401') || error.message.includes('Token')) {
+        ogLogger.warn('core:auth', '🔐 Sesión expirada detectada en verificación periódica');
+        this.handleSessionExpired();
+      } else {
+        ogLogger.error('core:auth', 'Error en verificación de sesión:', error.message);
       }
-
-      // ✅ Para errores de red, backend caído, etc: NO cerrar sesión
-      logger.error('core:auth', 'Error verificando sesión (manteniendo sesión activa):', {
-        message: error.message,
-        status: error.status
-      });
-
-      return { valid: true };
     }
   }
 
-  static handleExpiredSession() {
+  static handleSessionExpired() {
     this.stopSessionMonitoring();
-
-    if (window.toast) {
-      const message = __('core.auth.session.expired');
-
-      toast.show(message, {
-        type: 'warning',
-        duration: 5000
-      });
-
-      logger.warn('core:auth', message);
+    this.clearSession();
+    this.user = null;
+    const { toast } = this.getModules();
+    if (toast) {
+      ogToast.warning(__('core.auth.session_expired'));
     }
 
+    ogLogger.warn('core:auth', '⚠️ Sesión expirada, redirigiendo al login...');
+
     setTimeout(() => {
-      this.clearAppCaches();
-      this.user = null;
-      this.clearSession();
-      this.showLogin();
-    }, 2000);
+      window.location.reload();
+    }, 1500);
   }
 
   // ============================================
@@ -376,110 +350,111 @@ class auth {
   // ============================================
 
   static loadUserPermissions() {
+    console.log(`this.user.config:`, this.user.config);
     if (!this.user || !this.user.config) {
-      logger.warn('core:auth', 'No hay configuración de usuario');
+      ogLogger.warn('core:auth', 'No hay configuración de usuario');
       return;
     }
 
-    logger.info('core:auth', '🔐 Iniciando carga de permisos del usuario...');
-    logger.info('core:auth', '👤 Usuario:', this.user.user, '| Role:', this.user.role);
+    ogLogger.info('core:auth', '🔐 Iniciando carga de permisos del usuario...');
+    ogLogger.info('core:auth', '👤 Usuario:', this.user.user, '| Role:', this.user.role);
 
     const config = this.user.config;
     this.userPermissions = config.permissions || {};
     this.userPreferences = config.preferences || {};
 
-    logger.success('core:auth', '✅ Permisos cargados exitosamente');
+    ogLogger.success('core:auth', '✅ Permisos cargados exitosamente');
 
     if (this.userPermissions.extensions) {
       const extensionsWithPerms = Object.keys(this.userPermissions.extensions);
-      logger.info('core:auth', `📋 Extensions con permisos: [${extensionsWithPerms.map(p => `"${p}"`).join(', ')}]`);
+      ogLogger.info('core:auth', `📋 Extensions con permisos: [${extensionsWithPerms.map(p => `"${p}"`).join(', ')}]`);
     }
 
     this.filterExtensionsByPermissions();
   }
 
   static filterExtensionsByPermissions() {
-      // ✅ Si es admin, NO filtrar nada
-      if (this.user?.role === 'admin') {
-        logger.info('core:auth', '👑 Usuario admin detectado - sin filtrado de permisos');
-        return;
-      }
-
-      if (!window.hook || !hook.pluginRegistry) {
-        logger.warn('core:auth', 'hook.pluginRegistry no disponible');
-        return;
-      }
-
-      const permissions = this.userPermissions?.extensions || {};
-
-      logger.info('core:auth', '🔍 Iniciando filtrado de extensions por permisos...');
-
-      for (const [extensionName, pluginConfig] of hook.pluginRegistry) {
-        const extensionPerms = permissions[extensionName];
-
-        if (!extensionPerms || extensionPerms.enabled === false) {
-          pluginConfig.enabled = false;
-          logger.warn('core:auth', `❌ Extension deshabilitado: ${extensionName}`);
-          continue;
-        }
-
-        logger.success('core:auth', `✅ Extension habilitado: ${extensionName}`);
-
-        if (!pluginConfig.hasMenu || !pluginConfig.menu) continue;
-
-        const menuPerms = extensionPerms.menus;
-
-        if (menuPerms === '*') {
-          logger.info('core:auth', `  ✨ Acceso total a menús de: ${extensionName}`);
-          continue;
-        }
-
-        if (!menuPerms || typeof menuPerms !== 'object') {
-          pluginConfig.menu.items = [];
-          logger.warn('core:auth', `  ⚠️ Sin permisos de menús para: ${extensionName}`);
-          continue;
-        }
-
-        const originalMenus = [...(pluginConfig.menu.items || [])];
-        logger.info('core:auth', `  📂 Menús ANTES del filtrado (${originalMenus.length}): [${originalMenus.map(m => `"${m.id}"`).join(', ')}]`);
-
-        const allowedMenuIds = Object.keys(menuPerms).filter(key => {
-          const menuPerm = menuPerms[key];
-          if (menuPerm === true) return true;
-          if (typeof menuPerm === 'object' && menuPerm.enabled === true) return true;
-          return false;
-        });
-
-        logger.info('core:auth', `  ✅ Menús permitidos para ${extensionName}: [${allowedMenuIds.map(m => `"${m}"`).join(', ')}]`);
-
-        const filteredMenus = originalMenus.filter(menu => {
-          const isAllowed = allowedMenuIds.includes(menu.id);
-          if (isAllowed) {
-            logger.success('core:auth', `    ✅ Menú "${menu.id}" permitido`);
-          } else {
-            logger.warn('core:auth', `    ❌ Menú "${menu.id}" bloqueado`);
-          }
-          return isAllowed;
-        });
-
-        pluginConfig.menu.items = filteredMenus;
-
-        logger.info('core:auth', `  📊 Filtrado completado: ${originalMenus.length} → ${filteredMenus.length} menús`);
-        logger.info('core:auth', `  📂 Menús DESPUÉS del filtrado: [${filteredMenus.map(m => `"${m.id}"`).join(', ')}]`);
-      }
-
-      logger.success('core:auth', '📊 RESUMEN DEL FILTRADO DE EXTENSIONS:');
-      for (const [extensionName, pluginConfig] of hook.pluginRegistry) {
-        if (pluginConfig.enabled && pluginConfig.hasMenu) {
-          const menuCount = pluginConfig.menu.items?.length || 0;
-          logger.success('core:auth', `  ✅ ${extensionName}: ${menuCount} menú${menuCount !== 1 ? 's' : ''}`);
-        } else if (!pluginConfig.enabled) {
-          logger.warn('core:auth', `  ❌ ${extensionName}: deshabilitado`);
-        }
-      }
-
-      logger.success('core:auth', '✅ Filtrado de extensions completado');
+    const { hook } = this.getModules();
+    if (this.user?.role === 'admin') {
+      ogLogger.info('core:auth', '👑 Usuario admin detectado - sin filtrado de permisos');
+      return;
     }
+
+    if (!hook || !hook.pluginRegistry) {
+      ogLogger.warn('core:auth', 'hook.pluginRegistry no disponible');
+      return;
+    }
+
+    const permissions = this.userPermissions?.extensions || {};
+
+    ogLogger.info('core:auth', '🔍 Iniciando filtrado de extensions por permisos...');
+
+    for (const [extensionName, pluginConfig] of hook.pluginRegistry) {
+      const extensionPerms = permissions[extensionName];
+
+      if (!extensionPerms || extensionPerms.enabled === false) {
+        pluginConfig.enabled = false;
+        ogLogger.warn('core:auth', `❌ Extension deshabilitado: ${extensionName}`);
+        continue;
+      }
+
+      ogLogger.success('core:auth', `✅ Extension habilitado: ${extensionName}`);
+
+      if (!pluginConfig.hasMenu || !pluginConfig.menu) continue;
+
+      const menuPerms = extensionPerms.menus;
+
+      if (menuPerms === '*') {
+        ogLogger.info('core:auth', `  ✨ Acceso total a menús de: ${extensionName}`);
+        continue;
+      }
+
+      if (!menuPerms || typeof menuPerms !== 'object') {
+        pluginConfig.menu.items = [];
+        ogLogger.warn('core:auth', `  ⚠️ Sin permisos de menús para: ${extensionName}`);
+        continue;
+      }
+
+      const originalMenus = [...(pluginConfig.menu.items || [])];
+      ogLogger.info('core:auth', `  📂 Menús ANTES del filtrado (${originalMenus.length}): [${originalMenus.map(m => `"${m.id}"`).join(', ')}]`);
+
+      const allowedMenuIds = Object.keys(menuPerms).filter(key => {
+        const menuPerm = menuPerms[key];
+        if (menuPerm === true) return true;
+        if (typeof menuPerm === 'object' && menuPerm.enabled === true) return true;
+        return false;
+      });
+
+      ogLogger.info('core:auth', `  ✅ Menús permitidos para ${extensionName}: [${allowedMenuIds.map(m => `"${m}"`).join(', ')}]`);
+
+      const filteredMenus = originalMenus.filter(menu => {
+        const isAllowed = allowedMenuIds.includes(menu.id);
+        if (isAllowed) {
+          ogLogger.success('core:auth', `    ✅ Menú "${menu.id}" permitido`);
+        } else {
+          ogLogger.warn('core:auth', `    ❌ Menú "${menu.id}" bloqueado`);
+        }
+        return isAllowed;
+      });
+
+      pluginConfig.menu.items = filteredMenus;
+
+      ogLogger.info('core:auth', `  📊 Filtrado completado: ${originalMenus.length} → ${filteredMenus.length} menús`);
+      ogLogger.info('core:auth', `  📂 Menús DESPUÉS del filtrado: [${filteredMenus.map(m => `"${m.id}"`).join(', ')}]`);
+    }
+
+    ogLogger.success('core:auth', '📊 RESUMEN DEL FILTRADO DE EXTENSIONS:');
+    for (const [extensionName, pluginConfig] of hook.pluginRegistry) {
+      if (pluginConfig.enabled && pluginConfig.hasMenu) {
+        const menuCount = pluginConfig.menu.items?.length || 0;
+        ogLogger.success('core:auth', `  ✅ ${extensionName}: ${menuCount} menú${menuCount !== 1 ? 's' : ''}`);
+      } else if (!pluginConfig.enabled) {
+        ogLogger.warn('core:auth', `  ❌ ${extensionName}: deshabilitado`);
+      }
+    }
+
+    ogLogger.success('core:auth', '✅ Filtrado de extensions completado');
+  }
 
   static getTabPermissions(menuId) {
     if (!this.userPermissions?.extensions) return null;
@@ -507,7 +482,7 @@ class auth {
       try {
         this.user.config = JSON.parse(this.user.config);
       } catch (e) {
-        logger.error('core:auth', 'Error parseando config:', e);
+        ogLogger.error('core:auth', 'Error parseando config:', e);
         this.user.config = { permissions: {}, preferences: {} };
       }
     }
@@ -518,33 +493,34 @@ class auth {
   // ============================================
 
   static showLogin() {
-    if (window.layout) {
+    const { layout, view } = this.getModules();
+
+    if (layout) {
       layout.init('auth');
     }
 
     document.body.setAttribute('data-view', 'login-view');
 
-    if (window.view) {
+    if (view) {
       view.loadView(this.config.loginView);
     }
   }
 
   static async showApp() {
     const layoutExists = document.querySelector('.layout .header');
+    const { layout, hook, view, sidebar } = this.getModules();
 
-    if (!layoutExists && window.layout) {
+    if (!layoutExists && layout) {
       layout.init('app');
     }
 
     document.body.setAttribute('data-view', 'app-view');
 
-    // ✅ CARGAR EXTENSIONS ANTES DEL SIDEBAR
-    if (window.hook?.loadPluginHooks) {
-      logger.info('core:auth', 'Cargando extensions...');
+    if (hook?.loadPluginHooks) {
+      ogLogger.info('core:auth', 'Cargando extensions...');
       await hook.loadPluginHooks();
 
-      // Registrar extensions cargados en view
-      if (window.view && hook.getEnabledExtensions) {
+      if (view && hook.getEnabledExtensions) {
         const enabledExtensions = hook.getEnabledExtensions();
         view.loadedExtensions = {};
 
@@ -553,62 +529,62 @@ class auth {
         }
       }
 
-      // Filtrar por permisos
       this.filterExtensionsByPermissions();
 
-      logger.success('core:auth', 'Extensions cargados y filtrados');
+      ogLogger.success('core:auth', 'Extensions cargados y filtrados');
     }
 
-    if (window.sidebar) {
+    if (sidebar) {
       await sidebar.init();
     }
 
-    if (window.view) {
+    if (view) {
       const viewToLoad = this.config.redirectAfterLogin || 'dashboard';
       view.loadView(viewToLoad);
     }
   }
 
   static clearAppCaches() {
-    logger.info('core:auth', 'Limpiando caches de aplicación...');
+    ogLogger.info('core:auth', 'Limpiando caches de aplicación...');
+    const { view, form, hook, sidebar, cache } = this.getModules();
 
-    if (window.view) {
+    if (view) {
       if (view.viewNavigationCache) view.viewNavigationCache.clear();
       view.views = {};
       view.loadedExtensions = {};
     }
 
-    if (window.form) {
+    if (form) {
       if (form.schemas) form.schemas.clear();
       if (form.registeredEvents) form.registeredEvents.clear();
     }
 
-    if (window.hook) {
+    if (hook) {
       hook.menuItems = [];
       hook.pluginRegistry = new Map();
       hook.loadedHooks = new Set();
     }
 
-    if (window.sidebar) {
+    if (sidebar) {
       sidebar.menuItems = [];
     }
 
-    // Limpiar cache de localStorage (vistas, formularios, etc)
-    if (window.cache) {
+    if (cache) {
       cache.clear();
-      logger.info('core:auth', 'Cache de localStorage limpiado');
+      ogLogger.info('core:auth', 'Cache de localStorage limpiado');
     }
 
-    logger.success('core:auth', 'Caches de aplicación limpiados');
+    ogLogger.success('core:auth', 'Caches de aplicación limpiados');
   }
 
   static async reloadAppAfterPermissionChange() {
-    logger.info('core:auth', 'Recargando aplicación con nuevos permisos...');
+    ogLogger.info('core:auth', 'Recargando aplicación con nuevos permisos...');
+    const { hook, view, sidebar } = this.getModules();
 
-    if (window.hook?.loadPluginHooks) {
+    if (hook?.loadPluginHooks) {
       await hook.loadPluginHooks();
 
-      if (window.view && hook.getEnabledExtensions) {
+      if (view && hook.getEnabledExtensions) {
         const enabledExtensions = hook.getEnabledExtensions();
         view.loadedExtensions = {};
 
@@ -620,12 +596,18 @@ class auth {
 
     this.filterExtensionsByPermissions();
 
-    if (window.sidebar) {
+    if (sidebar) {
       await sidebar.init();
     }
 
-    logger.success('core:auth', 'Aplicación recargada con nuevos permisos');
+    ogLogger.success('core:auth', 'Aplicación recargada con nuevos permisos');
   }
 }
 
-window.auth = auth;
+// Mantener en window para compatibilidad
+window.ogAuth = ogAuth;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.auth = ogAuth;
+}

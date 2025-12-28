@@ -16,7 +16,7 @@ class permissions {
   static async render(containerId, config = {}, extensionsData = []) {
     const container = document.getElementById(containerId);
     if (!container) {
-      logger.error('com:permissions', 'Container no encontrado:', containerId);
+      ogLogger.error('com:permissions', 'Container no encontrado:', containerId);
       return;
     }
 
@@ -52,7 +52,7 @@ class permissions {
     this.instances.set(selectorId, { config, extensionsData });
     this.bindEvents(selectorId);
     
-    logger.success('com:permissions', 'Renderizado exitosamente');
+    ogLogger.success('com:permissions', 'Renderizado exitosamente');
   }
 
   /**
@@ -83,7 +83,7 @@ class permissions {
             this.viewsCache.set(cacheKey, null);
           }
         } catch (error) {
-          logger.error('com:permissions', `Error cargando ${extension.name}/${viewPath}:`, error.message);
+          ogLogger.error('com:permissions', `Error cargando ${extension.name}/${viewPath}:`, error.message);
           this.viewsCache.set(cacheKey, null);
         }
       }
@@ -192,7 +192,7 @@ class permissions {
         const hasAnyTabChecked = Object.values(menuPerms.tabs).some(value => value === true);
         isMenuChecked = hasAnyTabChecked;
         
-        logger.debug('com:permissions', `Menú "${menuItem.id}": hasAnyTabChecked=${hasAnyTabChecked}, tabs:`, menuPerms.tabs);
+        ogLogger.debug('com:permissions', `Menú "${menuItem.id}": hasAnyTabChecked=${hasAnyTabChecked}, tabs:`, menuPerms.tabs);
       }
     }
     

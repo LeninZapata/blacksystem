@@ -10,7 +10,7 @@ class DeliverProductAction {
     $templates = self::loadProductTemplates($productId);
 
     if (!$templates || empty($templates)) {
-      log::error("No templates found for product: {$productId}", [], ['module' => 'deliver_product']);
+      ogLog::error("No templates found for product: {$productId}", [], ['module' => 'deliver_product']);
       return [
         'success' => false,
         'error' => 'No templates found'
@@ -20,7 +20,7 @@ class DeliverProductAction {
     $productTemplate = self::findProductTemplate($templates);
 
     if (!$productTemplate) {
-      log::warning("No link_product template found for product: {$productId}", [], ['module' => 'deliver_product']);
+      ogLog::warning("No link_product template found for product: {$productId}", [], ['module' => 'deliver_product']);
       return [
         'success' => false,
         'error' => 'No link_product template found'
@@ -60,12 +60,12 @@ class DeliverProductAction {
     $message = $template['message'] ?? '';
     $url = $template['url'] ?? '';
 
-    log::info("DeliverProductAction - Enviando producto", [
+    ogLog::info("DeliverProductAction - Enviando producto", [
       'template_id' => $template['template_id'] ?? 'unknown',
       'to' => $to
     ], ['module' => 'deliver_product']);
 
-    chatapi::send($to, $message, $url);
+    ogChatApi::send($to, $message, $url);
   }
 
   private static function registerDelivery($bot, $person, $chatData, $productId) {
@@ -100,7 +100,7 @@ class DeliverProductAction {
   }
 
   private static function rebuildChatAfterDelivery($number, $botId) {
-    log::info("DeliverProductAction - Reconstruyendo chat después de entrega", [
+    ogLog::info("DeliverProductAction - Reconstruyendo chat después de entrega", [
       'number' => $number,
       'bot_id' => $botId
     ], ['module' => 'deliver_product']);

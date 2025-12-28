@@ -1,24 +1,39 @@
-class hook {
+class ogHook {
   static hooks = new Map();
   static loadedHooks = new Set();
   static pluginRegistry = new Map();
   static pluginRegistryOriginal = new Map(); // ← Copia sin filtrar
   static menuItems = [];
 
+  static getModules() {
+    return {
+      loader: window.ogFramework?.core?.loader || window.loader,
+      i18n: window.ogFramework?.core?.i18n || window.i18n,
+      cache: window.ogFramework?.core?.cache || window.cache,
+      api: window.ogFramework?.core?.api || window.api
+    };
+  }
+
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
+  }
+
   static async loadPluginHooks() {
+    const {  api } = this.getModules();
+    const config = this.getConfig();
     const startTime = performance.now();
     this.menuItems = [];
 
     try {
-      const cacheBuster = `?v=${window.VERSION}`;
-      const registry = await api.get('extensions/index.json' + cacheBuster);
+      const cacheBuster = `?v=${config.version || window.VERSION}`;
+      const response = await api.get('extensions/index.json' + cacheBuster);
 
-      if (!registry?.extensions || !Array.isArray(registry.extensions)) {
-        logger.warn('core:hook', 'extensions/index.json vacío o mal formado');
+      if (!response?.extensions || !Array.isArray(response.extensions)) {
+        ogLogger?.warn('core:hook', 'extensions/index.json vacío o mal formado');
         return;
       }
 
-      const pluginLoadPromises = registry.extensions.map(async (pluginInfo) => {
+      const pluginLoadPromises = response.extensions.map(async (pluginInfo) => {
         const pluginConfig = await this.loadPluginConfig(pluginInfo.name);
 
         if (pluginConfig?.enabled) {
@@ -90,12 +105,13 @@ class hook {
       this.menuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
 
     } catch (error) {
-      logger.error('core:hook', 'Error cargando extensions:', error);
+      this.getModules().ogLogger?.error('core:hook', 'Error cargando extensions:', error);
     }
   }
 
   static async loadPluginLanguages(extensionName) {
-    if (!window.i18n) return;
+    const { i18n } = this.getModules();
+    if (!window.ogFramework?.core?.i18n) return;
     const currentLang = i18n.getLang();
     const loaded = await this.tryLoadPluginLang(extensionName, currentLang);
     if (loaded) {
@@ -108,9 +124,12 @@ class hook {
   }
 
   static async tryLoadPluginLang(extensionName, lang) {
+    const { loader, i18n, cache } = this.getModules();
+    const config = this.getConfig();
+    
     try {
-      const langPath = `${window.BASE_URL}extensions/${extensionName}/lang/${lang}.json`;
-      const cacheBuster = `?v=${window.VERSION}`;
+      const langPath = `${config.baseUrl || window.BASE_URL}extensions/${extensionName}/lang/${lang}.json`;
+      const cacheBuster = `?v=${config.version || window.VERSION}`;
 
       // Usar loader.loadJson con opción optional y silent
       const translations = await loader.loadJson(langPath + cacheBuster, {
@@ -125,9 +144,9 @@ class hook {
         i18n.exntesionTranslations.set(extensionName, new Map());
       }
       i18n.exntesionTranslations.get(extensionName).set(lang, translations);
-      cache.set(`i18n_extension_${extensionName}_${lang}_v${window.VERSION}`, translations, 60 * 60 * 1000);
+      cache.set(`i18n_extension_${extensionName}_${lang}_v${config.version || window.VERSION}`, translations, 60 * 60 * 1000);
 
-      logger.success('core:hook', `✅ Idioma ${lang} cargado para ${extensionName}`);
+      this.getModules().ogLogger?.success('core:hook', `✅ Idioma ${lang} cargado para ${extensionName}`);
       return true;
     } catch (error) {
       return false;
@@ -135,6 +154,9 @@ class hook {
   }
 
   static async preloadPluginViews(extensionName, pluginConfig) {
+    const { cache } = this.getModules();
+    const config = this.getConfig();
+    
     if (!pluginConfig.menu?.items) return;
     const viewsToPreload = [];
     const collectViews = (items) => {
@@ -147,34 +169,38 @@ class hook {
 
     for (const viewPath of viewsToPreload) {
       try {
-        const basePath = window.appConfig?.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
-        const fullPath = `${window.BASE_URL}${basePath}/${viewPath}.json`;
-        const cacheBuster = `?v=${window.VERSION}`;
+        const basePath = config.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
+        const fullPath = `${config.baseUrl || window.BASE_URL}${basePath}/${viewPath}.json`;
+        const cacheBuster = `?v=${config.version || window.VERSION}`;
         const response = await fetch(fullPath + cacheBuster);
         if (response.ok) {
           const viewData = await response.json();
           const cacheKey = `view_${extensionName}_${viewPath.replace(/\//g, '_')}`;
-          window.cache?.set(cacheKey, viewData);
+          cache?.set(cacheKey, viewData);
         }
       } catch (error) {}
     }
   }
 
   static async loadExtensionScript(extensionName, scriptFile) {
+    const config = this.getConfig();
+    
     try {
       const scriptPath = `extensions/${extensionName}/${scriptFile}`;
-      const cacheBuster = `?v=${window.VERSION}`;
-      const response = await fetch(`${window.BASE_URL}${scriptPath}${cacheBuster}`);
+      const cacheBuster = `?v=${config.version || window.VERSION}`;
+      const response = await fetch(`${config.baseUrl || window.BASE_URL}${scriptPath}${cacheBuster}`);
       if (!response.ok) return;
       const scriptContent = await response.text();
       new Function(scriptContent)();
     } catch (error) {
-      logger.error('core:hook', `Error cargando autoload ${extensionName}:`, error.message);
+      this.getModules().ogLogger?.error('core:hook', `Error cargando autoload ${extensionName}:`, error.message);
     }
   }
 
   static async loadPluginResources(scripts = [], styles = []) {
-    if (window.loader && typeof loader.loadResources === 'function') {
+    const { loader } = this.getModules();
+    
+    if (loader && typeof loader.loadResources === 'function') {
       try {
         await loader.loadResources(scripts, styles);
       } catch (error) {}
@@ -275,7 +301,7 @@ class hook {
     return menuItems;
   }
 
-  // ✅ NUEVO: Obtener TODOS los extensions (sin filtrar por permisos)
+  // Obtener TODOS los extensions (sin filtrar por permisos)
   static getAllExtensionsForPermissions() {
     const extensions = [];
 
@@ -294,8 +320,11 @@ class hook {
   }
 
   static async loadPluginConfig(extensionName) {
+    const { api } = this.getModules();
+    const config = this.getConfig();
+    
     try {
-      const cacheBuster = `?v=${window.VERSION}`;
+      const cacheBuster = `?v=${config.version || window.VERSION}`;
       return await api.get(`extensions/${extensionName}/index.json${cacheBuster}`);
     } catch (error) {
       return { name: extensionName, enabled: false, hasHooks: false };
@@ -303,10 +332,12 @@ class hook {
   }
 
   static async loadPluginHook(extensionName) {
+    const config = this.getConfig();
+    
     try {
       const hookPath = `extensions/${extensionName}/hooks.js`;
-      const cacheBuster = `?v=${window.VERSION}`;
-      const response = await fetch(`${window.BASE_URL}${hookPath}${cacheBuster}`);
+      const cacheBuster = `?v=${config.version || window.VERSION}`;
+      const response = await fetch(`${config.baseUrl || window.BASE_URL}${hookPath}${cacheBuster}`);
       if (!response.ok) return;
       const scriptContent = await response.text();
       new Function(scriptContent)();
@@ -382,10 +413,10 @@ class hook {
             }));
             results = [...results, ...itemsWithOrder];
           } else {
-            logger.warn('core:hook', `${extensionName}.${finalHookName}() no retornó un array`);
+            this.getModules().ogLogger?.warn('core:hook', `${extensionName}.${finalHookName}() no retornó un array`);
           }
         } catch (error) {
-          logger.error('core:hook', `Error ejecutando ${extensionName}.${finalHookName}():`, error);
+          this.getModules().ogLogger?.error('core:hook', `Error ejecutando ${extensionName}.${finalHookName}():`, error);
         }
       }
     }
@@ -419,11 +450,11 @@ class hook {
         try {
           await window[componentName].render(hookResult.config, wrapper);
         } catch (error) {
-          logger.error('core:hook', `Error renderizando componente "${componentName}":`, error);
+          this.getModules().ogLogger?.error('core:hook', `Error renderizando componente "${componentName}":`, error);
           wrapper.innerHTML = `<div style="padding:1rem;background:#fee;border:1px solid #fcc;border-radius:4px;">${__('core.hook.error.loading_component', { component: componentName })}</div>`;
         }
       } else {
-        logger.error('core:hook', `Componente "${componentName}" no encontrado`);
+        this.getModules().ogLogger?.error('core:hook', `Componente "${componentName}" no encontrado`);
         wrapper.innerHTML = `<div style="padding:1rem;background:#fee;border:1px solid #fcc;border-radius:4px;">${__('core.hook.error.component_not_available', { component: componentName })}</div>`;
       }
     }
@@ -433,7 +464,7 @@ class hook {
   static async renderHooks(hookName, containerId, defaultData = []) {
     const container = document.getElementById(containerId);
     if (!container) {
-      logger.error('core:hook', `Container "${containerId}" no encontrado`);
+      this.getModules().ogLogger?.error('core:hook', `Container "${containerId}" no encontrado`);
       return;
     }
 
@@ -449,4 +480,10 @@ class hook {
   }
 }
 
-window.hook = hook;
+// Global
+window.ogHook = ogHook;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.core.hook = ogHook;
+}

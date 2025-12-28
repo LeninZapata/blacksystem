@@ -14,7 +14,7 @@ class AudioInterpreter {
     }
 
     try {
-      $ai = service::integration('ai');
+      $ai = ogService::integration('ai');
       $result = $ai->transcribeAudio($audioUrl, $bot);
 
       if ($result['success']) {

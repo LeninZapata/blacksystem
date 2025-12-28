@@ -10,7 +10,7 @@ class product {
     this.currentId = null;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    form.clearAllErrors(realId);
+    ogForm.clearAllErrors(realId);
   }
 
   // Abrir form con datos
@@ -19,7 +19,7 @@ class product {
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
     
-    form.clearAllErrors(realId);
+    ogForm.clearAllErrors(realId);
     const data = await this.get(id);
     if (!data) return;
     
@@ -28,15 +28,15 @@ class product {
 
   // Llenar formulario
   static fillForm(formId, data) {
-    form.fill(formId, {
+    ogForm.fill(formId, {
       name: data.name,
       description: data.description || ''
     });
   }
 
   static async save(formId) {
-    const validation = form.validate(formId);
-    if (!validation.success) return toast.error(validation.message);
+    const validation = ogForm.validate(formId);
+    if (!validation.success) return ogToast.error(validation.message);
 
     const body = this.buildBody(validation.data);
     const result = this.currentId 
@@ -44,12 +44,12 @@ class product {
       : await this.create(body);
 
     if (result) {
-      toast.success(this.currentId 
+      ogToast.success(this.currentId 
         ? __('product.success.updated') 
         : __('product.success.created')
       );
       setTimeout(() => {
-        modal.closeAll();
+        ogForm.closeAll();
         this.refresh();
       }, 100);
     }
@@ -61,7 +61,7 @@ class product {
     
     if (!userId) {
       logger.error('ext:product', 'No se pudo obtener el user_id');
-      toast.error(__('product.error.user_not_found'));
+      ogToast.error(__('product.error.user_not_found'));
       return null;
     }
 
@@ -80,7 +80,7 @@ class product {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:product', error);
-      toast.error(__('product.error.create_failed'));
+      ogToast.error(__('product.error.create_failed'));
       return null;
     }
   }
@@ -91,7 +91,7 @@ class product {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:product', error);
-      toast.error(__('product.error.load_failed'));
+      ogToast.error(__('product.error.load_failed'));
       return null;
     }
   }
@@ -104,7 +104,7 @@ class product {
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:product', error);
-      toast.error(__('product.error.update_failed'));
+      ogToast.error(__('product.error.update_failed'));
       return null;
     }
   }
@@ -113,15 +113,15 @@ class product {
     try {
       const res = await api.delete(`${this.apis.product}/${id}`);
       if (res.success === false) {
-        toast.error(__('product.error.delete_failed'));
+        ogToast.error(__('product.error.delete_failed'));
         return null;
       }
-      toast.success(__('product.success.deleted'));
+      ogToast.success(__('product.success.deleted'));
       this.refresh();
       return res.data || res;
     } catch (error) {
       logger.error('ext:product', error);
-      toast.error(__('product.error.delete_failed'));
+      ogToast.error(__('product.error.delete_failed'));
       return null;
     }
   }

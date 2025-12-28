@@ -62,7 +62,7 @@ class FollowupHandlers {
         'tc' => time()
       ];
 
-      db::table(self::$table)->insert($data);
+      ogDb::table(self::$table)->insert($data);
       $count++;
 
       // Actualizar lastCalculatedDate en timezone del bot
@@ -207,7 +207,7 @@ class FollowupHandlers {
     $allFollowups = [];
 
     // PASO 1: Obtener bots activos
-    $activeBots = db::table(DB_TABLES['bots'])
+    $activeBots = ogDb::table(DB_TABLES['bots'])
       ->where('status', 1)
       ->get();
 
@@ -230,7 +230,7 @@ class FollowupHandlers {
       $botsConfig[$botId] = $botData;
 
       // Obtener followups pendientes de este bot
-      $followups = db::table(self::$table)
+      $followups = ogDb::table(self::$table)
         ->where('bot_id', $botId)
         ->where('processed', 0)
         ->where('status', 1)
@@ -254,7 +254,7 @@ class FollowupHandlers {
 
   // Marcar como procesado
   static function markProcessed($id) {
-    return db::table(self::$table)
+    return ogDb::table(self::$table)
       ->where('id', $id)
       ->update([
         'processed' => 1,
@@ -265,7 +265,7 @@ class FollowupHandlers {
 
   // Cancelar followups por venta
   static function cancelBySale($saleId) {
-    return db::table(self::$table)
+    return ogDb::table(self::$table)
       ->where('sale_id', $saleId)
       ->where('processed', 0)
       ->update([

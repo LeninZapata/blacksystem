@@ -7,20 +7,20 @@ $router->group('/api/followup', function($router) {
   // GET /api/followup/pending?list=1 -> Solo listar
   // GET /api/followup/pending -> Procesar y enviar
   $router->get('/pending', function() {
-    $list = request::query('list', null);
+    $list = ogRequest::query('list', null);
 
     $data = FollowupHandlers::getPending();
     $botsConfig = $data['bots_config'];
     $followups = $data['followups'];
 
-    log::info("CRON Followup - Iniciando proceso", [
+    ogLog::info("CRON Followup - Iniciando proceso", [
       'total_followups' => count($followups),
       'total_bots' => count($botsConfig)
     ], ['module' => 'followup']);
 
     // Solo listar
     if ($list) {
-      response::json([
+      ogResponse::json([
         'success' => true,
         'total' => count($followups),
         'bots' => count($botsConfig),
@@ -39,7 +39,7 @@ $router->group('/api/followup', function($router) {
 
       // Validar que existe config del bot
       if (!isset($botsConfig[$botId])) {
-        log::warning("Bot config no encontrado", ['bot_id' => $botId, 'followup_id' => $fup['id']], ['module' => 'followup']);
+        ogLog::warning("Bot config no encontrado", ['bot_id' => $botId, 'followup_id' => $fup['id']], ['module' => 'followup']);
         $failed++;
         continue;
       }
@@ -49,20 +49,20 @@ $router->group('/api/followup', function($router) {
       try {
         // DETECTAR FOLLOWUP ESPECIAL: Upsell
         if (!empty($fup['special']) && $fup['special'] === 'upsell') {
-          log::info("Followup especial detectado: UPSELL", [
+          ogLog::info("Followup especial detectado: UPSELL", [
             'followup_id' => $fup['id'],
             'product_id' => $fup['product_id'],
             'number' => $fup['number']
           ], ['module' => 'followup']);
 
-          // Configurar chatapi con el bot específico
-          chatapi::setConfig($botData);
+          // Configurar ogChatApi con el bot específico
+          ogChatApi::setConfig($botData);
 
           // Ejecutar proceso de upsell
           $upsellResult = UpsellHandlers::executeUpsell($fup, $botData);
 
           if ($upsellResult['success']) {
-            log::info("Upsell ejecutado exitosamente", [
+            ogLog::info("Upsell ejecutado exitosamente", [
               'followup_id' => $fup['id'],
               'new_sale_id' => $upsellResult['new_sale_id'],
               'upsell_product_id' => $upsellResult['upsell_product_id']
@@ -73,7 +73,7 @@ $router->group('/api/followup', function($router) {
             $upsellsExecuted++;
             $sent++;
           } else {
-            log::error("Error ejecutando upsell", [
+            ogLog::error("Error ejecutando upsell", [
               'followup_id' => $fup['id'],
               'error' => $upsellResult['error'] ?? 'unknown'
             ], ['module' => 'followup']);
@@ -85,18 +85,18 @@ $router->group('/api/followup', function($router) {
         }
 
         // FOLLOWUP NORMAL: Enviar mensaje
-        log::info("Procesando followup normal", [
+        ogLog::info("Procesando followup normal", [
           'followup_id' => $fup['id'],
           'number' => $fup['number'],
           'tracking_id' => $fup['name'] ?? 'N/A'
         ], ['module' => 'followup']);
 
-        // Configurar chatapi con el bot específico
-        chatapi::setConfig($botData);
+        // Configurar ogChatApi con el bot específico
+        ogChatApi::setConfig($botData);
 
         // Enviar mensaje
         $sourceUrl = $fup['source_url'] === null ? '' : $fup['source_url'];
-        $result = chatapi::send($fup['number'], $fup['text'], $sourceUrl);
+        $result = ogChatApi::send($fup['number'], $fup['text'], $sourceUrl);
 
         if ($result['success']) {
           // Marcar como procesado
@@ -146,14 +146,14 @@ $router->group('/api/followup', function($router) {
             'metadata' => $metadata
           ], 'S');
 
-          log::info("Followup enviado exitosamente", [
+          ogLog::info("Followup enviado exitosamente", [
             'followup_id' => $fup['id'],
             'number' => $fup['number']
           ], ['module' => 'followup']);
 
           $sent++;
         } else {
-          log::error("Error enviando followup", [
+          ogLog::error("Error enviando followup", [
             'followup_id' => $fup['id'],
             'error' => $result['error'] ?? 'unknown'
           ], ['module' => 'followup']);
@@ -163,7 +163,7 @@ $router->group('/api/followup', function($router) {
         sleep(2);
 
       } catch (Exception $e) {
-        log::error("Error procesando followup", [
+        ogLog::error("Error procesando followup", [
           'followup_id' => $fup['id'],
           'error' => $e->getMessage()
         ], ['module' => 'followup']);
@@ -171,14 +171,14 @@ $router->group('/api/followup', function($router) {
       }
     }
 
-    log::info("CRON Followup - Proceso finalizado", [
+    ogLog::info("CRON Followup - Proceso finalizado", [
       'total' => count($followups),
       'sent' => $sent,
       'failed' => $failed,
       'upsells_executed' => $upsellsExecuted
     ], ['module' => 'followup']);
 
-    response::json([
+    ogResponse::json([
       'success' => true,
       'total' => count($followups),
       'bots' => count($botsConfig),
@@ -193,12 +193,12 @@ $router->group('/api/followup', function($router) {
   $router->put('/cancel/{sale_id}', function($sale_id) {
     $affected = FollowupHandlers::cancelBySale($sale_id);
 
-    log::info("Followups cancelados por venta", [
+    ogLog::info("Followups cancelados por venta", [
       'sale_id' => $sale_id,
       'affected' => $affected
     ], ['module' => 'followup']);
 
-    response::json([
+    ogResponse::json([
       'success' => true,
       'affected' => $affected
     ]);

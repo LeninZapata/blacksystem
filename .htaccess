@@ -14,8 +14,8 @@ RewriteEngine On
 # RUTAS API - Máxima prioridad
 # ============================================
 # Capturar TODAS las rutas que empiecen con /api/
-# NO usar query string, mantener la URL limpia
-RewriteRule ^api/(.*)$ backend/api.php [QSA,L]
+# Apuntar a wp-file.php (igual que WordPress)
+RewriteRule ^api/(.*)$ wp.php [QSA,L]
 
 # ============================================
 # ARCHIVOS ESTÁTICOS EXISTENTES

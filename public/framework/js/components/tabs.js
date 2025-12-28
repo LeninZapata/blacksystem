@@ -1,6 +1,27 @@
-class tabs {
+class ogTabs {
   static tabCache = new Map();
   static extensionContextMap = new Map(); // Guardar contexto por ID de tabs
+
+  static getModules() {
+    return {
+      form: window.ogFramework?.core?.form
+    };
+  }
+
+  // Helper para obtener componentes dinámicamente
+  static getComponent(componentName) {
+    // Buscar primero en ogFramework.components
+    if (window.ogFramework?.components?.[componentName]) {
+      return window.ogFramework.components[componentName];
+    }
+
+    // Fallback a window directo (compatibilidad temporal)
+    if (window[componentName]) {
+      return window[componentName];
+    }
+
+    return null;
+  }
 
   static async render(tabsData, container) {
     this.tabCache.clear();
@@ -10,7 +31,7 @@ class tabs {
     // Obtener el contexto de extensión del contenedor padre para preservarlo
     const viewContainer = container.closest('[data-extension-context]');
     const extensionContext = viewContainer?.getAttribute('data-extension-context') || null;
-    
+
     // Guardar el contexto para este tabs específico
     this.extensionContextMap.set(tabsData.id, extensionContext);
 
@@ -99,7 +120,7 @@ class tabs {
       try {
         await this.loadTabContentSilent(tabsData, tab.id, container);
       } catch (error) {
-        logger.error('com:tabs', `Error precargando tab ${tab.id}:`, error);
+        ogLogger.error('com:tabs', `Error precargando tab ${tab.id}:`, error);
       }
     }
   }
@@ -122,7 +143,7 @@ class tabs {
       await this.loadDynamicComponents(tabsData.id, tempContainer);
       this.tabCache.set(cacheKey, tempContainer);
     } catch (error) {
-      logger.error('com:tabs', `Error cargando tab ${tabId}:`, error);
+      ogLogger.error('com:tabs', `Error cargando tab ${tabId}:`, error);
     }
   }
 
@@ -182,7 +203,7 @@ class tabs {
       tabContent.appendChild(tempContainer);
 
     } catch (error) {
-      logger.error('com:tabs', `Error cargando tab ${tabId}:`, error);
+      ogLogger.error('com:tabs', `Error cargando tab ${tabId}:`, error);
       tabContent.innerHTML = `<div class="tab-error">${__('com.tabs.error_loading')}</div>`;
     }
   }
@@ -224,6 +245,8 @@ class tabs {
   }
 
   static async loadDynamicComponents(tabsId, container) {
+    const { form } = this.getModules();
+
     // Obtener el contexto guardado para este tabs específico
     const extensionContext = this.extensionContextMap.get(tabsId) || null;
 
@@ -231,23 +254,23 @@ class tabs {
 
     for (const formContainer of formContainers) {
       const formJson = formContainer.dataset.formJson;
-      
+
       try {
         let formPath = formJson;
 
         // Si hay contexto de extensión y el formJson no incluye '|'
         if (extensionContext && !formJson.includes('|')) {
           // Remover el prefijo de extensión si ya está presente
-          const cleanFormJson = formJson.startsWith(`${extensionContext}/`) 
-            ? formJson.substring(extensionContext.length + 1) 
+          const cleanFormJson = formJson.startsWith(`${extensionContext}/`)
+            ? formJson.substring(extensionContext.length + 1)
             : formJson;
-          
+
           formPath = `${extensionContext}|forms/${cleanFormJson}`;
         }
-        
+
         await form.load(formPath, formContainer);
       } catch (error) {
-        logger.error('com:tabs', 'Error cargando formulario:', error);
+        ogLogger.error('com:tabs', 'Error cargando formulario:', error);
         formContainer.innerHTML = `<div class="error">${__('com.tabs.error_form', { form: formJson })}</div>`;
       }
     }
@@ -262,16 +285,17 @@ class tabs {
       try {
         const config = configStr ? JSON.parse(configStr) : {};
 
-        if (componentName === 'datatable' && window.datatable) {
-          await datatable.render(config, compContainer);
-        } else if (window[componentName] && typeof window[componentName].render === 'function') {
-          await window[componentName].render(config, compContainer);
+        // ✅ Usar getComponent helper para buscar en ogFramework.components primero
+        const component = this.getComponent(componentName);
+
+        if (component && typeof component.render === 'function') {
+          await component.render(config, compContainer);
         } else {
-          logger.warn('com:tabs', `Componente ${componentName} no encontrado`);
+          ogLogger.warn('com:tabs', `Componente ${componentName} no encontrado`);
           compContainer.innerHTML = `<div class="error">${__('com.tabs.component_not_available', { component: componentName })}</div>`;
         }
       } catch (error) {
-        logger.error('com:tabs', `Error cargando componente ${componentName}:`, error);
+        ogLogger.error('com:tabs', `Error cargando componente ${componentName}:`, error);
         compContainer.innerHTML = `<div class="error">${__('com.tabs.error_component', { component: componentName })}</div>`;
       }
     }
@@ -282,4 +306,10 @@ class tabs {
   }
 }
 
-window.tabs = tabs;
+// Exponer GLOBALMENTE como ogTabs
+window.ogTabs = ogTabs;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.components.tabs = ogTabs;
+}

@@ -16,11 +16,11 @@ class ActionDispatcher {
     $handler = $this->registry->getHandler($action);
 
     if (!$handler) {
-      log::warning("Action del bot no registrado: {$action}", [], ['module' => 'action_dispatcher']);
+      ogLog::warning("Action del bot no registrado: {$action}", [], ['module' => 'action_dispatcher']);
       return null;
     }
 
-    log::info("Despachando action: {$action}", [
+    ogLog::info("Despachando action: {$action}", [
       'handler' => get_class($handler)
     ], ['module' => 'action_dispatcher']);
 

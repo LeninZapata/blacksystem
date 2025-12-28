@@ -11,7 +11,7 @@ class UpsellHandlers {
     $number = $saleData['number'];
     $origin = $saleData['origin'] ?? 'organic';
 
-    log::info("UpsellHandlers::processAfterSale - Iniciando", [
+    ogLog::info("UpsellHandlers::processAfterSale - Iniciando", [
       'sale_id' => $saleId,
       'product_id' => $productId,
       'origin' => $origin
@@ -23,7 +23,7 @@ class UpsellHandlers {
     // PASO 2: Determinar el producto base (root) de la cadena
     $rootProductId = self::getRootProductId($saleId, $productId, $origin);
 
-    log::info("Producto root determinado", [
+    ogLog::info("Producto root determinado", [
       'root_product_id' => $rootProductId,
       'current_product_id' => $productId
     ], ['module' => 'upsell']);
@@ -31,13 +31,13 @@ class UpsellHandlers {
     // PASO 3: Buscar upsells disponibles del PRODUCTO BASE (no del que acaba de comprar)
     $upsells = ProductHandler::getUpsellFile($rootProductId);
     if (empty($upsells)) {
-      log::info("No hay upsells configurados para el producto", [
+      ogLog::info("No hay upsells configurados para el producto", [
         'root_product_id' => $rootProductId
       ], ['module' => 'upsell']);
       return ['success' => true, 'upsell_registered' => false, 'reason' => 'no_upsells_configured'];
     }
 
-    log::info("Upsells encontrados", [
+    ogLog::info("Upsells encontrados", [
       'root_product_id' => $rootProductId,
       'total_upsells' => count($upsells)
     ], ['module' => 'upsell']);
@@ -45,7 +45,7 @@ class UpsellHandlers {
     // PASO 4: Obtener el parent_sale_id correcto (siempre el root)
     $rootSaleId = self::getRootSaleId($saleId, $origin);
 
-    log::info("Sale root determinado", [
+    ogLog::info("Sale root determinado", [
       'root_sale_id' => $rootSaleId,
       'current_sale_id' => $saleId
     ], ['module' => 'upsell']);
@@ -59,7 +59,7 @@ class UpsellHandlers {
 
       // Verificar si ya se ejecutó este upsell en la CADENA del root
       // Buscar ventas que tengan parent_sale_id = rootSaleId
-      $existingSaleByParent = db::table(DB_TABLES['sales'])
+      $existingSaleByParent = ogDb::table(DB_TABLES['sales'])
         ->where('product_id', $upsellProductId)
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
@@ -67,7 +67,7 @@ class UpsellHandlers {
         ->first();
 
       // O buscar si el rootSaleId mismo es de este producto
-      $existingSaleByRoot = db::table(DB_TABLES['sales'])
+      $existingSaleByRoot = ogDb::table(DB_TABLES['sales'])
         ->where('product_id', $upsellProductId)
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
@@ -81,14 +81,14 @@ class UpsellHandlers {
     }
 
     if (!$upsellToExecute) {
-      log::info("Todos los upsells ya fueron ejecutados", [
+      ogLog::info("Todos los upsells ya fueron ejecutados", [
         'root_product_id' => $rootProductId,
         'root_sale_id' => $rootSaleId
       ], ['module' => 'upsell']);
       return ['success' => true, 'upsell_registered' => false, 'reason' => 'all_upsells_already_executed'];
     }
 
-    log::info("Upsell disponible encontrado", [
+    ogLog::info("Upsell disponible encontrado", [
       'upsell_product_id' => $upsellToExecute['product_id'],
       'time_type' => $upsellToExecute['time_type'] ?? 'minuto',
       'time_value' => $upsellToExecute['time_value'] ?? 5
@@ -122,9 +122,9 @@ class UpsellHandlers {
       'tc' => time()
     ];
 
-    db::table(DB_TABLES['followups'])->insert($followupData);
+    ogDb::table(DB_TABLES['followups'])->insert($followupData);
 
-    log::info("Followup especial de upsell registrado", [
+    ogLog::info("Followup especial de upsell registrado", [
       'root_sale_id' => $rootSaleId,
       'root_product_id' => $rootProductId,
       'upsell_product_id' => $upsellToExecute['product_id'],
@@ -150,7 +150,7 @@ class UpsellHandlers {
 
     // Si es upsell, buscar la venta root
     $rootSaleId = self::getRootSaleId($saleId, $origin);
-    $rootSale = db::table(DB_TABLES['sales'])->find($rootSaleId);
+    $rootSale = ogDb::table(DB_TABLES['sales'])->find($rootSaleId);
 
     return $rootSale['product_id'] ?? $currentProductId;
   }
@@ -163,7 +163,7 @@ class UpsellHandlers {
     }
 
     // Si es upsell, buscar recursivamente el parent hasta llegar al root
-    $currentSale = db::table(DB_TABLES['sales'])->find($saleId);
+    $currentSale = ogDb::table(DB_TABLES['sales'])->find($saleId);
     $parentSaleId = $currentSale['parent_sale_id'] ?? null;
 
     // Si no tiene parent, este es el root
@@ -176,7 +176,7 @@ class UpsellHandlers {
     $depth = 0;
 
     while ($parentSaleId && $depth < $maxDepth) {
-      $parentSale = db::table(DB_TABLES['sales'])->find($parentSaleId);
+      $parentSale = ogDb::table(DB_TABLES['sales'])->find($parentSaleId);
       
       if (!$parentSale || !$parentSale['parent_sale_id']) {
         return $parentSaleId;
@@ -224,7 +224,7 @@ class UpsellHandlers {
     $botId = $followup['bot_id'];
     $number = $followup['number'];
 
-    log::info("UpsellHandlers::executeUpsell - Iniciando", [
+    ogLog::info("UpsellHandlers::executeUpsell - Iniciando", [
       'followup_id' => $followup['id'],
       'upsell_product_id' => $upsellProductId,
       'number' => $number
@@ -237,11 +237,11 @@ class UpsellHandlers {
     // Obtener datos del producto upsell
     $productData = ProductHandler::getProductFile($upsellProductId);
     if (!$productData) {
-      log::error("Producto upsell no encontrado", ['upsell_product_id' => $upsellProductId], ['module' => 'upsell']);
+      ogLog::error("Producto upsell no encontrado", ['upsell_product_id' => $upsellProductId], ['module' => 'upsell']);
       return ['success' => false, 'error' => 'upsell_product_not_found'];
     }
 
-    log::info("Producto upsell cargado", [
+    ogLog::info("Producto upsell cargado", [
       'product_id' => $upsellProductId,
       'product_name' => $productData['name'] ?? 'N/A'
     ], ['module' => 'upsell']);
@@ -263,7 +263,7 @@ class UpsellHandlers {
     $saleResult = CreateSaleAction::create($newSaleData);
 
     if (!$saleResult['success']) {
-      log::error("Error creando venta upsell", [
+      ogLog::error("Error creando venta upsell", [
         'product_id' => $upsellProductId,
         'error' => $saleResult['error'] ?? 'unknown'
       ], ['module' => 'upsell']);
@@ -273,7 +273,7 @@ class UpsellHandlers {
     $newSaleId = $saleResult['sale_id'];
     $newClientId = $saleResult['client_id'];
 
-    log::info("Venta upsell creada exitosamente", [
+    ogLog::info("Venta upsell creada exitosamente", [
       'new_sale_id' => $newSaleId,
       'parent_sale_id' => $rootSaleId,
       'product_id' => $upsellProductId
@@ -325,7 +325,7 @@ class UpsellHandlers {
     // RECONSTRUIR CHAT: Regenerar archivo JSON con nuevo current_sale
     ChatHandlers::getChat($number, $botId, true);
 
-    log::info("Chat reconstruido con nueva venta upsell", [
+    ogLog::info("Chat reconstruido con nueva venta upsell", [
       'number' => $number,
       'new_sale_id' => $newSaleId
     ], ['module' => 'upsell']);
@@ -334,7 +334,7 @@ class UpsellHandlers {
     $welcomeMessages = ProductHandler::getMessagesFile('welcome_upsell', $upsellProductId);
 
     if (!empty($welcomeMessages)) {
-      log::info("Enviando welcome upsell", [
+      ogLog::info("Enviando welcome upsell", [
         'product_id' => $upsellProductId,
         'total_messages' => count($welcomeMessages)
       ], ['module' => 'upsell']);
@@ -349,7 +349,7 @@ class UpsellHandlers {
         }
 
         // Solo enviar mensaje (no registrar en DB/JSON)
-        chatapi::send($number, $text, $url);
+        ogChatApi::send($number, $text, $url);
       }
     }
 
@@ -357,7 +357,7 @@ class UpsellHandlers {
     $followupMessages = ProductHandler::getMessagesFile('follow_upsell', $upsellProductId);
 
     if (!empty($followupMessages)) {
-      log::info("Registrando followups upsell", [
+      ogLog::info("Registrando followups upsell", [
         'product_id' => $upsellProductId,
         'total_followups' => count($followupMessages)
       ], ['module' => 'upsell']);
@@ -377,7 +377,7 @@ class UpsellHandlers {
       );
     }
 
-    log::info("Upsell ejecutado completamente", [
+    ogLog::info("Upsell ejecutado completamente", [
       'new_sale_id' => $newSaleId,
       'upsell_product_id' => $upsellProductId,
       'root_sale_id' => $rootSaleId

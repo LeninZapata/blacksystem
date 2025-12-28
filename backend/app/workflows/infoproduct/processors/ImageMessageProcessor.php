@@ -28,14 +28,14 @@ class ImageMessageProcessor implements MessageProcessorInterface {
 
     // ✅ VALIDACIÓN INTELIGENTE: Solo enviar mensaje de espera si hay venta pendiente
     if ($this->shouldSendWaitMessage($chatData)) {
-      log::info("ImageMessageProcessor - Enviando mensaje de espera", [
+      ogLog::info("ImageMessageProcessor - Enviando mensaje de espera", [
         'number' => $person['number'],
         'reason' => 'venta_pendiente'
       ], ['module' => 'image_processor']);
 
       $this->sendWaitMessage($person['number']);
     } else {
-      log::info("ImageMessageProcessor - Saltando mensaje de espera", [
+      ogLog::info("ImageMessageProcessor - Saltando mensaje de espera", [
         'number' => $person['number'],
         'reason' => 'sin_venta_pendiente'
       ], ['module' => 'image_processor']);
@@ -67,13 +67,13 @@ class ImageMessageProcessor implements MessageProcessorInterface {
    */
   private function shouldSendWaitMessage($chatData) {
     if (!$chatData) {
-      log::debug("ImageMessageProcessor::shouldSendWaitMessage - No chatData", [], ['module' => 'image_processor']);
+      ogLog::debug("ImageMessageProcessor::shouldSendWaitMessage - No chatData", [], ['module' => 'image_processor']);
       return false;
     }
 
     $currentSale = $chatData['full_chat']['current_sale'] ?? null;
 
-    log::debug("ImageMessageProcessor::shouldSendWaitMessage - Validación", [
+    ogLog::debug("ImageMessageProcessor::shouldSendWaitMessage - Validación", [
       'has_current_sale' => $currentSale !== null
     ], ['module' => 'image_processor']);
 
@@ -83,6 +83,6 @@ class ImageMessageProcessor implements MessageProcessorInterface {
 
   private function sendWaitMessage($to) {
     $message = "Listo ✅\nUn momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste)\n\n🕐 Si tardo en responder, no te preocupes.\nEstoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊💡";
-    chatapi::send($to, $message);
+    ogChatApi::send($to, $message);
   }
 }

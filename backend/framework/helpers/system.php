@@ -11,7 +11,7 @@ function isLocalhost() {
 
 // Detecta si la aplicación está en modo desarrollo
 function isDev() {
-  return isLocalhost() || (defined('IS_DEV') && IS_DEV);
+  return isLocalhost() || (defined('OG_IS_DEV') && OG_IS_DEV);
 }
 
 // Detecta si la aplicación está en modo producción
