@@ -2,6 +2,7 @@
 
 class DeliverProductAction {
 
+  private static $logMeta = ['module' => 'DeliverProductAction', 'layer' => 'app/workflows'];
   static function send($productId, $context) {
     $person = $context['person'];
     $bot = $context['bot'];
@@ -10,7 +11,7 @@ class DeliverProductAction {
     $templates = self::loadProductTemplates($productId);
 
     if (!$templates || empty($templates)) {
-      ogLog::error("No templates found for product: {$productId}", [], ['module' => 'deliver_product']);
+      ogLog::error("send - templates found for product: {$productId}", [], self::$logMeta);
       return [
         'success' => false,
         'error' => 'No templates found'
@@ -20,7 +21,7 @@ class DeliverProductAction {
     $productTemplate = self::findProductTemplate($templates);
 
     if (!$productTemplate) {
-      ogLog::warning("No link_product template found for product: {$productId}", [], ['module' => 'deliver_product']);
+      ogLog::warning("send - No link_product template found for product: {$productId}", [],  self::$logMeta);
       return [
         'success' => false,
         'error' => 'No link_product template found'
@@ -41,6 +42,7 @@ class DeliverProductAction {
   }
 
   private static function loadProductTemplates($productId) {
+    ogApp()->loadHandler('productHandler');
     return productHandler::getMessagesFile('template', $productId);
   }
 
@@ -60,12 +62,9 @@ class DeliverProductAction {
     $message = $template['message'] ?? '';
     $url = $template['url'] ?? '';
 
-    ogLog::info("DeliverProductAction - Enviando producto", [
-      'template_id' => $template['template_id'] ?? 'unknown',
-      'to' => $to
-    ], ['module' => 'deliver_product']);
-
-    ogChatApi::send($to, $message, $url);
+    ogLog::info("sendProductTemplate - Enviando producto", [ 'template_id' => $template['template_id'] ?? 'unknown', 'to' => $to ], self::$logMeta);
+    $chatapi = ogApp()->service('chatApi');
+    $chatapi::send($to, $message, $url);
   }
 
   private static function registerDelivery($bot, $person, $chatData, $productId) {
@@ -76,6 +75,7 @@ class DeliverProductAction {
       'delivered_at' => date('Y-m-d H:i:s')
     ];
 
+    ogApp()->loadHandler('chatHandlers');
     chatHandlers::register(
       $bot['id'],
       $bot['number'],
@@ -100,12 +100,10 @@ class DeliverProductAction {
   }
 
   private static function rebuildChatAfterDelivery($number, $botId) {
-    ogLog::info("DeliverProductAction - Reconstruyendo chat después de entrega", [
-      'number' => $number,
-      'bot_id' => $botId
-    ], ['module' => 'deliver_product']);
+    ogLog::info("rebuildChatAfterDelivery - Reconstruyendo chat después de entrega", [ 'number' => $number, 'bot_id' => $botId ], self::$logMeta);
 
     // Forzar reconstrucción desde DB
+    ogApp()->loadHandler('chatHandlers');
     chatHandlers::rebuildFromDB($number, $botId);
   }
 

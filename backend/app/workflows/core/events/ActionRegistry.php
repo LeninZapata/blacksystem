@@ -4,13 +4,12 @@ class ActionRegistry {
   
   private $handlers = [];
   private $handlerClasses = [];
+  private $logMeta = ['module' => 'ActionRegistry', 'layer' => 'app/workflows'];
 
   public function register($actionName, $handlerClass) {
     $this->handlerClasses[$actionName] = $handlerClass;
     
-    ogLog::debug("Action registrado (lazy): {$actionName}", [
-      'class' => $handlerClass
-    ], ['module' => 'action_registry']);
+    // ogLog::debug("Action registrado (lazy): {$actionName}", [ 'class' => $handlerClass ], $this->logMeta);
   }
 
   public function getHandler($actionName) {

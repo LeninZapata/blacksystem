@@ -2,11 +2,12 @@
 class SaleHandlers {
 
   private static $table = DB_TABLES['sales'];
+  private static $logMeta = [ 'module' => 'SaleHandlers', 'layer' => 'app/handler' ];
 
   // Crear venta simple
   static function create($data) {
     if (!isset($data['amount'])) {
-      return ['success' => false, 'error' => __('sale.amount_required')];
+      return ['success' => false, 'error' => 'create - ' . __('sale.amount_required')];
     }
 
     $data['dc'] = date('Y-m-d H:i:s');

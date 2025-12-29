@@ -1,19 +1,20 @@
 <?php
 
 class webhookController {
-  private static $logMeta = ['module' => 'webhook', 'layer' => 'app'];
+  private $logMeta = ['module' => 'webhook/webhookController', 'layer' => 'app/controller'];
 
   function whatsapp() {
     try {
       $rawData = ogRequest::data();
+      ogLog::info('whatsapp - Webhook recibido', [], $this->logMeta);
 
       // Cargar servicio ogChatApi bajo demanda
-      $ogChatApi = ogApp()->service('chatApi');
-      $result = $ogChatApi->detectAndNormalize($rawData);
+      $chatapi = ogApp()->service('chatApi');
+      $result = $chatapi->detectAndNormalize($rawData);
 
       if (!$result) {
         ogResponse::json(['success' => false, 'error' => 'Provider no detectado'], 400);
-      }
+      } ogLog::info('whatsapp - Provider detectado', ['provider' => $result['provider']], $this->logMeta);
 
       $detectedProvider = $result['provider'];
       $normalized = $result['normalized'];
@@ -36,23 +37,18 @@ class webhookController {
       // Cargar BotHandlers bajo demanda
       ogApp()->loadHandler('BotHandlers');
       $bot = BotHandlers::getDataFile($sender['number']);
-      
-      if (!$bot) {
-        ogLog::error('webhookController::whatsapp - Bot no encontrado', [
-          'bot_number' => $sender['number']
-        ], ['module' => 'webhook']);
-        ogResponse::json(['success' => false, 'error' => "Bot no encontrado: {$sender['number']}"], 404);
-      }
 
-      $ogChatApi->setConfig($bot, $detectedProvider);
+      if (!$bot) {
+        ogResponse::json(['success' => false, 'error' => "Bot no encontrado: {$sender['number']}"], 404);
+      } ogLog::info('whatsapp - Bot encontrado', ['bot_number' => $bot['number'], 'bot_name' => $bot['bot_name'] ?? null ], $this->logMeta);
+
+      $chatapi->setConfig($bot, $detectedProvider);
 
       $workflowData = BotHandlers::getWorkflowFile($sender['number']);
       $workflowFile = $workflowData['file_path'] ?? null;
 
       if (!$workflowFile) {
-        ogLog::error('webhookController::whatsapp - Workflow no configurado', [
-          'bot_number' => $sender['number']
-        ], ['module' => 'webhook']);
+        ogLog::error('whatsapp - Workflow no configurado', [ 'bot_number' => $sender['number'] ], $this->logMeta);
         ogResponse::json(['success' => false, 'error' => 'Workflow no configurado'], 400);
       }
 
@@ -60,24 +56,14 @@ class webhookController {
       $handler = $this->resolveHandler($workflowFile);
 
       // Ejecutar handler con webhook completo
-      $handler->handle([
-        'provider' => $detectedProvider,
-        'normalized' => $normalized,
-        'standard' => $standard,
-        'raw' => $rawData
-      ]);
+      //ogLog::debug("whatsapp - Handler resuelto, se va ejecutar el metodo <code>handle</code> con los siguientes datos", [ 'provider' => $detectedProvider, 'normalized' => $normalized, 'standard' => $standard], $this->logMeta);
+      $handler->handle([ 'provider' => $detectedProvider, 'normalized' => $normalized, 'standard' => $standard, 'raw' => $rawData ]);
 
-      ogResponse::success([
-        'message' => 'Webhook procesado',
-        'provider' => $detectedProvider,
-        'workflow' => $workflowFile
-      ]);
+      ogResponse::success([ 'message' => 'Webhook procesado', 'provider' => $detectedProvider, 'workflow' => $workflowFile ]);
 
     } catch (Exception $e) {
-      ogLog::error('webhookController::whatsapp - Error crítico', [
-        'error' => $e->getMessage()
-      ], ['module' => 'webhook']);
-      ogResponse::serverError('Error procesando webhook', OG_IS_DEV ? $e->getMessage() : null);
+      ogLog::error('whatsapp - Error crítico', [ 'error' => $e->getMessage() ], $this->logMeta);
+      ogResponse::serverError('whatsapp - Error procesando webhook', $e->getMessage() ?? null);
     }
   }
 
@@ -86,10 +72,7 @@ class webhookController {
     $workflowPath = APP_PATH . "/workflows/versions/{$workflowFile}";
 
     if (!file_exists($workflowPath)) {
-      ogLog::error('webhookController::resolveHandler - Archivo no existe', [
-        'file' => $workflowFile
-      ], self::$logMeta);
-      ogLog::throwError("Workflow no encontrado: {$workflowFile}", [], self::$logMeta);
+      ogLog::throwError("resolveHandler - Archivo workflow del bot no existe: {$workflowFile}", [], $this->logMeta);
     }
 
     require_once $workflowPath;
@@ -97,8 +80,8 @@ class webhookController {
     $className = $this->getClassNameFromFile($workflowFile);
 
     if (!class_exists($className)) {
-      ogLog::throwError("Clase no encontrada: {$className} en {$workflowFile}", [], self::$logMeta);
-    }
+      ogLog::throwError("Clase de ejecución no encontrada: {$className} en {$workflowFile}", [], $this->logMeta);
+    } ogLog::info("resolveHandler - Clase de ejecución encontrada: {$className}", [], $this->logMeta);
 
     return new $className();
   }
@@ -124,8 +107,8 @@ class webhookController {
       $rawData = ogRequest::data();
       
       // Cargar servicio ogChatApi bajo demanda
-      $ogChatApi = ogApp()->ogService('ogChatApi');
-      $result = $ogChatApi->detectAndNormalize($rawData);
+      $chatapi = ogApp()->ogService('ogChatApi');
+      $result = $chatapi->detectAndNormalize($rawData);
 
       if (!$result) {
         ogResponse::json(['success' => false, 'error' => 'Provider no detectado'], 400);

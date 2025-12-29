@@ -51,7 +51,8 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
     $message .= "3️⃣ Envíame la imagen aquí\n\n";
     $message .= "Así podré verificar tu pago y confirmar tu pedido. ✅";
 
-    ogChatApi::send($to, $message);
+    $chatapi = ogApp()->service('chatapi');
+    $chatapi::send($to, $message);
   }
 
   private function saveUserDocumentMessage($documentMessage, $caption, $context) {
@@ -61,6 +62,7 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
 
     $messageText = !empty($caption) ? "[Documento PDF]: {$caption}" : "[Documento PDF enviado]";
 
+    ogApp()->loadHandler('ChatHandler');
     ChatHandlers::register(
       $bot['id'],
       $bot['number'],
@@ -101,6 +103,7 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
 
     $message = "🚫 No puedo procesar documentos PDF/DOC. Si enviaste un comprobante de pago, por favor toma una captura de pantalla y envíamela como imagen.";
 
+    ogApp()->loadHandler('ChatHandler');
     ChatHandlers::register(
       $bot['id'],
       $bot['number'],

@@ -1,7 +1,7 @@
 <?php
 
 class ImageInterpreter {
-  private static $logMeta = ['module' => 'workflow', 'layer' => 'app'];
+  private static $logMeta = ['module' => 'ImageInterpreter', 'layer' => 'app/workflows'];
 
   static function interpret($message, $bot) {
     $imageUrl = $message['media_url'] ?? null;
@@ -19,7 +19,7 @@ class ImageInterpreter {
       if (!$base64) {
         $imageData = file_get_contents($imageUrl);
         if ($imageData === false) {
-          ogLog::throwError('No se pudo descargar imagen', [], self::$logMeta);
+          ogLog::throwError('interpret - No se pudo descargar imagen', [], self::$logMeta);
         }
         $base64 = base64_encode($imageData);
       }
@@ -27,10 +27,10 @@ class ImageInterpreter {
       $mimeType = $imageUrl ? self::getMimeType($imageUrl) : 'image/jpeg';
       $dataUri = "data:{$mimeType};base64,{$base64}";
 
-      $promptFile = APP_PATH . '/workflows/prompts/infoproduct/recibo-img.txt';
+      $promptFile = ogApp()->getPath() . '/workflows/prompts/infoproduct/recibo-img.txt';
 
       if (!file_exists($promptFile)) {
-        ogLog::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
+        ogLog::throwError("interpret - Prompt file not found: {$promptFile}", [], self::$logMeta);
       }
 
       $instruction = file_get_contents($promptFile);
@@ -40,7 +40,7 @@ class ImageInterpreter {
         $instruction .= "\n\n---\n\n## INFORMACIÓN ADICIONAL DEL BOT:\n" . $bot['personality'];
       }
 
-      $ai = ogService::integration('ai');
+      $ai = ogApp()->service('ai');
       $result = $ai->analyzeImage($dataUri, $instruction, $bot);
 
       if (!$result['success']) {
@@ -52,6 +52,7 @@ class ImageInterpreter {
 
       $description = $result['description'] ?? '';
 
+      ogApp()->helper('str');
       if (!ogStr::isJson($description)) {
         return [
           'success' => false,

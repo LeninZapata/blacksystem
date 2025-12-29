@@ -1,7 +1,7 @@
 <?php
 
 class ConversationValidator {
-
+  private static $logMeta = ['module' => 'ConversationValidator', 'layer' => 'app/workflows'];
   static function quickCheck($number, $botId, $maxDays = 2) {
     $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
 
@@ -21,6 +21,7 @@ class ConversationValidator {
 
   static function getChatData($number, $botId, $reconstruct = true) {
     if ($reconstruct) {
+      ogApp()->loadHandler('ChatHandlers');
       $chat = ChatHandlers::getChat($number, $botId, false);
     } else {
       $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';

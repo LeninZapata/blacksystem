@@ -1,7 +1,7 @@
 <?php
 class deepSeekProvider extends baseAIProvider {
   private $baseUrl = 'https://api.deepseek.com';
-  protected static $logMeta = ['module' => 'ai', 'layer' => 'service'];
+  protected static $logMeta = ['module' => 'ai/deepSeekProvider', 'layer' => 'framework/services'];
 
   public function getProviderName(): string {
     return 'deepseek';
@@ -16,19 +16,20 @@ class deepSeekProvider extends baseAIProvider {
 
       $payload = ['model' => $model, 'messages' => $messages, 'temperature' => $temperature, 'max_tokens' => $maxTokens, 'stream' => false];
 
+      ogApp()->helper('http');
       $response = ogHttp::post($this->baseUrl . '/chat/completions', $payload, [
         'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->apiKey],
         'timeout' => 60
       ]);
 
       if (!$response['success']){
-        ogLog::error('Error HTTP en chat completion', $response, self::$logMeta);
+        ogLog::error('chatCompletion - Error HTTP en chat completion', $response, self::$logMeta);
         throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
       }
 
       $data = $response['data'];
       if (!isset($data['choices'][0]['message']['content'])){
-        ogLog::error('Respuesta con formato inválido', ['response_data' => $data], self::$logMeta);
+        ogLog::error('chatCompletion - Respuesta con formato inválido', ['response_data' => $data], self::$logMeta);
         throw new Exception(__('services.ai.invalid_response'));
       }
 
@@ -48,7 +49,7 @@ class deepSeekProvider extends baseAIProvider {
       ];
 
     } catch (Exception $e) {
-      $this->log('Error en chat completion', ['error' => $e->getMessage()]);
+      $this->log('chatCompletion - Error en chat completion', ['error' => $e->getMessage()]);
       return $this->errorResponse($e->getMessage());
     }
   }
@@ -69,6 +70,7 @@ class deepSeekProvider extends baseAIProvider {
 
       $payload = ['model' => 'deepseek-vision', 'messages' => $messages, 'temperature' => 0.7, 'max_tokens' => 1500];
 
+      ogApp()->helper('http');
       $response = ogHttp::post($this->baseUrl . '/chat/completions', $payload, [
         'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->apiKey],
         'timeout' => 60

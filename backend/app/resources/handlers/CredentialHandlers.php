@@ -2,11 +2,12 @@
 class CredentialHandlers {
   // Nombre de la tabla de bots asociada a este handler
   protected static $tableBots = DB_TABLES['bots'];
+  private static $logMeta = ['module' => 'CredentialHandlers', 'layer' => 'app/resources'];
 
   // Actualiza archivos JSON de todos los bots que usan esta credencial
   static function updateBotsContext($credentialId) {
     if (!$credentialId) {
-      ogLog::warning('CredentialHandlers::updateBotsContext - credential_id no proporcionado', [], ['module' => 'credential']);
+      ogLog::warning('updateBotsContext - credential_id no proporcionado', [], self::$logMeta);
       return 0;
     }
 
@@ -14,9 +15,7 @@ class CredentialHandlers {
     $bots = ogDb::table(self::$tableBots)->get();
 
     if (empty($bots)) {
-      ogLog::info('CredentialHandlers::updateBotsContext - No hay bots en el sistema', [
-        'credential_id' => $credentialId
-      ], ['module' => 'credential']);
+      ogLog::warn('updateBotsContext - No hay bots en el sistema', [ 'credential_id' => $credentialId ], self::$logMeta);
       return 0;
     }
 
@@ -39,24 +38,17 @@ class CredentialHandlers {
 
       if ($botNumber) {
         // Regenerar archivo data del bot
+        ogApp()->loadHandler('BotHandler');
         $result = BotHandlers::generateDataFile($botNumber, $bot, 'update');
 
         if ($result) {
           $updated++;
-          ogLog::info('CredentialHandlers::updateBotsContext - Bot actualizado', [
-            'bot_id' => $bot['id'],
-            'bot_number' => $botNumber,
-            'credential_id' => $credentialId
-          ], ['module' => 'credential']);
+          ogLog::info('updateBotsContext - Bot actualizado', [ 'bot_id' => $bot['id'], 'bot_number' => $botNumber, 'credential_id' => $credentialId ], self::$logMeta);
         }
       }
     }
 
-    ogLog::info('CredentialHandlers::updateBotsContext - Proceso completado', [
-      'credential_id' => $credentialId,
-      'bots_updated' => $updated,
-      'bots_checked' => count($bots)
-    ], ['module' => 'credential']);
+    ogLog::info('updateBotsContext - Proceso completado', [ 'credential_id' => $credentialId, 'bots_updated' => $updated, 'bots_checked' => count($bots) ],  self::$logMeta);
 
     return $updated;
   }

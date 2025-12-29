@@ -6,8 +6,8 @@ class TextMessageProcessor implements MessageProcessorInterface {
     $bot = $context['bot'];
     $interpretedMessages = [];
 
-    require_once APP_PATH . '/workflows/infoproduct/interpreters/TextInterpreter.php';
-    require_once APP_PATH . '/workflows/infoproduct/interpreters/AudioInterpreter.php';
+    require_once ogApp()->getPath() . '/workflows/infoproduct/interpreters/TextInterpreter.php';
+    require_once ogApp()->getPath() . '/workflows/infoproduct/interpreters/AudioInterpreter.php';
 
     foreach ($messages as $msg) {
       $type = strtoupper($msg['type'] ?? 'TEXT');

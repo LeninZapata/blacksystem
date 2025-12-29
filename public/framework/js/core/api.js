@@ -40,10 +40,10 @@ class ogApi {
     fullURL = protocol + normalizedPath;
 
     const config = this.getConfig(options);
-    console.group(`🌐 API ${options.method || 'GET'} ${endpoint}`);
+    /*console.group(`🌐 API ${options.method || 'GET'} ${endpoint}`);
     console.log('Slug:', config.slug || 'default');
     console.log('URL:', fullURL);
-    console.groupEnd();
+    console.groupEnd();*/
 
     const headers = { ...this.getHeaders(options) };
     const { auth } = this.getModules();
@@ -100,13 +100,43 @@ class ogApi {
 
             const errorMsg = errorData.message || errorData.error || `HTTP ${res.status}`;
 
-            if (toast && typeof ogToast.error === 'function') {
+            // MANEJO ESPECIAL PARA ERROR 401 (Unauthorized)
+            if (res.status === 401) {
+              ogLogger.warn('core:api', '🔒 Sesión expirada o no autorizado - redirigiendo a login');
+              
+              // Mostrar mensaje al usuario
+              if (typeof ogToast.error === 'function') {
+                ogToast.error(errorMsg);
+              }
+
+              // Redirigir al login después de un breve delay
+              setTimeout(() => {
+                if (window.ogFramework?.core?.auth?.showLogin) {
+                  window.ogFramework.core.auth.showLogin();
+                } else if (window.ogAuth?.showLogin) {
+                  window.ogAuth.showLogin();
+                } else {
+                  // Fallback: recargar la página para forzar login
+                  window.location.reload();
+                }
+              }, 1500);
+
+              throw new Error(errorMsg);
+            }
+
+            // Para otros errores, solo mostrar toast
+            if (typeof ogToast.error === 'function') {
               ogToast.error(errorMsg);
             }
 
             throw new Error(errorMsg);
 
           } catch (parseError) {
+            
+            // Si es error 401 que lanzamos nosotros, re-lanzarlo
+            if (res.status === 401) {
+              throw parseError;
+            }
 
             ogLogger.error('core:api', `❌ Error ${res.status} - JSON corrupto`);
 

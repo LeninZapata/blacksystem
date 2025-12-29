@@ -40,9 +40,9 @@ class FollowupHandlers {
 
       // Limitar mensaje a 20 caracteres
       $fullMessage = $fup['message'] ?? '';
-      $shortMessage = mb_strlen($fullMessage) > 20 
+     /* $shortMessage = mb_strlen($fullMessage) > 20 
         ? mb_substr($fullMessage, 0, 20) . '...' 
-        : $fullMessage;
+        : $fullMessage;*/
 
       $data = [
         'sale_id' => $saleData['sale_id'],
@@ -53,7 +53,7 @@ class FollowupHandlers {
         'number' => $saleData['number'],
         'name' => $fup['tracking_id'] ?? null,
         'instruction' => !empty($fup['instruction']) ? $fup['instruction'] : '',
-        'text' => $shortMessage ?: null,
+        'text' => $fullMessage ?: null,
         'source_url' => $fup['url'] ?? null,
         'future_date' => $futureDate,
         'processed' => 0,
@@ -205,6 +205,7 @@ class FollowupHandlers {
     $now = date('Y-m-d H:i:s');
     $botsConfig = [];
     $allFollowups = [];
+    $seenNumbers = []; // Para trackear números ya procesados
 
     // PASO 1: Obtener bots activos
     $activeBots = ogDb::table(DB_TABLES['bots'])
@@ -224,6 +225,7 @@ class FollowupHandlers {
       $botNumber = $bot['number'];
 
       // Cargar configuración del bot desde archivo JSON
+      ogApp()->loadHandler('BotHandlers');
       $botData = BotHandlers::getDataFile($botNumber);
       if (!$botData) continue;
 
@@ -241,7 +243,17 @@ class FollowupHandlers {
 
       if (!empty($followups)) {
         foreach ($followups as $fup) {
-          $allFollowups[] = $fup;
+          $personNumber = $fup['number'];
+
+          // Filtrar: Solo agregar el primer followup de cada número
+          if (!isset($seenNumbers[$personNumber])) {
+            // Agregar bot_number al followup
+            $fup['bot_number'] = $botNumber;
+
+            $allFollowups[] = $fup;
+            $seenNumbers[$personNumber] = true;
+          }
+          // Si ya existe este número, ignorar este followup (quedarse con el primero)
         }
       }
     }

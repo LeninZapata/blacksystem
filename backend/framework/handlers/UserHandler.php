@@ -14,9 +14,7 @@ class UserHandler {
     $session = self::getSessionFromToken($token);
 
     if (!$session) {
-      ogLog::error('profile - sesión no encontrada en archivo', [
-        'token_short' => substr($token, 0, 16)
-      ], self::$logMeta);
+      ogLog::error('profile - sesión no encontrada en archivo', [ 'token_short' => substr($token, 0, 16) ], self::$logMeta);
       return ['success' => false, 'error' => __('auth.token.invalid')];
     }
 

@@ -42,7 +42,8 @@ class StickerMessageProcessor implements MessageProcessorInterface {
 
   private function sendStickerRejectionMessage($to) {
     $message = "😅 No me carga el sticker, ¿me podrías ayudar escribiendo el mensaje por favor?";
-    ogChatApi::send($to, $message);
+    $chatapi = ogApp()->service('chatapi');
+    $chatapi::send($to, $message);
   }
 
   private function saveUserStickerMessage($stickerMessage, $context) {
@@ -52,6 +53,7 @@ class StickerMessageProcessor implements MessageProcessorInterface {
 
     $messageText = "[Sticker enviado]";
 
+    ogApp()->loadHandler('ChatHandler');
     ChatHandlers::register(
       $bot['id'],
       $bot['number'],
@@ -86,6 +88,7 @@ class StickerMessageProcessor implements MessageProcessorInterface {
 
     $message = "😅 No me carga el sticker, ¿me podrías ayudar escribiendo el mensaje por favor?";
 
+    ogApp()->loadHandler('ChatHandler');
     ChatHandlers::register(
       $bot['id'],
       $bot['number'],

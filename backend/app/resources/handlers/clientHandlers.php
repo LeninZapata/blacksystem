@@ -1,6 +1,7 @@
 <?php
 class ClientHandlers {
   private static $table = DB_TABLES['clients'];
+  private static $logMeta = ['module' => 'ClientHandlers', 'layer' => 'app/resources'];
 
   // Eliminar todos los datos del cliente en cascada
   static function deleteAllData($params) {
@@ -17,7 +18,7 @@ class ClientHandlers {
 
       // Cargar ogFile bajo demanda
       $file = ogApp()->helper('file');
-      
+
       // Eliminar todos los archivos chat del cliente
       $deletedFiles = $file->deletePattern(CHATS_STORAGE_PATH . "/chat_{$number}_bot_*.json");
 
@@ -108,7 +109,7 @@ class ClientHandlers {
       }
 
       ogDb::table(self::$table)->where('id', $client['id'])->update($data);
-
+      ogLog::success("registerOrUpdate - Cliente actualizado", [ 'client_id' => $client['id'], 'number' => $number ], self::$logMeta);
       return [
         'success' => true,
         'client_id' => $client['id'],
@@ -132,7 +133,7 @@ class ClientHandlers {
 
     try {
       $id = ogDb::table(self::$table)->insert($data);
-
+      ogLog::success("registerOrUpdate - Cliente creado", $data, self::$logMeta);
       return [
         'success' => true,
         'client_id' => $id,
@@ -151,7 +152,7 @@ class ClientHandlers {
   // Incrementar total de compras y monto gastado
   static function incrementPurchase($clientId, $amount) {
     $client = ogDb::table(self::$table)->find($clientId);
-    
+
     if (!$client) {
       return ['success' => false, 'error' => __('client.not_found')];
     }

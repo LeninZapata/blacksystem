@@ -1,6 +1,7 @@
 <?php
 
 class CreateSaleAction {
+  private static $logMeta = ['module' => 'CreateSaleAction', 'layer' => 'app/workflows'];
 
   static function create($dataSale) {
     $bot = $dataSale['bot'];
@@ -18,7 +19,7 @@ class CreateSaleAction {
 
     // Solo verificar duplicados si NO es upsell
     if (!$isUpsell) {
-      $existingSale = db::table('sales')
+      $existingSale = ogDb::table('sales')
         ->where('number', $from)
         ->where('bot_id', $bot['id'])
         ->where('product_id', $product['id'])
@@ -27,6 +28,7 @@ class CreateSaleAction {
         ->first();
 
       if ($existingSale) {
+        ogLog::warn("CreateSaleAction - Venta duplicada detectada", [ 'number' => $from, 'bot_id' => $bot['id'], 'product_id' => $product['id'], 'existing_sale_id' => $existingSale['id'], 'process_status' => $existingSale['process_status'], 'sale_id' => $existingSale['id'], 'error' => 'duplicate_sale' ], self::$logMeta);
         return [
           'success' => false,
           'error' => 'duplicate_sale',
@@ -37,9 +39,11 @@ class CreateSaleAction {
     }
 
     $countryCode = $bot['country_code'] ?? 'EC';
+    ogApp()->loadHandler('ClientHandlers');
     $clientResult = ClientHandlers::registerOrUpdate($from, $name, $countryCode, $device);
 
     if (!$clientResult['success']) {
+      ogLog::error("CreateSaleAction - Error al crear o actualizar cliente", [ 'number' => $from, 'error' => $clientResult['error'] ?? null, 'details' => $clientResult['details'] ?? null ], self::$logMeta);
       return [
         'success' => false,
         'error' => 'client_creation_failed',
@@ -53,6 +57,7 @@ class CreateSaleAction {
 
     // Detectar origen
     $origin = self::detectOrigin($context, $isUpsell, $parentSaleId);
+    ogLog::info("CreateSaleAction - Origen de la venta detectado: {$origin}", [], self::$logMeta);
 
     $saleData = [
       'sale_type' => 'main',
@@ -75,9 +80,11 @@ class CreateSaleAction {
       'parent_sale_id' => $parentSaleId
     ];
 
+    ogApp()->loadHandler('SaleHandlers');
     $saleResult = SaleHandlers::create($saleData);
 
     if (!$saleResult['success']) {
+      ogLog::error("CreateSaleAction - Error al crear la venta", [ 'number' => $from, 'bot_id' => $bot['id'], 'product_id' => $product['id'], 'error' => $saleResult['error'] ?? null, 'details' => $saleResult['details'] ?? null ], self::$logMeta);
       return [
         'success' => false,
         'error' => 'sale_creation_failed',

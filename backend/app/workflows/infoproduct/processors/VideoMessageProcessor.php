@@ -1,7 +1,7 @@
 <?php
 
 class VideoMessageProcessor implements MessageProcessorInterface {
-
+  private $logMeta = ['module' => 'VideoMessageProcessor', 'layer' => 'app/workflows'];
   public function process(array $messages, array $context): array {
     $bot = $context['bot'];
     $person = $context['person'];
@@ -32,9 +32,7 @@ class VideoMessageProcessor implements MessageProcessorInterface {
 
     // Si NO tiene caption → Solo registrar, NO responder
     if (empty($caption)) {
-      ogLog::info("VideoMessageProcessor - Video sin caption, solo registrado", [
-        'number' => $person['number']
-      ], ['module' => 'video_processor']);
+      ogLog::info("process - Video sin caption, solo registrado", [ 'number' => $person['number'] ], $this->logMeta);
 
       return [
         'success' => true,
@@ -44,10 +42,7 @@ class VideoMessageProcessor implements MessageProcessorInterface {
     }
 
     // Si tiene caption → Procesar con IA
-    ogLog::info("VideoMessageProcessor - Video con caption, procesando texto", [
-      'number' => $person['number'],
-      'caption' => $caption
-    ], ['module' => 'video_processor']);
+    ogLog::info("process - Video con caption, procesando texto", [ 'number' => $person['number'], 'caption' => $caption ], $this->logMeta);
 
     return [
       'success' => true,
@@ -78,6 +73,7 @@ class VideoMessageProcessor implements MessageProcessorInterface {
       $messageText = "[Video enviado]";
     }
 
+    ogApp()->loadHandler('ChatHandler');
     ChatHandlers::register(
       $bot['id'],
       $bot['number'],

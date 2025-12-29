@@ -1,7 +1,7 @@
 <?php
 
 class UpsellHandlers {
-
+  private static $logMeta = ['module' => 'UpsellHandlers', 'layer' => 'app/handlers'];
   // Procesar upsell después de venta confirmada
   static function processAfterSale($saleData, $botTimezone) {
     $saleId = $saleData['sale_id'];
@@ -11,11 +11,7 @@ class UpsellHandlers {
     $number = $saleData['number'];
     $origin = $saleData['origin'] ?? 'organic';
 
-    ogLog::info("UpsellHandlers::processAfterSale - Iniciando", [
-      'sale_id' => $saleId,
-      'product_id' => $productId,
-      'origin' => $origin
-    ], ['module' => 'upsell']);
+    ogLog::info("processAfterSale - Iniciando", [ 'sale_id' => $saleId, 'product_id' => $productId, 'origin' => $origin ], self::$logMeta);
 
     // PASO 1: Cancelar followups pendientes de esta venta
     FollowupHandlers::cancelBySale($saleId);
@@ -23,32 +19,25 @@ class UpsellHandlers {
     // PASO 2: Determinar el producto base (root) de la cadena
     $rootProductId = self::getRootProductId($saleId, $productId, $origin);
 
-    ogLog::info("Producto root determinado", [
+    ogLog::info("processAfterSale - Producto root determinado", [
       'root_product_id' => $rootProductId,
       'current_product_id' => $productId
     ], ['module' => 'upsell']);
 
     // PASO 3: Buscar upsells disponibles del PRODUCTO BASE (no del que acaba de comprar)
+    ogApp()->loadHandler('ProductHandler');
     $upsells = ProductHandler::getUpsellFile($rootProductId);
     if (empty($upsells)) {
-      ogLog::info("No hay upsells configurados para el producto", [
-        'root_product_id' => $rootProductId
-      ], ['module' => 'upsell']);
+      ogLog::info("processAfterSale - No hay upsells configurados para el producto", [ 'root_product_id' => $rootProductId ], self::$logMeta);
       return ['success' => true, 'upsell_registered' => false, 'reason' => 'no_upsells_configured'];
     }
 
-    ogLog::info("Upsells encontrados", [
-      'root_product_id' => $rootProductId,
-      'total_upsells' => count($upsells)
-    ], ['module' => 'upsell']);
+    ogLog::info("processAfterSale - Upsells encontrados", [ 'root_product_id' => $rootProductId, 'total_upsells' => count($upsells) ], self::$logMeta);
 
     // PASO 4: Obtener el parent_sale_id correcto (siempre el root)
     $rootSaleId = self::getRootSaleId($saleId, $origin);
 
-    ogLog::info("Sale root determinado", [
-      'root_sale_id' => $rootSaleId,
-      'current_sale_id' => $saleId
-    ], ['module' => 'upsell']);
+    ogLog::info("processAfterSale - Sale root determinado", [ 'root_sale_id' => $rootSaleId, 'current_sale_id' => $saleId ], self::$logMeta);
 
     // PASO 5: Buscar primer upsell no ejecutado del producto base
     $upsellToExecute = null;
@@ -81,18 +70,11 @@ class UpsellHandlers {
     }
 
     if (!$upsellToExecute) {
-      ogLog::info("Todos los upsells ya fueron ejecutados", [
-        'root_product_id' => $rootProductId,
-        'root_sale_id' => $rootSaleId
-      ], ['module' => 'upsell']);
+      ogLog::info("processAfterSale - Todos los upsells ya fueron ejecutados", [ 'root_product_id' => $rootProductId, 'root_sale_id' => $rootSaleId ], self::$logMeta);
       return ['success' => true, 'upsell_registered' => false, 'reason' => 'all_upsells_already_executed'];
     }
 
-    ogLog::info("Upsell disponible encontrado", [
-      'upsell_product_id' => $upsellToExecute['product_id'],
-      'time_type' => $upsellToExecute['time_type'] ?? 'minuto',
-      'time_value' => $upsellToExecute['time_value'] ?? 5
-    ], ['module' => 'upsell']);
+    ogLog::info("processAfterSale - Upsell disponible encontrado", [ 'upsell_product_id' => $upsellToExecute['product_id'], 'time_type' => $upsellToExecute['time_type'] ?? 'minuto', 'time_value' => $upsellToExecute['time_value'] ?? 5 ], self::$logMeta);
 
     // PASO 6: Calcular fecha futura del followup especial
     $futureDate = self::calculateUpsellFutureDate($upsellToExecute, $botTimezone);
@@ -124,12 +106,7 @@ class UpsellHandlers {
 
     ogDb::table(DB_TABLES['followups'])->insert($followupData);
 
-    ogLog::info("Followup especial de upsell registrado", [
-      'root_sale_id' => $rootSaleId,
-      'root_product_id' => $rootProductId,
-      'upsell_product_id' => $upsellToExecute['product_id'],
-      'future_date' => $futureDate
-    ], ['module' => 'upsell']);
+    ogLog::info("processAfterSale - Followup especial de upsell registrado", [ 'root_sale_id' => $rootSaleId, 'root_product_id' => $rootProductId, 'upsell_product_id' => $upsellToExecute['product_id'], 'future_date' => $futureDate ], self::$logMeta);
 
     return [
       'success' => true,
@@ -217,34 +194,29 @@ class UpsellHandlers {
 
   // Ejecutar upsell (cuando el CRON detecta followup con special='upsell')
   static function executeUpsell($followup, $botData) {
-    require_once APP_PATH . '/workflows/infoproduct/actions/CreateSaleAction.php';
+
+    require_once ogApp()->getPath() . '/workflows/infoproduct/actions/CreateSaleAction.php';
 
     $upsellProductId = $followup['product_id'];
     $clientId = $followup['client_id'];
     $botId = $followup['bot_id'];
     $number = $followup['number'];
 
-    ogLog::info("UpsellHandlers::executeUpsell - Iniciando", [
-      'followup_id' => $followup['id'],
-      'upsell_product_id' => $upsellProductId,
-      'number' => $number
-    ], ['module' => 'upsell']);
+    ogLog::info("executeUpsell - Iniciando", [ 'followup_id' => $followup['id'], 'upsell_product_id' => $upsellProductId, 'number' => $number ],  self::$logMeta);
 
     // Obtener metadata del followup
     $metadata = json_decode($followup['instruction'], true) ?? [];
     $rootSaleId = $metadata['root_sale_id'] ?? $followup['sale_id'];
 
     // Obtener datos del producto upsell
+    ogApp()->loadHandler('ProductHandler');
     $productData = ProductHandler::getProductFile($upsellProductId);
     if (!$productData) {
-      ogLog::error("Producto upsell no encontrado", ['upsell_product_id' => $upsellProductId], ['module' => 'upsell']);
+      ogLog::error("executeUpsell - Producto upsell no encontrado", ['upsell_product_id' => $upsellProductId], self::$logMeta);
       return ['success' => false, 'error' => 'upsell_product_not_found'];
     }
 
-    ogLog::info("Producto upsell cargado", [
-      'product_id' => $upsellProductId,
-      'product_name' => $productData['name'] ?? 'N/A'
-    ], ['module' => 'upsell']);
+    ogLog::info("executeUpsell - Producto upsell cargado", [ 'product_id' => $upsellProductId, 'product_name' => $productData['name'] ?? 'N/A' ], self::$logMeta);
 
     // Crear nueva venta (origen='upsell', parent_sale_id = root)
     $newSaleData = [
@@ -263,23 +235,16 @@ class UpsellHandlers {
     $saleResult = CreateSaleAction::create($newSaleData);
 
     if (!$saleResult['success']) {
-      ogLog::error("Error creando venta upsell", [
-        'product_id' => $upsellProductId,
-        'error' => $saleResult['error'] ?? 'unknown'
-      ], ['module' => 'upsell']);
+      ogLog::error("executeUpsell - Error creando venta upsell", [ 'product_id' => $upsellProductId, 'error' => $saleResult['error'] ?? 'unknown' ], self::$logMeta);
       return ['success' => false, 'error' => 'failed_to_create_upsell_sale'];
     }
 
     $newSaleId = $saleResult['sale_id'];
     $newClientId = $saleResult['client_id'];
-
-    ogLog::info("Venta upsell creada exitosamente", [
-      'new_sale_id' => $newSaleId,
-      'parent_sale_id' => $rootSaleId,
-      'product_id' => $upsellProductId
-    ], ['module' => 'upsell']);
+    ogLog::info("executeUpsell - Venta upsell creada exitosamente", [ 'new_sale_id' => $newSaleId, 'parent_sale_id' => $rootSaleId, 'product_id' => $upsellProductId ], self::$logMeta);
 
     // Registrar mensaje de sistema: Nueva venta iniciada
+    ogApp()->loadHandler('ChatHandlers');
     ChatHandlers::register(
       $botId,
       $botData['number'],
@@ -325,19 +290,14 @@ class UpsellHandlers {
     // RECONSTRUIR CHAT: Regenerar archivo JSON con nuevo current_sale
     ChatHandlers::getChat($number, $botId, true);
 
-    ogLog::info("Chat reconstruido con nueva venta upsell", [
-      'number' => $number,
-      'new_sale_id' => $newSaleId
-    ], ['module' => 'upsell']);
+    ogLog::info("executeUpsell - Chat reconstruido con nueva venta upsell", [ 'number' => $number, 'new_sale_id' => $newSaleId ], self::$logMeta);
 
     // Enviar welcome del upsell (desde welcome_upsell_{product_id}.json)
     $welcomeMessages = ProductHandler::getMessagesFile('welcome_upsell', $upsellProductId);
+    $chatapi = ogApp()->service('chatApi');
 
     if (!empty($welcomeMessages)) {
-      ogLog::info("Enviando welcome upsell", [
-        'product_id' => $upsellProductId,
-        'total_messages' => count($welcomeMessages)
-      ], ['module' => 'upsell']);
+      ogLog::info("executeUpsell - Enviando welcome upsell", [ 'product_id' => $upsellProductId, 'total_messages' => count($welcomeMessages) ], self::$logMeta);
 
       foreach ($welcomeMessages as $index => $msg) {
         $delay = isset($msg['delay']) ? (int)$msg['delay'] : 3;
@@ -349,21 +309,20 @@ class UpsellHandlers {
         }
 
         // Solo enviar mensaje (no registrar en DB/JSON)
-        ogChatApi::send($number, $text, $url);
+        $chatapi::send($number, $text, $url);
       }
+    }else{
+      ogLog::info("executeUpsell - No hay mensajes de welcome upsell para enviar", [ 'product_id' => $upsellProductId ], self::$logMeta);
     }
 
     // Registrar followups del upsell (desde follow_upsell_{product_id}.json)
     $followupMessages = ProductHandler::getMessagesFile('follow_upsell', $upsellProductId);
 
     if (!empty($followupMessages)) {
-      ogLog::info("Registrando followups upsell", [
-        'product_id' => $upsellProductId,
-        'total_followups' => count($followupMessages)
-      ], ['module' => 'upsell']);
-
+      ogLog::info("executeUpsell - Registrando followups upsell", [ 'product_id' => $upsellProductId, 'total_followups' => count($followupMessages)], self::$logMeta);
       $botTimezone = $botData['config']['timezone'] ?? 'America/Guayaquil';
 
+      ogApp()->loadHandler('FollowupHandlers');
       FollowupHandlers::registerFromSale(
         [
           'sale_id' => $newSaleId,
@@ -377,11 +336,7 @@ class UpsellHandlers {
       );
     }
 
-    ogLog::info("Upsell ejecutado completamente", [
-      'new_sale_id' => $newSaleId,
-      'upsell_product_id' => $upsellProductId,
-      'root_sale_id' => $rootSaleId
-    ], ['module' => 'upsell']);
+    ogLog::info("executeUpsell -  Upsell ejecutado completamente", [ 'new_sale_id' => $newSaleId, 'upsell_product_id' => $upsellProductId, 'root_sale_id' => $rootSaleId ], self::$logMeta);
 
     return [
       'success' => true,

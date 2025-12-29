@@ -19,7 +19,9 @@ class ogChatApiService {
 
   // Detectar provider desde webhook y normalizar
   static function detectAndNormalize($rawData) {
+    // Cargar ogService bajo demanda
     $service = ogApp()->core('service');
+
     $provider = $service::detect('ogChatApi', $rawData);
     if (!$provider) return null;
 
@@ -122,46 +124,57 @@ class ogChatApiService {
   }
 
   private static function loadProvider(string $type, array $config) {
-    // Mapeo de tipos a archivos de provider
+    $basePath = OG_FRAMEWORK_PATH . '/services/integrations/ogChatApi';
+
+    // Mapeo de tipos a providers
     $providerMap = [
       'evolutionapi' => [
         'class' => 'evolutionProvider',
-        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogChatApi/evolution/evolutionProvider.php'
+        'folder' => 'evolution'
       ],
       'testing' => [
         'class' => 'testingProvider',
-        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogChatApi/testing/testingProvider.php'
+        'folder' => 'testing'
       ]
     ];
 
     if (!isset($providerMap[$type])) {
-      ogLog::throwError(__('services.ogChatApi.provider_not_supported', ['provider' => $type]), [], self::$logMeta);
+      ogLog::throwError( 'loadProvider - ' . __('services.ogChatApi.provider_not_supported', ['provider' => $type]), [], self::$logMeta);
     }
 
     $providerInfo = $providerMap[$type];
     $providerClass = $providerInfo['class'];
-    $providerPath = $providerInfo['path'];
+    $providerFolder = $providerInfo['folder'];
+    $providerPath = "{$basePath}/{$providerFolder}/{$providerClass}.php";
 
-    // Cargar provider bajo demanda
-    if (!class_exists($providerClass)) {
-      // Cargar interface y base primero si no existen
-      if (!interface_exists('chatApiProviderInterface')) {
-        require_once OG_FRAMEWORK_PATH . '/services/integrations/ogChatApi/chatApiProviderInterface.php';
+    // Validar y cargar archivos bajo demanda
+    // Cargar interface
+    if (!interface_exists('chatApiProviderInterface')) {
+      $interfacePath = "{$basePath}/chatApiProviderInterface.php";
+      if (!file_exists($interfacePath)) {
+        ogLog::throwError( 'loadProvider - ' . __('services.ogChatApi.interface_file_not_found', ['path' => $interfacePath]), [], self::$logMeta);
       }
-      if (!class_exists('baseChatApiProvider')) {
-        require_once OG_FRAMEWORK_PATH . '/services/integrations/ogChatApi/baseChatApiProvider.php';
-      }
-
-      // Cargar provider específico
-      if (!file_exists($providerPath)) {
-        ogLog::throwError(__('services.ogChatApi.provider_file_not_found', ['path' => $providerPath]), [], self::$logMeta);
-      }
-
-      require_once $providerPath;
+      require_once $interfacePath;
     }
 
+    // Cargar base
+    if (!class_exists('baseChatApiProvider')) {
+      $baseClassPath = "{$basePath}/baseChatApiProvider.php";
+      if (!file_exists($baseClassPath)) {
+        ogLog::throwError( 'loadProvider - ' . __('services.ogChatApi.base_class_file_not_found', ['path' => $baseClassPath]), [], self::$logMeta);
+      }
+      require_once $baseClassPath;
+    }
+
+    // Cargar provider específico
+    if (!file_exists($providerPath)) {
+      ogLog::throwError( 'loadProvider - ' . __('services.ogChatApi.provider_file_not_found', ['path' => $providerPath]), [], self::$logMeta);
+    }
+    require_once $providerPath;
+
+    // Verificar que la clase existe después de cargar
     if (!class_exists($providerClass)) {
-      ogLog::throwError(__('services.ogChatApi.provider_class_not_found', ['class' => $providerClass]), [], self::$logMeta);
+      ogLog::throwError( 'loadProvider - ' . __('services.ogChatApi.provider_class_not_found', ['class' => $providerClass]), [], self::$logMeta);
     }
 
     return new $providerClass($config);

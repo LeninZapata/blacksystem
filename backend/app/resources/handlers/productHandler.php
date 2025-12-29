@@ -3,6 +3,7 @@ class ProductHandler {
 
   protected static $table = DB_TABLES['products'];
   protected static $tableBots = DB_TABLES['bots'];
+  private static $logMeta = ['module' => 'CRUD/ProductHandler', 'layer' => 'app/resources'];
 
   // Handler principal por contexto
   static function handleByContext($productData, $action = 'create', $oldBotId = null) {
@@ -53,7 +54,7 @@ class ProductHandler {
 
       return true;
     } catch (Exception $e) {
-      ogLog::error('ProductHandler::handleInfoproduct - Error', ['message' => $e->getMessage()], ['module' => 'product']);
+      ogLog::error('handleInfoproduct - Error', ['message' => $e->getMessage()], self::$logMeta);
       return false;
     }
   }
@@ -124,13 +125,7 @@ class ProductHandler {
       }
     }
 
-    ogLog::info('ProductHandler::deleteProductFiles - Archivos eliminados', [
-      'product_id' => $productId,
-      'deleted_count' => count($deletedFiles),
-      'errors_count' => count($errors),
-      'deleted_files' => $deletedFiles,
-      'errors' => $errors
-    ], ['module' => 'product']);
+    ogLog::info('deleteProductFiles - Archivos eliminados', [ 'product_id' => $productId, 'deleted_count' => count($deletedFiles), 'errors_count' => count($errors), 'deleted_files' => $deletedFiles, 'errors' => $errors ], self::$logMeta );
 
     return [
       'success' => empty($errors),
@@ -150,7 +145,8 @@ class ProductHandler {
     }
 
     $path = BOTS_INFOPRODUCT_RAPID_PATH . '/activators_' . $botNumber . '.json';
-    return ogFile::getJson($path, function() use ($botNumber, $botId) {
+
+    return ogApp()->helper('file')::getJson($path, function() use ($botNumber, $botId) {
       return self::generateActivatorsFile($botNumber, $botId, 'rebuild');
     });
   }
@@ -158,7 +154,7 @@ class ProductHandler {
   // Obtener archivo de producto
   static function getProductFile($productId) {
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/' . $productId . '.json';
-    return ogFile::getJson($path, function() use ($productId) {
+    return ogApp()->helper('file')::getJson($path, function() use ($productId) {
       return self::generateProductFile($productId, 'rebuild');
     });
   }
@@ -177,7 +173,7 @@ class ProductHandler {
     if (!isset($typeMap[$type])) return null;
 
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/' . $type . '_' . $productId . '.json';
-    return ogFile::getJson($path, function() use ($type, $productId) {
+    return ogApp()->helper('file')::getJson($path, function() use ($type, $productId) {
       if ($type === 'upsell') {
         return self::generateUpsellFile($productId, 'rebuild');
       }
@@ -191,7 +187,7 @@ class ProductHandler {
   // Obtener archivo de templates
   static function getTemplatesFile($productId) {
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/template_' . $productId . '.json';
-    return ogFile::getJson($path, function() use ($productId) {
+    return ogApp()->helper('file')::getJson($path, function() use ($productId) {
       return self::generateTemplatesFile($productId, 'rebuild');
     });
   }
@@ -199,7 +195,7 @@ class ProductHandler {
   // Obtener archivo de upsell
   static function getUpsellFile($productId) {
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/upsell_' . $productId . '.json';
-    return ogFile::getJson($path, function() use ($productId) {
+    return ogApp()->helper('file')::getJson($path, function() use ($productId) {
       return self::generateUpsellFile($productId, 'rebuild');
     });
   }
@@ -232,7 +228,7 @@ class ProductHandler {
     ];
 
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/' . $productId . '.json';
-    return ogFile::saveJson($path, $productData, 'product', $action);
+    return ogApp()->helper('file')::saveJson($path, $productData, 'product', $action);
   }
 
   // Generar archivo de mensajes
@@ -257,7 +253,7 @@ class ProductHandler {
 
     $messages = $config['messages'][$typeMap[$type]] ?? [];
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/' . $type . '_' . $productId . '.json';
-    return ogFile::saveJson($path, $messages, 'product', $action);
+    return ogApp()->helper('file')::saveJson($path, $messages, 'product', $action);
   }
 
   // Generar archivo de templates
@@ -271,7 +267,7 @@ class ProductHandler {
 
     $templates = $config['messages']['templates'] ?? [];
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/template_' . $productId . '.json';
-    return ogFile::saveJson($path, $templates, 'product', $action);
+    return ogApp()->helper('file')::saveJson($path, $templates, 'product', $action);
   }
 
   // Generar archivo de upsell
@@ -285,7 +281,7 @@ class ProductHandler {
 
     $upsells = $config['messages']['upsell_products'] ?? [];
     $path = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/upsell_' . $productId . '.json';
-    return ogFile::saveJson($path, $upsells, 'product', $action);
+    return ogApp()->helper('file')::saveJson($path, $upsells, 'product', $action);
   }
 
   // Generar archivo de activators (compartido por bot)
@@ -295,14 +291,14 @@ class ProductHandler {
     if (!$botNumber) {
       $bot = ogDb::table(self::$tableBots)->find($botId);
       if (!$bot || !isset($bot['number'])) {
-        ogLog::error('ProductHandler::generateActivatorsFile - Bot no encontrado', ['bot_id' => $botId], ['module' => 'product']);
+        ogLog::error('generateActivatorsFile - Bot no encontrado', ['bot_id' => $botId], self::$logMeta);
         return false;
       }
       $botNumber = $bot['number'];
     } else if (!$botId) {
       $bot = ogDb::table(self::$tableBots)->where('number', $botNumber)->first();
       if (!$bot) {
-        ogLog::error('ProductHandler::generateActivatorsFile - Bot no encontrado', ['bot_number' => $botNumber], ['module' => 'product']);
+        ogLog::error('generateActivatorsFile - Bot no encontrado', ['bot_number' => $botNumber], self::$logMeta);
         return false;
       }
       $botId = $bot['id'];
@@ -332,6 +328,6 @@ class ProductHandler {
     }
 
     $path = BOTS_INFOPRODUCT_RAPID_PATH . '/activators_' . $botNumber . '.json';
-    return ogFile::saveJsonItems($path, $activators, 'product', $action);
+    return ogApp()->helper('file')::saveJsonItems($path, $activators, 'product', $action);
   }
 }

@@ -2,6 +2,7 @@
 class ChatHandlers {
 
   private static $table = DB_TABLES['chats'];
+  private static $logMeta = [ 'module' => 'ChatHandlers', 'layer' => 'app/handler' ];
 
   // Registrar mensaje de chat
   static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type = 'P', $format = 'text', $metadata = null, $saleId = 0) {
@@ -207,12 +208,7 @@ class ChatHandlers {
     $chatId = "chat_{$number}_bot_{$botId}";
     $chatFile = CHATS_STORAGE_PATH . '/' . $chatId . '.json';
 
-    ogLog::debug("ChatHandlers::addMessage - Agregando mensaje al chat", [
-      'chat_file' => $chatFile,
-      'message_type' => $type,
-      'message_format' => $data['format'] ?? 'text',
-      'data' => $data
-    ], ['module' => 'chat']);
+    // ogLog::debug("addMessage - Agregando mensaje al chat", [ 'chat_file' => $chatFile, 'message_type' => $type, 'message_format' => $data['format'] ?? 'text', 'data' => $data ], self::$logMeta);
 
     $chatData = self::getOrCreateChatStructure($chatFile, $data);
 

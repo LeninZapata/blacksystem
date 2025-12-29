@@ -1,6 +1,7 @@
 <?php
 class BotHandlers {
   protected static $table = DB_TABLES['bots'];
+  private static $logMeta = ['module' => 'BotHandlers', 'layer' => 'app/resources'];
 
   /**
    * Guardar archivos de contexto del bot
@@ -8,7 +9,7 @@ class BotHandlers {
    */
   static function saveContextFile($botData, $action = 'create', $oldNumber = null) {
     if (!isset($botData['id']) || !isset($botData['number'])) {
-      ogLog::error('BotHandlers::saveContextFile - Datos insuficientes', null, ['module' => 'bot']);
+      ogLog::error('saveContextFile - Datos insuficientes', null, self::$logMeta);
       return false;
     }
 
@@ -61,7 +62,7 @@ class BotHandlers {
     if (!$botData) {
       $botData = ogDb::table(self::$table)->where('number', $botNumber)->first();
       if (!$botData) {
-        ogLog::error("BotHandlers::generateWorkflowFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
+        ogLog::error("generateWorkflowFile - Bot no encontrado: {$botNumber}", null,  self::$logMeta);
         return false;
       }
     }
@@ -94,7 +95,7 @@ class BotHandlers {
     if (!$botData) {
       $botData = ogDb::table(self::$table)->where('number', $botNumber)->first();
       if (!$botData) {
-        ogLog::error("BotHandlers::generateDataFile - Bot no encontrado: {$botNumber}", null, ['module' => 'bot']);
+        ogLog::error("generateDataFile - Bot no encontrado: {$botNumber}", null, self::$logMeta);
         return false;
       }
     }

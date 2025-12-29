@@ -2,6 +2,8 @@
 
 class SendWelcomeAction {
 
+  private static $logMeta = ['module' => 'SendWelcomeAction', 'layer' => 'app/workflows'];
+
   static function send($dataSale) {
     $bot = $dataSale['bot'];
     $person = $dataSale['person'];
@@ -11,24 +13,17 @@ class SendWelcomeAction {
     $from = $person['number'];
     $name = $person['name'];
 
+    ogApp()->loadHandler('ProductHandler');
     $messages = ProductHandler::getMessagesFile('welcome', $productId);
 
     if (!$messages) {
-      ogLog::error("SendWelcomeAction::send - No existe mensaje de bienvenida para este producto", [
-        'product_id' => $productId,
-        'product_name' => $product['name']
-      ], ['module' => 'infoproduct', 'layer' => 'app']);
-      return [
-        'success' => false,
-        'error' => 'welcome_file_not_found'
-      ];
+      ogLog::error("send - No existe mensaje de bienvenida para este producto", [ 'product_id' => $productId, 'product_name' => $product['name'] ], self::$logMeta);
+      return [ 'success' => false, 'error' => 'welcome_file_not_found' ];
     }
 
     if (empty($messages)) {
-      return [
-        'success' => false,
-        'error' => 'no_messages_configured'
-      ];
+      ogLog::error("send - No hay mensajes configurados en el archivo de bienvenida", [ 'product_id' => $productId, 'product_name' => $product['name'] ], self::$logMeta);
+      return [ 'success' => false, 'error' => 'no_messages_configured' ];
     }
 
     $totalMessages = count($messages);
@@ -36,6 +31,7 @@ class SendWelcomeAction {
     $clientId = null;
     $saleId = null;
 
+    $chatapi = ogApp()->service('chatApi');
     foreach ($messages as $index => $msg) {
       $delay = isset($msg['delay']) ? (int)$msg['delay'] : 3;
       $text = $msg['message'] ?? '';
@@ -50,7 +46,7 @@ class SendWelcomeAction {
           $durationMs = $duration * 1000;
 
           try {
-            ogChatApi::sendPresence($from, 'composing', $durationMs);
+            $chatapi::sendPresence($from, 'composing', $durationMs);
           } catch (Exception $e) {
             sleep($duration);
             continue;
@@ -58,13 +54,14 @@ class SendWelcomeAction {
         }
       }
 
-      $result = ogChatApi::send($from, $text, $url);
+      $result = $chatapi::send($from, $text, $url);
       $messagesSent++;
 
       if ($messagesSent === 1 && $result['success']) {
         $saleResult = CreateSaleAction::create($dataSale);
 
         if ($saleResult['success']) {
+          ogLog::success("send - Venta creada exitosamente durante el primer mensaje del welcome", [ 'sale_id' => $saleResult['sale_id'], 'client_id' => $saleResult['client_id'], 'product_id' => $productId ], self::$logMeta);
           $clientId = $saleResult['client_id'];
           $saleId = $saleResult['sale_id'];
 
@@ -73,7 +70,7 @@ class SendWelcomeAction {
 
           if (!empty($followups)) {
             $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
-
+            ogApp()->loadHandler('FollowupHandlers');
             FollowupHandlers::registerFromSale(
               [
                 'sale_id' => $saleId,
@@ -85,6 +82,9 @@ class SendWelcomeAction {
               $followups,
               $botTimezone
             );
+            ogLog::info("send - Followups registrados exitosamente para la venta", [ 'sale_id' => $saleId, 'client_id' => $clientId, 'product_id' => $productId, 'timezone_bot' => $botTimezone ], self::$logMeta);
+          }else{
+            ogLog::info("send - No hay followups configurados para este producto", [ 'product_id' => $productId ], self::$logMeta);
           }
         }
       }

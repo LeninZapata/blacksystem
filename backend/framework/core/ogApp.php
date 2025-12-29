@@ -5,6 +5,7 @@ class ogFramework {
   private $pluginName;
   private $pluginPath;
   private $isWordPress;
+  private $logMeta = ['module' => 'ogFramework', 'layer' => 'core/framework'];
   public $loaded = [];  // Public para que ogApplication pueda guardar router
 
   private function __construct($pluginName = 'default', $pluginPath = null, $isWordPress = false) {
@@ -140,17 +141,18 @@ class ogFramework {
     // Buscar en framework primero, luego en app
     $handlerFile = OG_FRAMEWORK_PATH . "/handlers/{$name}.php";
     if (!file_exists($handlerFile)) {
+      // ogLog::debug("loadHandler - Handler not found in framework, trying app: {$name}", [$name], $this->logMeta);
       $handlerFile = $this->pluginPath . "/resources/handlers/{$name}.php";
     }
 
     if (!file_exists($handlerFile)) {
-      throw new Exception("Handler not found: {$name}");
+      ogLog::throwError("loadHandler - Handler not found in app: {$name}", [$name], $this->logMeta);
     }
 
     require_once $handlerFile;
 
     if (!class_exists($name)) {
-      throw new Exception("Handler class not found: {$name}");
+      ogLog::throwError("loadHandler - Handler class not found: {$name}", [$name], ['module' => 'ogFramework', 'layer' => 'core/framework']);
     }
 
     return true;

@@ -1,7 +1,7 @@
 <?php
 
 class DoesNotWantProductAction implements ActionHandler {
-
+  private $logMeta = ['module' => 'action/DoesNotWantProductAction', 'layer' => 'app/workflows'];
   public function handle($context): array {
     $bot = $context['bot'];
     $person = $context['person'];
@@ -12,9 +12,7 @@ class DoesNotWantProductAction implements ActionHandler {
     $saleId = $metadata['sale_id'] ?? $chatData['current_sale']['sale_id'] ?? null;
 
     if (!$saleId) {
-      ogLog::warning("DoesNotWantProductAction - No sale_id encontrado", [
-        'number' => $person['number']
-      ], ['module' => 'does_not_want_product']);
+      ogLog::warning("handle - No sale_id encontrado", [ 'number' => $person['number'] ], $this->logMeta);
 
       return [
         'success' => false,
@@ -32,13 +30,10 @@ class DoesNotWantProductAction implements ActionHandler {
     $this->registerCancellation($bot, $person, $chatData, $saleId);
 
     // Reconstruir chat JSON
+    ogApp()->loadHandler('ChatHandlers');
     ChatHandlers::rebuildFromDB($person['number'], $bot['id']);
 
-    ogLog::info("DoesNotWantProductAction - Venta cancelada", [
-      'sale_id' => $saleId,
-      'followups_cancelled' => $cancelResult,
-      'sale_updated' => $saleUpdateResult
-    ], ['module' => 'does_not_want_product']);
+    ogLog::info("handle - Venta cancelada", [ 'sale_id' => $saleId, 'followups_cancelled' => $cancelResult, 'sale_updated' => $saleUpdateResult ], $this->logMeta );
 
     return [
       'success' => true,
@@ -53,13 +48,14 @@ class DoesNotWantProductAction implements ActionHandler {
   }
 
   private function cancelFollowups($saleId) {
-    require_once APP_PATH . '/resources/handlers/FollowupHandlers.php';
+    //require_once APP_PATH . '/resources/handlers/FollowupHandlers.php';
+    ogApp()->loadHandler('FollowupHandlers');
     return FollowupHandlers::cancelBySale($saleId);
   }
 
   private function updateSaleStatus($saleId) {
     try {
-      $affected = db::table(DB_TABLES['sales'])
+      $affected = ogDb::table(DB_TABLES['sales'])
         ->where('id', $saleId)
         ->update([
           'process_status' => 'cancelled',
@@ -69,9 +65,7 @@ class DoesNotWantProductAction implements ActionHandler {
 
       return $affected > 0;
     } catch (Exception $e) {
-      ogLog::error("DoesNotWantProductAction::updateSaleStatus - Error", [
-        'error' => $e->getMessage()
-      ], ['module' => 'does_not_want_product']);
+      ogLog::error("updateSaleStatus - Error", [ 'error' => $e->getMessage() ], $this->logMeta);
 
       return false;
     }
@@ -85,6 +79,7 @@ class DoesNotWantProductAction implements ActionHandler {
       'cancelled_at' => date('Y-m-d H:i:s')
     ];
 
+    ogApp()->loadHandler('ChatHandlers');
     ChatHandlers::register(
       $bot['id'],
       $bot['number'],

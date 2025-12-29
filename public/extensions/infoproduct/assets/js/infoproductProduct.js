@@ -32,7 +32,7 @@ class infoproductProduct {
     const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
     const messagesData = configData.messages || {};
 
-    ogForm.fill(formId, {
+    window.ogForm.fill(formId, {
       name: data.name,
       bot_id: data.bot_id ? String(data.bot_id) : '',
       price: data.price || '',
@@ -50,7 +50,7 @@ class infoproductProduct {
   }
 
   static async save(formId) {
-    const validation = ogForm.validate(formId);
+    const validation = window.ogForm.validate(formId);
     if (!validation.success) return ogToast.error(validation.message);
 
     // Validar que no se seleccione el mismo producto como upsell
@@ -80,7 +80,7 @@ class infoproductProduct {
         : __('infoproduct.products.success.created')
       );
       setTimeout(() => {
-        ogForm.closeAll();
+        window.ogModal.closeAll();
         this.refresh();
       }, 100);
     }
@@ -145,7 +145,7 @@ class infoproductProduct {
     if (!data) return null;
 
     try {
-      const res = await api.post(this.apis.product, data);
+      const res = await ogApi.post(this.apis.product, data);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:infoproduct', error);
@@ -156,7 +156,7 @@ class infoproductProduct {
 
   static async get(id) {
     try {
-      const res = await api.get(`${this.apis.product}/${id}`);
+      const res = await ogApi.get(`${this.apis.product}/${id}`);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       logger.error('ext:infoproduct', error);
@@ -169,10 +169,10 @@ class infoproductProduct {
     if (!data) return null;
 
     try {
-      const res = await api.put(`${this.apis.product}/${id}`, {...data, id});
+      const res = await ogApi.put(`${this.apis.product}/${id}`, {...data, id});
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:infoproduct', error);
+      ogLogger.error('ext:infoproduct', error);
       ogToast.error(__('infoproduct.products.error.update_failed'));
       return null;
     }
@@ -180,7 +180,7 @@ class infoproductProduct {
 
   static async delete(id) {
     try {
-      const res = await api.delete(`${this.apis.product}/${id}`);
+      const res = await ogApi.delete(`${this.apis.product}/${id}`);
       if (res.success === false) {
         ogToast.error(__('infoproduct.products.error.delete_failed'));
         return null;
@@ -189,7 +189,7 @@ class infoproductProduct {
       this.refresh();
       return res.data || res;
     } catch (error) {
-      logger.error('ext:infoproduct', error);
+      ogLogger.error('ext:infoproduct', error);
       ogToast.error(__('infoproduct.products.error.delete_failed'));
       return null;
     }
@@ -197,34 +197,34 @@ class infoproductProduct {
 
   static async list() {
     try {
-      const res = await api.get(this.apis.product);
+      const res = await ogApi.get(this.apis.product);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:infoproduct', error);
+      ogLogger.error('ext:infoproduct', error);
       return [];
     }
   }
 
   // Refrescar datatable
   static refresh() {
-    if (window.datatable) datatable.refreshFirst();
+    if (window.ogDatatable) ogDatatable.refreshFirst();
   }
 
   // Limpiar cache del select de productos
   static clearProductSelectCache() {
-    if (!window.form || !ogForm.selectCache) return;
+    if (!window.form || !window.ogForm.selectCache) return;
 
     // Buscar y eliminar todas las keys del cache que contengan '/api/product'
     const keysToDelete = [];
-    ogForm.selectCache.forEach((value, key) => {
+    window.ogForm.selectCache.forEach((value, key) => {
       if (key.includes('/api/product')) {
         keysToDelete.push(key);
       }
     });
 
     keysToDelete.forEach(key => {
-      ogForm.selectCache.delete(key);
-      logger.debug('ext:infoproduct', `Cache eliminado: ${key}`);
+      window.ogForm.selectCache.delete(key);
+      ogLogger.debug('ext:infoproduct', `Cache eliminado: ${key}`);
     });
   }
 }

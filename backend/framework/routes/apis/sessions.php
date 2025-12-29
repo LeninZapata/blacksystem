@@ -242,12 +242,13 @@ $router->group('/api/sessions', function($router) {
 
   // Invalidar todas las sesiones de un usuario
   $router->delete('/user/{user_id}', function($userId) use ($logMeta) {
+    ogApp()->loadController('UserController');
     $cleaned = UserController::invalidateSessions($userId);
-    
+
     ogResponse::success([
       'user_id' => (int)$userId,
       'cleaned' => $cleaned
     ], __('api.session.invalidated', ['count' => $cleaned]));
-  })->middleware($middleware);
+  }); //->middleware($middleware);
 
 });

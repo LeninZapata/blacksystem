@@ -1,10 +1,11 @@
 <?php
 // Response - Manejo de respuestas HTTP/JSON
 class ogResponse {
+  private static $logMeta = ['module' => 'Response', 'layer' => 'framework/helper'];
   // Respuesta JSON
   static function json($data, $code = 200) {
     if ($code !== 200) {
-      ogLog::error('Response Error', ['code' => $code, 'data' => $data], ['module' => 'response', 'layer' => 'framework']);
+      ogLog::error('Response Error', ['code' => $code, 'data' => $data], self::$logMeta);
     }
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');

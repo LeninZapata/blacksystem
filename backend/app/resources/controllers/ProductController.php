@@ -1,6 +1,7 @@
 <?php
 class ProductController extends ogController {
   protected static $table = DB_TABLES['products'];
+  private $logMeta = ['module' => 'ProductControlleroduct', 'layer' => 'app/resources'];
 
   function __construct() {
     parent::__construct('product');
@@ -26,19 +27,22 @@ class ProductController extends ogController {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
 
-    ogLog::debug('productController - Datos para crear producto', $data, ['module' => 'product']);
+    // ogLog::debug('create - Datos para crear producto', $data, $this->logMeta);
 
     try {
       $id = ogDb::table(self::$table)->insert($data);
 
       if (isset($data['context'])) {
         $data['id'] = $id;
+        ogApp()->loadHandler('ProductHandler');
         ProductHandler::handleByContext($data, 'create');
       }
-
-      ogResponse::success(['id' => $id], __('product.create.success'), 201);
+      if( $id ){
+        ogLog::success('create - Producto creado', [ 'id' => $id ],  $this->logMeta);
+        ogResponse::success(['id' => $id], __('product.create.success') );
+      }
     } catch (Exception $e) {
-      ogLog::error('productController - Error SQL al crear producto', ['message' => $e->getMessage()], ['module' => 'product']);
+      ogLog::error('create - Error SQL al crear producto', ['message' => $e->getMessage()],  $this->logMeta);
       ogResponse::serverError(__('product.create.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
@@ -63,16 +67,11 @@ class ProductController extends ogController {
 
     try {
       $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
-
-      ogLog::info('productController - Producto actualizado', [
-        'id' => $id,
-        'bot_changed' => $botChanged,
-        'old_bot_id' => $oldBotId,
-        'new_bot_id' => $newBotId
-      ], ['module' => 'product']);
+      ogLog::info('update - Producto actualizado', [ 'id' => $id, 'bot_changed' => $botChanged, 'old_bot_id' => $oldBotId, 'new_bot_id' => $newBotId ],  $this->logMeta);
 
       if ($affected > 0 && isset($data['context'])) {
         $data['id'] = $id;
+        ogApp()->loadHandler('ProductHandler');
         ProductHandler::handleByContext($data, 'update', $botChanged ? $oldBotId : null);
       }
 
@@ -120,13 +119,10 @@ class ProductController extends ogController {
     try {
       // Eliminar archivos asociados si es infoproduct
       if ($context === 'infoproductws' && $botId) {
+        ogApp()->loadHandler('ProductHandler');
         $filesDeletion = ProductHandler::deleteProductFiles($id, $botId);
-        
-        ogLog::info('productController::delete - Archivos eliminados', [
-          'product_id' => $id,
-          'files_deleted' => count($filesDeletion['deleted'] ?? []),
-          'errors' => count($filesDeletion['errors'] ?? [])
-        ], ['module' => 'product']);
+
+        ogLog::info('delete - Archivos eliminados', [ 'product_id' => $id, 'files_deleted' => count($filesDeletion['deleted'] ?? []), 'errors' => count($filesDeletion['errors'] ?? []) ],  $this->logMeta);
       }
 
       // Eliminar registro de BD

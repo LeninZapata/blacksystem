@@ -1,7 +1,7 @@
 <?php
 
 class ImageMessageProcessor implements MessageProcessorInterface {
-
+  private $logMeta = ['module' => 'ImageMessageProcessor', 'layer' => 'app/workflows'];
   public function process(array $messages, array $context): array {
     $bot = $context['bot'];
     $person = $context['person'];
@@ -28,20 +28,13 @@ class ImageMessageProcessor implements MessageProcessorInterface {
 
     // ✅ VALIDACIÓN INTELIGENTE: Solo enviar mensaje de espera si hay venta pendiente
     if ($this->shouldSendWaitMessage($chatData)) {
-      ogLog::info("ImageMessageProcessor - Enviando mensaje de espera", [
-        'number' => $person['number'],
-        'reason' => 'venta_pendiente'
-      ], ['module' => 'image_processor']);
-
+      ogLog::info("process - Enviando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'pending_sale' ], $this->logMeta);
       $this->sendWaitMessage($person['number']);
     } else {
-      ogLog::info("ImageMessageProcessor - Saltando mensaje de espera", [
-        'number' => $person['number'],
-        'reason' => 'sin_venta_pendiente'
-      ], ['module' => 'image_processor']);
+      ogLog::info("process - Saltando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'sin_venta_pendiente' ], $this->logMeta);
     }
 
-    require_once APP_PATH . '/workflows/infoproduct/interpreters/ImageInterpreter.php';
+    require_once ogApp()->getPath() . '/workflows/infoproduct/interpreters/ImageInterpreter.php';
     $analysis = ImageInterpreter::interpret($imageMessage, $bot);
 
     if (!$analysis['success']) {
@@ -67,22 +60,20 @@ class ImageMessageProcessor implements MessageProcessorInterface {
    */
   private function shouldSendWaitMessage($chatData) {
     if (!$chatData) {
-      ogLog::debug("ImageMessageProcessor::shouldSendWaitMessage - No chatData", [], ['module' => 'image_processor']);
+      ogLog::warn("shouldSendWaitMessage - No chatData", [], $this->logMeta );
       return false;
     }
 
     $currentSale = $chatData['full_chat']['current_sale'] ?? null;
-
-    ogLog::debug("ImageMessageProcessor::shouldSendWaitMessage - Validación", [
-      'has_current_sale' => $currentSale !== null
-    ], ['module' => 'image_processor']);
+    ogLog::debug("shouldSendWaitMessage - Validación", [ 'has_current_sale' => $currentSale !== null ], $this->logMeta);
 
     // Solo enviar mensaje si hay venta pendiente
     return $currentSale !== null;
   }
 
   private function sendWaitMessage($to) {
+    $chatapi = ogApp()->service('chatapi');
     $message = "Listo ✅\nUn momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste)\n\n🕐 Si tardo en responder, no te preocupes.\nEstoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊💡";
-    ogChatApi::send($to, $message);
+    $chatapi::send($to, $message);
   }
 }

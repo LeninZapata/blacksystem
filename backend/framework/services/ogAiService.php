@@ -1,7 +1,7 @@
 <?php
 class ogAiService {
 
-  private static $logMeta = ['module' => 'ai', 'layer' => 'framework'];
+  private static $logMeta = ['module' => 'ai', 'layer' => 'framework/services'];
 
   // Chat completion con fallback automático
   public function getChatCompletion($prompt, $bot, $options = []) {
@@ -31,10 +31,10 @@ class ogAiService {
         }
       }
 
-      ogLog::throwError(__('services.ai.all_services_failed', ['error' => $lastError]), ['services_tried' => $attemptNumber], self::$logMeta);
+      ogLog::throwError( 'getChatCompletion - ' . __('services.ai.all_services_failed', ['error' => $lastError]), ['services_tried' => $attemptNumber], self::$logMeta);
 
     } catch (Exception $e) {
-      ogLog::error('Error en chat completion', ['error' => $e->getMessage()], self::$logMeta);
+      ogLog::error('getChatCompletion - Error en chat completion', ['error' => $e->getMessage()], self::$logMeta);
       return ['success' => false, 'error' => $e->getMessage(), 'services_tried' => $attemptNumber ?? 0];
     }
   }
@@ -99,23 +99,63 @@ class ogAiService {
     }
   }
 
-  // Crear instancia del proveedor
+  // Crear instancia del proveedor con carga bajo demanda
   private function createProvider($serviceConfig) {
     $config = $serviceConfig['config'] ?? [];
     $slug = strtolower($config['type_value'] ?? '');
 
+    // Mapeo de slugs a providers
     $providerMap = [
-      'deepseek' => 'deepSeekProvider',
-      'openai' => 'openAiProvider',
-      'gpt' => 'openAiProvider'
+      'deepseek' => [
+        'class' => 'deepSeekProvider',
+        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogAi/deepseek/deepSeekProvider.php'
+      ],
+      'openai' => [
+        'class' => 'openAiProvider',
+        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogAi/openai/openAiProvider.php'
+      ],
+      'gpt' => [
+        'class' => 'openAiProvider',
+        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogAi/openai/openAiProvider.php'
+      ]
     ];
 
-    $providerClass = $providerMap[$slug] ?? null;
-    if (!$providerClass) ogLog::throwError(__('services.ai.provider_not_supported', ['provider' => $slug]), [], self::$logMeta);
+    if (!isset($providerMap[$slug])) {
+      ogLog::throwError('createProvider - ' . __('services.ai.provider_not_supported', ['provider' => $slug]), [], self::$logMeta);
+    }
 
-    // Autoload carga la clase automáticamente
+    $providerInfo = $providerMap[$slug];
+    $providerClass = $providerInfo['class'];
+    $providerPath = $providerInfo['path'];
+
+    // Validar y cargar archivos bajo demanda
+    // Cargar interface
+    if (!interface_exists('aiProviderInterface')) {
+      $interfacePath = OG_FRAMEWORK_PATH . '/services/integrations/ogAi/aiProviderInterface.php';
+      if (!file_exists($interfacePath)) {
+        ogLog::throwError('createProvider - Interface file not found: ' . $interfacePath, [], self::$logMeta);
+      }
+      require_once $interfacePath;
+    }
+
+    // Cargar base
+    if (!class_exists('baseAIProvider')) {
+      $basePath = OG_FRAMEWORK_PATH . '/services/integrations/ogAi/baseAIProvider.php';
+      if (!file_exists($basePath)) {
+        ogLog::throwError('createProvider - Base class file not found: ' . $basePath, [], self::$logMeta);
+      }
+      require_once $basePath;
+    }
+
+    // Cargar provider específico
+    if (!file_exists($providerPath)) {
+      ogLog::throwError('createProvider - ' . __('services.ai.provider_file_not_found', ['path' => $providerPath]), [], self::$logMeta);
+    }
+    require_once $providerPath;
+
+    // Verificar que la clase existe después de cargar
     if (!class_exists($providerClass)) {
-      ogLog::throwError(__('services.ai.class_not_found', ['class' => $providerClass]), [], self::$logMeta);
+      ogLog::throwError('createProvider - ' . __('services.ai.class_not_found', ['class' => $providerClass]), [], self::$logMeta);
     }
 
     return new $providerClass($config);

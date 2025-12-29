@@ -105,10 +105,10 @@
       if (window.ogLogger) {
         window.ogFramework.logger = window.ogLogger;
         // Alias temporal para compatibilidad
-        if (!window.logger) {
+        /*if (!window.logger) {
           window.logger = window.ogLogger;
-        }
-        console.log('✅ ogLogger available globally');
+        }*/
+        // console.log('✅ ogLogger available globally');
       }
 
       this.isLoaded = true;
@@ -118,8 +118,7 @@
       if (window.ogFramework) {
         window.ogFramework.scriptsLoaded = true;
       }
-
-      console.log('✅ ogFramework scripts loaded successfully');
+      ogLogger.info('main','ogFramework scripts loaded successfully');
 
     } catch (error) {
       console.error('❌ Error loading ogFramework scripts:', error);
@@ -453,9 +452,9 @@
     });
   });
 
-  console.log('📦 ogFramework v' + ogFramework.version + ' ready');
+  /*console.log('📦 ogFramework v' + ogFramework.version + ' ready');
   console.log('✨ Use ogApp("slug") for contextual access');
   console.log('✨ Use ogApp.* for global access');
-  console.log('🔍 ogLogger available globally for logging');
+  console.log('🔍 ogLogger available globally for logging');*/
 
 })(window, document);
