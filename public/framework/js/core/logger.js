@@ -1,5 +1,11 @@
 class ogLogger {
-  static isDev = window.appConfig?.isDevelopment || false;
+  static forceDebug = false; // Para forzar debug temporalmente
+
+  // Getter dinámico que lee el config cada vez
+  static get isDev() {
+    const config = window.ogFramework?.activeConfig || window.appConfig;
+    return config?.isDevelopment || false;
+  }
 
   static styles = {
     debug: 'color: #646464ff; font-weight: bold',
@@ -12,8 +18,19 @@ class ogLogger {
     text: 'color: inherit'
   };
 
+  // Habilitar/deshabilitar debug
+  static setLevel(level) {
+    if (level === 'debug') {
+      this.forceDebug = true;
+      console.log('✅ Debug mode enabled');
+    } else {
+      this.forceDebug = false;
+      console.log('ℹ️ Debug mode disabled');
+    }
+  }
+
   static print(type, module, ...args) {
-    if (type === 'debug' && !this.isDev) return;
+    if (type === 'debug' && !this.isDev && !this.forceDebug) return;
     const typeLabel = type.toLowerCase();
     console.log(
       `%c[${module.toLowerCase()}]%c %c[${typeLabel}]%c`,

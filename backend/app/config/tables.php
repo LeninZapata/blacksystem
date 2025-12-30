@@ -9,6 +9,7 @@ return [
   'users' => 'users',
   'work_flows' => 'work_flows',
   'followups' => 'followups',
+  'users' => 'users',
     //'roles' => 'roles',
     //'permissions' => 'permissions',
     //'sessions' => 'sessions',

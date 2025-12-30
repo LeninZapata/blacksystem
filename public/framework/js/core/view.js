@@ -5,20 +5,7 @@ class ogView {
   static lastSessionCheck = 0;
   static SESSION_CHECK_INTERVAL = 30000;
 
-  static getModules() {
-    return {
-      hook: window.ogFramework?.core?.hook,
-      form: window.ogFramework?.core?.form,
-      cache: window.ogFramework?.core?.cache,
-      loader: window.ogFramework?.core?.loader,
-      i18n: window.ogFramework?.core?.i18n,
-      conditions: window.ogFramework?.core?.conditions,
-      events: window.ogFramework?.core?.events,
 
-      // Component dependencies
-      tabs: window.ogFramework?.components?.tabs || window.ogTabs
-    };
-  }
 
   static getConfig() {
     return window.ogFramework?.activeConfig || config || {};
@@ -26,21 +13,21 @@ class ogView {
 
   // Helper para obtener componentes dinámicamente
   static getComponent(componentName) {
-    // Buscar primero en ogFramework.components
+    /*if (typeof ogComponent === 'function') {
+      return ogComponent(componentName);
+    }*/
+    // Fallback legacy
     if (window.ogFramework?.components?.[componentName]) {
       return window.ogFramework.components[componentName];
     }
-
-    // Fallback a window directo (compatibilidad temporal)
     if (window[componentName]) {
       return window[componentName];
     }
-
     return null;
   }
 
   static async loadView(viewName, container = null, extensionContext = null, menuResources = null, afterRender = null, menuId = null) {
-    const { cache } = this.getModules();
+    const cache = ogModule('cache');
     const config = this.getConfig();
 
     // Manejar notación extension|path (ej: botws|sections/botws-listado)
@@ -72,7 +59,7 @@ class ogView {
             try {
               afterRender(cachedData.viewId, content);
             } catch (error) {
-              this.getModules().ogLogger?.error('core:view', 'Error en afterRender:', error);
+              ogLogger?.error('core:view', 'Error en afterRender:', error);
             }
           }
           return;
@@ -85,14 +72,24 @@ class ogView {
 
     const frameworkPath = config?.frameworkPath || 'framework';
 
+    // 🔍 DEBUG: Config que se está usando
+    ogLogger?.debug('core:view', '🔍 Config actual:', {
+      slug: config?.slug,
+      baseUrl: config?.baseUrl,
+      frameworkPath: config?.frameworkPath,
+      coreViews: config?.routes?.coreViews,
+      extensionViews: config?.routes?.extensionViews,
+      cache_enabled: config?.cache?.views
+    });
+
     if (extensionContext) {
       basePath = `extensions/${extensionContext}/views`;
-      cacheKey = `extension_view_${extensionContext}_${viewName.replace(/\//g, '_')}_v${config.version || window.VERSION}`;
+      cacheKey = `extension_view_${extensionContext}_${viewName.replace(/\//g, '_')}`;
     }
     else if (viewName.startsWith('core:')) {
       viewName = viewName.replace('core:', '');
-      basePath = `${frameworkPath}/js/views`;
-      cacheKey = `core_view_${viewName.replace(/\//g, '_')}_v${config.version || window.VERSION}`;
+      basePath = config.routes?.coreViews || `${frameworkPath}/js/views`;
+      cacheKey = `core_view_${viewName.replace(/\//g, '_')}`;
     }
     else if (viewName.includes('/')) {
       const parts = viewName.split('/');
@@ -102,29 +99,47 @@ class ogView {
         basePath = `extensions/${firstPart}/views`;
         const restPath = parts.slice(1).join('/');
         viewName = restPath || viewName;
-        cacheKey = `extension_view_${firstPart}_${viewName.replace(/\//g, '_')}_v${config.version || window.VERSION}`;
+        cacheKey = `extension_view_${firstPart}_${viewName.replace(/\//g, '_')}`;
         extensionContext = firstPart;
       } else {
-        basePath = `${frameworkPath}/js/views`;
-        cacheKey = `core_view_${viewName.replace(/\//g, '_')}_v${config.version || window.VERSION}`;
+        basePath = config.routes?.coreViews || `${frameworkPath}/js/views`;
+        cacheKey = `core_view_${viewName.replace(/\//g, '_')}`;
       }
     }
     else {
-      basePath = `${frameworkPath}/js/views`;
-      cacheKey = `core_view_${viewName.replace(/\//g, '_')}_v${config.version || window.VERSION}`;
+      basePath = config.routes?.coreViews || `${frameworkPath}/js/views`;
+      cacheKey = `core_view_${viewName.replace(/\//g, '_')}`;
     }
+
+    // 🔍 DEBUG: BasePath y CacheKey generados
+    ogLogger?.debug('core:view', '🔍 Rutas calculadas:', {
+      viewName,
+      basePath,
+      cacheKey
+    });
 
     try {
       // Solo leer del caché si está habilitado
       let viewData = config?.cache?.views ? cache.get(cacheKey) : null;
 
+      // 🔍 DEBUG: Estado del cache
+      ogLogger?.debug('core:view', '🔍 Cache status:', {
+        cacheEnabled: config?.cache?.views,
+        cacheKey,
+        foundInCache: !!viewData
+      });
+
       if (viewData) {
-        this.getModules().ogLogger?.info('core:view', `✅ Cache views: usando caché para "${viewName}"`);
+        ogLogger?.info('core:view', `✅ Cache views: usando caché para "${viewName}"`);
       }
 
       if (!viewData) {
-        const cacheBuster = `?t=${config.version || window.VERSION}`;
-        const url = `${config.baseUrl || window.BASE_URL}${basePath}/${viewName}.json${cacheBuster}`;
+        const cacheBuster = `?t=${config.version || "1.0.0"}`;
+        const url = `${config.baseUrl || "/"}${basePath}/${viewName}.json${cacheBuster}`;
+        
+        // 🔍 DEBUG: URL que se va a fetchear
+        ogLogger?.debug('core:view', '🔍 Fetching URL:', url);
+        
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -139,12 +154,15 @@ class ogView {
         }
 
         viewData = await response.json();
+        
+        // 🔍 DEBUG: Vista cargada exitosamente desde servidor
+        ogLogger?.success('core:view', `✅ Vista cargada desde servidor: "${viewName}"`);
 
         if (config?.cache?.views) {
           cache.set(cacheKey, viewData);
-          this.getModules().ogLogger?.info('core:view', `💾 Cache views: guardando en caché "${viewName}"`);
+          ogLogger?.info('core:view', `💾 Cache views: guardando en caché "${viewName}"`);
         } else {
-          this.getModules().ogLogger?.info('core:view', `⚠️ Cache views: NO cacheando "${viewName}" (deshabilitado)`);
+          ogLogger?.info('core:view', `⚠️ Cache views: NO cacheando "${viewName}" (deshabilitado)`);
         }
       }
 
@@ -171,7 +189,7 @@ class ogView {
         try {
           afterRender(combinedData.id, content);
         } catch (error) {
-          this.getModules().ogLogger?.error('core:view', 'Error en afterRender:', error);
+          ogLogger?.error('core:view', 'Error en afterRender:', error);
         }
       }
 
@@ -184,14 +202,14 @@ class ogView {
             layout: combinedData.layout,
             viewData: combinedData
           });
-          this.getModules().ogLogger?.info('core:view', `💾 Cache viewNavigation: guardando HTML renderizado para "${viewName}"`);
+          ogLogger?.info('core:view', `💾 Cache viewNavigation: guardando HTML renderizado para "${viewName}"`);
         }
       } else if (!container) {
-        this.getModules().ogLogger?.info('core:view', `⚠️ Cache viewNavigation: NO cacheando HTML para "${viewName}" (deshabilitado)`);
+        ogLogger?.info('core:view', `⚠️ Cache viewNavigation: NO cacheando HTML para "${viewName}" (deshabilitado)`);
       }
 
     } catch (error) {
-      this.getModules().ogLogger?.error('core:view', `Error cargando vista ${viewName}:`, error);
+      ogLogger?.error('core:view', `Error cargando vista ${viewName}:`, error);
       this.renderError(viewName, container);
     }
   }
@@ -289,7 +307,7 @@ class ogView {
   }
 
   static async loadViewResources(viewData) {
-    const { loader } = this.getModules();
+    const loader = ogModule('loader');
 
     if (viewData.scripts || viewData.styles) {
       try {
@@ -309,16 +327,17 @@ class ogView {
 
         await loader.loadResources(normalizedScripts, normalizedStyles);
       } catch (error) {
-        this.getModules().ogLogger?.error('core:view', 'Error cargando recursos:', error);
+        ogLogger?.error('core:view', 'Error cargando recursos:', error);
       }
     }
   }
 
   static async findViewInExtensions(viewName, container) {
+    const config = this.getConfig();
     const extensions = Object.keys(window.hook?.extensions || {});
     for (const extensionName of extensions) {
       try {
-        const url = `${config.baseUrl || window.BASE_URL}extensions/${extensionName}/views/${viewName}.json?t=${config.version || window.VERSION}`;
+        const url = `${config.baseUrl || "/"}extensions/${extensionName}/views/${viewName}.json?t=${config.version || "1.0.0"}`;
         const response = await fetch(url);
         if (response.ok) {
           const viewData = await response.json();
@@ -334,7 +353,7 @@ class ogView {
   }
 
   static renderView(viewData, extensionContext = null) {
-    const { tabs } = this.getModules();
+    const tabs = ogComponent('tabs');
     const content = document.getElementById('content');
     document.body.setAttribute('data-view', viewData.id);
     document.body.className = document.body.className
@@ -392,16 +411,14 @@ class ogView {
   }
 
   static async setupView(viewData, container = null) {
-    const { tabs } = this.getModules();
+    const tabs = ogComponent('tabs');
     const viewContainer = container || document.getElementById('content');
 
     await this.renderHookComponents(viewContainer);
-    ogLogger?.info('core:view', 'window.ogTabs:', window.ogTabs);
-    ogLogger?.info('core:view', 'window.ogFramework.components.tabs:', window.ogFramework?.components?.tabs);
     if (viewData.tabs) {
       const tabsContainer = viewContainer.querySelector('.view-tabs-container');
       if (tabsContainer) {
-        await this.getModules().tabs.render(viewData, tabsContainer);
+        await tabs.render(viewData, tabsContainer);
       }
     } else {
       await this.loadDynamicComponents(viewContainer);
@@ -482,7 +499,7 @@ class ogView {
 
   // Procesar cadenas i18n en contenido HTML
   static processI18nInString(str) {
-    const { i18n } = this.getModules();
+    const i18n = ogModule('i18n');
 
     if (!str || typeof str !== 'string') return str;
 
@@ -509,6 +526,7 @@ class ogView {
     if (!viewData) return;
 
     if (viewData.tabs) {
+      const tabs = ogComponent('tabs');
       const tabsContainer = document.querySelector('.view-tabs-container');
       if (tabsContainer) {
         await tabs.render(viewData, tabsContainer);
@@ -521,7 +539,7 @@ class ogView {
   }
 
   static async loadDynamicComponents(container) {
-    const { form } = this.getModules();
+    const form = ogModule('form');
 
     // Obtener el contexto de extensión del contenedor padre
     const viewContainer = container.closest('[data-extension-context]');
@@ -560,7 +578,7 @@ class ogView {
   }
 
   static initFormValidation() {
-    const { form } = this.getModules();
+    const form = ogModule('form');
     const formElements = document.querySelectorAll('form[data-validation]');
 
     formElements.forEach(formEl => {
@@ -596,7 +614,7 @@ class ogView {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   static processHooksForHTML(viewData) {
-    const { hook } = this.getModules();
+    const hook = ogModule('hook');
 
     if (!viewData.id || !hook) return null;
 

@@ -2,23 +2,27 @@ class endpoints {
   static initialized = false;
   static endpointsData = null;
 
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
+  }
+
   // ✅ Método que view.js ejecuta automáticamente después del render
   static async init() {
-    ogLogger.info('🚀 endpoints.init() ejecutado automáticamente por view.js');
+    ogLogger.info('ext:admin:endpoint', '🚀 endpoints.init() ejecutado automáticamente por view.js');
 
     if (this.initialized) {
-      ogLogger.info('⚠️ endpoints ya estaba inicializado, reiniciando...');
+      ogLogger.info('ext:admin:endpoint', '⚠️ endpoints ya estaba inicializado, reiniciando...');
     }
 
     // Verificar que el container exista
     const container = document.getElementById('endpoints-container');
 
     if (!container) {
-      ogLogger.warn('⚠️ Container endpoints-container no encontrado');
+      ogLogger.warn('ext:admin:endpoint', '⚠️ Container endpoints-container no encontrado');
       return;
     }
 
-    ogLogger.info('✅ Container encontrado, cargando endpoints...');
+    ogLogger.info('ext:admin:endpoint', '✅ Container encontrado, cargando endpoints...');
 
     // Cargar endpoints de forma asíncrona
     await this.loadEndpoints(container);
@@ -43,11 +47,10 @@ class endpoints {
       let data = ogCache.get(cacheKey);
 
       if (data) {
-        ogLogger.info('✅ Endpoints obtenidos desde caché');
+        ogLogger.info('ext:admin:endpoint', '✅ Endpoints obtenidos desde caché');
         this.endpointsData = data;
       } else {
-        ogLogger.info('📡 Cargando endpoints desde API...');
-        
+        ogLogger.info('ext:admin:endpoint', '📡 Cargando endpoints desde API...');
         // Hacer petición al endpoint
         const response = await ogApi.get('/api/system/routes');
 
@@ -56,10 +59,9 @@ class endpoints {
         }
 
         this.endpointsData = response.data;
-        
         // Guardar en caché
         ogCache.set(cacheKey, response.data, cacheTTL);
-        ogLogger.info('✅ Endpoints guardados en caché por 1 hora');
+        ogLogger.info('ext:admin:endpoint', '✅ Endpoints guardados en caché por 1 hora');
       }
 
       // Renderizar la lista con el modo guardado o por defecto 'method'
@@ -67,7 +69,7 @@ class endpoints {
       this.renderEndpoints(container, savedViewMode);
 
     } catch (error) {
-      ogLogger.error('❌ Error cargando endpoints:', error);
+      ogLogger.error('ext:admin:endpoint', '❌ Error cargando endpoints:', error);
       container.innerHTML = `
         <div style="background: #fee; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #c00;">
           <h4 style="margin: 0 0 0.5rem; color: #c00;">❌ Error al cargar endpoints</h4>
@@ -84,7 +86,6 @@ class endpoints {
     }
 
     const { routes, stats } = this.endpointsData;
-
     // Agrupar rutas según el modo de vista
     const grouped = viewMode === 'resource' 
       ? this.groupByResource(routes) 
@@ -203,7 +204,7 @@ class endpoints {
     `;
 
     container.innerHTML = html;
-    ogLogger.info('✅ Endpoints renderizados en el container');
+    ogLogger.info('ext:admin:endpoint', '✅ Endpoints renderizados en el container');
   }
 
   static groupByMethod(routes) {
@@ -259,17 +260,14 @@ class endpoints {
   }
 
   static changeView(mode) {
-    ogLogger.info(`🔄 Cambiando vista a: ${mode}`);
-    
+    ogLogger.info('ext:admin:endpoint', `🔄 Cambiando vista a: ${mode}`);
     const container = document.getElementById('endpoints-container');
     if (!container) {
-      ogLogger.warn('⚠️ Container endpoints-container no encontrado');
+      ogLogger.warn('ext:admin:endpoint', '⚠️ Container endpoints-container no encontrado');
       return;
     }
-
     // Guardar preferencia en localStorage
     localStorage.setItem('endpoints_view_mode', mode);
-    
     // Re-renderizar con el nuevo modo
     this.renderEndpoints(container, mode);
   }
@@ -286,37 +284,34 @@ class endpoints {
 
   // Forzar recarga sin caché
   static async forceReload() {
-    ogLogger.info('🔄 Forzando recarga sin caché...');
-    
+    ogLogger.info('ext:admin:endpoint', '🔄 Forzando recarga sin caché...');
     const container = document.getElementById('endpoints-container');
     if (!container) {
-      ogLogger.warn('⚠️ Container endpoints-container no encontrado');
+      ogLogger.warn('ext:admin:endpoint', '⚠️ Container endpoints-container no encontrado');
       return;
     }
-
     // Eliminar del caché
     ogCache.delete('endpoints_routes_list');
-    ogLogger.info('✅ Caché eliminado');
-
+    ogLogger.info('ext:admin:endpoint', '✅ Caché eliminado');
     // Recargar datos
     await this.loadEndpoints(container);
   }
 
-  // Copiar ruta al portapapeles
   static copyToClipboard(path) {
-    // Construir URL completa
-    const apiBaseUrl = window.PUBLIC_URL || window.location.origin + '/';
+    // Construir URL completa usando config dinámico
+    const config = this.getConfig();
+    const apiBaseUrl = config.publicUrl || window.location.origin + '/';
     const fullUrl = apiBaseUrl + path.replace(/^\//, ''); // Remover / inicial si existe
     
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(fullUrl)
         .then(() => {
-          ogLogger.info('✅ URL copiada:', fullUrl);
+          ogLogger.info('ext:admin:endpoint', '✅ URL copiada:', fullUrl);
           // Mostrar notificación temporal (opcional)
           this.showCopyNotification();
         })
         .catch(err => {
-          ogLogger.error('❌ Error al copiar:', err);
+          ogLogger.error('ext:admin:endpoint', '❌ Error al copiar:', err);
           // Fallback: método antiguo
           this.fallbackCopyToClipboard(fullUrl);
         });
@@ -326,7 +321,6 @@ class endpoints {
     }
   }
 
-  // Fallback para copiar en navegadores sin Clipboard API
   static fallbackCopyToClipboard(text) {
     const textArea = document.createElement('textarea');
     textArea.value = text;
@@ -337,10 +331,10 @@ class endpoints {
     
     try {
       document.execCommand('copy');
-      ogLogger.info('✅ Ruta copiada (fallback):', text);
+      ogLogger.info('ext:admin:endpoint', '✅ Ruta copiada (fallback):', text);
       this.showCopyNotification();
     } catch (err) {
-      ogLogger.error('❌ Error al copiar (fallback):', err);
+      ogLogger.error('ext:admin:endpoint','❌ Error al copiar (fallback):', err);
     }
     
     document.body.removeChild(textArea);

@@ -7,7 +7,7 @@ class ogResource {
     // Buscar schema: framework → app
     $configFile = OG_FRAMEWORK_PATH . "/resources/schemas/{$resourceName}.json";
     if (!file_exists($configFile)) {
-      $configFile = APP_PATH . "/resources/schemas/{$resourceName}.json";
+      $configFile = ogApp()->getPath() . "/resources/schemas/{$resourceName}.json";
     }
 
     if (!file_exists($configFile)) {

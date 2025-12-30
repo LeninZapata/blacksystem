@@ -2,17 +2,6 @@ class ogModal {
   static modals = new Map();
   static counter = 0;
 
-  static getModules() {
-    return {
-      form: window.ogFramework?.core?.form || window.form,
-      view: window.ogFramework?.core?.view || window.view,
-      dataLoader: window.ogFramework?.core?.dataLoader || window.dataLoader,
-      hook: window.ogFramework?.core?.hook || window.hook,
-      toast: window.ogFramework?.components?.toast || window.toast,
-      tabs: window.ogFramework?.components?.tabs || window.tabs,
-      i18n: window.ogFramework?.core?.i18n || window.i18n
-    };
-  }
 
   static open(resource, options = {}) {
     const modalId = `modal-${++this.counter}`;
@@ -72,7 +61,6 @@ class ogModal {
   }
 
   static async loadContent(modalId, resource, options) {
-    const { form, view } = this.getModules();
     const content = document.querySelector(`#${modalId} .modal-content`);
 
     try {
@@ -87,7 +75,7 @@ class ogModal {
         const corePath = resource.replace('core:', '');
         const afterRenderCallback = options.afterRender || null;
 
-        await form.load(corePath, content, null, true, afterRenderCallback);
+        await ogModule('form').load(corePath, content, null, true, afterRenderCallback);
         return;
       }
 
@@ -95,7 +83,7 @@ class ogModal {
       if (typeof resource === 'string' && resource.startsWith('extension:')) {
         const pluginPath = resource.replace('extension:', '');
         const afterRenderCallback = options.afterRender || null;
-        await form.load(pluginPath, content, null, false, afterRenderCallback);
+        await ogModule('form').load(pluginPath, content, null, false, afterRenderCallback);
         return;
       }
 
@@ -106,13 +94,13 @@ class ogModal {
 
         // ✅ FIX: Pasar afterRender callback
         const afterRenderCallback = options.afterRender || null;
-        await form.load(`${extensionName}/${formName}`, content, null, false, afterRenderCallback);
+        await ogModule('form').load(`${extensionName}/${formName}`, content, null, false, afterRenderCallback);
         return;
       }
 
       // Formulario del core (sin prefijo): "user/forms/user-form" o "auth/forms/login-form"
       if (typeof resource === 'string' && resource.includes('/forms/')) {
-        await form.load(resource, content);
+        await ogModule('form').load(resource, content);
         return;
       }
 
@@ -120,7 +108,7 @@ class ogModal {
       if (typeof resource === 'string' && resource.startsWith('core:sections/')) {
         const corePath = resource.replace('core:sections/', '');
         const afterRenderCallback = options.afterRender || null;
-        await view.loadView(corePath, content, null, null, afterRenderCallback);
+        await ogModule('view').loadView(corePath, content, null, null, afterRenderCallback);
         return;
       }
 
@@ -128,14 +116,14 @@ class ogModal {
       if (typeof resource === 'string' && resource.includes('|')) {
         const [extension, viewPath] = resource.split('|');
         const afterRenderCallback = options.afterRender || null;
-        await view.loadView(`${viewPath}`, content, extension, null, afterRenderCallback);
+        await ogModule('view').loadView(`${viewPath}`, content, extension, null, afterRenderCallback);
         return;
       }
 
       // Vista simple: "dashboard" o "sections/user"
       if (typeof resource === 'string') {
         const afterRenderCallback = options.afterRender || null;
-        await view.loadView(resource, content, null, null, afterRenderCallback);
+        await ogModule('view').loadView(resource, content, null, null, afterRenderCallback);
         return;
       }
 
@@ -143,7 +131,7 @@ class ogModal {
       if (typeof resource === 'object') {
         if (resource.view) {
           const afterRenderCallback = options.afterRender || null;
-          await view.loadView(resource.view, content, null, null, afterRenderCallback);
+          await ogModule('view').loadView(resource.view, content, null, null, afterRenderCallback);
           return;
         }
       }
@@ -162,13 +150,12 @@ class ogModal {
   }
 
   static close(modalId) {
-    const { tabs } = this.getModules();
     const overlay = this.modals.get(modalId);
 
     if (overlay) {
       overlay.remove();
       this.modals.delete(modalId);
-      tabs?.clearCache();
+      // ogComponent('modal')?.clearCache();
     }
   }
 
@@ -177,7 +164,10 @@ class ogModal {
   }
 
   static async openWithData(resource, options = {}) {
-    const { dataLoader, hook, toast, form } = this.getModules();
+    const dataLoader = ogModule('dataLoader');
+    const hook = ogModule('hook');
+    const toast = ogComponent('toast');
+    // form no se usa directamente aquí
 
     if (!options.id) {
       ogLogger.warn('com:modal', 'No se especificó ID para cargar datos');
@@ -234,9 +224,7 @@ class ogModal {
 
         const realFormId = formElement.getAttribute('id');
 
-        if (form) {
-          form.fill(realFormId, data, modalContent);
-        }
+        ogModule('form')?.fill(realFormId, data, modalContent);
 
       } catch (error) {
         ogLogger.error('com:modal', 'Error cargando datos', error);
@@ -275,7 +263,7 @@ class ogModal {
 
   // Procesar cadenas i18n en contenido (usa i18n.processString)
   static processI18nInString(str) {
-    const { i18n } = this.getModules();
+    const i18n = ogModule('i18n');
     return i18n ? i18n.processString(str) : str;
   }
 }

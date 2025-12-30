@@ -5,8 +5,14 @@
     {
       "id": "welcome",
       "type": "html",
-      "order": 0,
+      "order": 1,
       "content": "<h2>Dashboard Principal</h2><p>Bienvenido al panel de control</p>"
+    },
+    {
+      "id": "load_lang_test",
+      "type": "html",
+      "order": 3,
+      "content": "Este es un key de idioma: <strong>{i18n:form.passwords.nomatch}</strong>"
     },
     {
       "id": "dashboard-widgets",

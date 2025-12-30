@@ -31,7 +31,7 @@ class ogRouteDiscovery {
     // Buscar en framework primero, luego en app
     $resourceDirs = [
       OG_FRAMEWORK_PATH . '/resources/schemas',
-      APP_PATH . '/resources/schemas'
+      ogApp()->getPath() . '/resources/schemas'
     ];
 
     foreach ($resourceDirs as $resourcesDir) {
@@ -82,7 +82,7 @@ class ogRouteDiscovery {
   // Obtener rutas manuales de routes/apis/
   private static function getManualRoutes() {
     $routes = [];
-    $apisDir = ROUTES_PATH . '/apis';
+    $apisDir = ogApp()->getPath() . '/routes/apis';
 
     if (!is_dir($apisDir)) return $routes;
 
@@ -104,7 +104,7 @@ class ogRouteDiscovery {
     // Buscar en framework primero, luego en app
     $apisDirs = [
       OG_FRAMEWORK_PATH . '/routes/apis',
-      ROUTES_PATH . '/apis'
+      ogApp()->getPath() . '/routes/apis'
     ];
 
     foreach ($apisDirs as $apisDir) {
@@ -412,7 +412,7 @@ class ogRouteDiscovery {
   // Obtener rutas de extensiones
   private static function getExtensionRoutes() {
     $routes = [];
-    $extensionsDir = EXTENSIONS_PATH;
+    $extensionsDir = ogApp()->getPath() . '/extensions';
 
     if (!is_dir($extensionsDir)) return $routes;
 
@@ -534,7 +534,7 @@ class ogRouteDiscovery {
 
     // Obtiene los middleware globales y específicos de cada ruta desde el schema
   private static function resolveMiddlewareForResourceRoute($resourceName, $routeKey) {
-    $schemasDir = APP_PATH . '/resources/schemas';
+    $schemasDir = ogApp()->getPath() . '/resources/schemas';
     $schemaFile = $schemasDir . '/' . $resourceName . '.json';
     $middlewares = [];
     if (file_exists($schemaFile)) {
@@ -553,7 +553,7 @@ class ogRouteDiscovery {
 
   // Busca middlewares definidos en el archivo de rutas manuales para rutas tipo manual
   private static function resolveMiddlewareForManualRoute($module, $method, $path) {
-    $apisDir = APP_PATH . '/routes/apis';
+    $apisDir = ogApp()->getPath() . '/routes/apis';
     $filePath = $apisDir . '/' . $module . '.php';
     $middlewares = [];
     if (!file_exists($filePath)) return $middlewares;
@@ -604,7 +604,7 @@ class ogRouteDiscovery {
 
     // Resuelve el valor de una variable middleware definida en el archivo PHP
   private static function resolveMiddlewareVariable($module, $varName) {
-    $apisDir = APP_PATH . '/routes/apis';
+    $apisDir = ogApp()->getPath() . '/routes/apis';
     $filePath = $apisDir . '/' . $module . '.php';
     if (!file_exists($filePath)) return [];
     $content = file_get_contents($filePath);

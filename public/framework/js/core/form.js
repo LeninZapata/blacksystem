@@ -3,17 +3,7 @@ class ogForm {
   static registeredEvents = new Set();
   static selectCache = new Map(); // ✅ Cache para selects con source
 
-  static getModules() {
-    return {
-      conditions: window.ogFramework?.core?.conditions,
-      i18n: window.ogFramework?.core?.i18n,
-      cache: window.ogFramework?.core?.cache,
-      hook: window.ogFramework?.core?.hook,
-      validator: window.ogFramework?.core?.validator,
-      auth: window.ogFramework?.core?.auth,
-      api: window.ogFramework?.core?.api,
-    };
-  }
+
 
   static getConfig() {
     return window.ogFramework?.activeConfig || window.appConfig || {};
@@ -91,7 +81,7 @@ class ogForm {
   }
 
   static t(text) {
-    const { i18n } = this.getModules();
+    const i18n = ogModule('i18n');
     
     if (!text || typeof text !== 'string') return text || '';
     if (!text.startsWith('i18n:')) return text;
@@ -100,7 +90,9 @@ class ogForm {
   }
 
   static async load(formName, container = null, data = null, isCore = null, afterRender = null) {
-    const { cache, hook, conditions } = this.getModules();
+    const cache = ogModule('cache');
+    const hook = ogModule('hook');
+    const conditions = ogModule('conditions');
     const config = this.getConfig();
     const cacheKey = `form_${formName.replace(/\//g, '_')}`;
     let schema = cache?.get(cacheKey);
@@ -112,23 +104,23 @@ class ogForm {
       if (formName.includes('|')) {
         const [extensionName, restPath] = formName.split('|');
         const basePath = config.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
-        url = `${config.baseUrl || window.BASE_URL}${basePath}/${restPath}.json`;
+        url = `${config.baseUrl || "/"}${basePath}/${restPath}.json`;
       }
       else if (isCore === true) {
         const basePath = config.routes?.coreViews || 'js/views';
-        url = `${config.baseUrl || window.BASE_URL}${basePath}/${formName}.json`;
+        url = `${config.baseUrl || "/"}${basePath}/${formName}.json`;
       }
       else if (isCore === false) {
         const parts = formName.split('/');
         const extensionName = parts[0];
         const restPath = parts.slice(1).join('/');
         const basePath = config.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
-        url = `${config.baseUrl || window.BASE_URL}${basePath}/forms/${restPath}.json`;
+        url = `${config.baseUrl || "/"}${basePath}/forms/${restPath}.json`;
       }
       else if (formName.startsWith('core:')) {
         formName = formName.replace('core:', '');
         const basePath = config.routes?.coreViews || 'js/views';
-        url = `${config.baseUrl || window.BASE_URL}${basePath}/${formName}.json`;
+        url = `${config.baseUrl || "/"}${basePath}/${formName}.json`;
       }
       else if (formName.includes('/')) {
         const parts = formName.split('/');
@@ -141,17 +133,17 @@ class ogForm {
           const extensionName = parts[0];
           const restPath = parts.slice(1).join('/');
           const basePath = config.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
-          url = `${config.baseUrl || window.BASE_URL}${basePath}/forms/${restPath}.json`;
+          url = `${config.baseUrl || "/"}${basePath}/forms/${restPath}.json`;
         } else {
           const basePath = config.routes?.coreViews || 'js/views';
-          url = `${config.baseUrl || window.BASE_URL}${basePath}/${formName}.json`;
+          url = `${config.baseUrl || "/"}${basePath}/${formName}.json`;
         }
       } else {
         const basePath = config.routes?.coreViews || 'js/views';
-        url = `${config.baseUrl || window.BASE_URL}${basePath}/${formName}.json`;
+        url = `${config.baseUrl || "/"}${basePath}/${formName}.json`;
       }
 
-      const cacheBuster = `?t=${config.version || window.VERSION}`;
+      const cacheBuster = `?t=${config.version || "1.0.0"}`;
       const response = await fetch(url + cacheBuster);
 
       if (!response.ok) {
@@ -165,7 +157,7 @@ class ogForm {
       }
     }
 
-    const instanceId = `${schema.id}-${(config.version || window.VERSION).replace(/\./g, '-')}`;
+    const instanceId = `${schema.id}-${(config.version || "1.0.0").replace(/\./g, '-')}`;
     const instanceSchema = JSON.parse(JSON.stringify(schema));
     instanceSchema.id = instanceId;
 
@@ -213,7 +205,7 @@ class ogForm {
         // Aplicar valores por defecto ANTES de conditions
         this.applyDefaultValues(instanceId, target);
 
-        this.getModules().conditions?.init(instanceId);
+        ogModule('conditions')?.init(instanceId);
 
         // Enviar focus al campo que lo requiera
         const focusField = instanceSchema.fields?.find(f => f.focus === true);
@@ -226,7 +218,7 @@ class ogForm {
           try {
             afterRender(instanceId, formEl);
           } catch (error) {
-            this.getModules().ogLogger?.error('core:form', 'Error en afterRender:', error);
+            ogLogger?.error('core:form', 'Error en afterRender:', error);
           }
         }
       }
@@ -461,7 +453,7 @@ class ogForm {
 
   static bindGrouperEvents(grouperId, mode) {
     const container = document.getElementById(grouperId);
-    const {  conditions } = this.getModules();
+    const conditions = ogModule('conditions');
     if (!container) return;
 
     if (mode === 'linear') {
@@ -488,13 +480,13 @@ class ogForm {
               const formId = container.closest('form')?.id;
               if (formId) {
                 setTimeout(() => {
-                  this.getModules().conditions?.evaluate(formId);
+                  ogModule('conditions')?.evaluate(formId);
                 }, 50);
               } else {
-                this.getModules().ogLogger?.warn('core:form', '[Linear] No se encontró formId');
+                ogLogger?.warn('core:form', '[Linear] No se encontró formId');
               }
             } else {
-              this.getModules().ogLogger?.warn('core:form', '[Linear] window.conditions no está disponible');
+              ogLogger?.warn('core:form', '[Linear] window.conditions no está disponible');
             }
           }
         });
@@ -524,16 +516,16 @@ class ogForm {
               const formId = container.closest('form')?.id;
               if (formId) {
                 setTimeout(() => {
-                  this.getModules().conditions?.evaluate(formId);
+                  ogModule('conditions')?.evaluate(formId);
                 }, 50);
               } else {
-                this.getModules().ogLogger?.warn('core:form', '[Tabs] No se encontró formId');
+                ogLogger?.warn('core:form', '[Tabs] No se encontró formId');
               }
             } else {
-              this.getModules().ogLogger?.warn('core:form', '[Tabs] window.conditions no está disponible');
+              ogLogger?.warn('core:form', '[Tabs] window.conditions no está disponible');
             }
           } else {
-            this.getModules().ogLogger?.warn('core:form', `[Tabs] Panel ${index} no encontrado`);
+            ogLogger?.warn('core:form', `[Tabs] Panel ${index} no encontrado`);
           }
         });
       });
@@ -824,13 +816,13 @@ class ogForm {
       : document.getElementById(formId);
 
     if (!formEl) {
-      this.getModules().ogLogger?.error('core:form', `Formulario no encontrado: ${formId}`);
+      ogLogger?.error('core:form', `Formulario no encontrado: ${formId}`);
       return;
     }
 
     const schema = this.schemas.get(formId);
     if (!schema) {
-      this.getModules().ogLogger?.error('core:form', `Schema no encontrado para: ${formId}`);
+      ogLogger?.error('core:form', `Schema no encontrado para: ${formId}`);
       return;
     }
 
@@ -880,7 +872,7 @@ class ogForm {
       if (container) {
         this.initRepeatableContainer(container, field, path);
       } else {
-        this.getModules().ogLogger?.error('core:form', `Container no encontrado para repeatable: "${path}"`);
+        ogLogger?.error('core:form', `Container no encontrado para repeatable: "${path}"`);
       }
     });
   }
@@ -1060,7 +1052,7 @@ class ogForm {
     }
 
     if (!container) {
-      this.getModules().ogLogger?.error('core:form', `Container no encontrado para: "${path}"`);
+      ogLogger?.error('core:form', `Container no encontrado para: "${path}"`);
       return;
     }
 
@@ -1125,7 +1117,7 @@ class ogForm {
     const allSelectsAfter = document.querySelectorAll(`select[id^="select-${path.replace(/\./g, '-')}"]`);
     allSelectsAfter.forEach(sel => {
       if (selectIds.has(sel.id)) {
-        this.getModules().ogLogger?.error('core:form', `   ❌ ID DUPLICADO DETECTADO: ${sel.id}`);
+        ogLogger?.error('core:form', `   ❌ ID DUPLICADO DETECTADO: ${sel.id}`);
       }
       selectIds.add(sel.id);
     });
@@ -1169,13 +1161,14 @@ class ogForm {
             });
           }
         } else {
-          this.getModules().ogLogger?.error('core:form', `No se pudo obtener el item recién agregado en: "${path}"`);
+          ogLogger?.error('core:form', `No se pudo obtener el item recién agregado en: "${path}"`);
         }
 
         // Re-inicializar transforms y conditions
         this.bindTransforms(formId);
 
-        this.getModules().conditions?.init(formId);
+        const conditions = ogModule('conditions');
+        conditions?.init(formId);
       }, 20);
     }
   }
@@ -1296,13 +1289,13 @@ class ogForm {
       : document.getElementById(formId);
 
     if (!formEl) {
-      this.getModules().ogLogger?.warn('core:form', `Formulario ${formId} no encontrado`);
+      ogLogger?.warn('core:form', `Formulario ${formId} no encontrado`);
       return;
     }
 
     const schema = this.schemas.get(formId);
     if (!schema) {
-      this.getModules().ogLogger?.warn('core:form', `Schema para ${formId} no encontrado`);
+      ogLogger?.warn('core:form', `Schema para ${formId} no encontrado`);
       return;
     }
 
@@ -1403,18 +1396,18 @@ class ogForm {
   static fillRepeatable(container, field, data, parentPath) {
     const fieldName = field.name;
     const items = data[fieldName];
-    const { conditions  } = this.getModules();
+    const conditions = ogModule('conditions');
 
     if (!Array.isArray(items) || items.length === 0) {
       return;
     }
 
     const fullPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
-    this.getModules().ogLogger?.info('core:form', `📋 Llenando ${fullPath}: ${items.length} items`);
+    ogLogger?.info('core:form', `📋 Llenando ${fullPath}: ${items.length} items`);
 
     // Pausar evaluaciones de condiciones durante el llenado masivo
     if (conditions && items.length >= 1) {
-      this.getModules().conditions?.pauseEvaluations();
+      conditions?.pauseEvaluations();
     }
 
     // Encontrar botón "Agregar" (puede tener path completo o simple)
@@ -1424,7 +1417,7 @@ class ogForm {
     }
 
     if (!addButton) {
-      this.getModules().ogLogger?.error('core:form', `Botón "Agregar" no encontrado para: ${fullPath}`);
+      ogLogger?.error('core:form', `Botón "Agregar" no encontrado para: ${fullPath}`);
       return;
     }
 
@@ -1435,7 +1428,7 @@ class ogForm {
     }
 
     if (!itemsContainer) {
-      this.getModules().ogLogger?.error('core:form', `Contenedor no encontrado para: ${fullPath}`);
+      ogLogger?.error('core:form', `Contenedor no encontrado para: ${fullPath}`);
       return;
     }
 
@@ -1460,12 +1453,12 @@ class ogForm {
 
   // Llenar un item específico del repeatable (RECURSIVO)
   static fillRepeatableItem(container, fieldName, index, itemData, fieldSchema, parentPath, isLastItem = false) {
-    const { conditions } = this.getModules();
+    const conditions = ogModule('conditions');
     // Reanudar evaluaciones si es el último item
     if (isLastItem && conditions) {
       const formEl = container.closest('form');
       setTimeout(() => {
-        this.getModules().conditions?.resumeEvaluations(formEl?.id);
+        conditions?.resumeEvaluations(formEl?.id);
       }, 200);
     }
 
@@ -1474,7 +1467,7 @@ class ogForm {
     const currentItem = items[items.length - 1];
 
     if (!currentItem) {
-      this.getModules().ogLogger?.error('core:form', `Item [${index}] no encontrado en el DOM`);
+      ogLogger?.error('core:form', `Item [${index}] no encontrado en el DOM`);
       return;
     }
 
@@ -1507,7 +1500,7 @@ class ogForm {
         if (input) {
           this.setInputValue(input, value, true);
         } else {
-          this.getModules().ogLogger?.warn('core:form', `Campo no encontrado: ${inputName}`);
+          ogLogger?.warn('core:form', `Campo no encontrado: ${inputName}`);
         }
       }
     });
@@ -1555,7 +1548,7 @@ class ogForm {
           if (input) {
             this.setInputValue(input, value, true);
           } else {
-            this.getModules().ogLogger?.warn('core:form', `Campo no encontrado: ${inputName}`);
+            ogLogger?.warn('core:form', `Campo no encontrado: ${inputName}`);
           }
         }
       }
@@ -1810,17 +1803,13 @@ class ogForm {
 
   // Agregar este método al inicio de la clase form (después de la línea 10)
   static hasRoleAccess(field) {
-    const { auth } = this.getModules();
-    
+    const auth = ogModule('auth');
     // Si el campo no tiene restricción de role, permitir acceso
     if (!field.role) return true;
-
     // Obtener role del usuario actual
     const userRole = auth?.user?.role;
-
     // Si no hay usuario autenticado, denegar acceso
     if (!userRole) return false;
-
     // Validar si el role coincide
     return userRole === field.role;
   }
@@ -1836,7 +1825,7 @@ class ogForm {
     // Si es objeto, usar ogStyle
     if (typeof styleConfig === 'object') {
       if (!window.ogStyle) {
-        this.getModules().ogLogger?.warn('cor:form', 'ogStyle no disponible');
+        ogLogger?.warn('cor:form', 'ogStyle no disponible');
         return '';
       }
 
@@ -1931,10 +1920,10 @@ class ogForm {
   }
 
   static async loadSelectFromAPI(selectId, source, valueField, labelField) {
-    const { api } = this.getModules();
+    const api = ogModule('api');
     const selectEl = document.getElementById(selectId);
     if (!selectEl) {
-      this.getModules().ogLogger?.error('core:form', `Select no encontrado: ${selectId}`);
+      ogLogger?.error('core:form', `Select no encontrado: ${selectId}`);
       return;
     }
 
@@ -1977,7 +1966,7 @@ class ogForm {
       }));
 
     } catch (error) {
-      this.getModules().ogLogger?.error('core:form', `Error cargando select ${selectId} desde ${source}:`, error);
+      ogLogger?.error('core:form', `Error cargando select ${selectId} desde ${source}:`, error);
       selectEl.disabled = false;
     }
   }
@@ -2013,7 +2002,7 @@ class ogForm {
    * Usa i18n.processString() para soportar ambos formatos
    */
   static processI18nTitle(title) {
-    const { i18n } = this.getModules();
+    const i18n = ogModule('i18n');
     return i18n ? i18n.processString(title) : title;
   }
 }

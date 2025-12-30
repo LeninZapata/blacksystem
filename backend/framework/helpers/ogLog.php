@@ -188,7 +188,7 @@ class ogLog {
 
   // Obtener ruta del archivo según formato
   private static function getLogFilePath($level, $module, $meta) {
-    $basePath = LOG_PATH;
+    $basePath = ogApp()->getPath('storage/logs');
     $date = [
       'year' => date('Y'),
       'month' => date('m'),

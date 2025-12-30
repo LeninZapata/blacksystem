@@ -1,7 +1,35 @@
 <?php
+/**
+ * AuthHandler - Usando ogCache con configuracion personalizada para sesiones
+ *
+ * VENTAJAS:
+ * - Reutiliza ogCache en lugar de codigo duplicado
+ * - Sistema unificado de cache para todo
+ * - Facil de mantener y escalar
+ * - Limpieza automatica con cleanup()
+ */
 class AuthHandler {
   protected static $table = DB_TABLES['users'];
   private static $logMeta = ['module' => 'auth', 'layer' => 'framework'];
+
+  /**
+   * Configurar ogCache para sesiones
+   * Se llama automaticamente antes de operaciones de sesion
+   */
+  private static function setupSessionCache() {
+    ogApp()->helper('cache')::setConfig([
+      'dir' => ogApp()->getPath('storage') . '/sessions',
+      'ext' => 'json',
+      'format' => '{expires}_{var1}_{key:16}' // key:16 = primeros 16 chars del tokenShort
+    ], 'session');
+  }
+
+  /**
+   * Restaurar configuracion por defecto de cache
+   */
+  private static function restoreDefaultCache() {
+    ogApp()->helper('cache')::setConfigDefault();
+  }
 
   static function login($params) {
     $data = ogRequest::data();
@@ -20,7 +48,6 @@ class AuthHandler {
       return ['success' => false, 'error' => __('auth.credentials.invalid')];
     }
 
-    // Cargar ogUtils bajo demanda
     $utils = ogApp()->helper('utils');
     $token = $utils->token(64);
     $expiresAt = time() + OG_SESSION_TTL;
@@ -70,18 +97,46 @@ class AuthHandler {
     return ['success' => true, 'message' => __('auth.logout.success')];
   }
 
-  private static function saveSession($user, $token, $expiresAt) {
-    $sessionsDir = STORAGE_PATH . '/sessions/';
+  /**
+   * Obtener perfil del usuario autenticado
+   */
+  static function profile($params) {
+    $token = ogRequest::bearerToken();
 
-    if (!is_dir($sessionsDir)) {
-      mkdir($sessionsDir, 0755, true);
+    if (!$token) {
+      ogLog::warn('profile - token no recibido', [], self::$logMeta);
+      return ['success' => false, 'error' => __('auth.token.missing')];
     }
 
-    $tokenShort = substr($token, 0, 16);
-    $filename = "{$expiresAt}_{$user['id']}_{$tokenShort}.json";
-    $sessionFile = $sessionsDir . $filename;
+    $session = self::getSessionByToken($token);
 
-    file_put_contents($sessionFile, json_encode([
+    if (!$session) {
+      ogLog::error('profile - sesion no encontrada', [
+        'token_short' => substr($token, 0, 16)
+      ], self::$logMeta);
+      return ['success' => false, 'error' => __('auth.token.invalid')];
+    }
+
+    if ($session['expires_timestamp'] < time()) {
+      ogLog::warn('profile - sesion expirada', [
+        'user_id' => $session['user_id'],
+        'expired_since' => time() - $session['expires_timestamp']
+      ], self::$logMeta);
+
+      self::deleteSessionByToken($token);
+      return ['success' => false, 'error' => __('auth.token.expired')];
+    }
+
+    return ['success' => true, 'data' => $session['user']];
+  }
+
+  /**
+   * Guardar sesion usando ogCache
+   */
+  private static function saveSession($user, $token, $expiresAt) {
+    self::setupSessionCache();
+
+    $sessionData = [
       'user_id' => $user['id'],
       'user' => $user,
       'token' => $token,
@@ -90,28 +145,110 @@ class AuthHandler {
       'ip_address' => ogRequest::ip(),
       'user_agent' => ogRequest::userAgent(),
       'created_at' => date('Y-m-d H:i:s')
-    ], JSON_UNESCAPED_UNICODE));
+    ];
+
+    // Key = solo los primeros 16 chars del token (sin prefijo)
+    // Formato archivo: {expires}_{user_id}_{tokenShort}.json
+    // Ejemplo: 1767200468_3_3f1101d2254c65f5.json
+    $ttl = $expiresAt - time();
+    $tokenShort = substr($token, 0, 16);
+    
+    ogApp()->helper('cache')::set($tokenShort, $sessionData, $ttl, [
+      'var1' => $user['id']
+    ]);
+
+    self::restoreDefaultCache();
   }
 
-  private static function deleteSessionByToken($token) {
-    $sessionsDir = STORAGE_PATH . '/sessions/';
-
-    if (!is_dir($sessionsDir)) {
-      return false;
-    }
+  /**
+   * Obtener sesion por token usando ogCache
+   */
+  static function getSessionByToken($token) {
+    self::setupSessionCache();
 
     $tokenShort = substr($token, 0, 16);
-    $pattern = $sessionsDir . "*_*_{$tokenShort}.json";
+    $session = ogApp()->helper('cache')::get($tokenShort);
+
+    self::restoreDefaultCache();
+
+    if ($session && isset($session['token']) && $session['token'] === $token) {
+      return $session;
+    }
+
+    return null;
+  }
+
+  /**
+   * Eliminar sesion por token usando ogCache
+   */
+  private static function deleteSessionByToken($token) {
+    self::setupSessionCache();
+
+    $tokenShort = substr($token, 0, 16);
+    $session = ogApp()->helper('cache')::get($tokenShort);
+
+    if ($session && isset($session['user_id'])) {
+      ogApp()->helper('cache')::forget($tokenShort, [
+        'var1' => $session['user_id']
+      ]);
+
+      self::restoreDefaultCache();
+      return true;
+    }
+
+    self::restoreDefaultCache();
+    return false;
+  }
+
+  /**
+   * Invalidar todas las sesiones de un usuario
+   */
+  static function invalidateUserSessions($userId) {
+    self::setupSessionCache();
+
+    $config = ogApp()->helper('cache')::getConfig();
+    $dir = $config['dir'];
+
+    if (!is_dir($dir)) {
+      self::restoreDefaultCache();
+      return 0;
+    }
+
+    // Buscar archivos del usuario: *_{userId}_*.json
+    $pattern = $dir . "/*_{$userId}_*.json";
     $files = glob($pattern);
 
+    $cleaned = 0;
     foreach ($files as $file) {
-      $session = json_decode(file_get_contents($file), true);
-      if ($session && $session['token'] === $token) {
+      try {
         unlink($file);
-        return true;
+        $cleaned++;
+      } catch (Exception $e) {
+        ogLog::error('Error eliminando sesion', ['file' => basename($file)], self::$logMeta);
       }
     }
 
-    return false;
+    self::restoreDefaultCache();
+
+    if ($cleaned > 0) {
+      ogLog::info("Sesiones invalidadas", ['user_id' => $userId, 'count' => $cleaned], self::$logMeta);
+    }
+
+    return $cleaned;
   }
 }
+
+/*
+ * FORMATO DE ARCHIVOS GENERADOS:
+ * 1767200468_3_3f1101d2254c65f5.json
+ * └─────────┘ └┘ └──────────────┘
+ * timestamp   ID  tokenShort (16 chars)
+ *
+ * VENTAJAS:
+ * - Busqueda rapida por tokenShort
+ * - User ID visible en nombre de archivo
+ * - Timestamp para limpieza automatica
+ *
+ * LIMPIEZA:
+ * ogApp()->helper('cache')::cleanup('session');
+ */

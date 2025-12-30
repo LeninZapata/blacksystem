@@ -1,6 +1,6 @@
 class ogGrouper {
   static async render(config, container) {
-    ogLogger.info('com:grouper', '🔍 render() llamado', { config, container });
+    ogLogger.info('com:grouper', '🔎 render() llamado', { config, container });
 
     if (!config?.groups) {
       ogLogger.error('com:grouper', 'Config inválido o sin groups');
@@ -24,7 +24,6 @@ class ogGrouper {
     const collapsible = config.collapsible !== false;
     const openFirst = config.openFirst !== false;
 
-    // ✅ Usar las mismas clases que form.js
     let html = `<div class="grouper grouper-linear" id="${grouperId}">`;
 
     config.groups.forEach((group, index) => {
@@ -47,7 +46,6 @@ class ogGrouper {
     html += '</div>';
     container.innerHTML = html;
 
-    // Agregar eventos si es collapsible
     if (collapsible) {
       const headers = container.querySelectorAll('.grouper-header.collapsible');
 
@@ -58,14 +56,12 @@ class ogGrouper {
           const section = header.closest('.grouper-section');
           const isOpen = section.classList.contains('open');
 
-          // Cerrar todos los grupos
           const allSections = container.querySelectorAll('.grouper-section');
           allSections.forEach(s => s.classList.remove('open'));
 
           const allContents = container.querySelectorAll('.grouper-content');
           allContents.forEach(c => c.style.display = 'none');
 
-          // Abrir el clickeado si estaba cerrado
           if (!isOpen) {
             section.classList.add('open');
             content.style.display = '';
@@ -74,7 +70,6 @@ class ogGrouper {
       });
     }
 
-    // Cargar contenido dinámico
     await this.initDynamicContent(container);
   }
 
@@ -82,11 +77,9 @@ class ogGrouper {
     const grouperId = `grouper-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const activeIndex = config.activeIndex || 0;
 
-    // ✅ Usar estructura exacta de form.js para tabs
     let html = `<div class="grouper grouper-tabs" id="${grouperId}">`;
     html += '<div class="grouper-tabs-header">';
 
-    // Headers - usar grouper-tab-btn
     config.groups.forEach((group, index) => {
       const isActive = index === activeIndex;
       html += `
@@ -98,7 +91,6 @@ class ogGrouper {
 
     html += '</div><div class="grouper-tabs-content">';
 
-    // Contents - usar grouper-tab-panel (no grouper-tab-content)
     config.groups.forEach((group, index) => {
       const isActive = index === activeIndex;
       html += `
@@ -111,7 +103,6 @@ class ogGrouper {
     html += '</div></div>';
     container.innerHTML = html;
 
-    // Agregar eventos - usar grouper-tab-panel
     const buttons = container.querySelectorAll('.grouper-tab-btn');
     const panels = container.querySelectorAll('.grouper-tab-panel');
 
@@ -125,14 +116,12 @@ class ogGrouper {
       });
     });
 
-    // Cargar contenido dinámico
     await this.initDynamicContent(container);
   }
 
   static async initDynamicContent(container) {
-    // Buscar y cargar formularios dinámicos
     const dynamicForms = container.querySelectorAll('.dynamic-form[data-form-json]');
-    const form = window.ogFramework?.core?.form || window.form;
+    const form = ogModule('form');
 
     for (const formContainer of dynamicForms) {
       const formJson = formContainer.dataset.formJson;
@@ -148,10 +137,8 @@ class ogGrouper {
   }
 }
 
-// Global
 window.ogGrouper = ogGrouper;
 
-// Registrar en ogFramework
 if (typeof window.ogFramework !== 'undefined') {
   window.ogFramework.components.grouper = ogGrouper;
   ogLogger.info('com:grouper', '✅ Registrado en ogFramework.components.grouper');

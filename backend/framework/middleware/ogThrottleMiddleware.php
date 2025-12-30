@@ -5,7 +5,7 @@ class ogThrottleMiddleware {
   private $storageFile;
 
   function __construct() {
-    $middlewareDir = STORAGE_PATH . '/middleware';
+    $middlewareDir = ogApp()->getPath('storage') . '/middleware';
     if (!is_dir($middlewareDir)) {
       mkdir($middlewareDir, 0755, true);
     }

@@ -3,21 +3,14 @@ class ogSidebar {
     menu: []
   };
 
-  static getModules() {
-    return {
-      view: window.ogFramework?.core?.view || window.ogView,
-      hook: window.ogFramework?.core?.hook || window.ogHook,
-      auth: window.ogFramework?.core?.auth || window.ogAuth,
-      cache: window.ogFramework?.core?.cache || window.ogCache,
-    };
-  }
+
 
   static getConfig() {
     return window.ogFramework?.activeConfig || window.appConfig || {};
   }
 
   static async init() {
-    const { view } = this.getModules();
+    const view = ogModule('view');
     
     await this.loadMenu();
 
@@ -30,7 +23,7 @@ class ogSidebar {
   }
 
   static async loadMenu() {
-    const { hook } = this.getModules();
+    const hook = ogModule('hook');
     
     try {
       if (hook && typeof hook.getMenuItems === 'function') {
@@ -97,13 +90,47 @@ class ogSidebar {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
 
+    const header = this.generateHeader();
     const menuHTML = this.generateMenuHtml(this.menuData.menu);
-    const logoutButton = this.generateLogoutButton();
+    const footer = this.generateFooter();
 
-    sidebar.innerHTML = menuHTML + logoutButton;
+    sidebar.innerHTML = header + menuHTML + footer;
 
     this.bindMenuEvents();
-    this.bindLogoutEvent();
+
+    // Ejecutar triggers después de que el DOM esté listo
+    if (window.ogTrigger) {
+      ogTrigger.execute('sidebar');
+    }
+  }
+
+  static generateHeader() {
+    return '<div class="sidebar-header"></div>';
+  }
+
+  static generateFooter() {
+    return '<div class="sidebar-footer"></div>';
+  }
+
+  // Inyectar contenido en zonas del sidebar
+  static inject(zone, html) {
+    const validZones = ['header', 'footer', 'content'];
+    
+    if (!validZones.includes(zone)) {
+      ogLogger?.error('core:sidebar', `Zona inválida: ${zone}`);
+      return false;
+    }
+
+    const container = document.querySelector(`.sidebar-${zone}`);
+    
+    if (!container) {
+      ogLogger?.error('core:sidebar', `Contenedor no encontrado: .sidebar-${zone}`);
+      return false;
+    }
+
+    container.innerHTML += html;
+    ogLogger?.info('core:sidebar', `✅ Contenido inyectado en sidebar-${zone}`);
+    return true;
   }
 
   static generateMenuHtml(menuItems, level = 0) {
@@ -130,41 +157,8 @@ class ogSidebar {
     }).join('');
   }
 
-  static generateLogoutButton() {
-    const { auth } = this.getModules();
-    const user = auth?.user;
-    const userName = user?.user || user?.email || __('core.sidebar.user_default');
-
-    return `
-      <div class="sidebar-footer">
-        <div class="sidebar-user">
-          <span class="user-icon">👤</span>
-          <span class="user-name">${userName}</span>
-        </div>
-        <button class="btn-logout" id="btn-logout">
-          <span class="logout-icon">🚪</span>
-          <span class="logout-text">${__('core.sidebar.logout')}</span>
-        </button>
-      </div>
-    `;
-  }
-
-  static bindLogoutEvent() {
-    const { auth } = this.getModules();
-    const logoutBtn = document.getElementById('btn-logout');
-    
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async () => {
-        const confirmed = confirm(__('core.sidebar.logout_confirm'));
-        if (confirmed) {
-          await auth.logout();
-        }
-      });
-    }
-  }
-
   static bindMenuEvents() {
-    const { view } = this.getModules();
+    const view = ogModule('view');
     const menuItems = document.querySelectorAll('.menu-item');
 
     menuItems.forEach(item => {
@@ -222,7 +216,7 @@ class ogSidebar {
   }
 
   static async preloadView(viewPath, extensionName) {
-    const { cache } = this.getModules();
+    const cache = ogModule('cache');
     const config = this.getConfig();
     
     try {
@@ -230,11 +224,11 @@ class ogSidebar {
 
       if (extensionName) {
         basePath = config.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
-        fullPath = `${config.baseUrl || window.BASE_URL}${basePath}/${viewPath}.json`;
+        fullPath = `${config.baseUrl || '/'}${basePath}/${viewPath}.json`;
         cacheKey = `view_${extensionName}_${viewPath.replace(/\//g, '_')}`;
       } else {
         basePath = config.routes?.coreViews || 'js/views';
-        fullPath = `${config.baseUrl || window.BASE_URL}${basePath}/${viewPath}.json`;
+        fullPath = `${config.baseUrl || '/'}${basePath}/${viewPath}.json`;
         cacheKey = `view_${viewPath.replace(/\//g, '_')}`;
       }
 
@@ -242,7 +236,7 @@ class ogSidebar {
         return;
       }
 
-      const cacheBuster = `?v=${config.version || window.VERSION}`;
+      const cacheBuster = `?v=${config.version || '1.0.0'}`;
       const response = await fetch(fullPath + cacheBuster);
 
       if (response.ok) {
@@ -282,7 +276,7 @@ class ogSidebar {
   }
 
   static detectPluginFromMenuId(menuId) {
-    const { view } = this.getModules();
+    const view = ogModule('view');
     
     for (const [extensionName, pluginConfig] of Object.entries(view.loadedExtensions)) {
       if (menuId.startsWith(`${extensionName}-`)) {
@@ -348,7 +342,7 @@ class ogSidebar {
 
   // Validar acceso por role (igual que form.js)
   static hasRoleAccess(menuItem) {
-    const { auth } = this.getModules();
+    const auth = ogModule('auth');
     
     // Si el menú no tiene restricción de role, permitir acceso
     if (!menuItem.role) return true;

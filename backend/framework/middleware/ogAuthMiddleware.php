@@ -3,8 +3,7 @@ class ogAuthMiddleware {
 
   function handle() {
 
-    // Validar versión PHP (solo 1 vez por sesión)
-    // Solo validar versión PHP en desarrollo
+    // Validar version PHP (solo 1 vez por sesion)
     if (OG_IS_DEV && !$this->validatePhpVersion()) {
       return false;
     }
@@ -23,19 +22,16 @@ class ogAuthMiddleware {
       return false;
     }
 
-    // Verificar expiración
+    // Verificar expiracion
     if ($session['expires_timestamp'] < time()) {
-      // Limpiar la sesión expirada inmediatamente
       $this->deleteSession($token);
-
-      // Limpieza oportunista
-      $cleaned = $this->cleanupExpiredSessions(10);
+      $this->cleanupExpiredSessions(10);
 
       ogResponse::unauthorized(__('middleware.auth.token_expired'));
       return false;
     }
 
-    // Sesión válida - ejecutar limpieza oportunista de todas formas
+    // Limpieza oportunista
     $cleaned = $this->cleanupExpiredSessions(10);
     
     if ($cleaned > 0) {
@@ -80,8 +76,10 @@ class ogAuthMiddleware {
   }
 
   private function getSessionFromToken($token) {
-    $sessionsDir = STORAGE_PATH . '/sessions/';
-
+    $sessionsDir = ogApp()->getPath('storage') . '/sessions/';
+    ogLog::debug('authMiddleware::getSessionFromToken - Buscando sesión', [
+      'token_short' => substr($token, 0, 30)
+    ], ['module' => 'auth', 'layer' => 'middleware']);
     if (!is_dir($sessionsDir)) {
       return null;
     }
@@ -89,31 +87,45 @@ class ogAuthMiddleware {
     $tokenShort = substr($token, 0, 16);
     $pattern = $sessionsDir . "*_*_{$tokenShort}.json";
     $files = glob($pattern);
+    ogLog::debug('authMiddleware::getSessionFromToken - Archivos encontrados', [
+      'files_count' => count($files),
+      'pattern' => $pattern
+    ], ['module' => 'auth', 'layer' => 'middleware']);
 
     if (empty($files)) {
       return null;
     }
 
     foreach ($files as $file) {
-      $session = json_decode(file_get_contents($file), true);
+      $data = json_decode(file_get_contents($file), true);
+      
+      // FIX: Extraer el 'value' del wrapper de ogCache
+      $session = $data['value'] ?? $data;
 
       if ($session && isset($session['token']) && $session['token'] === $token) {
         return $session;
       }
     }
 
+    ogLog::debug('authMiddleware::getSessionFromToken - No se encontró sesión válida para el token proporcionado', [
+      'token_short' => substr($token, 0, 30)
+    ], ['module' => 'auth', 'layer' => 'middleware']);
+
     return null;
   }
 
   private function deleteSession($token) {
-    $sessionsDir = STORAGE_PATH . '/sessions/';
+    $sessionsDir = ogApp()->getPath('storage') . '/sessions/';
     $tokenShort = substr($token, 0, 16);
     $pattern = $sessionsDir . "*_*_{$tokenShort}.json";
     $files = glob($pattern);
 
     foreach ($files as $file) {
-      $session = json_decode(file_get_contents($file), true);
+      $data = json_decode(file_get_contents($file), true);
       
+      // FIX: Extraer el 'value' del wrapper de ogCache
+      $session = $data['value'] ?? $data;
+
       if ($session && isset($session['token']) && $session['token'] === $token) {
         unlink($file);
         return;
@@ -122,7 +134,7 @@ class ogAuthMiddleware {
   }
 
   private function cleanupExpiredSessions($maxFiles = 10) {
-    $sessionsDir = STORAGE_PATH . '/sessions/';
+    $sessionsDir = ogApp()->getPath('storage') . '/sessions/';
 
     if (!is_dir($sessionsDir)) {
       return 0;
@@ -130,10 +142,7 @@ class ogAuthMiddleware {
 
     $now = time();
     $cleaned = 0;
-    $checked = 0;
-    $skipped = 0;
 
-    // Obtener todos los archivos
     $files = scandir($sessionsDir);
 
     foreach ($files as $file) {
@@ -142,26 +151,14 @@ class ogAuthMiddleware {
       }
 
       if ($cleaned >= $maxFiles) {
-        ogLog::info('authMiddleware::cleanupExpiredSessions - Límite alcanzado', [
-          'cleaned' => $cleaned,
-          'max_files' => $maxFiles
-        ], ['module' => 'auth', 'layer' => 'middleware']);
         break;
       }
 
       $filePath = $sessionsDir . $file;
-      
-      // Verificar si es archivo .json
-      if (!is_file($filePath)) {
+
+      if (!is_file($filePath) || !str_ends_with($file, '.json')) {
         continue;
       }
-
-      if (!str_ends_with($file, '.json')) {
-        $skipped++;
-        continue;
-      }
-
-      $checked++;
 
       // Extraer timestamp del nombre
       $parts = explode('_', $file);
@@ -169,39 +166,29 @@ class ogAuthMiddleware {
       if (count($parts) >= 3) {
         $expiresTimestamp = (int)$parts[0];
 
-        // Si expiró, eliminar
         if ($expiresTimestamp < $now) {
           try {
             unlink($filePath);
             $cleaned++;
-
           } catch (Exception $e) {
-            ogLog::error('authMiddleware::cleanupExpiredSessions - Error eliminando', [
+            ogLog::error('authMiddleware::cleanupExpiredSessions - Error', [
               'file' => $file,
               'error' => $e->getMessage()
             ], ['module' => 'auth', 'layer' => 'middleware']);
           }
         }
-      } else {
-        ogLog::warning('authMiddleware::cleanupExpiredSessions - Formato inválido', [
-          'file' => $file,
-          'parts' => $parts
-        ], ['module' => 'auth', 'layer' => 'middleware']);
       }
     }
 
     return $cleaned;
   }
 
-  // Validar versión PHP usando cache
   private function validatePhpVersion() {
     $required = defined('PHP_MIN_VERSION') ? PHP_MIN_VERSION : '8.1.0';
 
-    // Usar ogApp para cargar cache bajo demanda (automático)
     $cache = ogApp()->helper('cache');
     
-    // Cache GLOBAL (en $_SESSION porque no depende del usuario)
-    $isValid = $cache->remember('global_php_version_valid', function() use ($required) {
+    $isValid = $cache::remember('global_php_version_valid', function() use ($required) {
       return version_compare(PHP_VERSION, $required, '>=');
     });
 

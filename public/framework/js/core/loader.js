@@ -104,7 +104,7 @@ class ogLoader {
     }
 
     const config = this.getConfig();
-    const BASE_URL = config.baseUrl || window.BASE_URL || '/';
+    const BASE_URL = config.baseUrl || '/';
 
     if (url.startsWith(BASE_URL)) {
       return url;
@@ -152,10 +152,8 @@ class ogLoader {
   }
 }
 
-// Global
-window.loader = ogLoader;
+window.ogLoader = ogLoader;
 
-// Registrar en ogFramework (preferido)
 if (typeof window.ogFramework !== 'undefined') {
   window.ogFramework.core.loader = ogLoader;
 }

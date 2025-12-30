@@ -1,136 +1,205 @@
 {
-  "core.loading": "Cargando...",
-  "core.save": "Guardar",
-  "core.cancel": "Cancelar",
-  "core.delete": "Eliminar",
-  "core.edit": "Editar",
-  "core.add": "Agregar",
-  "core.close": "Cerrar",
-  "core.confirm": "Confirmar",
-  "core.yes": "Sí",
-  "core.no": "No",
-  "core.search": "Buscar",
-  "core.filter": "Filtrar",
-  "core.export": "Exportar",
-  "core.import": "Importar",
-  "core.refresh": "Actualizar",
-  "core.back": "Volver",
-  "core.next": "Siguiente",
-  "core.previous": "Anterior",
+  "core": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "refresh": "Actualizar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
 
-  "core.api.error": "Error en la conexión",
-  "core.api.success": "Operación exitosa",
-  "core.api.loading": "Procesando...",
-  "core.api.timeout": "Tiempo de espera agotado",
-  "core.api.unauthorized": "No autorizado",
-  "core.api.bad_request": "❌ Petición incorrecta: Verifica que los datos enviados sean válidos",
-  "core.api.json_corrupted": "JSON corrupto con HTML mezclado",
-  "core.api.backend_error": "Error en el backend",
-  "core.api.html_instead_json": "Backend devolvió HTML en lugar de JSON",
-  "core.api.invalid_content_type": "Respuesta no es JSON",
-  "core.api.json_corrupted_success": "Backend devolvió JSON corrupto (contiene HTML/PHP warnings)",
+    "api": {
+      "error": "Error en la conexión",
+      "success": "Operación exitosa",
+      "loading": "Procesando...",
+      "timeout": "Tiempo de espera agotado",
+      "unauthorized": "No autorizado",
+      "bad_request": "❌ Petición incorrecta: Verifica que los datos enviados sean válidos",
+      "json_corrupted": "JSON corrupto con HTML mezclado",
+      "backend_error": "Error en el backend",
+      "html_instead_json": "Backend devolvió HTML en lugar de JSON",
+      "invalid_content_type": "Respuesta no es JSON",
+      "json_corrupted_success": "Backend devolvió JSON corrupto (contiene HTML/PHP warnings)"
+    },
 
-  "form.required": "Este campo es requerido",
-  "form.email.invalid": "Email inválido",
-  "form.password.short": "La contraseña debe tener al menos 8 caracteres",
-  "form.passwords.nomatch": "Las contraseñas no coinciden",
-  "form.submit": "Enviar",
-  "form.reset": "Limpiar",
+    "auth": {
+      "error": {
+        "server_response": "Error en la respuesta del servidor",
+        "invalid_credentials": "Usuario o contraseña incorrectos",
+        "connection": "Error de conexión con el servidor",
+        "required_fields": "Usuario y contraseña son requeridos",
+        "login_failed": "Error al iniciar sesión"
+      },
+      "login": {
+        "loading": "Ingresando...",
+        "submit_text": "Ingresar"
+      },
+      "session": {
+        "expired": "Tu sesión ha expirado o fue invalidada. Por favor, inicia sesión nuevamente."
+      }
+    },
 
-  "modal.close": "Cerrar",
-  "modal.confirm": "¿Está seguro?",
-  "modal.loading": "Cargando contenido...",
+    "form": {
+      "repeatable": {
+        "add": "Agregar"
+      },
+      "select": {
+        "placeholder": "Selecciona una opción"
+      },
+      "validation": {
+        "form_not_found": "Formulario no encontrado",
+        "required": "{field} es requerido",
+        "required_text": "es requerido",
+        "email": "{field} debe ser un email válido",
+        "min": "{field} debe tener al menos {min} caracteres",
+        "max": "{field} no puede tener más de {max} caracteres",
+        "min_value": "{field} debe ser mayor o igual a {min}",
+        "max_value": "{field} debe ser menor o igual a {max}",
+        "number": "{field} debe ser un número válido",
+        "url": "{field} debe ser una URL válida",
+        "alpha_num": "{field} solo puede contener letras y números",
+        "success": "Formulario válido",
+        "errors": "{count} error(es) de validación"
+      }
+    },
 
-  "ogToast.success": "Éxito",
-  "ogToast.error": "Error",
-  "ogToast.warning": "Advertencia",
-  "ogToast.info": "Información",
+    "hook": {
+      "error": {
+        "loading_component": "Error cargando componente {component}",
+        "component_not_available": "Componente {component} no disponible"
+      }
+    },
 
-  "datatable.empty": "No hay datos disponibles",
-  "datatable.loading": "Cargando datos...",
-  "datatable.actions": "Acciones",
+    "layout": {
+      "system_title": "Sistema",
+      "loading": "Cargando...",
+      "footer": "© 2024 - Sistema"
+    },
 
-  "auth.login": "Iniciar Sesión",
-  "auth.login.title": "🔐 Iniciar Sesión",
-  "auth.login.description": "Ingresa tus credenciales para acceder al sistema",
-  "auth.login.submit": "🚀 Ingresar",
-  "auth.logout": "Cerrar Sesión",
-  "auth.logout.confirm": "¿Está seguro que desea cerrar sesión?",
-  "auth.email": "Correo Electrónico",
-  "auth.password": "Contraseña",
-  "auth.remember": "Recordar sesión",
-  "auth.forgot": "¿Olvidó su contraseña?",
-  "auth.field.user": "Usuario",
-  "auth.field.user.placeholder": "Ingresa tu usuario",
-  "auth.field.email": "Correo Electrónico",
-  "auth.field.email.placeholder": "tu@email.com",
-  "auth.field.password": "Contraseña",
-  "auth.field.password.placeholder": "Ingresa tu contraseña",
+    "sidebar": {
+      "user_default": "Usuario",
+      "logout": "Cerrar Sesión",
+      "logout_confirm": "¿Estás seguro que deseas cerrar sesión?"
+    },
 
-  "core.auth.error.server_response": "Error en la respuesta del servidor",
-  "core.auth.error.invalid_credentials": "Usuario o contraseña incorrectos",
-  "core.auth.error.connection": "Error de conexión con el servidor",
-  "core.auth.error.required_fields": "Usuario y contraseña son requeridos",
-  "core.auth.error.login_failed": "Error al iniciar sesión",
-  "core.auth.login.loading": "Ingresando...",
-  "core.auth.login.submit_text": "Ingresar",
-  "core.auth.session.expired": "Tu sesión ha expirado o fue invalidada. Por favor, inicia sesión nuevamente.",
+    "view": {
+      "not_found": "Vista no encontrada: {view}"
+    }
+  },
 
-  "core.form.repeatable.add": "Agregar",
-  "core.form.select.placeholder": "Selecciona una opción",
-  "core.form.validation.form_not_found": "Formulario no encontrado",
-  "core.form.validation.required": "{field} es requerido",
-  "core.form.validation.required_text": "es requerido",
-  "core.form.validation.email": "{field} debe ser un email válido",
-  "core.form.validation.min": "{field} debe tener al menos {min} caracteres",
-  "core.form.validation.max": "{field} no puede tener más de {max} caracteres",
-  "core.form.validation.min_value": "{field} debe ser mayor o igual a {min}",
-  "core.form.validation.max_value": "{field} debe ser menor o igual a {max}",
-  "core.form.validation.number": "{field} debe ser un número válido",
-  "core.form.validation.url": "{field} debe ser una URL válida",
-  "core.form.validation.alpha_num": "{field} solo puede contener letras y números",
-  "core.form.validation.success": "Formulario válido",
-  "core.form.validation.errors": "{count} error(es) de validación",
+  "form": {
+    "required": "Este campo es requerido",
+    "email": {
+      "invalid": "Email inválido"
+    },
+    "password": {
+      "short": "La contraseña debe tener al menos 8 caracteres"
+    },
+    "passwords": {
+      "nomatch": "Las contraseñas no coinciden"
+    },
+    "submit": "Enviar",
+    "reset": "Limpiar"
+  },
 
-  "core.hook.error.loading_component": "Error cargando componente {component}",
-  "core.hook.error.component_not_available": "Componente {component} no disponible",
+  "modal": {
+    "close": "Cerrar",
+    "confirm": "¿Está seguro?",
+    "loading": "Cargando contenido..."
+  },
 
-  "core.layout.system_title": "Sistema",
-  "core.layout.loading": "Cargando...",
-  "core.layout.footer": "© 2024 - Sistema",
+  "ogToast": {
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información"
+  },
 
-  "core.sidebar.user_default": "Usuario",
-  "core.sidebar.logout": "Cerrar Sesión",
-  "core.sidebar.logout_confirm": "¿Estás seguro que deseas cerrar sesión?",
+  "datatable": {
+    "empty": "No hay datos disponibles",
+    "loading": "Cargando datos...",
+    "actions": "Acciones"
+  },
 
-  "core.view.not_found": "Vista no encontrada: {view}",
+  "auth": {
+    "login": {
+      "title": "🔐 Iniciar Sesión",
+      "description": "Ingresa tus credenciales para acceder al sistema",
+      "submit": "🚀 Ingresar"
+    },
+    "logout": {
+      "title": "Cerrar Sesión",
+      "confirm": "¿Está seguro que desea cerrar sesión?"
+    },
+    "field": {
+      "user": {
+        "label": "Usuario",
+        "placeholder": "Ingresa tu usuario"
+      },
+      "email": {
+        "label": "Correo Electrónico",
+        "placeholder": "tu@email.com"
+      },
+      "password": {
+        "label": "Contraseña",
+        "placeholder": "Ingresa tu contraseña"
+      }
+    },
+    "remember": "Recordar sesión",
+    "forgot": "¿Olvidó su contraseña?"
+  },
 
-  "com.datatable.actions": "Acciones",
-  "com.datatable.no_data": "🔭 No hay datos para mostrar",
-  "com.datatable.yes": "Sí",
-  "com.datatable.no": "No",
+  "com": {
+    "datatable": {
+      "actions": "Acciones",
+      "no_data": "🔭 No hay datos para mostrar",
+      "yes": "Sí",
+      "no": "No"
+    },
 
-  "com.grouper.error_loading_form": "Error cargando formulario: {form}",
+    "grouper": {
+      "error_loading_form": "Error cargando formulario: {form}"
+    },
 
-  "com.modal.title": "Modal",
-  "com.modal.loading": "Cargando...",
-  "com.modal.close": "Cerrar",
-  "com.modal.error": "Error",
-  "com.modal.error_loading": "No se pudo cargar el contenido: {error}",
-  "com.modal.form_not_found": "Error: No se encontró el formulario",
-  "com.modal.error_loading_data": "Error al cargar los datos",
+    "modal": {
+      "title": "Modal",
+      "loading": "Cargando...",
+      "close": "Cerrar",
+      "error": "Error",
+      "error_loading": "No se pudo cargar el contenido: {error}",
+      "form_not_found": "Error: No se encontró el formulario",
+      "error_loading_data": "Error al cargar los datos"
+    },
 
-  "com.tabs.not_found": "Tab no encontrado",
-  "com.tabs.loading": "Cargando...",
-  "com.tabs.error_loading": "Error cargando contenido",
-  "com.tabs.error_form": "Error: {form}",
-  "com.tabs.component_not_available": "Componente '{component}' no disponible",
-  "com.tabs.error_component": "Error en componente: {component}",
+    "tabs": {
+      "not_found": "Tab no encontrado",
+      "loading": "Cargando...",
+      "error_loading": "Error cargando contenido",
+      "error_form": "Error: {form}",
+      "component_not_available": "Componente '{component}' no disponible",
+      "error_component": "Error en componente: {component}"
+    },
 
-  "com.widget.title": "Widget",
-  "com.widget.loading": "Cargando...",
-  "com.widget.error_loading": "Error al cargar",
+    "widget": {
+      "title": "Widget",
+      "loading": "Cargando...",
+      "error_loading": "Error al cargar"
+    }
+  },
 
-  "sidebar.dashboard": "Dashboard",
-  "sidebar.menu": "Menú"
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "menu": "Menú"
+  }
 }

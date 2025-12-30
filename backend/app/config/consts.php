@@ -13,9 +13,21 @@ define('DB_CHARSET', $dbConfig['charset']);
 $tables = require __DIR__ . '/tables.php';
 define('DB_TABLES', $tables);
 
-define('JSON_STORAGE_PATH', STORAGE_PATH . '/json');
+
+// Calcular rutas base ANTES de cargar framework
+if (!defined('BASE_PATH')) {
+  define('BASE_PATH', realpath(dirname(dirname(dirname(__DIR__)))));
+  define('BACKEND_PATH', BASE_PATH . '/backend');
+  define('APP_PATH', BACKEND_PATH . '/app');
+}
+
+// Rutas complementarias
+define('STORAGE_PATH', APP_PATH . '/storage');
+define('LOG_PATH', STORAGE_PATH . '/logs');
+define('SHARED_PATH', BASE_PATH . '/shared');
 
 // Rutas de almacenamiento de bots
+define('JSON_STORAGE_PATH', STORAGE_PATH . '/json');
 define('BOTS_STORAGE_PATH', JSON_STORAGE_PATH . '/bots');
 define('BOTS_DATA_PATH', BOTS_STORAGE_PATH . '/data');
 define('BOTS_INFOPRODUCT_PATH', BOTS_STORAGE_PATH . '/infoproduct');
@@ -28,6 +40,7 @@ define('CHATS_STORAGE_PATH', JSON_STORAGE_PATH . '/chats');
 define('CHATS_INFOPRODUCT_PATH', CHATS_STORAGE_PATH . '/infoproduct');
 define('CHATS_BUFFER_PATH', CHATS_STORAGE_PATH . '/buffer');
 
+//----------
 
 // Aquí puedes agregar más constantes específicas del proyecto
 // define('APP_NAME', 'Factory SaaS');

@@ -2,17 +2,7 @@ class ogDatatable {
   static tables = new Map();
   static counter = 0;
 
-  static getModules() {
-    return {
-      hook      : window.ogFramework?.core?.hook,
-      view      : window.ogFramework?.core?.view,
-      auth      : window.ogFramework?.core?.auth,
-      api       : window.ogFramework?.core?.api,
-      dataLoader: window.ogFramework?.core?.dataLoader,
-      i18n      : window.ogFramework?.core?.i18n,
-      cache     : window.ogFramework?.core?.cache,
-    };
-  }
+
 
   static getComponent(){
     return {
@@ -85,7 +75,8 @@ class ogDatatable {
   }
 
   static detectPluginName(container) {
-    const { hook, view } = this.getModules();
+    const hook = ogModule('hook');
+    const view = ogModule('view');
 
     if (!container || typeof container.closest !== 'function') {
       ogLogger.warn('com:datatable', 'Container inválido en detectPluginName');
@@ -115,7 +106,8 @@ class ogDatatable {
 
   static async loadData(config, extensionName) {
     const source = config.source;
-    const { api, cache } = this.getModules();
+    const api = ogModule('api');
+    const cache = ogModule('cache');
 
     if (!source) {
       ogLogger.warn('com:datatable', 'No source specified');
@@ -151,23 +143,23 @@ class ogDatatable {
       } else if (isAbsolute) {
         // Ruta absoluta → usar tal cual
         const config = this.getConfig();
-        finalUrl = `${config.baseUrl || window.BASE_URL}${source.substring(1)}`;
+        finalUrl = `${config.baseUrl || '/'}${source.substring(1)}`;
 
       } else if (hasExtensions) {
         // Ya tiene "extensions/" → usar tal cual
         const config = this.getConfig();
-        finalUrl = `${config.baseUrl || window.BASE_URL}${source}`;
+        finalUrl = `${config.baseUrl || '/'}${source}`;
 
       } else {
         // Ruta relativa → agregar "extensions/" automáticamente
         const config = this.getConfig();
-        finalUrl = `${config.baseUrl || window.BASE_URL}extensions/${source}`;
+        finalUrl = `${config.baseUrl || '/'}extensions/${source}`;
       }
 
       // Para archivos JSON (no APIs)
       if (finalUrl) {
         const config = this.getConfig();
-        const cacheBuster = `?v=${config.version || window.VERSION}`;
+        const cacheBuster = `?v=${config.version || '1.0.0'}`;
         const response = await fetch(finalUrl + cacheBuster);
 
         if (!response.ok) {
@@ -349,7 +341,7 @@ class ogDatatable {
   }
 
   static translateLabel(label) {
-    const { i18n } = this.getModules();
+    const i18n = ogModule('i18n');
     if (!label || typeof label !== 'string') return '';
 
     if (!label.startsWith('i18n:')) return label;
@@ -357,7 +349,7 @@ class ogDatatable {
     const key = label.replace('i18n:', '');
 
     // Si usa el nuevo formato i18n:extension.key
-    if (window.ogFramework?.core?.i18n && typeof i18n.t === 'function') {
+    if (i18n && typeof i18n.t === 'function') {
       const translation = i18n.t(key);
       if (translation !== key) return translation;
     }
@@ -584,7 +576,7 @@ class ogDatatable {
   }
 
   static hasRoleAccess(action) {
-    const { auth } = this.getModules();
+    const auth = ogModule('auth');
 
     // Si la acción no tiene restricción de role, permitir acceso
     if (!action.role) return true;
@@ -605,7 +597,7 @@ class ogDatatable {
 
   // Obtener datos cacheados de una tabla por source
   static getCached(source) {
-    const { cache } = this.getModules();
+    const cache = ogModule('cache');
     const cacheKey = `datatable_${source.replace(/[^a-zA-Z0-9]/g, '_')}`;
     const cached = cache.get(cacheKey);
 
@@ -640,7 +632,7 @@ class ogDatatable {
 
   // Limpiar caché de una tabla específica
   static clearCache(source) {
-    const { cache } = this.getModules();
+    const cache = ogModule('cache');
     const cacheKey = `datatable_${source.replace(/[^a-zA-Z0-9]/g, '_')}`;
     cache.delete(cacheKey);
   }

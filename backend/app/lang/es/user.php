@@ -1,5 +1,5 @@
 <?php
-// app/lang/es/user.php
+// framework/lang/es/user.php
 return [
   'create' => [
     'success' => 'Usuario creado exitosamente',

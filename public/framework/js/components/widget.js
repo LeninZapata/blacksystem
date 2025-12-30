@@ -2,26 +2,16 @@ class ogWidget {
   static grids = new Map();
   static draggedWidget = null;
 
-  static getModules() {
-    return {
-      view: window.ogFramework?.core?.view,
-      form: window.ogFramework?.core?.form
-    };
+
+
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
   }
 
-  // Helper para obtener componentes dinámicamente
+
   static getComponent(componentName) {
-    // Buscar primero en ogFramework.components
-    if (window.ogFramework?.components?.[componentName]) {
-      return window.ogFramework.components[componentName];
-    }
-
-    // Fallback a window directo (compatibilidad temporal)
-    if (window[componentName]) {
-      return window[componentName];
-    }
-
-    return null;
+    // Usar ogComponent para obtener el componente
+    return ogComponent(componentName);
   }
 
   static async render(config, container) {
@@ -35,7 +25,10 @@ class ogWidget {
       return;
     }
 
-    const gridId = `widget-grid-${window.VERSION.replace(/\./g, '-')}`;
+    const appConfig = this.getConfig();
+    const version = appConfig.version || '1.0.0';
+    const gridId = `widget-grid-${version.replace(/\./g, '-')}`;
+
     this.grids.set(gridId, config);
     const cols = config.columns || 2;
 
@@ -57,7 +50,9 @@ class ogWidget {
   static async addWidget(grid, config) {
     if (!grid) return;
 
-    const widgetId = `widget-${window.VERSION.replace(/\./g, '-')}-${Math.random().toString(36).substr(2, 9)}`;
+    const appConfig = this.getConfig();
+    const version = appConfig.version || '1.0.0';
+    const widgetId = `widget-${version.replace(/\./g, '-')}-${Math.random().toString(36).substr(2, 9)}`;
 
     const widget = document.createElement('div');
     widget.className = 'widget-item';
@@ -86,7 +81,8 @@ class ogWidget {
   }
 
   static async loadWidgetContent(body, config) {
-    const { view, form } = this.getModules();
+    const view = ogModule('view');
+    const form = ogModule('form');
 
     if (!body) {
       ogLogger.error('com:widget', `Body no válido`);
@@ -101,7 +97,6 @@ class ogWidget {
         body.innerHTML = '';
         body.appendChild(placeholder);
 
-        // ✅ Usar getComponent helper
         const component = this.getComponent(config.component);
 
         if (component && typeof component.render === 'function') {
@@ -171,10 +166,8 @@ class ogWidget {
   }
 }
 
-// Global
 window.ogWidget = ogWidget;
 
-// Registrar en ogFramework (preferido)
 if (typeof window.ogFramework !== 'undefined') {
   window.ogFramework.components.widget = ogWidget;
 }

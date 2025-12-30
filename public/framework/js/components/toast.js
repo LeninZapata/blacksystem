@@ -4,11 +4,7 @@ class ogToast {
   static active = [];
   static maxVisible = 5;
 
-  static getModules() {
-    return {
-      i18n: window.ogFramework?.core?.i18n || window.i18n
-    };
-  }
+
 
   static show(message, options = {}) {
     const config = {
@@ -70,13 +66,14 @@ class ogToast {
     // Si empieza con "i18n:", quitar el prefijo y traducir
     if (message.startsWith('i18n:')) {
       const key = message.substring(5); // Quitar "i18n:"
-      return window.__ ? window.__(key) : message;
+      return ogModule('i18n') && ogModule('i18n').__ ? ogModule('i18n').__(key) : (window.__ ? window.__(key) : message);
     }
 
     // Si NO contiene espacios y tiene puntos, probablemente es una key
     // Ejemplo: "admin.user.success.created"
     if (!message.includes(' ') && message.includes('.')) {
-      const translated = window.__ ? window.__(message) : message;
+      const i18n = ogModule('i18n');
+      const translated = i18n && i18n.__ ? i18n.__(message) : (window.__ ? window.__(message) : message);
       // Si la traducción es diferente a la key, usarla
       return translated !== message ? translated : message;
     }

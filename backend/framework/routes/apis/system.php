@@ -3,30 +3,6 @@
 
 $router->group('/api/system', function($router) {
 
-  // Información general del sistema
-  $router->get('/info', function() {
-    $sessionsDir = STORAGE_PATH . '/sessions/';
-    $activeCount = 0;
-
-    if (is_dir($sessionsDir)) {
-      $now = time();
-      foreach (scandir($sessionsDir) as $file) {
-        if ($file === '.' || $file === '..') continue;
-        $parts = explode('_', $file);
-        if (count($parts) >= 3 && (int)$parts[0] >= $now) {
-          $activeCount++;
-        }
-      }
-    }
-
-    ogResponse::success([
-      'php_version' => PHP_VERSION,
-      'environment' => OG_IS_DEV ? 'development' : 'production',
-      'storage_path' => STORAGE_PATH,
-      'sessions_active' => $activeCount
-    ]);
-  })->middleware('auth');
-
   // Verificar estado del sistema
   $router->get('/health', function() {
     ogResponse::success([
@@ -40,7 +16,7 @@ $router->group('/api/system', function($router) {
     $routes = ogApp()->helper('routeDiscovery')->getAllRoutes();
     $stats = ogApp()->helper('routeDiscovery')->getStats($routes);
 
-    // Filtrar por método
+    // Filtrar por metodo
     $method = ogRequest::query('method');
     if ($method) {
       $routes = array_filter($routes, fn($r) => strtoupper($r['method']) === strtoupper($method));
@@ -66,18 +42,23 @@ $router->group('/api/system', function($router) {
     ]);
   });
 
-  // Test zona horaria (deshabilitado en producción)
-  /*$router->get('/timezone-test', function() {
-    ogResponse::success([
-        'timezone' => date_default_timezone_get(),
-        'current_time' => date('Y-m-d H:i:s'),
-        'timestamp' => time(),
-        'timezone_constant' => OG_TIMEZONE
-    ]);
-  });*/
-
   $router->get('/logs-test', function() {
     ogLog::debug('This is a debug log test from /api/system/logs-test',['data' => 1], ['module' => 'apis', 'layer' => 'app', 'tags' => ['test-tag', '098989899']] );
+  });
+
+  // Limpiar cache expirado
+  $router->delete('/cache/cleanup', function() {
+    // Limpiar cache normal
+    $cleanedCache = ogApp()->helper('cache')::cleanup('default');
+
+    // Limpiar sesiones (si existe la config)
+    $cleanedSessions = ogApp()->helper('cache')::cleanup('session');
+
+    ogResponse::success([
+      'cache' => $cleanedCache,
+      'sessions' => $cleanedSessions,
+      'total' => $cleanedCache + $cleanedSessions
+    ], __('api.system.cache_cleanup_success', ['count' => $cleanedCache + $cleanedSessions]));
   });
 
 });

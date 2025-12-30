@@ -5,17 +5,12 @@ class ogConditions {
   static evaluateTimeout = null;
   static isFillingForm = false;
 
-  static getModules() {
-    return {
-      form: window.ogFramework?.core?.form,
-      events: window.ogFramework?.core?.events
-    };
-  }
+
 
   static init(formId) {
     if (!formId) return;
 
-    const { form } = this.getModules();
+    const form = ogModule('form');
     const schema = form?.schemas?.get(formId);
     if (!schema || !schema.fields) return;
 
@@ -161,7 +156,7 @@ class ogConditions {
   }
 
   static setupWatchers(formId) {
-    const { events } = this.getModules();
+    const events = ogModule('events');
     const formEl = document.getElementById(formId);
     if (!formEl) return;
 

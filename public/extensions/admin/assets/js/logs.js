@@ -1,9 +1,13 @@
 class logs {
-      static currentLevel = 'all';
-    static currentLayer = 'all';
+  static currentLevel = 'all';
+  static currentLayer = 'all';
   static initialized = false;
   static logsData = null;
   static currentFilter = 'today'; // today, yesterday, 7days, 15days, 30days
+
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
+  }
 
   // Método que view.js ejecuta automáticamente después del render
   static async init() {
@@ -69,13 +73,16 @@ class logs {
 
     try {
 
-      // Usar PROYECT_SLUG para las keys de caché
+      // Usar filterKey simple, cache.js se encarga del prefijo completo
+      const config = this.getConfig();
       const filterKey = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}days`;
-      const cacheKey = PROYECT_SLUG + '_logs_' + filterKey;
+      const cacheKey = `logs_${filterKey}`;
       const cacheTTL = 5 * 60 * 1000; // 5 minutos
 
       // Intentar obtener del caché primero
-      let data = ogCache.get(cacheKey);
+      let data = ogModule('cache').get(cacheKey);
+      console.log(`cacheKey:`, cacheKey);
+      console.log(`data:`, data);
 
       if (data) {
         ogLogger.info('ext:admin:logs',`✅ Logs obtenidos desde caché (${filterKey})`);
@@ -108,7 +115,7 @@ class logs {
         }
 
         // Hacer petición al endpoint
-        const response = await ogApi.get(endpoint);
+        const response = await ogModule('api').get(endpoint);
 
         if (!response.success) {
           throw new Error(response.error || 'Error al cargar logs');
@@ -117,7 +124,7 @@ class logs {
         this.logsData = response.data;
 
         // Guardar en caché
-        ogCache.set(cacheKey, response.data, cacheTTL);
+        ogModule('cache').set(cacheKey, response.data, cacheTTL);
       }
 
       // Renderizar los logs con el filtro de layer actual
@@ -336,12 +343,48 @@ class logs {
           ${log.location ? `<span style=\"color: #475569; min-width: 90px; font-size: 0.75rem; text-align: right;\"> ${log.location}</span>` : ''}
         </div>
         ${contextStr ? `
-          <div style=\"margin-top: 0.5rem; padding: 0.5rem; background: #0f172a; border-radius: 4px; border-left: 3px solid ${color.badge};\">
+          <div style=\"margin-top: 0.5rem; padding: 0.5rem; background: #0f172a; border-radius: 4px; border-left: 3px solid ${color.badge}; position: relative;\">
+            <button 
+              onclick=\"window.logs.copyContextStr('${encodeURIComponent(contextStr)}')\" 
+              title=\"Copiar JSON\" 
+              style=\"position: absolute; top: 8px; right: 8px; background: #334155; color: #fff; border: none; border-radius: 6px; padding: 0.2rem 0.5rem; cursor: pointer; font-size: 1rem; z-index: 2;\"
+            >📋</button>
             <pre style=\"margin: 0; color: #94a3b8; font-size: 0.75rem; overflow-x: auto;\">${contextStr}</pre>
           </div>
         ` : ''}
       </div>
     `;
+    
+  }
+
+  // Copiar el contenido de contextStr al portapapeles
+  static copyContextStr(encodedStr) {
+    const str = decodeURIComponent(encodedStr);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(str)
+        .then(() => {
+          ogToast?.success('Contexto copiado al portapapeles');
+        })
+        .catch(() => {
+          logs.fallbackCopyToClipboard(str);
+        });
+    } else {
+      logs.fallbackCopyToClipboard(str);
+    }
+  }
+
+  static fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      ogToast?.success('Contexto copiado (fallback)');
+    } catch (err) {}
+    document.body.removeChild(textArea);
   }
 
   // Forzar recarga sin caché
@@ -354,13 +397,12 @@ class logs {
       return;
     }
 
-
-    // Eliminar todos los caches de logs usando PROYECT_SLUG
-    ogCache.delete(PROYECT_SLUG + '_logs_today');
-    ogCache.delete(PROYECT_SLUG + '_logs_yesterday');
-    ogCache.delete(PROYECT_SLUG + '_logs_7days');
-    ogCache.delete(PROYECT_SLUG + '_logs_15days');
-    ogCache.delete(PROYECT_SLUG + '_logs_30days');
+    // Eliminar todos los caches de logs (cache.js se encarga del prefijo)
+    ogCache.delete('logs_today');
+    ogCache.delete('logs_yesterday');
+    ogCache.delete('logs_7days');
+    ogCache.delete('logs_15days');
+    ogCache.delete('logs_30days');
     ogLogger.info('ext:admin:logs','✅ Caché eliminado');
 
     // Determinar cuál filtro está activo

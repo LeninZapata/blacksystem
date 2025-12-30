@@ -1,53 +1,89 @@
 <?php
 /**
- * CACHE - Sistema híbrido de cache
+ * CACHE - Sistema hibrido de cache con configuraciones personalizables
  *
- * ═══════════════════════════════════════════════════════════════════════════
- * REGLA DE ORO: Usar prefijo 'global_' para decidir dónde cachear
- * ═══════════════════════════════════════════════════════════════════════════
+ * REGLA DE ORO: Usar prefijo 'global_' para decidir donde cachear
  *
- * 1. CACHE GLOBAL (prefijo 'global_'):
- *    - Dónde: $_SESSION (memoria)
- *    - Velocidad: ⚡ 0.01ms (super rápido)
- *    - Uso: Datos que son IGUALES para TODOS los usuarios
- *    - Problema: NO funciona con Authorization: Bearer (usa cookies)
+ * CONFIGURACIONES PERSONALIZABLES:
+ * - Formato de nombre de archivo
+ * - Directorio de almacenamiento
+ * - Extension de archivo
+ * - Variables personalizadas en el nombre
  *
- *    Ejemplos:
- *    ✅ ogCache::set('global_php_version_valid', true)
- *    ✅ ogCache::set('global_app_config', [...])
- *    ✅ ogCache::set('global_maintenance_mode', false)
+ * USO:
+ * 1. Cache normal (por defecto):
+ *    ogCache::set('my_data', $value);
  *
- * 2. CACHE POR USUARIO (sin prefijo 'global_'):
- *    - Dónde: Archivo en /storage/cache/
- *    - Velocidad: ✓ 0.1ms (un poco más lento pero aceptable)
- *    - Uso: Datos específicos de usuario/token
- *    - Ventaja: Funciona con Bearer tokens, compartido entre web/móvil/API
- *
- *    Ejemplos:
- *    ✅ ogCache::set('auth_session_abc123', $sessionData)
- *    ✅ ogCache::set('user_permissions_5', ['read', 'write'])
- *    ✅ ogCache::set('user_config_10', [...])
- *
- * ═══════════════════════════════════════════════════════════════════════════
- * ¿POR QUÉ ESTE SISTEMA?
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * $_SESSION usa cookie PHPSESSID:
- * - Web browser: Tiene cookie → $_SESSION funciona ✓
- * - Mobile app: NO tiene cookie → $_SESSION crea sesión NUEVA cada vez ✗
- * - API client: NO tiene cookie → $_SESSION crea sesión NUEVA cada vez ✗
- *
- * Por eso:
- * - Versión PHP (igual para todos) → 'global_' → $_SESSION ⚡
- * - Sesión usuario (distinta por token) → archivo → funciona con Bearer ✓
- *
- * ═══════════════════════════════════════════════════════════════════════════
+ * 2. Cache con configuracion personalizada (sesiones):
+ *    ogCache::setConfig([
+ *      'dir' => STORAGE_PATH . '/sessions',
+ *      'ext' => 'json',
+ *      'format' => '{expires}_{var1}_{hash}'
+ *    ]);
+ *    ogCache::set('session_data', $value, null, ['var1' => $userId]);
+ *    ogCache::setConfigDefault(); // Restaurar config por defecto
  */
 class ogCache {
   private static $sessionStarted = false;
-  private static $cacheDir;
+  private static $configs = [];
+  private static $activeConfigKey = 'default';
 
-  // Inicializar sesión
+  // Configuracion por defecto
+  private static $defaultConfig = [
+    'dir' => null, // Se inicializa en initConfig()
+    'ext' => 'cache',
+    'format' => '{expires}_{hash}' // Variables: {expires}, {hash}, {var1}, {var2}, etc
+  ];
+
+  // Inicializar configuracion
+  private static function initConfig() {
+    if (!isset(self::$configs['default'])) {
+      self::$configs['default'] = array_merge(self::$defaultConfig, [
+        'dir' => ogApp()->getPath('storage') . '/cache'
+      ]);
+    }
+  }
+
+  // Obtener configuracion activa
+  public static function getConfig() {
+    self::initConfig();
+    return self::$configs[self::$activeConfigKey];
+  }
+
+  /**
+   * SET CONFIG - Establecer configuracion personalizada
+   * 
+   * @param array $config Configuracion personalizada
+   * @param string $key Clave unica para esta configuracion (opcional)
+   * 
+   * Ejemplo para sesiones:
+   * ogCache::setConfig([
+   *   'dir' => STORAGE_PATH . '/sessions',
+   *   'ext' => 'json',
+   *   'format' => '{expires}_{var1}_{hash}'
+   * ], 'session');
+   */
+  static function setConfig($config, $key = 'custom') {
+    self::initConfig();
+    self::$configs[$key] = array_merge(self::$defaultConfig, $config);
+    self::$activeConfigKey = $key;
+  }
+
+  /**
+   * SET CONFIG DEFAULT - Restaurar configuracion por defecto
+   */
+  static function setConfigDefault() {
+    self::$activeConfigKey = 'default';
+  }
+
+  /**
+   * GET CONFIG KEY - Obtener la clave de configuracion activa
+   */
+  static function getConfigKey() {
+    return self::$activeConfigKey;
+  }
+
+  // Inicializar sesion
   private static function startSession() {
     if (self::$sessionStarted) return;
 
@@ -59,82 +95,61 @@ class ogCache {
     self::$sessionStarted = true;
   }
 
-  // Inicializar directorio de cache
+  // Inicializar directorio
   private static function initDir() {
-    if (self::$cacheDir) return;
+    $config = self::getConfig();
+    $dir = $config['dir'];
 
-    self::$cacheDir = STORAGE_PATH . '/cache/';
-
-    if (!is_dir(self::$cacheDir)) {
-      mkdir(self::$cacheDir, 0755, true);
+    if (!is_dir($dir)) {
+      mkdir($dir, 0755, true);
     }
   }
 
   /**
    * GET - Obtener valor del cache
-   *
-   * REGLA SIMPLE:
-   * - Si la key empieza con 'global_' → usa $_SESSION (rápido, pero NO funciona con Bearer tokens)
-   * - Si NO empieza con 'global_' → usa archivo (funciona con Bearer tokens)
-   *
-   * EJEMPLOS:
-   *
-   * ✅ USAR 'global_' para datos que NO dependen del usuario:
-   * ogCache::get('global_php_version_valid')     → $_SESSION ⚡ 0.01ms
-   * ogCache::get('global_app_config')            → $_SESSION ⚡
-   * ogCache::get('global_timezone')              → $_SESSION ⚡
-   *
-   * ✅ NO USAR 'global_' para datos específicos de usuarios/tokens:
-   * ogCache::get('auth_session_abc123')          → Archivo ✓ 0.1ms (funciona con Bearer)
-   * ogCache::get('user_permissions_5')           → Archivo ✓
-   * ogCache::get('user_config_10')               → Archivo ✓
-   *
-   * ¿POR QUÉ?
-   * $_SESSION usa cookies PHPSESSID, NO funciona con Authorization: Bearer
-   * Archivos funcionan independiente del cliente (web, móvil, API)
+   * @param bool $forget Si es true, elimina el cache despues de obtenerlo
    */
-  static function get($key, $default = null) {
-    // Datos globales (no dependen del usuario) → $_SESSION
+  static function get($key, $default = null, $forget = false) {
     if (str_starts_with($key, 'global_')) {
       self::startSession();
-      return $_SESSION['cache'][$key] ?? $default;
+      $value = $_SESSION['cache'][$key] ?? $default;
+      
+      if ($forget && isset($_SESSION['cache'][$key])) {
+        unset($_SESSION['cache'][$key]);
+      }
+      
+      return $value;
     }
 
-    // Datos por usuario/token → Archivo
-    return self::getFromFile($key, $default);
+    $value = self::getFromFile($key, $default);
+    
+    if ($forget && $value !== $default) {
+      self::forgetFile($key);
+    }
+    
+    return $value;
+  }
+
+  /**
+   * PULL - Obtener y eliminar en una sola operacion
+   */
+  static function pull($key, $default = null) {
+    return self::get($key, $default, true);
   }
 
   /**
    * SET - Guardar valor en cache
-   *
-   * REGLA SIMPLE:
-   * - Si la key empieza con 'global_' → guarda en $_SESSION
-   * - Si NO empieza con 'global_' → guarda en archivo
-   *
-   * EJEMPLOS:
-   *
-   * ✅ Datos globales (same value para TODOS los usuarios):
-   * ogCache::set('global_php_version_valid', true)
-   * ogCache::set('global_maintenance_mode', false)
-   *
-   * ✅ Datos específicos (different value por usuario/token):
-   * ogCache::set('auth_session_abc123', $sessionData)
-   * ogCache::set('user_permissions_5', ['read', 'write'])
-   *
-   * @param string $key Nombre del cache
-   * @param mixed $value Valor a guardar
-   * @param int|null $ttl Tiempo de vida en segundos (solo para archivos, default: OG_SESSION_TTL)
+   * @param int|null $ttl Tiempo de vida en segundos
+   * @param array $vars Variables personalizadas para el nombre del archivo
    */
-  static function set($key, $value, $ttl = null) {
-    // Datos globales → $_SESSION
+  static function set($key, $value, $ttl = null, $vars = []) {
     if (str_starts_with($key, 'global_')) {
       self::startSession();
       $_SESSION['cache'][$key] = $value;
       return;
     }
 
-    // Datos por usuario/token → Archivo
-    self::setToFile($key, $value, $ttl);
+    self::setToFile($key, $value, $ttl, $vars);
   }
 
   /**
@@ -151,28 +166,28 @@ class ogCache {
 
   /**
    * FORGET - Eliminar del cache
+   * @param array $vars Variables para encontrar el archivo (si es necesario)
    */
-  static function forget($key) {
+  static function forget($key, $vars = []) {
     if (str_starts_with($key, 'global_')) {
       self::startSession();
       unset($_SESSION['cache'][$key]);
       return;
     }
 
-    self::forgetFile($key);
+    self::forgetFile($key, $vars);
   }
 
   /**
    * CLEAR - Limpiar todo
    */
   static function clear() {
-    // Limpiar $_SESSION
     self::startSession();
     $_SESSION['cache'] = [];
 
-    // Limpiar archivos
+    $config = self::getConfig();
     self::initDir();
-    $files = glob(self::$cacheDir . '*.cache');
+    $files = glob($config['dir'] . '/*.' . $config['ext']);
     foreach ($files as $file) {
       unlink($file);
     }
@@ -181,7 +196,7 @@ class ogCache {
   /**
    * REMEMBER - Obtener o ejecutar callback
    */
-  static function remember($key, $callback, $ttl = null) {
+  static function remember($key, $callback, $ttl = null, $vars = []) {
     $value = self::get($key);
 
     if ($value !== null) {
@@ -189,27 +204,129 @@ class ogCache {
     }
 
     $value = $callback();
-    self::set($key, $value, $ttl);
+    self::set($key, $value, $ttl, $vars);
     return $value;
   }
 
-  // ========== MÉTODOS PRIVADOS PARA ARCHIVOS ==========
+  /**
+   * REMEMBER_ONCE - Ejecutar callback, guardar y auto-eliminar al obtenerlo
+   */
+  static function rememberOnce($key, $callback, $ttl = null, $vars = []) {
+    $value = self::get($key);
 
-  private static function getPath($key) {
+    if ($value !== null) {
+      self::forget($key, $vars);
+      return $value;
+    }
+
+    $value = $callback();
+    self::set($key, $value, $ttl, $vars);
+    return $value;
+  }
+
+  // Metodos privados para archivos
+
+  /**
+   * Generar nombre de archivo segun formato configurado
+   * Formato: {expires}_{var1}_{hash}
+   * Variables especiales:
+   * - {hash}: md5 completo de la key
+   * - {key}: key original (sin hashear)
+   * - {key:N}: primeros N caracteres de la key
+   */
+  private static function buildFilename($key, $expiresAt, $vars = []) {
+    $config = self::getConfig();
+    
+    $filename = $config['format'];
+    $filename = str_replace('{expires}', $expiresAt, $filename);
+    
+    // Reemplazar {key:N} con primeros N caracteres de la key
+    if (preg_match('/\{key:(\d+)\}/', $filename, $matches)) {
+      $length = (int)$matches[1];
+      $keyShort = substr($key, 0, $length);
+      $filename = str_replace('{key:' . $length . '}', $keyShort, $filename);
+    }
+    
+    // Reemplazar {key} con key completa
+    $filename = str_replace('{key}', $key, $filename);
+    
+    // Reemplazar {hash} con md5 completo
+    $hash = md5($key);
+    $filename = str_replace('{hash}', $hash, $filename);
+    
+    // Reemplazar variables personalizadas
+    foreach ($vars as $varKey => $varValue) {
+      $filename = str_replace('{' . $varKey . '}', $varValue, $filename);
+    }
+    
+    return $filename . '.' . $config['ext'];
+  }
+
+  /**
+   * Buscar archivo por key (puede tener diferentes timestamps/vars)
+   */
+  private static function findFile($key, $vars = []) {
+    $config = self::getConfig();
     self::initDir();
-    return self::$cacheDir . md5($key) . '.cache';
+    
+    // Construir pattern segun formato
+    $pattern = $config['format'];
+    $pattern = str_replace('{expires}', '*', $pattern);
+    
+    // Manejar {key:N} - primeros N caracteres de la key
+    if (preg_match('/\{key:(\d+)\}/', $pattern, $matches)) {
+      $length = (int)$matches[1];
+      $keyShort = substr($key, 0, $length);
+      $pattern = str_replace('{key:' . $length . '}', $keyShort, $pattern);
+    }
+    
+    // Manejar {key} - key completa
+    $pattern = str_replace('{key}', $key, $pattern);
+    
+    // Manejar {hash} - md5 completo
+    $hash = md5($key);
+    $pattern = str_replace('{hash}', $hash, $pattern);
+    
+    // Reemplazar variables conocidas
+    foreach ($vars as $varKey => $varValue) {
+      $pattern = str_replace('{' . $varKey . '}', $varValue, $pattern);
+    }
+    
+    // Reemplazar variables desconocidas con *
+    $pattern = preg_replace('/\{[a-z0-9_:]+\}/i', '*', $pattern);
+    
+    $fullPattern = $config['dir'] . '/' . $pattern . '.' . $config['ext'];
+    $files = glob($fullPattern);
+    
+    return !empty($files) ? $files[0] : null;
   }
 
   private static function getFromFile($key, $default = null) {
-    $file = self::getPath($key);
+    $file = self::findFile($key);
 
-    if (!file_exists($file)) {
+    if (!$file || !file_exists($file)) {
       return $default;
     }
 
-    $data = json_decode(file_get_contents($file), true);
+    // Verificar expiracion por nombre de archivo
+    $config = self::getConfig();
+    $filename = basename($file, '.' . $config['ext']);
+    $parts = explode('_', $filename);
+    
+    // Asumir que el primer elemento es el timestamp de expiracion
+    if (!empty($parts) && is_numeric($parts[0])) {
+      $expiresAt = (int)$parts[0];
+      
+      if ($expiresAt < time()) {
+        unlink($file);
+        return $default;
+      }
+    }
 
-    // Verificar expiración
+    $content = file_get_contents($file);
+    $data = json_decode($content, true);
+
+    // Verificar expiracion del contenido (backup)
     if (isset($data['expires_at']) && $data['expires_at'] < time()) {
       unlink($file);
       return $default;
@@ -218,93 +335,156 @@ class ogCache {
     return $data['value'] ?? $default;
   }
 
-  private static function setToFile($key, $value, $ttl = null) {
-    $file = self::getPath($key);
+  private static function setToFile($key, $value, $ttl = null, $vars = []) {
+    $config = self::getConfig();
+    self::initDir();
+    
     $ttl = $ttl ?? OG_SESSION_TTL;
+    $expiresAt = time() + $ttl;
+    
+    // Eliminar archivo antiguo si existe
+    $oldFile = self::findFile($key, $vars);
+    if ($oldFile && file_exists($oldFile)) {
+      unlink($oldFile);
+    }
+    
+    // Crear nuevo archivo
+    $filename = self::buildFilename($key, $expiresAt, $vars);
+    $filepath = $config['dir'] . '/' . $filename;
 
     $data = [
       'value' => $value,
       'created_at' => time(),
-      'expires_at' => time() + $ttl
+      'expires_at' => $expiresAt
     ];
 
-    file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE));
+    file_put_contents($filepath, json_encode($data, JSON_UNESCAPED_UNICODE));
   }
 
-  private static function forgetFile($key) {
-    $file = self::getPath($key);
+  private static function forgetFile($key, $vars = []) {
+    $file = self::findFile($key, $vars);
 
-    if (file_exists($file)) {
+    if ($file && file_exists($file)) {
       unlink($file);
     }
   }
 
   /**
-   * CLEANUP - Limpiar archivos expirados (ejecutar con cron)
+   * CLEANUP - Limpiar archivos expirados
+   * Optimizado: lee timestamp del nombre sin abrir archivo
+   * @param string|null $configKey Clave de configuracion a limpiar (null = activa)
    */
-  static function cleanup() {
+  static function cleanup($configKey = null) {
+    $originalConfigKey = self::$activeConfigKey;
+    
+    if ($configKey !== null) {
+      if (!isset(self::$configs[$configKey])) {
+        return 0;
+      }
+      self::$activeConfigKey = $configKey;
+    }
+    
+    $config = self::getConfig();
     self::initDir();
 
     $cleaned = 0;
-    $files = glob(self::$cacheDir . '*.cache');
+    $now = time();
+    $files = scandir($config['dir']);
 
     foreach ($files as $file) {
-      $data = json_decode(file_get_contents($file), true);
+      if ($file === '.' || $file === '..' || !str_ends_with($file, '.' . $config['ext'])) {
+        continue;
+      }
 
-      if (isset($data['expires_at']) && $data['expires_at'] < time()) {
-        unlink($file);
-        $cleaned++;
+      $filepath = $config['dir'] . '/' . $file;
+
+      try {
+        $filename = basename($file, '.' . $config['ext']);
+        $parts = explode('_', $filename);
+
+        // Primer elemento debe ser timestamp de expiracion
+        if (!empty($parts) && is_numeric($parts[0])) {
+          $expiresAt = (int)$parts[0];
+
+          if ($expiresAt < $now) {
+            unlink($filepath);
+            $cleaned++;
+          }
+        } else {
+          // Formato invalido, eliminar
+          unlink($filepath);
+          $cleaned++;
+        }
+      } catch (Exception $e) {
+        // Ignorar errores
       }
     }
+    
+    // Restaurar configuracion original
+    self::$activeConfigKey = $originalConfigKey;
 
     return $cleaned;
+  }
+
+  /**
+   * CLEANUP ALL - Limpiar todas las configuraciones
+   */
+  static function cleanupAll() {
+    $total = 0;
+    
+    foreach (array_keys(self::$configs) as $configKey) {
+      $cleaned = self::cleanup($configKey);
+      $total += $cleaned;
+    }
+    
+    return $total;
   }
 }
 
 /*
- * ═══════════════════════════════════════════════════════════════════════════
  * EJEMPLOS DE USO
- * ═══════════════════════════════════════════════════════════════════════════
  *
- * // ✅ EJEMPLO 1: Validar versión PHP (dato global)
- * $isValid = ogCache::remember('global_php_version_valid', function() {
- *   return version_compare(PHP_VERSION, '8.1.0', '>=');
- * });
- * // Resultado: Se guarda en $_SESSION (0.01ms) ⚡
+ * // ============ CACHE NORMAL (por defecto) ============
+ * ogCache::set('user_data', $data);
+ * $data = ogCache::get('user_data');
+ * ogCache::forget('user_data');
  *
- *
- * // ✅ EJEMPLO 2: Cachear sesión de usuario (dato específico)
- * ogCache::set('auth_session_abc123', [
- *   'user_id' => 5,
- *   'token' => 'abc123...',
- *   'expires_at' => time() + 86400
- * ]);
- * // Resultado: Se guarda en archivo (0.1ms) ✓
+ * // Archivos: 1735689600_abc123.cache
  *
  *
- * // ✅ EJEMPLO 3: Leer sesión desde móvil/web/API (mismo token)
- * // Request desde Web:
- * $session = ogCache::get('auth_session_abc123');
- * // Request desde Mobile App (mismo token):
- * $session = ogCache::get('auth_session_abc123'); // ← Obtiene el MISMO valor ✓
- * // Resultado: Funciona porque usa archivo, no depende de cookies
+ * // ============ CACHE PERSONALIZADO (sesiones) ============
+ * // Configurar para sesiones
+ * ogCache::setConfig([
+ *   'dir' => STORAGE_PATH . '/sessions',
+ *   'ext' => 'json',
+ *   'format' => '{expires}_{var1}_{hash}'
+ * ], 'session');
+ *
+ * // Guardar sesion
+ * ogCache::set('session_' . $token, $sessionData, 86400, ['var1' => $userId]);
+ * // Archivo: 1735689600_10_abc123.json
+ *
+ * // Obtener sesion
+ * $session = ogCache::get('session_' . $token);
+ *
+ * // Eliminar sesion
+ * ogCache::forget('session_' . $token, ['var1' => $userId]);
+ *
+ * // Restaurar config por defecto
+ * ogCache::setConfigDefault();
+ *
+ * // Ahora usa config normal de nuevo
+ * ogCache::set('other_data', $value);
+ * // Archivo: 1735689600_def456.cache
  *
  *
- * // ❌ EJEMPLO 4: Error común - usar global_ para datos de usuario
- * ogCache::set('global_user_session_5', $sessionData); // ← MAL ✗
- * // Problema: Si el usuario hace login desde móvil, $_SESSION es diferente
+ * // ============ LIMPIEZA ============
+ * // Limpiar config activa
+ * ogCache::cleanup();
  *
+ * // Limpiar config especifica
+ * ogCache::cleanup('session');
  *
- * // ✅ EJEMPLO 5: Login - crear cache
- * ogCache::set('auth_session_' . substr($token, 0, 16), $sessionData);
- *
- * // ✅ EJEMPLO 6: Logout - borrar cache
- * ogCache::forget('auth_session_' . substr($token, 0, 16));
- *
- *
- * // ✅ EJEMPLO 7: Limpiar cache expirado (cron job)
- * $cleaned = ogCache::cleanup();
- * // Ejecutar cada hora: 0 * * * * curl http://domain.com/api/cache/cleanup
- *
- * ═══════════════════════════════════════════════════════════════════════════
+ * // Limpiar todas las configs
+ * ogCache::cleanupAll();
  */

@@ -1,10 +1,5 @@
 class ogDataLoader {
-  static getModules() {
-    return {
-      api: window.ogFramework?.core?.api || window.api,
-      hook: window.ogFramework?.core?.hook || window.hook,
-    };
-  }
+
 
   static getConfig() {
     return window.ogFramework?.activeConfig || window.appConfig || {};
@@ -30,8 +25,8 @@ class ogDataLoader {
   }
 
   static async loadAuto(config, extensionName) {
-    const { hook } = this.getModules();
-    
+
+    const hook = ogModule('hook');
     const pluginConfig = extensionName ? hook?.getPluginConfig(extensionName) : null;
     const backendEnabled = pluginConfig?.backend?.enabled || false;
 
@@ -50,7 +45,7 @@ class ogDataLoader {
   }
 
   static async loadFromApi(apiConfig) {
-    const { api } = this.getModules();
+    const api = ogModule('api');
     const endpoint = apiConfig.endpoint;
     const method = apiConfig.method || 'GET';
 
@@ -88,8 +83,8 @@ class ogDataLoader {
 
     try {
       const globalConfig = this.getConfig();
-      const BASE_URL = globalConfig.baseUrl || window.BASE_URL || '/';
-      const VERSION = globalConfig.version || window.VERSION || Date.now();
+      const BASE_URL = globalConfig.baseUrl || '/';
+      const VERSION = globalConfig.version || '1.0.0';
 
       let mockPath;
 

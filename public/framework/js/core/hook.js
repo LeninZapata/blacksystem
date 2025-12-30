@@ -5,27 +5,20 @@ class ogHook {
   static pluginRegistryOriginal = new Map(); // ← Copia sin filtrar
   static menuItems = [];
 
-  static getModules() {
-    return {
-      loader: window.ogFramework?.core?.loader || window.loader,
-      i18n: window.ogFramework?.core?.i18n || window.i18n,
-      cache: window.ogFramework?.core?.cache || window.cache,
-      api: window.ogFramework?.core?.api || window.api
-    };
-  }
+
 
   static getConfig() {
     return window.ogFramework?.activeConfig || window.appConfig || {};
   }
 
   static async loadPluginHooks() {
-    const {  api } = this.getModules();
+    const api = ogModule('api');
     const config = this.getConfig();
     const startTime = performance.now();
     this.menuItems = [];
 
     try {
-      const cacheBuster = `?v=${config.version || window.VERSION}`;
+      const cacheBuster = `?v=${config.version || "1.0.0"}`;
       const response = await api.get('extensions/index.json' + cacheBuster);
 
       if (!response?.extensions || !Array.isArray(response.extensions)) {
@@ -105,12 +98,12 @@ class ogHook {
       this.menuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
 
     } catch (error) {
-      this.getModules().ogLogger?.error('core:hook', 'Error cargando extensions:', error);
+      ogModule('logger')?.error('core:hook', 'Error cargando extensions:', error);
     }
   }
 
   static async loadPluginLanguages(extensionName) {
-    const { i18n } = this.getModules();
+    const i18n = ogModule('i18n');
     if (!window.ogFramework?.core?.i18n) return;
     const currentLang = i18n.getLang();
     const loaded = await this.tryLoadPluginLang(extensionName, currentLang);
@@ -124,12 +117,14 @@ class ogHook {
   }
 
   static async tryLoadPluginLang(extensionName, lang) {
-    const { loader, i18n, cache } = this.getModules();
+    const loader = ogModule('loader');
+    const i18n = ogModule('i18n');
+    const cache = ogModule('cache');
     const config = this.getConfig();
     
     try {
-      const langPath = `${config.baseUrl || window.BASE_URL}extensions/${extensionName}/lang/${lang}.json`;
-      const cacheBuster = `?v=${config.version || window.VERSION}`;
+      const langPath = `${config.baseUrl || "/"}extensions/${extensionName}/lang/${lang}.json`;
+      const cacheBuster = `?v=${config.version || "1.0.0"}`;
 
       // Usar loader.loadJson con opción optional y silent
       const translations = await loader.loadJson(langPath + cacheBuster, {
@@ -144,9 +139,9 @@ class ogHook {
         i18n.exntesionTranslations.set(extensionName, new Map());
       }
       i18n.exntesionTranslations.get(extensionName).set(lang, translations);
-      cache.set(`i18n_extension_${extensionName}_${lang}_v${config.version || window.VERSION}`, translations, 60 * 60 * 1000);
+      cache.set(`i18n_extension_${extensionName}_${lang}_v${config.version || "1.0.0"}`, translations, 60 * 60 * 1000);
 
-      this.getModules().ogLogger?.success('core:hook', `✅ Idioma ${lang} cargado para ${extensionName}`);
+      ogModule('logger')?.success('core:hook', `✅ Idioma ${lang} cargado para ${extensionName}`);
       return true;
     } catch (error) {
       return false;
@@ -154,7 +149,7 @@ class ogHook {
   }
 
   static async preloadPluginViews(extensionName, pluginConfig) {
-    const { cache } = this.getModules();
+    const cache = ogModule('cache');
     const config = this.getConfig();
     
     if (!pluginConfig.menu?.items) return;
@@ -170,8 +165,8 @@ class ogHook {
     for (const viewPath of viewsToPreload) {
       try {
         const basePath = config.routes?.extensionViews?.replace('{extensionName}', extensionName) || `extensions/${extensionName}/views`;
-        const fullPath = `${config.baseUrl || window.BASE_URL}${basePath}/${viewPath}.json`;
-        const cacheBuster = `?v=${config.version || window.VERSION}`;
+        const fullPath = `${config.baseUrl || "/"}${basePath}/${viewPath}.json`;
+        const cacheBuster = `?v=${config.version || "1.0.0"}`;
         const response = await fetch(fullPath + cacheBuster);
         if (response.ok) {
           const viewData = await response.json();
@@ -187,18 +182,18 @@ class ogHook {
     
     try {
       const scriptPath = `extensions/${extensionName}/${scriptFile}`;
-      const cacheBuster = `?v=${config.version || window.VERSION}`;
-      const response = await fetch(`${config.baseUrl || window.BASE_URL}${scriptPath}${cacheBuster}`);
+      const cacheBuster = `?v=${config.version || "1.0.0"}`;
+      const response = await fetch(`${config.baseUrl || "/"}${scriptPath}${cacheBuster}`);
       if (!response.ok) return;
       const scriptContent = await response.text();
       new Function(scriptContent)();
     } catch (error) {
-      this.getModules().ogLogger?.error('core:hook', `Error cargando autoload ${extensionName}:`, error.message);
+      ogModule('logger')?.error('core:hook', `Error cargando autoload ${extensionName}:`, error.message);
     }
   }
 
   static async loadPluginResources(scripts = [], styles = []) {
-    const { loader } = this.getModules();
+    const loader = ogModule('loader');
     
     if (loader && typeof loader.loadResources === 'function') {
       try {
@@ -320,11 +315,11 @@ class ogHook {
   }
 
   static async loadPluginConfig(extensionName) {
-    const { api } = this.getModules();
+    const api = ogModule('api');
     const config = this.getConfig();
     
     try {
-      const cacheBuster = `?v=${config.version || window.VERSION}`;
+      const cacheBuster = `?v=${config.version || "1.0.0"}`;
       return await api.get(`extensions/${extensionName}/index.json${cacheBuster}`);
     } catch (error) {
       return { name: extensionName, enabled: false, hasHooks: false };
@@ -336,8 +331,8 @@ class ogHook {
     
     try {
       const hookPath = `extensions/${extensionName}/hooks.js`;
-      const cacheBuster = `?v=${config.version || window.VERSION}`;
-      const response = await fetch(`${config.baseUrl || window.BASE_URL}${hookPath}${cacheBuster}`);
+      const cacheBuster = `?v=${config.version || "1.0.0"}`;
+      const response = await fetch(`${config.baseUrl || "/"}${hookPath}${cacheBuster}`);
       if (!response.ok) return;
       const scriptContent = await response.text();
       new Function(scriptContent)();
@@ -413,10 +408,10 @@ class ogHook {
             }));
             results = [...results, ...itemsWithOrder];
           } else {
-            this.getModules().ogLogger?.warn('core:hook', `${extensionName}.${finalHookName}() no retornó un array`);
+            ogModule('logger')?.warn('core:hook', `${extensionName}.${finalHookName}() no retornó un array`);
           }
         } catch (error) {
-          this.getModules().ogLogger?.error('core:hook', `Error ejecutando ${extensionName}.${finalHookName}():`, error);
+          ogModule('logger')?.error('core:hook', `Error ejecutando ${extensionName}.${finalHookName}():`, error);
         }
       }
     }
@@ -450,11 +445,11 @@ class ogHook {
         try {
           await window[componentName].render(hookResult.config, wrapper);
         } catch (error) {
-          this.getModules().ogLogger?.error('core:hook', `Error renderizando componente "${componentName}":`, error);
+          ogModule('logger')?.error('core:hook', `Error renderizando componente "${componentName}":`, error);
           wrapper.innerHTML = `<div style="padding:1rem;background:#fee;border:1px solid #fcc;border-radius:4px;">${__('core.hook.error.loading_component', { component: componentName })}</div>`;
         }
       } else {
-        this.getModules().ogLogger?.error('core:hook', `Componente "${componentName}" no encontrado`);
+        ogModule('logger')?.error('core:hook', `Componente "${componentName}" no encontrado`);
         wrapper.innerHTML = `<div style="padding:1rem;background:#fee;border:1px solid #fcc;border-radius:4px;">${__('core.hook.error.component_not_available', { component: componentName })}</div>`;
       }
     }
@@ -464,7 +459,7 @@ class ogHook {
   static async renderHooks(hookName, containerId, defaultData = []) {
     const container = document.getElementById(containerId);
     if (!container) {
-      this.getModules().ogLogger?.error('core:hook', `Container "${containerId}" no encontrado`);
+      ogModule('logger')?.error('core:hook', `Container "${containerId}" no encontrado`);
       return;
     }
 

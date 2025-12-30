@@ -61,7 +61,7 @@ class ogLang {
     }
 
     // 2. Merge con app (si existe)
-    $appFile = APP_PATH . "/lang/" . self::$locale . "/{$module}.php";
+    $appFile = ogApp()->getPath() . "/lang/" . self::$locale . "/{$module}.php";
     if (file_exists($appFile)) {
       $appTranslations = require $appFile;
       $merged = array_merge($merged, $appTranslations);
@@ -85,7 +85,7 @@ class ogLang {
     }
 
     // Merge con services del app (si existen)
-    $appServicesPath = APP_PATH . "/lang/" . self::$locale . "/services/";
+    $appServicesPath = ogApp()->getPath() . "/lang/" . self::$locale . "/services/";
     if (is_dir($appServicesPath)) {
       foreach (scandir($appServicesPath) as $file) {
         if ($file === '.' || $file === '..') continue;

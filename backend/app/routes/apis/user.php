@@ -1,26 +1,17 @@
 <?php
 // routes/apis/user.php
-// Las rutas CRUD (create, update, delete, etc.) se auto-registran desde user.json
+// Solo rutas relacionadas con CRUD de usuarios (no autenticacion)
 $router->group('/api/user', function($router) {
 
-  // Perfil del usuario autenticado
-  $router->get('/profile', function() {
-    ogApp()->loadHandler('UserHandler');
-    $result = UserHandler::profile([]);
-    ogResponse::json($result);
-  })->middleware('auth');
-
-  // Actualizar configuración del usuario
+  // Actualizar configuracion del usuario
   $router->put('/{id}/config', function($id) {
     ogApp()->loadHandler('UserHandler');
     $result = UserHandler::updateConfig(['id' => $id]);
     ogResponse::json($result);
   })->middleware(['auth', 'json']);
 
-
   if (OG_IS_DEV) {
-
-    // Generar hash de contraseña
+    // Generar hash de contraseña (solo desarrollo)
     $router->get('/generatepass/{key}', function($key) {
       if (empty($key)) {
         ogResponse::json([
@@ -45,10 +36,15 @@ $router->group('/api/user', function($router) {
 });
 
 // ============================================
-// NOTA: Las rutas CRUD se registran automáticamente desde user.json:
-// - GET    /api/user           (list)
-// - GET    /api/user/{id}      (show)
-// - POST   /api/user           (create)   ← Auto-registrada
-// - PUT    /api/user/{id}      (update)   ← Auto-registrada
-// - DELETE /api/user/{id}      (delete)   ← Auto-registrada
+// NOTA: Las rutas CRUD se registran automaticamente desde user.json:
+// - GET    /api/user           (list)    - Listar usuarios
+// - GET    /api/user/{id}      (show)    - Ver un usuario
+// - POST   /api/user           (create)  - Crear usuario
+// - PUT    /api/user/{id}      (update)  - Actualizar usuario
+// - DELETE /api/user/{id}      (delete)  - Eliminar usuario
+//
+// Las rutas de autenticacion estan en /api/auth:
+// - POST /api/auth/login       - Login
+// - POST /api/auth/logout      - Logout
+// - GET  /api/auth/profile     - Perfil del usuario autenticado
 // ============================================

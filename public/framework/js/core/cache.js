@@ -1,16 +1,31 @@
+// No se requieren cambios, ya cumple con la convención actual.
 class ogCache {
   static memoryCache = new Map();
   static defaultTTL = 60 * 60 * 1000;
   static prefix = null;
+  static customSpace = null; // Para override de space
 
   static getPrefix() {
     if (!this.prefix) {
-      // Priorizar ogFramework.activeConfig, luego window.appConfig
       const config = window.ogFramework?.activeConfig || window.appConfig;
-      const slug = config?.slug || config?.proyect_slug || 'default';
-      this.prefix = `cache_${slug}_`;
+      const slug = config?.slug || 'default';
+      const space = this.customSpace || config?.space || 'default';
+
+      // Construir prefijo SIN version (para evitar problemas con version dinámica)
+      this.prefix = `cache_${slug}_${space}_`;
     }
     return this.prefix;
+  }
+
+  // Configurar space personalizado (ej: multi-tenancy)
+  static setSpace(space) {
+    this.customSpace = space;
+    this.resetPrefix();
+  }
+
+  static getSpace() {
+    const config = window.ogFramework?.activeConfig || window.appConfig;
+    return this.customSpace || config?.space || 'default';
   }
 
   static getPrefixedKey(key) {
@@ -104,6 +119,8 @@ class ogCache {
   }
 
   static clear() {
+    // Forzar recalcular prefix con el contexto actual
+    this.resetPrefix();
     const prefix = this.getPrefix();
 
     // Limpiar memoryCache solo del proyecto actual
@@ -117,6 +134,19 @@ class ogCache {
     Object.keys(localStorage)
       .filter(key => key.startsWith(prefix))
       .forEach(key => localStorage.removeItem(key));
+  }
+
+  // Limpiar TODO el cache de TODOS los slugs
+  static clearAll() {
+    // Limpiar TODO el memoryCache
+    this.memoryCache.clear();
+
+    // Limpiar TODO el localStorage que tenga prefijo cache_
+    Object.keys(localStorage)
+      .filter(key => key.startsWith('cache_'))
+      .forEach(key => localStorage.removeItem(key));
+
+    ogLogger?.info('core:cache', '🗑️ Cache completo eliminado (todos los slugs)');
   }
 
   static isExpired(key) {
@@ -211,6 +241,7 @@ class ogCache {
     window[debugKey] = {
       stats: () => this.getStats(),
       clear: () => this.clear(),
+      clearAll: () => this.clearAll(),
       list: (type = 'all') => {
         const stats = this.getStats();
         if (type === 'memory') return stats.memory;
@@ -222,19 +253,30 @@ class ogCache {
       isExpired: (key) => this.isExpired(key),
       timeToExpire: (key) => this.getTimeToExpire(key),
       prefix: () => this.getPrefix(),
-      slug: () => slug
+      space: () => this.getSpace(),
+      setSpace: (space) => this.setSpace(space),
+      slug: () => slug,
+      info: () => {
+        const config = window.ogFramework?.activeConfig || window.appConfig;
+        return {
+          slug: config?.slug || 'default',
+          version: config?.version || '1.0.0',
+          space: this.getSpace(),
+          prefix: this.getPrefix()
+        };
+      }
     };
 
     // También mantener window.debugCache genérico (apunta al último)
     window.debugCache = window[debugKey];
 
-    ogLogger.debug('core:cache', `Cache debug enabled for: ${slug} (access via window.${debugKey})`);
+    ogLogger?.debug('core:cache', `Cache debug enabled for: ${slug} (access via window.${debugKey})`);
   }
 }
 
-setInterval(() => cache.cleanup(), 5 * 60 * 1000);
+setInterval(() => window?.ogCache?.cleanup(), 5 * 60 * 1000);
 
-window.addEventListener('load', () => cache.cleanup());
+window.addEventListener('load', () => window?.ogCache?.cleanup());
 
 // Global
 window.ogCache = ogCache;

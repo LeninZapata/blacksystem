@@ -28,7 +28,7 @@ class ogFramework {
     return self::$instances[$pluginName];
   }
 
-  // Cargar helper bajo demanda
+  // Cargar helper bajo demanda (con referencia)
   function helper($name) {
     $key = "helper_{$name}";
 
@@ -36,7 +36,6 @@ class ogFramework {
       return $this->loaded[$key];
     }
 
-    // Buscar en framework primero, luego en app
     $helperFile = OG_FRAMEWORK_PATH . "/helpers/og" . ucfirst($name) . ".php";
     if (!file_exists($helperFile)) {
       $helperFile = $this->pluginPath . "/helpers/og" . ucfirst($name) . ".php";
@@ -57,7 +56,28 @@ class ogFramework {
     return $this->loaded[$key];
   }
 
-  // Cargar service bajo demanda
+  // Cargar helper bajo demanda (sin instanciar)
+  function loadHelper($name) {
+    $helperFile = OG_FRAMEWORK_PATH . "/helpers/og" . ucfirst($name) . ".php";
+    if (!file_exists($helperFile)) {
+      $helperFile = $this->pluginPath . "/helpers/og" . ucfirst($name) . ".php";
+    }
+
+    if (!file_exists($helperFile)) {
+      throw new Exception("Helper not found: {$name}");
+    }
+
+    require_once $helperFile;
+    $className = "og" . ucfirst($name);
+
+    if (!class_exists($className)) {
+      throw new Exception("Helper class not found: {$className}");
+    }
+
+    return true;
+  }
+
+  // Cargar service bajo demanda (con referencia)
   function service($name) {
     $key = "service_{$name}";
 
@@ -85,7 +105,28 @@ class ogFramework {
     return $this->loaded[$key];
   }
 
-  // Cargar core class bajo demanda
+  // Cargar service bajo demanda (sin instanciar)
+  function loadService($name) {
+    $serviceFile = OG_FRAMEWORK_PATH . "/services/og" . ucfirst($name) . "Service.php";
+    if (!file_exists($serviceFile)) {
+      $serviceFile = $this->pluginPath . "/services/og" . ucfirst($name) . "Service.php";
+    }
+
+    if (!file_exists($serviceFile)) {
+      throw new Exception("Service not found: {$name}");
+    }
+
+    require_once $serviceFile;
+    $className = "og" . ucfirst($name) . "Service";
+
+    if (!class_exists($className)) {
+      throw new Exception("Service class not found: {$className}");
+    }
+
+    return true;
+  }
+
+  // Cargar core class bajo demanda (con referencia)
   function core($name) {
     $key = "core_{$name}";
 
@@ -115,9 +156,53 @@ class ogFramework {
     return $this->loaded[$key];
   }
 
+  // Cargar core class bajo demanda (sin instanciar)
+  function loadCore($name) {
+    $coreFile = OG_FRAMEWORK_PATH . "/core/og" . ucfirst($name) . ".php";
+
+    if (!file_exists($coreFile)) {
+      throw new Exception("Core class not found: {$name}");
+    }
+
+    require_once $coreFile;
+    $className = "og" . ucfirst($name);
+
+    if (!class_exists($className)) {
+      throw new Exception("Core class not found: {$className}");
+    }
+
+    return true;
+  }
+
+  // Cargar controller bajo demanda (con referencia)
+  function controller($name) {
+    $key = "controller_{$name}";
+
+    if (isset($this->loaded[$key])) {
+      return $this->loaded[$key];
+    }
+
+    $controllerFile = OG_FRAMEWORK_PATH . "/controllers/{$name}.php";
+    if (!file_exists($controllerFile)) {
+      $controllerFile = $this->pluginPath . "/resources/controllers/{$name}.php";
+    }
+
+    if (!file_exists($controllerFile)) {
+      throw new Exception("Controller not found: {$name}");
+    }
+
+    require_once $controllerFile;
+
+    if (!class_exists($name)) {
+      throw new Exception("Controller class not found: {$name}");
+    }
+
+    $this->loaded[$key] = new $name();
+    return $this->loaded[$key];
+  }
+
   // Cargar controller bajo demanda (sin instanciar)
   function loadController($name) {
-    // Buscar en framework primero, luego en app
     $controllerFile = OG_FRAMEWORK_PATH . "/controllers/{$name}.php";
     if (!file_exists($controllerFile)) {
       $controllerFile = $this->pluginPath . "/resources/controllers/{$name}.php";
@@ -136,12 +221,37 @@ class ogFramework {
     return true;
   }
 
-  // Cargar handler bajo demanda (sin instanciar)
-  function loadHandler($name) {
-    // Buscar en framework primero, luego en app
+  // Cargar handler bajo demanda (con referencia)
+  function handler($name) {
+    $key = "handler_{$name}";
+
+    if (isset($this->loaded[$key])) {
+      return $this->loaded[$key];
+    }
+
     $handlerFile = OG_FRAMEWORK_PATH . "/handlers/{$name}.php";
     if (!file_exists($handlerFile)) {
-      // ogLog::debug("loadHandler - Handler not found in framework, trying app: {$name}", [$name], $this->logMeta);
+      $handlerFile = $this->pluginPath . "/resources/handlers/{$name}.php";
+    }
+
+    if (!file_exists($handlerFile)) {
+      ogLog::throwError("handler - Handler not found in app: {$name}", [$name], $this->logMeta);
+    }
+
+    require_once $handlerFile;
+
+    if (!class_exists($name)) {
+      ogLog::throwError("handler - Handler class not found: {$name}", [$name], $this->logMeta);
+    }
+
+    $this->loaded[$key] = new $name();
+    return $this->loaded[$key];
+  }
+
+  // Cargar handler bajo demanda (sin instanciar)
+  function loadHandler($name) {
+    $handlerFile = OG_FRAMEWORK_PATH . "/handlers/{$name}.php";
+    if (!file_exists($handlerFile)) {
       $handlerFile = $this->pluginPath . "/resources/handlers/{$name}.php";
     }
 
@@ -160,7 +270,6 @@ class ogFramework {
 
   // Cargar middleware bajo demanda (sin instanciar)
   function loadMiddleware($name) {
-    // Buscar en framework primero, luego en app
     $mwFile = OG_FRAMEWORK_PATH . "/middleware/{$name}.php";
     if (!file_exists($mwFile)) {
       $mwFile = $this->pluginPath . "/middleware/{$name}.php";

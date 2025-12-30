@@ -13,11 +13,7 @@ class ogI18n {
     return window.ogFramework?.activeConfig || window.appConfig || {};
   }
 
-  static getModules() {
-    return {
-      cache: window.ogFramework?.core?.cache || window.cache,
-    };
-  }
+
 
   static async init(config = {}) {
     this.config = {
@@ -40,7 +36,7 @@ class ogI18n {
 
   static cleanupOldVersionCache() {
     const globalConfig = this.getConfig();
-    const currentVersion = globalConfig.version || window.VERSION;
+    const currentVersion = globalConfig.version || "1.0.0";
     const slug = globalConfig.slug || 'default';
     let cleaned = 0;
 
@@ -61,17 +57,17 @@ class ogI18n {
   }
 
   static async loadCoreLang(lang) {
-    const { cache } = this.getModules();
+    const cache = ogModule('cache');
     const globalConfig = this.getConfig();
-    const version = globalConfig.version || window.VERSION || Date.now();
+    const version = globalConfig.version || "1.0.0" || Date.now();
 
-    const cacheKey = `i18n_core_${lang}_v${version}`;
+    const cacheKey = `i18n_core_${lang}`;
     let data = cache?.get(cacheKey);
 
     if (!data) {
       try {
         const frameworkPath = globalConfig.frameworkPath || 'framework';
-        const baseUrl = globalConfig.baseUrl || window.BASE_URL || '/';
+        const baseUrl = globalConfig.baseUrl || '/';
         const cacheBuster = `?v=${version}`;
         const url = `${baseUrl}${frameworkPath}/js/lang/${lang}.json${cacheBuster}`;
 
@@ -104,11 +100,11 @@ class ogI18n {
 
   static async loadExtensionLang(extensionName, lang) {
     const globalConfig = this.getConfig();
-    const version = globalConfig.version || window.VERSION || Date.now();
-    const baseUrl = globalConfig.baseUrl || window.BASE_URL || '/';
-    const { cache } = this.getModules();
+    const version = globalConfig.version || "1.0.0" || Date.now();
+    const baseUrl = globalConfig.baseUrl || '/';
+    const cache = ogModule('cache');
 
-    const cacheKey = `i18n_extension_${extensionName}_${lang}_v${version}`;
+    const cacheKey = `i18n_extension_${extensionName}_${lang}`;
     let data = cache.get(cacheKey);
 
     if (!data) {
@@ -134,47 +130,88 @@ class ogI18n {
     this.exntesionTranslations.get(extensionName).set(lang, data);
   }
 
+  // Helper para acceder a propiedades anidadas usando dot notation
+  static getNestedProperty(obj, path) {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
+  }
+
   static t(key, params = {}) {
     const lang = this.currentLang;
     const [prefix, ...rest] = key.split('.');
 
     let translation = null;
 
+    // 1. Buscar en extensiones primero
     if (this.exntesionTranslations.has(prefix)) {
       const extensionLangs = this.exntesionTranslations.get(prefix);
       const extensionData = extensionLangs.get(lang);
 
       if (extensionData) {
-        translation = extensionData[key];
+        // Intentar dot notation primero (formato anidado)
+        translation = this.getNestedProperty(extensionData, key);
+
+        // Fallback a formato plano
+        if (!translation) {
+          translation = extensionData[key];
+        }
       }
     }
 
+    // 2. Buscar en traducciones core
     if (!translation) {
       const coreData = this.translations.get(lang);
-      translation = coreData?.[key];
 
+      if (coreData) {
+        // Intentar dot notation primero (formato anidado)
+        translation = this.getNestedProperty(coreData, key);
+
+        // Fallback a formato plano
+        if (!translation) {
+          translation = coreData[key];
+        }
+      }
+
+      // Log solo si no se encuentra y no es una key especial
       if (!translation && !key.startsWith('i18n:')) {
         ogLogger?.warn('core:i18n', `❌ Key no encontrada: "${key}" (idioma: ${lang})`);
       }
     }
 
+    // 3. Fallback al idioma por defecto
     if (!translation && lang !== this.defaultLang) {
       const defaultData = this.translations.get(this.defaultLang);
-      translation = defaultData?.[key];
+
+      if (defaultData) {
+        // Intentar dot notation
+        translation = this.getNestedProperty(defaultData, key);
+
+        // Fallback a formato plano
+        if (!translation) {
+          translation = defaultData[key];
+        }
+      }
     }
 
+    // 4. Si aún no hay traducción, retornar la key
     if (!translation) {
       ogLogger?.warn('core:i18n', `Key no encontrada: ${key}`);
       return key;
     }
 
+    // 4.5. Validar que translation sea un string
+    if (typeof translation !== 'string') {
+      ogLogger?.error('core:i18n', `La key "${key}" retornó un objeto en lugar de string:`, translation);
+      return key;
+    }
+
+    // 5. Reemplazar parámetros {param}
     return translation.replace(/\{(\w+)\}/g, (match, param) => {
       return params[param] !== undefined ? params[param] : match;
     });
   }
 
   static async setLang(lang) {
-    
+
     if (!this.availableLangs.includes(lang)) {
       ogLogger?.warn('core:i18n', `Idioma ${lang} no disponible`);
       return;
@@ -203,7 +240,7 @@ class ogI18n {
   }
 
   static updateDynamicContent() {
-    
+
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       const params = this.parseDataParams(el);
@@ -266,11 +303,15 @@ class ogI18n {
   }
 
   static getLangFromStorage() {
-    return localStorage.getItem('app_lang') || null;
+    const config = this.getConfig();
+    const slug = config.slug || 'app';
+    return localStorage.getItem(`${slug}_lang`) || null;
   }
 
   static saveLangToStorage(lang) {
-    localStorage.setItem('app_lang', lang);
+    const config = this.getConfig();
+    const slug = config.slug || 'app';
+    localStorage.setItem(`${slug}_lang`, lang);
   }
 
   static clearCache() {

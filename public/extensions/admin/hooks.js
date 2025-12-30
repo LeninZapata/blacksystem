@@ -32,10 +32,10 @@ class adminHooks {
               <span style="color: #78350f; font-size: 0.9rem;"> 5 usuarios conectados ahora</span>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <button class="btn btn-sm btn-primary" onclick="view.loadView('admin|sections/admin-panel'); ogToast.info('Cargando panel...')" style="width: 100%;">
+              <button class="btn btn-sm btn-primary" onclick="ogView.loadView('admin|sections/admin-panel'); ogToast.info('Cargando panel...')" style="width: 100%;">
                 📋 Panel Admin
               </button>
-              <button class="btn btn-sm btn-success" onclick="modal.open('core:user/forms/user-form', {title: '➕ Nuevo Usuario', width: '90%', maxWidth: '900px'})" style="width: 100%;">
+              <button class="btn btn-sm btn-success" onclick="ogModal.open('core:user/forms/user-form', {title: '➕ Nuevo Usuario', width: '90%', maxWidth: '900px'})" style="width: 100%;">
                 ➕ Crear Usuario
               </button>
             </div>

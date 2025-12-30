@@ -5,7 +5,7 @@
   "fields": [
     {
       "name": "user",
-      "label": "i18n:auth.field.user",
+      "label": "i18n:auth.field.user.label",
       "type": "text",
       "validation": "required|min:3",
       "placeholder": "i18n:auth.field.user.placeholder",
@@ -13,7 +13,7 @@
     },
     {
       "name": "pass",
-      "label": "i18n:auth.field.password",
+      "label": "i18n:auth.field.password.label",
       "type": "password",
       "validation": "required|min:3",
       "placeholder": "i18n:auth.field.password.placeholder",

@@ -10,18 +10,20 @@ class permissions {
   /**
    * Renderiza el selector de permisos
    * @param {string} containerId - ID del contenedor
-   * @param {object} config - Configuración inicial de permisos
+   * @param {object} userConfig - Configuración inicial de permisos
    * @param {array} extensionsData - Datos de extensions desde hooks
    */
-  static async render(containerId, config = {}, extensionsData = []) {
+  static async render(containerId, userConfig = {}, extensionsData = []) {
     const container = document.getElementById(containerId);
     if (!container) {
       ogLogger.error('com:permissions', 'Container no encontrado:', containerId);
       return;
     }
 
-    const permissions = config.permissions || {};
-    const selectorId = `permissions-${window.VERSION}`;
+    const config = window.ogFramework?.activeConfig || window.appConfig;
+    const version = config?.version || Date.now();
+    const permissions = userConfig.permissions || {};
+    const selectorId = `permissions-${version}`;
 
     // Cargar tabs de todas las vistas
     await this.loadAllViewsTabs(extensionsData);
@@ -39,7 +41,7 @@ class permissions {
             </button>
           </div>
         </div>
-        
+
         <div class="permissions-list">
           ${extensionsData.map(extension => this.renderPlugin(extension, permissions, selectorId)).join('')}
         </div>
@@ -51,7 +53,7 @@ class permissions {
     container.innerHTML = html;
     this.instances.set(selectorId, { config, extensionsData });
     this.bindEvents(selectorId);
-    
+
     ogLogger.success('com:permissions', 'Renderizado exitosamente');
   }
 
@@ -74,7 +76,7 @@ class permissions {
         try {
           // Cargar el JSON de la vista
           const viewData = await this.loadViewJson(extension.name, viewPath);
-          
+
           // Extraer tabs si existen
           if (viewData?.tabs && Array.isArray(viewData.tabs)) {
             this.viewsCache.set(cacheKey, viewData.tabs);
@@ -94,9 +96,15 @@ class permissions {
    * Cargar JSON de una vista
    */
   static async loadViewJson(extensionName, viewPath) {
-    // Construir URL: /extensions/{extension}/views/{viewPath}.json
-    const url = `${window.BASE_URL}extensions/${extensionName}/views/${viewPath}.json`;
-    
+    // Obtener baseUrl del config actual
+    const config = window.ogFramework?.activeConfig || window.appConfig;
+    const baseUrl = config?.baseUrl || '/';
+
+    // Construir URL: {baseUrl}extensions/{extension}/views/{viewPath}.json
+    const url = `${baseUrl}extensions/${extensionName}/views/${viewPath}.json`;
+
+    // ogLogger?.debug('com:permissions', `🔍 Cargando vista: ${url}`);
+
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -117,14 +125,14 @@ class permissions {
       <div class="permission-extension" data-extension="${extension.name}">
         <div class="permission-extension-header">
           <label class="permission-checkbox">
-            <input type="checkbox" 
-                   class="extension-toggle" 
+            <input type="checkbox"
+                   class="extension-toggle"
                    data-extension="${extension.name}"
                    ${isEnabled ? 'checked' : ''}>
             <span class="extension-name">📦 ${extension.name}</span>
           </label>
-          <button type="button" 
-                  class="btn-collapse" 
+          <button type="button"
+                  class="btn-collapse"
                   data-target="${pluginId}"
                   onclick="permissions.toggleCollapse('${pluginId}')">
             ${isEnabled ? '▼' : '▶'}
@@ -152,7 +160,7 @@ class permissions {
         <div class="permission-section-header">
           <span>📋 Menús</span>
           <label class="permission-checkbox-sm">
-            <input type="checkbox" 
+            <input type="checkbox"
                    class="section-toggle-all"
                    data-extension="${extension.name}"
                    data-section="menus"
@@ -172,10 +180,10 @@ class permissions {
    */
   static renderMenuItem(menuItem, extension, menusPerms, allMenus, selectorId) {
     const menuPerms = menusPerms[menuItem.id] || {};
-    
+
     // Determinar si el menu debe estar checked
     let isMenuChecked = false;
-    
+
     if (allMenus) {
       // Si "Todos los menús" está marcado
       isMenuChecked = true;
@@ -191,11 +199,11 @@ class permissions {
         // Verificar si hay al menos 1 tab en true
         const hasAnyTabChecked = Object.values(menuPerms.tabs).some(value => value === true);
         isMenuChecked = hasAnyTabChecked;
-        
+
         ogLogger.debug('com:permissions', `Menú "${menuItem.id}": hasAnyTabChecked=${hasAnyTabChecked}, tabs:`, menuPerms.tabs);
       }
     }
-    
+
     // Obtener tabs de la vista
     const cacheKey = `${extension.name}:${menuItem.view}`;
     const tabs = this.viewsCache.get(cacheKey);
@@ -208,7 +216,7 @@ class permissions {
       <div class="permission-item-wrapper">
         <div class="permission-item-header">
           <label class="permission-item">
-            <input type="checkbox" 
+            <input type="checkbox"
                    class="menu-checkbox"
                    data-extension="${extension.name}"
                    data-menu="${menuItem.id}"
@@ -217,15 +225,15 @@ class permissions {
             <span>${menuItem.title}</span>
           </label>
           ${hasExpandableTabs ? `
-            <button type="button" 
-                    class="btn-collapse-sm" 
+            <button type="button"
+                    class="btn-collapse-sm"
                     data-target="${tabsId}"
                     onclick="permissions.toggleCollapse('${tabsId}')">
               ${isExpanded ? '▼' : '▶'}
             </button>
           ` : ''}
         </div>
-        
+
         ${hasExpandableTabs ? `
           <div class="permission-tabs ${isExpanded ? 'open' : ''}" id="${tabsId}">
             ${this.renderTabs(tabs, extension, menuItem, menuPerms, selectorId)}
@@ -246,7 +254,7 @@ class permissions {
       <div class="permission-tabs-header">
         <span>📑 Tabs</span>
         <label class="permission-checkbox-xs">
-          <input type="checkbox" 
+          <input type="checkbox"
                  class="tabs-toggle-all"
                  data-extension="${extension.name}"
                  data-menu="${menuItem.id}"
@@ -259,7 +267,7 @@ class permissions {
           const isChecked = allTabs || tabsPerms[tab.id] === true;
           return `
             <label class="permission-tab-item">
-              <input type="checkbox" 
+              <input type="checkbox"
                      class="tab-checkbox"
                      data-extension="${extension.name}"
                      data-menu="${menuItem.id}"
@@ -287,7 +295,7 @@ class permissions {
         const extension = e.target.dataset.extension;
         const content = container.querySelector(`#${selectorId}-extension-${extension}`);
         const collapseBtn = e.target.closest('.permission-extension-header').querySelector('.btn-collapse');
-        
+
         if (e.target.checked) {
           content?.classList.add('open');
           if (collapseBtn) collapseBtn.textContent = '▼';
@@ -328,7 +336,7 @@ class permissions {
         const extension = e.target.dataset.extension;
         const menu = e.target.dataset.menu;
         const tabsContainer = e.target.closest('.permission-item-wrapper')?.querySelector('.permission-tabs');
-        
+
         if (tabsContainer) {
           const collapseBtn = e.target.closest('.permission-item-wrapper')?.querySelector('.btn-collapse-sm');
           if (e.target.checked) {
@@ -403,7 +411,7 @@ class permissions {
         } else {
           // Procesar cada menú individualmente
           extensionData.menus = {};
-          
+
           extension.menu?.items.forEach(menuItem => {
             const menuCheckbox = container.querySelector(
               `.menu-checkbox[data-extension="${extension.name}"][data-menu="${menuItem.id}"]`
@@ -472,7 +480,7 @@ class permissions {
 
     const button = document.querySelector(`[data-target="${targetId}"]`);
     target.classList.toggle('open');
-    
+
     if (button) {
       button.textContent = target.classList.contains('open') ? '▼' : '▶';
     }

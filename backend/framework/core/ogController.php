@@ -7,14 +7,14 @@ if (!trait_exists('ogValidatesUnique')) {
 
 class ogController {
   use ogValidatesUnique;  // Usar el trait para validaciones
-  
+
   private $config, $table, $resource;
 
   function __construct($resourceName) {
     // Buscar schema: framework → app
     $configFile = OG_FRAMEWORK_PATH . "/resources/schemas/{$resourceName}.json";
     if (!file_exists($configFile)) {
-      $configFile = APP_PATH . "/resources/schemas/{$resourceName}.json";
+      $configFile = ogApp()->getPath() . "/resources/schemas/{$resourceName}.json";
     }
 
     if (!file_exists($configFile)) {
@@ -30,7 +30,7 @@ class ogController {
     if (file_exists($handlerFile)) {
       require_once $handlerFile;
     } else {
-      $handlerFile = APP_PATH . "/resources/handlers/og{$resourceName}Handler.php";
+      $handlerFile = ogApp()->getPath() . "/resources/handlers/og{$resourceName}Handler.php";
       if (file_exists($handlerFile)) require_once $handlerFile;
     }
   }

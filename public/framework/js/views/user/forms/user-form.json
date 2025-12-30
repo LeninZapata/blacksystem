@@ -164,8 +164,8 @@
       "type": "button",
       "label": "❌ Cancelar",
       "style": "secondary",
-      "action": "call:ogModal.closeAll",
-      "_onclick": "ogModal.closeAll()"
+      "_action": "call:ogComponent(\"modal\")?.closeAll",
+      "onclick": "ogComponent('modal').closeAll();"
     }
   ]
 }

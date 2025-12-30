@@ -11,7 +11,7 @@ class ogService {
     }
 
     // Cargar servicio directamente (sin pasar por autoload completo)
-    $serviceFile = SERVICES_PATH . "/{$category}.php";
+    $serviceFile = OG_SERVICES_PATH . "/{$category}.php";
 
     if (!file_exists($serviceFile)) {
       ogLog::throwError(__('core.service.not_found', ['category' => $category]), [], self::$logMeta);
@@ -26,7 +26,7 @@ class ogService {
 
   // Detectar provider de una categoría (solo si tiene Normalizer con método detect)
   static function detect($category, $rawData) {
-    $basePath = SERVICES_PATH . "/integrations/{$category}";
+    $basePath = OG_SERVICES_PATH . "/integrations/{$category}";
     if (!is_dir($basePath)) return null;
 
     $providers = array_diff(scandir($basePath), ['.', '..']);
@@ -58,7 +58,7 @@ class ogService {
 
     // Cargar clase bajo demanda si no existe
     if (!class_exists($class)) {
-      $basePath = SERVICES_PATH . "/integrations/{$category}/{$provider}";
+      $basePath = OG_SERVICES_PATH . "/integrations/{$category}/{$provider}";
       $classFile = $basePath . '/' . $class . '.php';
       
       if (file_exists($classFile)) {

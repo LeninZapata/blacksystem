@@ -1,27 +1,7 @@
+
 class ogTabs {
   static tabCache = new Map();
   static extensionContextMap = new Map(); // Guardar contexto por ID de tabs
-
-  static getModules() {
-    return {
-      form: window.ogFramework?.core?.form
-    };
-  }
-
-  // Helper para obtener componentes dinámicamente
-  static getComponent(componentName) {
-    // Buscar primero en ogFramework.components
-    if (window.ogFramework?.components?.[componentName]) {
-      return window.ogFramework.components[componentName];
-    }
-
-    // Fallback a window directo (compatibilidad temporal)
-    if (window[componentName]) {
-      return window[componentName];
-    }
-
-    return null;
-  }
 
   static async render(tabsData, container) {
     this.tabCache.clear();
@@ -245,8 +225,6 @@ class ogTabs {
   }
 
   static async loadDynamicComponents(tabsId, container) {
-    const { form } = this.getModules();
-
     // Obtener el contexto guardado para este tabs específico
     const extensionContext = this.extensionContextMap.get(tabsId) || null;
 
@@ -268,7 +246,7 @@ class ogTabs {
           formPath = `${extensionContext}|forms/${cleanFormJson}`;
         }
 
-        await form.load(formPath, formContainer);
+        await ogModule('form').load(formPath, formContainer);
       } catch (error) {
         ogLogger.error('com:tabs', 'Error cargando formulario:', error);
         formContainer.innerHTML = `<div class="error">${__('com.tabs.error_form', { form: formJson })}</div>`;
@@ -285,8 +263,8 @@ class ogTabs {
       try {
         const config = configStr ? JSON.parse(configStr) : {};
 
-        // ✅ Usar getComponent helper para buscar en ogFramework.components primero
-        const component = this.getComponent(componentName);
+        // Usar ogComponent para buscar el componente
+        const component = ogComponent(componentName);
 
         if (component && typeof component.render === 'function') {
           await component.render(config, compContainer);

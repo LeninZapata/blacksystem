@@ -1,10 +1,4 @@
 class ogApi {
-  static getModules() {
-    return {
-      toast: window.ogFramework?.components?.toast,
-      auth: window.ogFramework?.core?.auth
-    };
-  }
 
   static getConfig(options = {}) {
     // Si viene contexto en las opciones, usarlo (prioridad)
@@ -42,11 +36,12 @@ class ogApi {
     const config = this.getConfig(options);
     /*console.group(`🌐 API ${options.method || 'GET'} ${endpoint}`);
     console.log('Slug:', config.slug || 'default');
-    console.log('URL:', fullURL);
+        const auth = ogModule('auth');
     console.groupEnd();*/
 
     const headers = { ...this.getHeaders(options) };
-    const { auth } = this.getModules();
+    const auth = ogModule('auth');
+    const toast = ogModule('toast');
 
     if (!options.skipAuth) {
       const token = auth?.getToken?.();
@@ -80,9 +75,7 @@ class ogApi {
           } catch (parseError) {}
         }
 
-        if (toast && typeof ogToast.error === 'function') {
-          ogToast.error(errorMsg);
-        }
+        toast.error(errorMsg);
 
         throw new Error(errorMsg);
       }
@@ -92,12 +85,18 @@ class ogApi {
 
         if (contentType.includes('application/json')) {
           const text = await res.text();
+          console.log(`text:`, text);
 
           try {
-            const errorData = JSON.parse(text);
-
-            ogLogger.error('core:api', `❌ Error ${res.status}:`, errorData);
-
+            let errorData;
+            
+            try {
+              errorData = JSON.parse(text);
+            } catch (parseError) {
+              // Si falla el parsing, usar el texto directamente
+              errorData = { error: text };
+            }
+            
             const errorMsg = errorData.message || errorData.error || `HTTP ${res.status}`;
 
             // MANEJO ESPECIAL PARA ERROR 401 (Unauthorized)
@@ -105,9 +104,9 @@ class ogApi {
               ogLogger.warn('core:api', '🔒 Sesión expirada o no autorizado - redirigiendo a login');
               
               // Mostrar mensaje al usuario
-              if (typeof ogToast.error === 'function') {
-                ogToast.error(errorMsg);
-              }
+              toast.error(errorMsg);
+              /*if (typeof ogToast.error === 'function') {
+              }*/
 
               // Redirigir al login después de un breve delay
               setTimeout(() => {
@@ -122,11 +121,15 @@ class ogApi {
               }, 1500);
 
               throw new Error(errorMsg);
-            }
+            }/*else if( res.status === 404 ){
+              ogLogger.error('core:api', `❌ Recurso no encontrado (404) - ${fullURL}`);
+              // Mostrar mensaje al usuario
+              toast.error(errorMsg);
+            }*/
 
             // Para otros errores, solo mostrar toast
-            if (typeof ogToast.error === 'function') {
-              ogToast.error(errorMsg);
+            if (typeof toast.error === 'function') {
+              toast.error(errorMsg);
             }
 
             throw new Error(errorMsg);

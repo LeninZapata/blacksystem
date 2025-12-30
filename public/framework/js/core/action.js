@@ -8,16 +8,6 @@
  * action.handle('api:save', {data: {...}});
  */
 class ogAction {
-  static getModules() {
-    return {
-      navigation: window.ogFramework?.core?.navigation,
-      view: window.ogFramework?.core?.view,
-      modal: window.ogFramework?.components?.modal,
-      api: window.ogFramework?.core?.api,
-      toast: window.ogFramework?.components?.toast
-    };
-  }
-
   static handle(action, params = {}, context = {}) {
     if (!action || typeof action !== 'string') {
       ogLogger.warn('core:action', 'Acción inválida:', action);
@@ -67,7 +57,8 @@ class ogAction {
   }
 
   static handleNavigate(screen, params, context) {
-    const { navigation, view } = this.getModules();
+    const navigation = ogModule('navigation');
+    const view = ogModule('view');
 
     if (navigation && typeof navigation.navigate === 'function') {
       navigation.navigate(screen, {
@@ -82,7 +73,7 @@ class ogAction {
   }
 
   static handleModal(viewPath, params, context) {
-    const { modal } = this.getModules();
+    const modal = ogComponent('modal');
 
     if (modal && typeof modal.open === 'function') {
       modal.open(viewPath, params);
@@ -93,7 +84,7 @@ class ogAction {
 
   static async handleApi(endpoint, params, context) {
     const method = params.method || 'POST';
-    const { api } = this.getModules();
+    const api = ogModule('api');
 
     if (!api) {
       ogLogger.error('core:action', 'API no disponible');
@@ -148,8 +139,7 @@ class ogAction {
 
     if (!form) {
       ogLogger.error('core:action', 'No se encontró formulario');
-      const { toast } = this.getModules();
-      if (toast) ogToast.error('No se encontró formulario');
+      ogComponent('toast')?.error('No se encontró formulario');
       return;
     }
 
@@ -167,8 +157,7 @@ class ogAction {
     }
 
     ogLogger.error('core:action', `Handler no encontrado: ${handler}`);
-    const { toast } = this.getModules();
-    if (toast) ogToast.error(`Handler no encontrado: ${handler}`);
+    ogComponent('toast')?.error(`Handler no encontrado: ${handler}`);
   }
 
   static handleMethodCall(methodPath, params, context) {
@@ -181,6 +170,7 @@ class ogAction {
 
       if (methodParts.length === 1) {
         const funcName = methodParts[0];
+        console.log(`funcName:`, funcName);
         if (typeof window[funcName] === 'function') {
           return window[funcName](...args);
         } else {

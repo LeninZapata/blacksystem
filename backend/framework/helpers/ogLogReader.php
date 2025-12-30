@@ -121,7 +121,7 @@ class ogLogReader {
    * @return array Array de rutas de archivos
    */
   static function find($criteria = []) {
-    $basePath = LOG_PATH;
+    $basePath = ogApp()->getPath('storage/logs');
     $pattern = $basePath;
 
     if (isset($criteria['year'])) {

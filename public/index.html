@@ -3,18 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema</title>
+  <title>Blacksystem</title>
   <link rel="stylesheet" href="framework/css/main.css" />
 </head>
 <body>
 <div id="app"></div>
+
 <script>
-  // ==========================================
-  // DETECCIÓN AUTOMÁTICA DE RUTAS
-  // ==========================================
-  
+  // Detección de rutas (mantener esta lógica)
   let version = '0.4.1';
-  
+
   var pathname = window.location.pathname;
   if (pathname.endsWith('/index.html')) {
     pathname = pathname.replace('/index.html', '/');
@@ -24,49 +22,31 @@
     pathname += '/';
   }
 
-  var BASE_URL = pathname;
-  var FRAMEWORK_URL = BASE_URL + 'framework/';
-  var PUBLIC_URL = window.location.origin + pathname;
-
-  var OG_IS_DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) || 
+  var isDev = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) ||
               ['3000', '5173', '8080'].includes(window.location.port);
-
-  var VERSION = OG_IS_DEV ? `dev-${Date.now()}` : version;
-  console.log(`App Version: ${VERSION}`);
-
-  // ==========================================
-  // CONFIGURACIÓN ÚNICA DEL PROYECTO
-  // ==========================================
-  // Esta es la ÚNICA variable que debe existir
-  // Similar a como WordPress registra variables de plugins
   
+  // ✅ Configuración sin variables globales intermedias
   var appConfig_factory_saas = {
-    // Identificación del proyecto
     slug: 'backsystem',
-    
-    // Versión y entorno
-    version: VERSION,
-    environment: OG_IS_DEV ? 'development' : 'production',
-    isDevelopment: OG_IS_DEV,
-    
-    // Paths y URLs
-    baseUrl: BASE_URL,
-    frameworkUrl: FRAMEWORK_URL,
-    publicUrl: PUBLIC_URL,
-    frameworkPath: 'framework',
-    
-    // UI
-    container: '#app',
+    version: isDev ? `dev-${Date.now()}` : version,
+    environment: isDev ? 'development' : 'production',
+    isDevelopment: isDev,
 
-    // Internacionalización
+    // Rutas directamente en config
+    baseUrl: pathname,
+    frameworkUrl: pathname + 'framework/',
+    publicUrl: window.location.origin + pathname,
+    frameworkPath: 'framework',
+
+    container: '#app',
+    defaultView: 'dashboard/dashboard',
+
     i18n: {
       enabled: true,
       defaultLang: 'es',
-      availableLangs: ['es', 'en'],
-      refreshOnChange: false
+      availableLangs: ['es', 'en']
     },
 
-    // Autenticación
     auth: {
       enabled: true,
       loginView: 'auth/login',
@@ -75,44 +55,27 @@
       api: {
         login: '/api/auth/login',
         logout: '/api/auth/logout',
-        me: '/api/user/profile'
+        me: '/api/auth/profile'
       }
     },
 
-    // Rutas
     routes: {
       coreViews: 'framework/js/views',
-      extensionViews: 'extensions/{extensionName}/views',
-      coreModels: 'framework/js/models',
-      components: 'framework/js/components',
-      utils: 'framework/js/utils',
-      validation: 'framework/js/validation'
+      extensionViews: 'extensions/{extensionName}/views'
     },
 
-    // Caché
     cache: {
-      modals: !OG_IS_DEV,
-      forms: !OG_IS_DEV,
-      views: !OG_IS_DEV,
-      viewNavigation: !OG_IS_DEV,
-      validation: !OG_IS_DEV,
-      ttl: 60 * 60 * 1000
+      views: !isDev,
+      forms: !isDev
     }
   };
 
-  // ==========================================
-  // CARGA DEL FRAMEWORK
-  // ==========================================
-  
   (function() {
     const script = document.createElement('script');
-    script.type = 'module';
-    script.src = appConfig_factory_saas.frameworkUrl + 'js/main.js?v=' + appConfig_factory_saas.version;
+    script.src = pathname + 'og-framework.js?v=' + appConfig_factory_saas.version;
     script.onload = function() {
       if (window.ogFramework) {
-        window.ogFramework.init('appConfig_factory_saas');
-      } else {
-        console.error('❌ ogFramework no se cargó correctamente');
+        ogFramework.register('backsystem', appConfig_factory_saas);
       }
     };
     script.onerror = function() {

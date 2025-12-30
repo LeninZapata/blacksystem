@@ -11,7 +11,7 @@ class botws {
     this.currentId = null;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    ogForm.clearAllErrors(realId);
+    ogModule('form').clearAllErrors(realId);
   }
 
   // Abrir form con datos
@@ -19,11 +19,11 @@ class botws {
     this.currentId = id;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    logger.debug('ext:botws', 'openEdit - realId:', realId);
+    ogLogger.debug('ext:botws', 'openEdit - realId:', realId);
 
-    ogForm.clearAllErrors(realId);
+    ogModule('form').clearAllErrors(realId);
     const data = await this.get(id);
-    logger.debug('ext:botws', 'openEdit - data:', data);
+    ogLogger.debug('ext:botws', 'openEdit - data:', data);
     if (!data) return;
 
     this.fillForm(formId, data);
@@ -32,9 +32,6 @@ class botws {
   // Llenar formulario
   static fillForm(formId, data) {
     const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
-
-    logger.debug('ext:botws', 'fillForm - data:', data);
-    logger.debug('ext:botws', 'fillForm - configData:', configData);
 
     // Convertir desde bot.apis.ai[task] al formato de repeatable para agent
     const aiData = configData.apis?.ai || {};
@@ -53,11 +50,8 @@ class botws {
       ? configData.apis.chat.map(id => ({ credential_id: String(id) }))
       : [];
 
-    logger.debug('ext:botws', 'fillForm - agentArray:', agentArray);
-    logger.debug('ext:botws', 'fillForm - chatArray:', chatArray);
-
-    // Llenar todos los campos (ogForm.fill maneja automáticamente los selects asíncronos)
-    ogForm.fill(formId, {
+    // Llenar todos los campos (ogModule('form').fill maneja automáticamente los selects asíncronos)
+    ogModule('form').fill(formId, {
       name: data.name,
       number: data.number || '',
       country_code: data.country_code || '',
@@ -75,8 +69,8 @@ class botws {
   // ============================================
 
   static async save(formId) {
-    const validation = ogForm.validate(formId);
-    if (!validation.success) return ogToast.error(validation.message);
+    const validation = ogModule('form').validate(formId);
+    if (!validation.success) return ogComponent('toast').error(validation.message);
 
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
@@ -88,12 +82,12 @@ class botws {
       : await this.create(body);
 
     if (result) {
-      ogToast.success(this.currentId
+      ogComponent('toast').success(this.currentId
         ? __('botws.bot.success.updated')
         : __('botws.bot.success.created')
       );
       setTimeout(() => {
-        ogForm.closeAll();
+        ogModule('form').closeAll();
         this.refresh();
       }, 100);
     }
@@ -135,12 +129,12 @@ class botws {
     // ✅ Validación: Al menos 1 agent y 1 chat requerido
     const totalAgents = aiTasks.conversation.length + aiTasks.image.length + aiTasks.audio.length;
     if (totalAgents === 0) {
-      ogToast.error(__('botws.bot.error.agent_required'));
+      ogComponent('toast').error(__('botws.bot.error.agent_required'));
       return null;
     }
 
     if (chatCredentials.length === 0) {
-      ogToast.error(__('botws.bot.error.chat_required'));
+      ogComponent('toast').error(__('botws.bot.error.chat_required'));
       return null;
     }
 
@@ -154,8 +148,8 @@ class botws {
       }
     };
 
-    logger.debug('ext:botws', 'buildBody - formData:', formData);
-    logger.debug('ext:botws', 'buildBody - config construido:', config);
+    ogLogger.debug('ext:botws', 'buildBody - formData:', formData);
+    ogLogger.debug('ext:botws', 'buildBody - config construido:', config);
 
     return {
       name: formData.name,
@@ -176,22 +170,22 @@ class botws {
     if (!data) return null;
 
     try {
-      const res = await api.post(this.apis.bot, data);
+      const res = await ogModule('api').post(this.apis.bot, data);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:botws', error);
-      ogToast.error(__('botws.bot.error.create_failed'));
+      ogLogger.error('ext:botws', error);
+      ogComponent('toast').error(__('botws.bot.error.create_failed'));
       return null;
     }
   }
 
   static async get(id) {
     try {
-      const res = await api.get(`${this.apis.bot}/${id}`);
+      const res = await ogModule('api').get(`${this.apis.bot}/${id}`);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:botws', error);
-      ogToast.error(__('botws.bot.error.load_failed'));
+      ogLogger.error('ext:botws', error);
+      ogComponent('toast').error(__('botws.bot.error.load_failed'));
       return null;
     }
   }
@@ -200,40 +194,40 @@ class botws {
     if (!data) return null;
 
     try {
-      const res = await api.put(`${this.apis.bot}/${id}`, {...data, id});
+      const res = await ogModule('api').put(`${this.apis.bot}/${id}`, {...data, id});
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:botws', error);
-      ogToast.error(__('botws.bot.error.update_failed'));
+      ogLogger.error('ext:botws', error);
+      ogComponent('toast').error(__('botws.bot.error.update_failed'));
       return null;
     }
   }
 
   static async delete(id) {
     try {
-      const res = await api.delete(`${this.apis.bot}/${id}`);
+      const res = await ogModule('api').delete(`${this.apis.bot}/${id}`);
 
       if (res.success === false) {
-        ogToast.error(__('botws.bot.error.delete_failed'));
+        ogComponent('toast').error(__('botws.bot.error.delete_failed'));
         return null;
       }
 
-      ogToast.success(__('botws.bot.success.deleted'));
+      ogComponent('toast').success(__('botws.bot.success.deleted'));
       this.refresh();
       return res.data || res;
     } catch (error) {
-      logger.error('ext:botws', error);
-      ogToast.error(__('botws.bot.error.delete_failed'));
+      ogLogger.error('ext:botws', error);
+      ogComponent('toast').error(__('botws.bot.error.delete_failed'));
       return null;
     }
   }
 
   static async list() {
     try {
-      const res = await api.get(this.apis.bot);
+      const res = await ogModule('api').get(this.apis.bot);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:botws', error);
+      ogLogger.error('ext:botws', error);
       return [];
     }
   }

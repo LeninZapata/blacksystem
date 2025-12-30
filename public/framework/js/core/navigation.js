@@ -1,155 +1,150 @@
-/**
- * Navigation - Sistema de navegación simple
- * Wrapper sobre view.loadView() con historial en memoria
- * Sin URLs, sin hash routing, solo gestión de vistas
- * 
- * Preparado para React Native (mismo API)
- */
-class ogNavigation {
-  static history = [];
-  static currentScreen = null;
-  static maxHistory = 50;
+class ogDataLoader {
 
-  static getModules() {
-    return {
-      view: window.ogFramework?.core?.view || window.view,
-    };
+
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
   }
 
-  /**
-   * Navegar a una vista
-   * @param {string} screen - Ruta de la vista (ej: "users/list", "dashboard/dashboard")
-   * @param {object} params - Parámetros opcionales
-   */
-  static navigate(screen, params = {}) {
-    const { view } = this.getModules();
-    
-    if (!screen) {
-      ogLogger?.warn('core:navigation', 'Screen no especificado');
-      return;
+  static async load(config, extensionName = null) {
+    const type = config.type || 'auto';
+
+    if (type === 'auto') {
+      return await this.loadAuto(config, extensionName);
     }
 
-    // Guardar en historial
-    if (this.currentScreen) {
-      this.history.push({
-        screen: this.currentScreen,
-        timestamp: Date.now()
-      });
+    if (type === 'api') {
+      return await this.loadFromApi(config);
+    }
 
-      // Limitar tamaño del historial
-      if (this.history.length > this.maxHistory) {
-        this.history.shift();
+    if (type === 'mock') {
+      return await this.loadFromMock(config, extensionName);
+    }
+
+    ogLogger?.error('core:dataLoader', `Tipo de dataSource no válido: ${type}`);
+    return null;
+  }
+
+  static async loadAuto(config, extensionName) {
+    const hook = ogModule('hook');
+
+    const pluginConfig = extensionName ? hook?.getPluginConfig(extensionName) : null;
+    const backendEnabled = pluginConfig?.backend?.enabled || false;
+
+    const apiEnabled = config.api?.enabled !== false;
+
+    if (backendEnabled && apiEnabled && config.api?.endpoint) {
+      try {
+        return await this.loadFromApi(config.api);
+      } catch (error) {
+        ogLogger?.warn('core:dataLoader', `API falló, fallback a mock: ${error.message}`);
+        return await this.loadFromMock(config.mock, extensionName);
       }
     }
 
-    // Actualizar pantalla actual
-    this.currentScreen = screen;
-
-    // Web: usar view.loadView()
-    if (view && typeof view.loadView === 'function') {
-      const container = params.container || null;
-      const extension = params.extension || null;
-      const menuId = params.menuId || null;
-      
-      view.loadView(screen, container, extension, null, null, menuId);
-    } else {
-      ogLogger?.error('core:navigation', 'view.loadView() no disponible');
-    }
-
-    // React Native (futuro):
-    // if (params.navigation) {
-    //   params.navigation.navigate(screen, params);
-    // }
+    return await this.loadFromMock(config.mock, extensionName);
   }
 
-  /**
-   * Volver a la vista anterior
-   */
-  static goBack() {
-    const { view } = this.getModules();
-    
-    if (this.history.length === 0) {
-      ogLogger?.warn('core:navigation', 'No hay historial para volver');
-      return false;
-    }
+  static async loadFromApi(apiConfig) {
+    const api = ogModule('api');
+    const endpoint = apiConfig.endpoint;
+    const method = apiConfig.method || 'GET';
 
-    const previous = this.history.pop();
+    try {
+      let response;
 
-    this.currentScreen = previous.screen;
-    
-    if (view && typeof view.loadView === 'function') {
-      view.loadView(previous.screen);
-    }
+      if (method === 'GET') {
+        response = await api.get(endpoint);
+      } else if (method === 'POST') {
+        response = await api.post(endpoint, apiConfig.body || {});
+      } else if (method === 'PUT') {
+        response = await api.put(endpoint, apiConfig.body || {});
+      } else if (method === 'DELETE') {
+        response = await api.delete(endpoint);
+      }
 
-    return true;
-  }
+      if (response.success && response.data) {
+        return response.data;
+      }
 
-  /**
-   * Verificar si se puede volver atrás
-   */
-  static canGoBack() {
-    return this.history.length > 0;
-  }
+      return response;
 
-  /**
-   * Reemplazar la vista actual (sin agregar al historial)
-   */
-  static replace(screen, params = {}) {
-    // No agregar al historial, solo reemplazar
-    this.currentScreen = screen;
-
-    const { view } = this.getModules();
-    
-    if (view && typeof view.loadView === 'function') {
-      const container = params.container || null;
-      const extension = params.extension || null;
-      const menuId = params.menuId || null;
-      
-      view.loadView(screen, container, extension, null, null, menuId);
+    } catch (error) {
+      ogLogger?.error('core:dataLoader', `Error en API ${endpoint}: ${error.message}`);
+      throw error;
     }
   }
 
-  /**
-   * Resetear navegación (útil para logout)
-   */
-  static reset(screen = 'dashboard/dashboard') {
-    // Limpiar historial
-    this.history = [];
-    this.currentScreen = screen;
+  static async loadFromMock(mockConfig, extensionName) {
 
-    const { view } = this.getModules();
-    
-    if (view && typeof view.loadView === 'function') {
-      view.loadView(screen);
+    if (!mockConfig || !mockConfig.file) {
+      ogLogger?.error('core:dataLoader', 'No se especificó archivo mock');
+      return null;
+    }
+
+    try {
+      const globalConfig = this.getConfig();
+      const BASE_URL = globalConfig.baseUrl || '/';
+      const VERSION = globalConfig.version || '1.0.0';
+
+      let mockPath;
+
+      if (extensionName) {
+        mockPath = `${BASE_URL}extensions/${extensionName}/${mockConfig.file}`;
+      } else {
+        mockPath = `${BASE_URL}${mockConfig.file}`;
+      }
+
+      const cacheBuster = `?v=${VERSION}`;
+
+      const response = await fetch(mockPath + cacheBuster);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (mockConfig.filterBy && mockConfig.filterValue) {
+        const filtered = Array.isArray(data)
+          ? data.find(item => item[mockConfig.filterBy] == mockConfig.filterValue)
+          : data;
+
+        return filtered;
+      }
+
+      return data;
+
+    } catch (error) {
+      ogLogger?.error('core:dataLoader', `Error cargando mock: ${error.message}`);
+      throw error;
     }
   }
 
-  /**
-   * Obtener pantalla actual
-   */
-  static getCurrentScreen() {
-    return this.currentScreen;
+  static async loadList(dataSourceConfig, extensionName) {
+    return await this.load(dataSourceConfig, extensionName);
   }
 
-  /**
-   * Obtener historial completo
-   */
-  static getHistory() {
-    return [...this.history];
-  }
+  static async loadDetail(dataLoaderConfig, id, extensionName) {
+    if (dataLoaderConfig.mock) {
+      dataLoaderConfig.mock.filterValue = id;
 
-  /**
-   * Limpiar historial sin navegar
-   */
-  static clearHistory() {
-    this.history = [];
+      if (!dataLoaderConfig.mock.filterBy) {
+        dataLoaderConfig.mock.filterBy = 'id';
+      }
+    }
+
+    if (dataLoaderConfig.api?.endpoint) {
+      dataLoaderConfig.api.endpoint = dataLoaderConfig.api.endpoint.replace('{id}', id);
+    }
+
+    return await this.load(dataLoaderConfig, extensionName);
   }
 }
 
 // Global
-window.ogNavigation = ogNavigation;
+window.ogDataLoader = ogDataLoader;
 
 // Registrar en ogFramework (preferido)
 if (typeof window.ogFramework !== 'undefined') {
-  window.ogFramework.core.navigation = ogNavigation;
+  window.ogFramework.core.dataLoader = ogDataLoader;
 }
