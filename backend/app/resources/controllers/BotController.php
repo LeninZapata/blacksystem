@@ -27,7 +27,7 @@ class BotController extends ogController {
     }
 
     $countryCode = $data['country_code'] ?? 'EC';
-    $countryData = ogCountry::get($countryCode);
+    $countryData = ogApp()->helper('country')::get($countryCode);
     $data['config']['timezone'] = $countryData['timezone'] ?? 'America/Guayaquil';
 
     if (isset($data['config']) && is_array($data['config'])) {
@@ -43,7 +43,7 @@ class BotController extends ogController {
       
       if (isset($data['number'])) {
         $data['id'] = $id;
-        BotHandlers::saveContextFile($data, 'create');
+        ogApp()->handler('bot')::saveContextFile($data, 'create');
       }
       
       ogResponse::success(['id' => $id], __('bot.create.success'), 201);
@@ -75,7 +75,7 @@ class BotController extends ogController {
     }
 
     $countryCode = $data['country_code'] ?? $exists['country_code'] ?? 'EC';
-    $countryData = ogCountry::get($countryCode);
+    $countryData = ogApp()->helper('country')::get($countryCode);
     $data['config']['timezone'] = $countryData['timezone'] ?? 'America/Guayaquil';
 
     if (isset($data['config']) && is_array($data['config'])) {
@@ -98,7 +98,7 @@ class BotController extends ogController {
         $botData = ogDb::table(self::$table)->find($id);
         if ($botData) {
           // Pasar oldNumber solo si cambió
-          BotHandlers::saveContextFile($botData, 'update', $numberChanged ? $oldNumber : null);
+          ogApp()->handler('bot')::saveContextFile($botData, 'update', $numberChanged ? $oldNumber : null);
         }
       }
       

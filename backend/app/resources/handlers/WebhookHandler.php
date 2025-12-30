@@ -1,5 +1,5 @@
 <?php
-class webhookHandlers {
+class WebhookHandler {
 
   /**
    * Detectar tipo de servicio del webhook (opcional - para casos edge)

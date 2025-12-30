@@ -1,7 +1,7 @@
 <?php
-class ClientHandlers {
+class ClientHandler {
   private static $table = DB_TABLES['clients'];
-  private static $logMeta = ['module' => 'ClientHandlers', 'layer' => 'app/resources'];
+  private static $logMeta = ['module' => 'ClientHandler', 'layer' => 'app/resources'];
 
   // Eliminar todos los datos del cliente en cascada
   static function deleteAllData($params) {

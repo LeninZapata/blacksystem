@@ -1,7 +1,7 @@
 <?php
 
-class UpsellHandlers {
-  private static $logMeta = ['module' => 'UpsellHandlers', 'layer' => 'app/handlers'];
+class UpsellHandler {
+  private static $logMeta = ['module' => 'UpsellHandler', 'layer' => 'app/handlers'];
   // Procesar upsell después de venta confirmada
   static function processAfterSale($saleData, $botTimezone) {
     $saleId = $saleData['sale_id'];
@@ -14,7 +14,7 @@ class UpsellHandlers {
     ogLog::info("processAfterSale - Iniciando", [ 'sale_id' => $saleId, 'product_id' => $productId, 'origin' => $origin ], self::$logMeta);
 
     // PASO 1: Cancelar followups pendientes de esta venta
-    FollowupHandlers::cancelBySale($saleId);
+    ogApp()->handler('followup')::cancelBySale($saleId);
 
     // PASO 2: Determinar el producto base (root) de la cadena
     $rootProductId = self::getRootProductId($saleId, $productId, $origin);
@@ -25,7 +25,7 @@ class UpsellHandlers {
     ], ['module' => 'upsell']);
 
     // PASO 3: Buscar upsells disponibles del PRODUCTO BASE (no del que acaba de comprar)
-    ogApp()->loadHandler('ProductHandler');
+    ogApp()->loadHandler('product');
     $upsells = ProductHandler::getUpsellFile($rootProductId);
     if (empty($upsells)) {
       ogLog::info("processAfterSale - No hay upsells configurados para el producto", [ 'root_product_id' => $rootProductId ], self::$logMeta);
@@ -209,7 +209,7 @@ class UpsellHandlers {
     $rootSaleId = $metadata['root_sale_id'] ?? $followup['sale_id'];
 
     // Obtener datos del producto upsell
-    ogApp()->loadHandler('ProductHandler');
+    ogApp()->loadHandler('product');
     $productData = ProductHandler::getProductFile($upsellProductId);
     if (!$productData) {
       ogLog::error("executeUpsell - Producto upsell no encontrado", ['upsell_product_id' => $upsellProductId], self::$logMeta);
@@ -244,8 +244,8 @@ class UpsellHandlers {
     ogLog::info("executeUpsell - Venta upsell creada exitosamente", [ 'new_sale_id' => $newSaleId, 'parent_sale_id' => $rootSaleId, 'product_id' => $upsellProductId ], self::$logMeta);
 
     // Registrar mensaje de sistema: Nueva venta iniciada
-    ogApp()->loadHandler('ChatHandlers');
-    ChatHandlers::register(
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
       $botId,
       $botData['number'],
       $newClientId,
@@ -267,7 +267,7 @@ class UpsellHandlers {
       $newSaleId
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $number,
       'bot_id' => $botId,
       'client_id' => $newClientId,
@@ -288,7 +288,7 @@ class UpsellHandlers {
     ], 'S');
 
     // RECONSTRUIR CHAT: Regenerar archivo JSON con nuevo current_sale
-    ChatHandlers::getChat($number, $botId, true);
+    ChatHandler::getChat($number, $botId, true);
 
     ogLog::info("executeUpsell - Chat reconstruido con nueva venta upsell", [ 'number' => $number, 'new_sale_id' => $newSaleId ], self::$logMeta);
 
@@ -322,8 +322,8 @@ class UpsellHandlers {
       ogLog::info("executeUpsell - Registrando followups upsell", [ 'product_id' => $upsellProductId, 'total_followups' => count($followupMessages)], self::$logMeta);
       $botTimezone = $botData['config']['timezone'] ?? 'America/Guayaquil';
 
-      ogApp()->loadHandler('FollowupHandlers');
-      FollowupHandlers::registerFromSale(
+      ogApp()->loadHandler('followup');
+      ogApp()->handler('followup')::registerFromSale(
         [
           'sale_id' => $newSaleId,
           'product_id' => $upsellProductId,

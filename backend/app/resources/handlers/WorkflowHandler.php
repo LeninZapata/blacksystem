@@ -1,8 +1,8 @@
 <?php
-class workflowHandlers {
+class WorkflowHandler {
   // Nombre de la tabla de bots asociada a este handler
   protected static $tableBots = DB_TABLES['bots'];
-  private static $logMeta = ['module' => 'workflowHandlers', 'layer' => 'app/resources'];
+  private static $logMeta = ['module' => 'WorkflowHandler', 'layer' => 'app/resources'];
 
   // Actualiza archivos workflow de todos los bots que usan este workflow
   static function updateBotsContext($workflowId) {
@@ -28,8 +28,8 @@ class workflowHandlers {
 
       if ($botNumber) {
         // Regenerar archivo workflow del bot
-        ogApp()->loadHandler('BotHandler');
-        $result = BotHandlers::generateWorkflowFile($botNumber, $bot, 'update');
+        ogApp()->loadHandler('bot');
+        $result = BotHandler::generateWorkflowFile($botNumber, $bot, 'update');
 
         if ($result) {
           $updated++;

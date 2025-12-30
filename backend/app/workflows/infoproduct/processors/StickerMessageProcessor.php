@@ -53,8 +53,8 @@ class StickerMessageProcessor implements MessageProcessorInterface {
 
     $messageText = "[Sticker enviado]";
 
-    ogApp()->loadHandler('ChatHandler');
-    ChatHandlers::register(
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -68,7 +68,7 @@ class StickerMessageProcessor implements MessageProcessorInterface {
       $chatData['sale_id']
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -88,8 +88,8 @@ class StickerMessageProcessor implements MessageProcessorInterface {
 
     $message = "😅 No me carga el sticker, ¿me podrías ayudar escribiendo el mensaje por favor?";
 
-    ogApp()->loadHandler('ChatHandler');
-    ChatHandlers::register(
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -104,7 +104,7 @@ class StickerMessageProcessor implements MessageProcessorInterface {
       $chatData['sale_id']
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],

@@ -1,8 +1,8 @@
 <?php
-class SaleHandlers {
+class SaleHandler {
 
   private static $table = DB_TABLES['sales'];
-  private static $logMeta = [ 'module' => 'SaleHandlers', 'layer' => 'app/handler' ];
+  private static $logMeta = [ 'module' => 'SaleHandler', 'layer' => 'app/handler' ];
 
   // Crear venta simple
   static function create($data) {

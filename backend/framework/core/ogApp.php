@@ -177,35 +177,43 @@ class ogFramework {
   // Cargar controller bajo demanda (con referencia)
   function controller($name) {
     $key = "controller_{$name}";
-
     if (isset($this->loaded[$key])) {
       return $this->loaded[$key];
     }
 
-    $controllerFile = OG_FRAMEWORK_PATH . "/controllers/{$name}.php";
-    if (!file_exists($controllerFile)) {
-      $controllerFile = $this->pluginPath . "/resources/controllers/{$name}.php";
+    // 1. Buscar en framework/controllers/og{Name}Controller.php
+    $fwClassName = "og" . ucfirst($name) . "Controller";
+    $fwFile = OG_FRAMEWORK_PATH . "/controllers/og" . ucfirst($name) . "Controller.php";
+    if (file_exists($fwFile)) {
+      require_once $fwFile;
+      if (!class_exists($fwClassName)) {
+        throw new Exception("Controller class not found: {$fwClassName}");
+      }
+      $this->loaded[$key] = new $fwClassName();
+      return $this->loaded[$key];
     }
 
-    if (!file_exists($controllerFile)) {
-      throw new Exception("Controller not found: {$name}");
+    // 2. Buscar en app/resources/controllers/{Name}Controller.php
+    $appClassName = ucfirst($name) . "Controller";
+    $appFile = $this->pluginPath . "/resources/controllers/" . $appClassName . ".php";
+    if (file_exists($appFile)) {
+      require_once $appFile;
+      if (!class_exists($appClassName)) {
+        throw new Exception("Controller class not found: {$appClassName}");
+      }
+      $this->loaded[$key] = new $appClassName();
+      return $this->loaded[$key];
     }
 
-    require_once $controllerFile;
-
-    if (!class_exists($name)) {
-      throw new Exception("Controller class not found: {$name}");
-    }
-
-    $this->loaded[$key] = new $name();
-    return $this->loaded[$key];
+    throw new Exception("Controller not found: {$name}");
   }
 
   // Cargar controller bajo demanda (sin instanciar)
   function loadController($name) {
-    $controllerFile = OG_FRAMEWORK_PATH . "/controllers/{$name}.php";
+    $uname = ucfirst($name) . "Controller";
+    $controllerFile = OG_FRAMEWORK_PATH . "/controllers/{$uname}.php";
     if (!file_exists($controllerFile)) {
-      $controllerFile = $this->pluginPath . "/resources/controllers/{$name}.php";
+      $controllerFile = $this->pluginPath . "/resources/controllers/{$uname}.php";
     }
 
     if (!file_exists($controllerFile)) {
@@ -214,7 +222,7 @@ class ogFramework {
 
     require_once $controllerFile;
 
-    if (!class_exists($name)) {
+    if (!class_exists($uname)) {
       throw new Exception("Controller class not found: {$name}");
     }
 
@@ -224,45 +232,53 @@ class ogFramework {
   // Cargar handler bajo demanda (con referencia)
   function handler($name) {
     $key = "handler_{$name}";
-
     if (isset($this->loaded[$key])) {
       return $this->loaded[$key];
     }
 
-    $handlerFile = OG_FRAMEWORK_PATH . "/handlers/{$name}.php";
-    if (!file_exists($handlerFile)) {
-      $handlerFile = $this->pluginPath . "/resources/handlers/{$name}.php";
+    // 1. Buscar en framework/core/og{Name}Handler.php
+    $fwClassName = "og" . ucfirst($name) . "Handler";
+    $fwFile = OG_FRAMEWORK_PATH . "/core/og" . ucfirst($name) . "Handler.php";
+    if (file_exists($fwFile)) {
+      require_once $fwFile;
+      if (!class_exists($fwClassName)) {
+        ogLog::throwError("handler - Handler class not found: {$fwClassName}", [$name], $this->logMeta);
+      }
+      $this->loaded[$key] = new $fwClassName();
+      return $this->loaded[$key];
     }
 
-    if (!file_exists($handlerFile)) {
-      ogLog::throwError("handler - Handler not found in app: {$name}", [$name], $this->logMeta);
+    // 2. Buscar en app/resources/handlers/{Name}Handler.php
+    $appClassName = ucfirst($name) . "Handler";
+    $appFile = $this->pluginPath . "/resources/handlers/" . $appClassName . ".php";
+    if (file_exists($appFile)) {
+      require_once $appFile;
+      if (!class_exists($appClassName)) {
+        ogLog::throwError("handler - Handler class not found: {$appClassName}", [$name], $this->logMeta);
+      }
+      $this->loaded[$key] = new $appClassName();
+      return $this->loaded[$key];
     }
 
-    require_once $handlerFile;
-
-    if (!class_exists($name)) {
-      ogLog::throwError("handler - Handler class not found: {$name}", [$name], $this->logMeta);
-    }
-
-    $this->loaded[$key] = new $name();
-    return $this->loaded[$key];
+    ogLog::throwError("handler - Handler not found in app: {$name}", [$name], $this->logMeta);
   }
 
   // Cargar handler bajo demanda (sin instanciar)
   function loadHandler($name) {
-    $handlerFile = OG_FRAMEWORK_PATH . "/handlers/{$name}.php";
+    $uname = ucfirst($name) . "Handler";
+    $handlerFile = OG_FRAMEWORK_PATH . "/handlers/{$uname}.php";
     if (!file_exists($handlerFile)) {
-      $handlerFile = $this->pluginPath . "/resources/handlers/{$name}.php";
+      $handlerFile = $this->pluginPath . "/resources/handlers/{$uname}.php";
     }
 
     if (!file_exists($handlerFile)) {
-      ogLog::throwError("loadHandler - Handler not found in app: {$name}", [$name], $this->logMeta);
+      ogLog::throwError("loadHandler - Handler not found in app: {$name}", ['name' => $name, 'name to search' => $uname], $this->logMeta);
     }
 
     require_once $handlerFile;
 
-    if (!class_exists($name)) {
-      ogLog::throwError("loadHandler - Handler class not found: {$name}", [$name], ['module' => 'ogFramework', 'layer' => 'core/framework']);
+    if (!class_exists($uname)) {
+      ogLog::throwError("loadHandler - Handler class not found: {$name}", ['name' => $name, 'name to search' => $uname], $this->logMeta);
     }
 
     return true;

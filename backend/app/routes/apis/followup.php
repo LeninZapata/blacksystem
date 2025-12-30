@@ -9,8 +9,8 @@ $router->group('/api/followup', function($router) {
     $logMeta = ['module' => 'followup', 'layer' => 'app/routes'];
     $list = ogRequest::query('list', null);
 
-    ogApp()->loadHandler('FollowupHandlers');
-    $data = FollowupHandlers::getPending();
+    ogApp()->loadHandler('followup');
+    $data = FollowupHandler::getPending();
     $botsConfig = $data['bots_config'];
     $followups = $data['followups'];
 
@@ -29,8 +29,8 @@ $router->group('/api/followup', function($router) {
     $upsellsExecuted = 0;
 
     $chatapi = ogApp()->service('chatApi');
-    ogApp()->loadHandler('ChatHandlers');
-    ogApp()->loadHandler('UpsellHandlers');
+    ogApp()->loadHandler('chat');
+    ogApp()->loadHandler('upsell');
     foreach ($followups as $fup) {
       $botId = $fup['bot_id'];
 
@@ -52,13 +52,13 @@ $router->group('/api/followup', function($router) {
           $chatapi::setConfig($botData);
 
           // Ejecutar proceso de upsell
-          $upsellResult = UpsellHandlers::executeUpsell($fup, $botData);
+          $upsellResult = UpsellHandler::executeUpsell($fup, $botData);
 
           if ($upsellResult['success']) {
             ogLog::info("CRON Followup - Upsell ejecutado exitosamente", [ 'followup_id' => $fup['id'], 'new_sale_id' => $upsellResult['new_sale_id'], 'upsell_product_id' => $upsellResult['upsell_product_id'] ], $logMeta);
 
             // Marcar followup especial como procesado
-            FollowupHandlers::markProcessed($fup['id']);
+            FollowupHandler::markProcessed($fup['id']);
             $upsellsExecuted++;
             $sent++;
           } else {
@@ -82,7 +82,7 @@ $router->group('/api/followup', function($router) {
 
         if ($result['success']) {
           // Marcar como procesado
-          FollowupHandlers::markProcessed($fup['id']);
+          FollowupHandler::markProcessed($fup['id']);
 
           // Preparar mensaje corto (primeros 20 caracteres)
           $shortMessage = mb_strlen($fup['text']) > 20 
@@ -106,7 +106,7 @@ $router->group('/api/followup', function($router) {
           }
 
           // Registrar en chat
-          ChatHandlers::register(
+          ChatHandler::register(
             $fup['bot_id'],
             $fup['bot_number'],
             $fup['client_id'],
@@ -118,7 +118,7 @@ $router->group('/api/followup', function($router) {
             $fup['sale_id']
           );
 
-          ChatHandlers::addMessage([
+          ChatHandler::addMessage([
             'number' => $fup['number'],
             'bot_id' => $fup['bot_id'],
             'client_id' => $fup['client_id'],
@@ -158,7 +158,7 @@ $router->group('/api/followup', function($router) {
 
   // Cancelar followups por venta - PUT /api/followup/cancel/{sale_id}
   $router->put('/cancel/{sale_id}', function($sale_id) {
-    $affected = FollowupHandlers::cancelBySale($sale_id);
+    $affected = FollowupHandler::cancelBySale($sale_id);
 
     ogLog::info("Followups cancelados por venta", [
       'sale_id' => $sale_id,

@@ -10,13 +10,17 @@ class WorkFlowController extends ogController {
   function create() {
     $data = ogRequest::data();
 
-    if (!isset($data['name']) || empty($data['name'])) {
-      ogResponse::json(['success' => false, 'error' => __('workFlow.name_required')], 200);
+    if (isset($GLOBALS['auth_user_id'])) {
+      $data['user_id'] = $GLOBALS['auth_user_id'];
+    } else {
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }
 
-    if (!isset($data['user_id']) || empty($data['user_id'])) {
-      ogResponse::json(['success' => false, 'error' => __('workFlow.user_id_required')], 200);
+    if (!isset($data['name']) || empty($data['name'])) {
+      //ogResponse::json(['success' => false, 'error' => __('workFlow.name_required')], 400);
+      ogResponse::error(__('workFlow.name_required'), 400);
     }
+
 
     $data['dc'] = date('Y-m-d H:i:s');
     $data['ta'] = time();
@@ -42,7 +46,8 @@ class WorkFlowController extends ogController {
       $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
 
       // Actualizar archivos JSON de todos los bots que usan este workflow
-      workflowHandlers::updateBotsContext($id);
+      //WorkflowHandler::updateBotsContext($id);
+      ogApp()->handler('workFlow')::updateBotsContext($id);
 
       ogResponse::success(['affected' => $affected], __('workFlow.update.success'));
     } catch (Exception $e) {

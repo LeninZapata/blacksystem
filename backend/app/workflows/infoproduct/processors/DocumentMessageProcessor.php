@@ -62,8 +62,8 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
 
     $messageText = !empty($caption) ? "[Documento PDF]: {$caption}" : "[Documento PDF enviado]";
 
-    ogApp()->loadHandler('ChatHandler');
-    ChatHandlers::register(
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -80,7 +80,7 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
       $chatData['sale_id']
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -103,8 +103,8 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
 
     $message = "🚫 No puedo procesar documentos PDF/DOC. Si enviaste un comprobante de pago, por favor toma una captura de pantalla y envíamela como imagen.";
 
-    ogApp()->loadHandler('ChatHandler');
-    ChatHandlers::register(
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -119,7 +119,7 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
       $chatData['sale_id']
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],

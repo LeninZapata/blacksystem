@@ -138,7 +138,7 @@ class product {
 
   // Refrescar datatable
   static refresh() {
-    if (window.datatable) datatable.refreshFirst();
+    ogComponent('datatable')?.refreshFirst();
   }
 }
 

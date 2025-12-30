@@ -36,12 +36,12 @@ class InfoproductV2Handler {
     $this->appPath = ogApp()->getPath();
     $this->actionDispatcher = new ActionDispatcher();
 
-    // Cargar FollowupHandlers bajo demanda
-    ogApp()->loadHandler('FollowupHandlers');
+    // Cargar FollowupHandler bajo demanda
+    ogApp()->loadHandler('followup');
 
     // Configurar horarios y variación para followups
-    FollowupHandlers::setAllowedHours($this->followupStartHour, $this->followupEndHour);
-    FollowupHandlers::setMinutesVariation($this->followupMinutesBefore, $this->followupMinutesAfter);
+    FollowupHandler::setAllowedHours($this->followupStartHour, $this->followupEndHour);
+    FollowupHandler::setMinutesVariation($this->followupMinutesBefore, $this->followupMinutesAfter);
     $this->registerActionHandlers();
 
     ogLog::info("__construct - ActionHandlers registrados", [], $this->logMeta);
@@ -65,9 +65,9 @@ class InfoproductV2Handler {
       ogLog::throwError("handle - Bot number missing in webhook", $bot ?? null, $this->logMeta);
     }
 
-    // Cargar BotHandlers bajo demanda
-    ogApp()->loadHandler('BotHandlers');
-    $botData = BotHandlers::getDataFile($botNumber);
+    // Cargar BotHandler bajo demanda
+    ogApp()->loadHandler('bot');
+    $botData = BotHandler::getDataFile($botNumber);
 
     if (!$botData) {
       ogLog::throwError("handle - data not found: {$botNumber}", [], $this->logMeta);

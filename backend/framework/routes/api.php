@@ -45,8 +45,9 @@ if ($module) {
     // Intentar cargar controller personalizado (framework → app)
     if (!class_exists($controllerClass)) {
       try {
-        ogApp()->loadController($controllerClass);
+        ogApp()->loadController($module);
       } catch (Exception $e) {
+        ogLog::warning("Controller personalizado no encontrado: {$controllerClass}", ['module' => $module, 'path' => $resourceFile], ['module' => 'api.php', 'layer' => 'framework/routes']);
         // Controller no encontrado, usar genérico
       }
     }

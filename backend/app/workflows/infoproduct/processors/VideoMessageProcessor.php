@@ -73,8 +73,8 @@ class VideoMessageProcessor implements MessageProcessorInterface {
       $messageText = "[Video enviado]";
     }
 
-    ogApp()->loadHandler('ChatHandler');
-    ChatHandlers::register(
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -90,7 +90,7 @@ class VideoMessageProcessor implements MessageProcessorInterface {
       $chatData['sale_id']
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],

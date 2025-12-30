@@ -34,10 +34,6 @@ class ogApi {
     fullURL = protocol + normalizedPath;
 
     const config = this.getConfig(options);
-    /*console.group(`🌐 API ${options.method || 'GET'} ${endpoint}`);
-    console.log('Slug:', config.slug || 'default');
-        const auth = ogModule('auth');
-    console.groupEnd();*/
 
     const headers = { ...this.getHeaders(options) };
     const auth = ogModule('auth');
@@ -85,7 +81,6 @@ class ogApi {
 
         if (contentType.includes('application/json')) {
           const text = await res.text();
-          console.log(`text:`, text);
 
           try {
             let errorData;
@@ -121,11 +116,11 @@ class ogApi {
               }, 1500);
 
               throw new Error(errorMsg);
-            }/*else if( res.status === 404 ){
-              ogLogger.error('core:api', `❌ Recurso no encontrado (404) - ${fullURL}`);
+            }else {
+              ogLogger.error('core:api', `❌ Error#: (${res.status}) - ${fullURL}`);
               // Mostrar mensaje al usuario
-              toast.error(errorMsg);
-            }*/
+              // toast.error(errorMsg);
+            }
 
             // Para otros errores, solo mostrar toast
             if (typeof toast.error === 'function') {

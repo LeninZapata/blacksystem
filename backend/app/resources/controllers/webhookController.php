@@ -34,9 +34,9 @@ class webhookController {
         ogResponse::json(['success' => false, 'error' => 'Person no encontrado'], 400);
       }
 
-      // Cargar BotHandlers bajo demanda
-      ogApp()->loadHandler('BotHandlers');
-      $bot = BotHandlers::getDataFile($sender['number']);
+      // Cargar BotHandler bajo demanda
+      ogApp()->loadHandler('bot');
+      $bot = BotHandler::getDataFile($sender['number']);
 
       if (!$bot) {
         ogResponse::json(['success' => false, 'error' => "Bot no encontrado: {$sender['number']}"], 404);
@@ -44,7 +44,7 @@ class webhookController {
 
       $chatapi->setConfig($bot, $detectedProvider);
 
-      $workflowData = BotHandlers::getWorkflowFile($sender['number']);
+      $workflowData = BotHandler::getWorkflowFile($sender['number']);
       $workflowFile = $workflowData['file_path'] ?? null;
 
       if (!$workflowFile) {

@@ -1,6 +1,6 @@
 <?php
 
-class FollowupHandlers {
+class FollowupHandler {
 
   private static $table = DB_TABLES['followups'];
   private static $lastCalculatedDate = null;
@@ -225,8 +225,8 @@ class FollowupHandlers {
       $botNumber = $bot['number'];
 
       // Cargar configuración del bot desde archivo JSON
-      ogApp()->loadHandler('BotHandlers');
-      $botData = BotHandlers::getDataFile($botNumber);
+      ogApp()->loadHandler('bot');
+      $botData = BotHandler::getDataFile($botNumber);
       if (!$botData) continue;
 
       $botsConfig[$botId] = $botData;

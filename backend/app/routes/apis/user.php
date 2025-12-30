@@ -5,7 +5,7 @@ $router->group('/api/user', function($router) {
 
   // Actualizar configuracion del usuario
   $router->put('/{id}/config', function($id) {
-    ogApp()->loadHandler('UserHandler');
+    ogApp()->loadHandler('user');
     $result = UserHandler::updateConfig(['id' => $id]);
     ogResponse::json($result);
   })->middleware(['auth', 'json']);

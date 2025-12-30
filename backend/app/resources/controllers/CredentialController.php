@@ -56,7 +56,7 @@ class CredentialController extends ogController {
       $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
       
       // Actualizar archivos JSON de todos los bots que usan esta credencial
-      $botsUpdated = CredentialHandlers::updateBotsContext($id);
+      $botsUpdated = ogApp()->handler('credential')::updateBotsContext($id);
       
       ogLog::info('credentialController - Credencial actualizada', [
         'id' => $id,

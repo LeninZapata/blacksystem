@@ -21,8 +21,8 @@ class ConversationValidator {
 
   static function getChatData($number, $botId, $reconstruct = true) {
     if ($reconstruct) {
-      ogApp()->loadHandler('ChatHandlers');
-      $chat = ChatHandlers::getChat($number, $botId, false);
+      ogApp()->loadHandler('chat');
+      $chat = ChatHandler::getChat($number, $botId, false);
     } else {
       $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
 

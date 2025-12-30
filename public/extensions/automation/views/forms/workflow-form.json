@@ -1,0 +1,35 @@
+{
+  "id": "workflow-form",
+  "title": "i18n:automation.workflow.form.title",
+  "description": "i18n:automation.workflow.form.description",
+  "fields": [
+    {
+      "name": "name",
+      "label": "i18n:automation.workflow.field.name",
+      "type": "text",
+      "required": true,
+      "placeholder": "i18n:automation.workflow.field.name_placeholder",
+      "validation": "required|min:3|max:200"
+    },
+    {
+      "name": "description",
+      "label": "i18n:automation.workflow.field.description",
+      "type": "textarea",
+      "required": false,
+      "placeholder": "i18n:automation.workflow.field.description_placeholder",
+      "validation": "max:1000"
+    },
+    {
+      "name": "file_path",
+      "label": "i18n:automation.workflow.field.file_path",
+      "type": "text",
+      "required": false,
+      "placeholder": "i18n:automation.workflow.field.file_path_placeholder",
+      "validation": "max:500"
+    }
+  ],
+  "statusbar": [
+    {"name": "cancel", "type": "button", "label": "i18n:core.cancel", "action": "call:ogModal.closeAll", "style": "secondary"},
+    {"name": "submit", "type": "button", "label": "i18n:core.save", "action": "submit:workflow.save"}
+  ]
+}

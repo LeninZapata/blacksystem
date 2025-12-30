@@ -9,7 +9,7 @@ class credential {
     this.currentId = null;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    ogForm.clearAllErrors(realId);
+    ogModule('form').clearAllErrors(realId);
   }
 
   static async openEdit(formId, id) {
@@ -17,7 +17,7 @@ class credential {
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
     
-    ogForm.clearAllErrors(realId);
+    ogModule('form').clearAllErrors(realId);
     const data = await this.get(id);
     if (!data) return;
     
@@ -47,12 +47,12 @@ class credential {
       }
     }
 
-    ogForm.fill(formId, fillData);
+    ogModule('form').fill(formId, fillData);
   }
 
   static async save(formId) {
-    const validation = ogForm.validate(formId);
-    if (!validation.success) return ogToast.error(validation.message);
+    const validation = ogModule('form').validate(formId);
+    if (!validation.success) return ogComponent('toast').error(validation.message);
 
     const body = this.buildBody(validation.data);
     if (!body) return;
@@ -62,12 +62,12 @@ class credential {
       : await this.create(body);
 
     if (result) {
-      ogToast.success(this.currentId 
+      ogComponent('toast').success(this.currentId 
         ? __('automation.credentials.success.updated') 
         : __('automation.credentials.success.created')
       );
       setTimeout(() => {
-        ogForm.closeAll();
+        ogModule('modal').closeAll();
         this.refresh();
       }, 100);
     }
@@ -102,22 +102,22 @@ class credential {
     if (!data) return null;
 
     try {
-      const res = await api.post(this.apis.credential, data);
+      const res = await ogModule('api').post(this.apis.credential, data);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:automation', error);
-      ogToast.error(__('automation.credentials.error.create_failed'));
+      ogLogger.error('ext:automation', error);
+      ogComponent('toast').error(__('automation.credentials.error.create_failed'));
       return null;
     }
   }
 
   static async get(id) {
     try {
-      const res = await api.get(`${this.apis.credential}/${id}`);
+      const res = await ogModule('api').get(`${this.apis.credential}/${id}`);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:automation', error);
-      ogToast.error(__('automation.credentials.error.load_failed'));
+      ogLogger.error('ext:automation', error);
+      ogComponent('toast').error(__('automation.credentials.error.load_failed'));
       return null;
     }
   }
@@ -126,44 +126,44 @@ class credential {
     if (!data) return null;
 
     try {
-      const res = await api.put(`${this.apis.credential}/${id}`, {...data, id});
+      const res = await ogModule('api').put(`${this.apis.credential}/${id}`, {...data, id});
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:automation', error);
-      ogToast.error(__('automation.credentials.error.update_failed'));
+      ogLogger.error('ext:automation:credential: ' + __('automation.credentials.error.update_failed'), error);
+      //ogComponent('toast').error(__('automation.credentials.error.update_failed'));
       return null;
     }
   }
 
   static async delete(id) {
     try {
-      const res = await api.delete(`${this.apis.credential}/${id}`);
+      const res = await ogModule('api').delete(`${this.apis.credential}/${id}`);
       if (res.success === false) {
-        ogToast.error(__('automation.credentials.error.delete_failed'));
+        ogComponent('toast').error(__('automation.credentials.error.delete_failed'));
         return null;
       }
-      ogToast.success(__('automation.credentials.success.deleted'));
+      ogComponent('toast').success(__('automation.credentials.success.deleted'));
       this.refresh();
       return res.data || res;
     } catch (error) {
-      logger.error('ext:automation', error);
-      ogToast.error(__('automation.credentials.error.delete_failed'));
+      ogLogger.error('ext:automation', error);
+      ogComponent('toast').error(__('automation.credentials.error.delete_failed'));
       return null;
     }
   }
 
   static async list() {
     try {
-      const res = await api.get(this.apis.credential);
+      const res = await ogModule('api').get(this.apis.credential);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      logger.error('ext:automation', error);
+      ogLogger.error('ext:automation', error);
       return [];
     }
   }
 
   static refresh() {
-    if (window.datatable) datatable.refreshFirst();
+    ogComponent('datatable')?.refreshFirst();
   }
 }
 

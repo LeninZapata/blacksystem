@@ -39,8 +39,8 @@ class CreateSaleAction {
     }
 
     $countryCode = $bot['country_code'] ?? 'EC';
-    ogApp()->loadHandler('ClientHandlers');
-    $clientResult = ClientHandlers::registerOrUpdate($from, $name, $countryCode, $device);
+    ogApp()->loadHandler('client');
+    $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device);
 
     if (!$clientResult['success']) {
       ogLog::error("CreateSaleAction - Error al crear o actualizar cliente", [ 'number' => $from, 'error' => $clientResult['error'] ?? null, 'details' => $clientResult['details'] ?? null ], self::$logMeta);
@@ -80,8 +80,8 @@ class CreateSaleAction {
       'parent_sale_id' => $parentSaleId
     ];
 
-    ogApp()->loadHandler('SaleHandlers');
-    $saleResult = SaleHandlers::create($saleData);
+    ogApp()->loadHandler('sale');
+    $saleResult = SaleHandler::create($saleData);
 
     if (!$saleResult['success']) {
       ogLog::error("CreateSaleAction - Error al crear la venta", [ 'number' => $from, 'bot_id' => $bot['id'], 'product_id' => $product['id'], 'error' => $saleResult['error'] ?? null, 'details' => $saleResult['details'] ?? null ], self::$logMeta);

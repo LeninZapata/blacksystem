@@ -1,8 +1,8 @@
 <?php
-class ChatHandlers {
+class ChatHandler {
 
   private static $table = DB_TABLES['chats'];
-  private static $logMeta = [ 'module' => 'ChatHandlers', 'layer' => 'app/handler' ];
+  private static $logMeta = [ 'module' => 'ChatHandler', 'layer' => 'app/handler' ];
 
   // Registrar mensaje de chat
   static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type = 'P', $format = 'text', $metadata = null, $saleId = 0) {
@@ -24,7 +24,7 @@ class ChatHandlers {
       $id = ogDb::table(self::$table)->insert($data);
       return ['success' => true, 'chat_id' => $id, 'data' => array_merge($data, ['id' => $id])];
     } catch (Exception $e) {
-      ogLog::error('ChatHandlers::register - Error', ['message' => $e->getMessage()], ['module' => 'chat', 'layer' => 'app']);
+      ogLog::error('register - Error', ['message' => $e->getMessage()], self::$logMeta);
       return [
         'success' => false, 'error' => __('chat.create.error'), 'details' => OG_IS_DEV ? $e->getMessage() : null
       ];
@@ -198,7 +198,7 @@ class ChatHandlers {
     $required = ['number', 'bot_id', 'client_id', 'sale_id'];
     foreach ($required as $field) {
       if (!isset($data[$field])) {
-        ogLog::error('ChatHandlers::addMessage - Campo requerido faltante', ['field' => $field], ['module' => 'chat']);
+        ogLog::error('addMessage - Campo requerido faltante', ['field' => $field], self::$logMeta);
         return false;
       }
     }
@@ -254,7 +254,7 @@ class ChatHandlers {
     try {
       $client = ogDb::table('clients')->where('number', $number)->first();
       if (!$client) {
-        ogLog::warning('ChatHandlers::rebuildFromDB - Cliente no encontrado', ['number' => $number], ['module' => 'chat']);
+        ogLog::warning('rebuildFromDB - Cliente no encontrado', ['number' => $number], self::$logMeta);
         return false;
       }
 
@@ -268,7 +268,7 @@ class ChatHandlers {
         ->get();
 
       if (!$messages || count($messages) === 0) {
-        ogLog::info('ChatHandlers::rebuildFromDB - No hay mensajes para reconstruir', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
+        ogLog::info('rebuildFromDB - No hay mensajes para reconstruir', ['number' => $number, 'bot_id' => $botId], self::$logMeta);
         return false;
       }
 
@@ -350,14 +350,14 @@ class ChatHandlers {
 
       $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
       if (self::saveChatFile($chatFile, $chatData)) {
-        ogLog::info('ChatHandlers::rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], ['module' => 'chat']);
+        ogLog::info('rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], self::$logMeta);
         return $chatData;
       }
 
       return false;
 
     } catch (Exception $e) {
-      ogLog::error('ChatHandlers::rebuildFromDB - Error', ['error' => $e->getMessage()], ['module' => 'chat']);
+      ogLog::error('rebuildFromDB - Error', ['error' => $e->getMessage()], self::$logMeta);
       return false;
     }
   }
@@ -409,7 +409,7 @@ class ChatHandlers {
 
     if (!is_dir($dir)) {
       if (!mkdir($dir, 0755, true)) {
-        ogLog::error('ChatHandlers::saveChatFile - No se pudo crear directorio', ['dir' => $dir], ['module' => 'chat']);
+        ogLog::error('saveChatFile - No se pudo crear directorio', ['dir' => $dir], self::$logMeta);
         return false;
       }
     }
@@ -417,7 +417,7 @@ class ChatHandlers {
     $json = json_encode($chatData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
     if (file_put_contents($chatFile, $json) === false) {
-      ogLog::error('ChatHandlers::saveChatFile - Error al escribir archivo', ['ogFile' => $chatFile], ['module' => 'chat']);
+      ogLog::error('saveChatFile - Error al escribir archivo', ['ogFile' => $chatFile], self::$logMeta);
       return false;
     }
 

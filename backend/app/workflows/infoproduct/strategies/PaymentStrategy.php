@@ -109,7 +109,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
     ogApp()->loadHandler('chatHandlers');
-    $chat = ChatHandlers::getChat($person['number'], $bot['id'], true);
+    $chat = ChatHandler::getChat($person['number'], $bot['id'], true);
 
     // Construir prompt igual que ActiveConversationStrategy
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
@@ -175,7 +175,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
     ogApp()->loadHandler('chatHandlers');
-    $chat = ChatHandlers::getChat($person['number'], $bot['id'], true);
+    $chat = ChatHandler::getChat($person['number'], $bot['id'], true);
 
     // Construir prompt igual que ActiveConversationStrategy
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
@@ -446,7 +446,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $metadata = $parsedResponse['metadata'] ?? null;
 
     ogApp()->loadHandler('chatHandlers');
-    ChatHandlers::register(
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -458,7 +458,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       $chatData['sale_id']
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -484,7 +484,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
 
-    ogApp()->loadHandler('UpsellHandlers');
-    UpsellHandlers::processAfterSale($saleData, $botTimezone);
+    ogApp()->loadHandler('upsell');
+    UpsellHandler::processAfterSale($saleData, $botTimezone);
   }
 }

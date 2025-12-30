@@ -87,7 +87,7 @@ class botws {
         : __('botws.bot.success.created')
       );
       setTimeout(() => {
-        ogModule('form').closeAll();
+        ogComponent('modal').closeAll();
         this.refresh();
       }, 100);
     }
@@ -213,7 +213,9 @@ class botws {
       }
 
       ogComponent('toast').success(__('botws.bot.success.deleted'));
-      this.refresh();
+      setTimeout(() => {
+        this.refresh();
+      }, 100);
       return res.data || res;
     } catch (error) {
       ogLogger.error('ext:botws', error);
@@ -235,7 +237,7 @@ class botws {
   // UTILIDADES
   // Refrescar datatable
   static refresh() {
-    if (window.datatable) datatable.refreshFirst();
+    ogComponent('datatable')?.refreshFirst();
   }
 }
 

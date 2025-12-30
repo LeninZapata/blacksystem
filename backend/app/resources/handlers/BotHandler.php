@@ -1,7 +1,7 @@
 <?php
-class BotHandlers {
+class BotHandler {
   protected static $table = DB_TABLES['bots'];
-  private static $logMeta = ['module' => 'BotHandlers', 'layer' => 'app/resources'];
+  private static $logMeta = ['module' => 'BotHandler', 'layer' => 'app/resources'];
 
   /**
    * Guardar archivos de contexto del bot
@@ -22,7 +22,7 @@ class BotHandlers {
       self::deleteContextFiles($oldNumber);
 
       // Regenerar activators con el nuevo número
-      ogApp()->loadHandler('ProductHandler');
+      ogApp()->loadHandler('product');
       ProductHandler::generateActivatorsFile($currentNumber, $botData['id'], 'update');
     }
 

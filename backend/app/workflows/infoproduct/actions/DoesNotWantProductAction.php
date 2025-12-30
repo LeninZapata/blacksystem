@@ -30,8 +30,8 @@ class DoesNotWantProductAction implements ActionHandler {
     $this->registerCancellation($bot, $person, $chatData, $saleId);
 
     // Reconstruir chat JSON
-    ogApp()->loadHandler('ChatHandlers');
-    ChatHandlers::rebuildFromDB($person['number'], $bot['id']);
+    ogApp()->loadHandler('chat');
+    ChatHandler::rebuildFromDB($person['number'], $bot['id']);
 
     ogLog::info("handle - Venta cancelada", [ 'sale_id' => $saleId, 'followups_cancelled' => $cancelResult, 'sale_updated' => $saleUpdateResult ], $this->logMeta );
 
@@ -48,9 +48,9 @@ class DoesNotWantProductAction implements ActionHandler {
   }
 
   private function cancelFollowups($saleId) {
-    //require_once APP_PATH . '/resources/handlers/FollowupHandlers.php';
-    ogApp()->loadHandler('FollowupHandlers');
-    return FollowupHandlers::cancelBySale($saleId);
+    //require_once APP_PATH . '/resources/handlers/FollowupHandler.php';
+    ogApp()->loadHandler('followup');
+    return FollowupHandler::cancelBySale($saleId);
   }
 
   private function updateSaleStatus($saleId) {
@@ -79,8 +79,8 @@ class DoesNotWantProductAction implements ActionHandler {
       'cancelled_at' => date('Y-m-d H:i:s')
     ];
 
-    ogApp()->loadHandler('ChatHandlers');
-    ChatHandlers::register(
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -92,7 +92,7 @@ class DoesNotWantProductAction implements ActionHandler {
       $saleId
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],

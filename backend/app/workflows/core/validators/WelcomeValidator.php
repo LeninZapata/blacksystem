@@ -30,7 +30,7 @@ class WelcomeValidator {
       return null;
     }
 
-    ogApp()->loadHandler('ProductHandler');
+    ogApp()->loadHandler('product');
     $activators = ProductHandler::getActivatorsFile($botNumber);
     
     if (empty($activators)) {

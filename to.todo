@@ -12,6 +12,9 @@ Backend (Aplicacion):
 ☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
 
 Frontend (Aplicacion):
+☐ Cuando editas el nombre de un bot y previamente por ejemplo abriste producto ok el seelct se queda en cache
+pero si editar el bot el nombre y vas de nuevo  a producto el select sigue con el nombre anterior 
+entonces al actualizar una resource hay que limpiar el cache de selects o algo asi
 ☐ Verificar si el archivo de workflow existe
 puede ser dentro del mismo listado de workflow en un boton tipo editar con eso que muestra un toast si exsite o no el archivo
 tambien que verifique al momento de crear o actualizar un workflow si el archivo existe en donde estaran estos archivos y si no existe que muestre un error

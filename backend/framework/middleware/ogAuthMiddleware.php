@@ -1,6 +1,6 @@
 <?php
 class ogAuthMiddleware {
-
+  private $logMeta = ['module' => 'ogAuthMiddleware', 'layer' => 'framework/middleware'];
   function handle() {
 
     // Validar version PHP (solo 1 vez por sesion)
@@ -35,10 +35,7 @@ class ogAuthMiddleware {
     $cleaned = $this->cleanupExpiredSessions(10);
     
     if ($cleaned > 0) {
-      ogLog::info('authMiddleware - Limpieza oportunista ejecutada', [
-        'cleaned' => $cleaned,
-        'user_id' => $session['user_id']
-      ], ['module' => 'auth', 'layer' => 'middleware']);
+      ogLog::info('authMiddleware - Limpieza oportunista ejecutada', [ 'cleaned' => $cleaned, 'user_id' => $session['user_id'] ], $this->logMeta);
     }
 
     $GLOBALS['auth_user_id'] = $session['user_id'];
@@ -77,9 +74,6 @@ class ogAuthMiddleware {
 
   private function getSessionFromToken($token) {
     $sessionsDir = ogApp()->getPath('storage') . '/sessions/';
-    ogLog::debug('authMiddleware::getSessionFromToken - Buscando sesión', [
-      'token_short' => substr($token, 0, 30)
-    ], ['module' => 'auth', 'layer' => 'middleware']);
     if (!is_dir($sessionsDir)) {
       return null;
     }
@@ -87,10 +81,6 @@ class ogAuthMiddleware {
     $tokenShort = substr($token, 0, 16);
     $pattern = $sessionsDir . "*_*_{$tokenShort}.json";
     $files = glob($pattern);
-    ogLog::debug('authMiddleware::getSessionFromToken - Archivos encontrados', [
-      'files_count' => count($files),
-      'pattern' => $pattern
-    ], ['module' => 'auth', 'layer' => 'middleware']);
 
     if (empty($files)) {
       return null;
@@ -106,10 +96,6 @@ class ogAuthMiddleware {
         return $session;
       }
     }
-
-    ogLog::debug('authMiddleware::getSessionFromToken - No se encontró sesión válida para el token proporcionado', [
-      'token_short' => substr($token, 0, 30)
-    ], ['module' => 'auth', 'layer' => 'middleware']);
 
     return null;
   }
@@ -171,10 +157,7 @@ class ogAuthMiddleware {
             unlink($filePath);
             $cleaned++;
           } catch (Exception $e) {
-            ogLog::error('authMiddleware::cleanupExpiredSessions - Error', [
-              'file' => $file,
-              'error' => $e->getMessage()
-            ], ['module' => 'auth', 'layer' => 'middleware']);
+            ogLog::error('cleanupExpiredSessions - Error', [ 'file' => $file, 'error' => $e->getMessage() ], $this->logMeta);
           }
         }
       }

@@ -13,7 +13,7 @@ class SendWelcomeAction {
     $from = $person['number'];
     $name = $person['name'];
 
-    ogApp()->loadHandler('ProductHandler');
+    ogApp()->loadHandler('product');
     $messages = ProductHandler::getMessagesFile('welcome', $productId);
 
     if (!$messages) {
@@ -70,8 +70,8 @@ class SendWelcomeAction {
 
           if (!empty($followups)) {
             $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
-            ogApp()->loadHandler('FollowupHandlers');
-            FollowupHandlers::registerFromSale(
+            ogApp()->loadHandler('followup');
+            FollowupHandler::registerFromSale(
               [
                 'sale_id' => $saleId,
                 'product_id' => $productId,

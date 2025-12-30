@@ -34,7 +34,7 @@ class ProductController extends ogController {
 
       if (isset($data['context'])) {
         $data['id'] = $id;
-        ogApp()->loadHandler('ProductHandler');
+        ogApp()->loadHandler('product');
         ProductHandler::handleByContext($data, 'create');
       }
       if( $id ){
@@ -71,7 +71,7 @@ class ProductController extends ogController {
 
       if ($affected > 0 && isset($data['context'])) {
         $data['id'] = $id;
-        ogApp()->loadHandler('ProductHandler');
+        ogApp()->loadHandler('product');
         ProductHandler::handleByContext($data, 'update', $botChanged ? $oldBotId : null);
       }
 
@@ -119,7 +119,7 @@ class ProductController extends ogController {
     try {
       // Eliminar archivos asociados si es infoproduct
       if ($context === 'infoproductws' && $botId) {
-        ogApp()->loadHandler('ProductHandler');
+        ogApp()->loadHandler('product');
         $filesDeletion = ProductHandler::deleteProductFiles($id, $botId);
 
         ogLog::info('delete - Archivos eliminados', [ 'product_id' => $id, 'files_deleted' => count($filesDeletion['deleted'] ?? []), 'errors' => count($filesDeletion['errors'] ?? []) ],  $this->logMeta);

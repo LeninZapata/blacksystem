@@ -71,10 +71,10 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
   // Verificar si existe conversación previa (sin límite de días)
   private function checkExistingConversation($number, $botId) {
-    // Cargar handler ChatHandlers bajo demanda
-    ogApp()->loadHandler('ChatHandlers');
+    // Cargar handler ChatHandler bajo demanda
+    ogApp()->loadHandler('chat');
     // Retornar el chat usando el handler
-    return ChatHandlers::getChat($number, $botId);
+    return ChatHandler::getChat($number, $botId);
   }
 
   // Verificar si ya compró ESTE producto específico - Busca en mensajes con action='sale_confirmed' que tengan este product_id
@@ -116,7 +116,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     ogLog::info("handleReWelcome - INICIO", ['product_id' => $product['id']], $this->logMeta);
 
     // Cargar ProductHandler bajo demanda
-    ogApp()->loadHandler('ProductHandler');
+    ogApp()->loadHandler('product');
 
     // 1. Enviar mensajes de bienvenida
     $messages = ProductHandler::getMessagesFile('welcome', $product['id']);
@@ -153,14 +153,14 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       $messagesSent++;
     }
 
-    // Cargar ChatHandlers bajo demanda
-    ogApp()->loadHandler('ChatHandlers');
+    // Cargar ChatHandler bajo demanda
+    ogApp()->loadHandler('chat');
 
     // 2. Registrar mensaje de sistema en BD
     $systemMessage = "Bienvenida repetida enviada: {$product['name']} (ya comprado anteriormente)";
     $metadata = [ 'action' => 're_welcome', 'product_id' => $product['id'], 'product_name' => $product['name'], 'reason' => 'product_already_purchased', 'messages_sent' => $messagesSent ];
 
-    ChatHandlers::register(
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $existingChat['client_id'],
@@ -172,7 +172,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       0
     );
 
-    ChatHandlers::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $existingChat['client_id'],
@@ -183,7 +183,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     ], 'S');
 
     // ✅ 3. Reconstruir chat JSON para actualizar cabecera
-    ChatHandlers::rebuildFromDB($person['number'], $bot['id']);
+    ChatHandler::rebuildFromDB($person['number'], $bot['id']);
 
     ogLog::info("handleReWelcome - Completado", ['messages_sent' => $messagesSent, 'chat_rebuilt' => true], $this->logMeta);
 
@@ -220,11 +220,11 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       ogLog::info("handleNewProductWelcome - Chats registrados (DB + JSON)", [ 'client_id' => $clientId, 'sale_id' => $saleId, 'product_id' => $productId ], $this->logMeta);
     }
 
-    // Cargar ChatHandlers bajo demanda
-    ogApp()->loadHandler('ChatHandlers');
+    // Cargar ChatHandler bajo demanda
+    ogApp()->loadHandler('chat');
 
     // Reconstruir chat JSON para actualizar cabecera (current_sale, summary, etc)
-    ChatHandlers::rebuildFromDB($person['number'], $bot['id']);
+    ChatHandler::rebuildFromDB($person['number'], $bot['id']);
     ogLog::info("handleNewProductWelcome - Completado ➜ Chat reconstruido desde BD", [ 'number' => $person['number'], 'bot_id' => $bot['id'],  'sale_id' => $saleId, 'messages_sent' => $welcomeResult['messages_sent'], 'chat_rebuilt' => true ], $this->logMeta);
 
     return [
@@ -237,13 +237,13 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
   private function loadProduct($productId) {
     // Cargar ProductHandler bajo demanda
-    ogApp()->loadHandler('ProductHandler');
+    ogApp()->loadHandler('product');
     return ProductHandler::getProductFile($productId);
   }
 
   private function registerStartSale($bot, $person, $product, $clientId, $saleId) {
-    // Cargar ChatHandlers bajo demanda
-    ogApp()->loadHandler('ChatHandlers');
+    // Cargar ChatHandler bajo demanda
+    ogApp()->loadHandler('chat');
 
     $message = 'Nueva venta iniciada: ' . $product['name'];
     $metadata = [
@@ -256,7 +256,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'instructions' => $product['config']['prompt'] ?? ''
     ];
 
-    ChatHandlers::register(
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $clientId,
@@ -281,6 +281,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'metadata' => $metadata
     ];
 
-    ChatHandlers::addMessage($chatData, 'start_sale');
+    ChatHandler::addMessage($chatData, 'start_sale');
   }
 }
