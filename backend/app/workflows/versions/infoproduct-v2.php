@@ -23,6 +23,10 @@ class InfoproductV2Handler {
   private $bufferDelay = 3;
   private $appPath;  // Path dinámico del plugin
 
+  // Prompts personalizados
+  private $prompt_recibo = 'recibo.txt';
+  private $prompt_recibo_imagen = 'recibo-img.txt';
+
   // Configuración de followups
   private $followupStartHour = 8;
   private $followupEndHour = 22;
@@ -74,6 +78,9 @@ class InfoproductV2Handler {
     }
 
     $bot = array_merge($bot, $botData);
+    // Agregar prompts personalizados al array $bot
+    $bot['prompt_recibo'] = $this->prompt_recibo;
+    $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
     ogLog::info("handle - Bot data cargado", [ 'bot_id' => $bot['id'] ?? 'N/A' ], $this->logMeta );
 
     $messageType = MessageClassifier::classify($message);

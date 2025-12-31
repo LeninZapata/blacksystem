@@ -41,8 +41,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
       $chatapi = ogApp()->service('chatApi');
       $chatapi::send($person['number'], $errorMessage);
 
-      ogApp()->loadHandler('chatHandlers');
-      chatHandlers::register(
+      //ogApp()->loadHandler('chat');
+      ogApp()->handler('chat')::register(
         $bot['id'],
         $bot['number'],
         $chatData['client_id'],
@@ -108,7 +108,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $aiText = "[image]: {$resume}";
 
     // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
-    ogApp()->loadHandler('chatHandlers');
+    ogApp()->loadHandler('chat');
     $chat = ChatHandler::getChat($person['number'], $bot['id'], true);
 
     // Construir prompt igual que ActiveConversationStrategy
@@ -174,7 +174,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $aiText = "[image]: {$resume}";
 
     // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
-    ogApp()->loadHandler('chatHandlers');
+    ogApp()->loadHandler('chat');
     $chat = ChatHandler::getChat($person['number'], $bot['id'], true);
 
     // Construir prompt igual que ActiveConversationStrategy
@@ -236,8 +236,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $description = $imageAnalysis['metadata']['description'] ?? [];
     $messageJson = json_encode($description, JSON_UNESCAPED_UNICODE);
 
-    ogApp()->loadHandler('chatHandlers');
-    chatHandlers::register(
+    ogApp()->loadHandler('chat');
+    chatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -249,7 +249,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       $chatData['sale_id']
     );
 
-    chatHandlers::addMessage([
+    chatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -341,8 +341,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
     ];
 
     // Guardar en DB
-    ogApp()->loadHandler('chatHandlers');
-    chatHandlers::register(
+    ogApp()->loadHandler('chat');
+    chatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -355,7 +355,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     );
 
     // Guardar en JSON
-    chatHandlers::addMessage([
+    chatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -367,10 +367,10 @@ class PaymentStrategy implements ConversationStrategyInterface {
   }
 
   private function processPayment($paymentData, $saleId) {
-    ogApp()->loadHandler('saleHandlers');
-    saleHandlers::updateStatus($saleId, 'completed');
+    ogApp()->loadHandler('sale');
+    saleHandler::updateStatus($saleId, 'completed');
 
-    saleHandlers::registerPayment(
+    saleHandler::registerPayment(
       $saleId,
       'RECEIPT_' . time(),
       'Recibo de pago',
@@ -390,7 +390,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
   private function buildPrompt($bot, $chat, $aiText) {
 
-    $promptFile = ogApp()->getPath()  . '/workflows/prompts/infoproduct/recibo.txt';
+    $promptFile = ogApp()->getPath()  . '/workflows/prompts/infoproduct/' . $bot['prompt_recibo'] ?? 'recibo.txt';
 
     if (!file_exists($promptFile)) {
       ogLog::throwError("buildPrompt - Prompt file not found: {$promptFile}", [], self::$logMeta);
@@ -445,7 +445,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $message = $parsedResponse['message'] ?? '';
     $metadata = $parsedResponse['metadata'] ?? null;
 
-    ogApp()->loadHandler('chatHandlers');
+    ogApp()->loadHandler('chat');
     ChatHandler::register(
       $bot['id'],
       $bot['number'],

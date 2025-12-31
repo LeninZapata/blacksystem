@@ -42,7 +42,7 @@ class DeliverProductAction {
   }
 
   private static function loadProductTemplates($productId) {
-    ogApp()->loadHandler('productHandler');
+    ogApp()->loadHandler('product');
     return productHandler::getMessagesFile('template', $productId);
   }
 
@@ -75,8 +75,8 @@ class DeliverProductAction {
       'delivered_at' => date('Y-m-d H:i:s')
     ];
 
-    ogApp()->loadHandler('chatHandlers');
-    chatHandlers::register(
+    ogApp()->loadHandler('chat');
+    chatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -88,7 +88,7 @@ class DeliverProductAction {
       $chatData['sale_id']
     );
 
-    chatHandlers::addMessage([
+    chatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
@@ -103,8 +103,8 @@ class DeliverProductAction {
     ogLog::info("rebuildChatAfterDelivery - Reconstruyendo chat después de entrega", [ 'number' => $number, 'bot_id' => $botId ], self::$logMeta);
 
     // Forzar reconstrucción desde DB
-    ogApp()->loadHandler('chatHandlers');
-    chatHandlers::rebuildFromDB($number, $botId);
+    ogApp()->loadHandler('chat');
+    chatHandler::rebuildFromDB($number, $botId);
   }
 
 }

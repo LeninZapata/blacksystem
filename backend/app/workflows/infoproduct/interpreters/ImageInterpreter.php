@@ -27,7 +27,7 @@ class ImageInterpreter {
       $mimeType = $imageUrl ? self::getMimeType($imageUrl) : 'image/jpeg';
       $dataUri = "data:{$mimeType};base64,{$base64}";
 
-      $promptFile = ogApp()->getPath() . '/workflows/prompts/infoproduct/recibo-img.txt';
+      $promptFile = ogApp()->getPath() . '/workflows/prompts/infoproduct/' . $bot['prompt_reccibo_imagen'] ?? 'recibo-img.txt';
 
       if (!file_exists($promptFile)) {
         ogLog::throwError("interpret - Prompt file not found: {$promptFile}", [], self::$logMeta);

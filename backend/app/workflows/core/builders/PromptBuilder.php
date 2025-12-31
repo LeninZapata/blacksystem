@@ -61,7 +61,7 @@ class PromptBuilder {
         //$templatesFile = BOTS_INFOPRODUCT_MESSAGES_PATH . '/template_' . $productId . '.json';
         //$templatesFile = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/' . 'template_' . $productId . '.json';
         //$templates = file::getJson($templatesFile) ?? [];
-        $templates = ProductHandler::getTemplatesFile($productId);
+        $templates = ogApp()->handler('product')::getTemplatesFile($productId);
 
         if ($productId && !isset($productosEnConversacion[$productId])) {
           $productosEnConversacion[$productId] = [

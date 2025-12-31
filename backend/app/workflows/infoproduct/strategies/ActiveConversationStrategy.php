@@ -60,7 +60,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $person = $context['person'];
     $chatData = $context['chat_data'];
 
-    ogApp()->loadHandler('chatHandlers');
+    ogApp()->loadHandler('chat');
     foreach ($messages as $msg) {
       ChatHandler::register(
         $bot['id'],
@@ -89,7 +89,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
   private function buildPrompt($bot, $chat, $aiText) {
     require_once ogApp()->getPath() . '/workflows/core/builders/PromptBuilder.php';
 
-    $promptFile = ogApp()->getPath() . '/workflows/prompts/infoproduct/recibo.txt';
+    $promptFile = ogApp()->getPath() . '/workflows/prompts/infoproduct/' . $bot['prompt_recibo'] ?? 'recibo.txt';
     if (!file_exists($promptFile)) {
       ogLog::throwError("Prompt file not found: {$promptFile}", [], self::$logMeta);
     }
@@ -142,7 +142,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $message = $parsedResponse['message'] ?? '';
     $metadata = $parsedResponse['metadata'] ?? null;
 
-    ogApp()->loadHandler('chatHandlers');
+    ogApp()->loadHandler('chat');
     ChatHandler::register(
       $bot['id'],
       $bot['number'],

@@ -25,7 +25,8 @@ class workflow {
   static fillForm(formId, data) {
     const fillData = {
       name: data.name,
-      description: data.description || ''
+      description: data.description || '',
+      file_path: data.file_path || ''
     };
     ogModule('form').fill(formId, fillData);
   }
@@ -50,7 +51,8 @@ class workflow {
   static buildBody(formData) {
     return {
       name: formData.name,
-      description: formData.description
+      description: formData.description,
+      file_path: formData.file_path
     };
   }
 

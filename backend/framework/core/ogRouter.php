@@ -102,7 +102,7 @@ class ogRouter {
       // Reemplazar {param} normales (sin /)
       $pattern = preg_replace('/\{[^}]+\}/', '([^/]+)', $pattern);
       $pattern = '#^' . $pattern . '$#';
-      
+
       if (preg_match($pattern, $path, $matches)) {
         array_shift($matches);
         $this->exec($routeObj, $matches);
@@ -135,28 +135,33 @@ class ogRouter {
     }
     if (is_string($handler) && strpos($handler, '@') !== false) {
       list($class, $method) = explode('@', $handler);
+      $uclass = ucfirst($class);
 
       // Cargar clase bajo demanda usando ogApp
-      if (!class_exists($class)) {
+      $suffix = 'Controller';
+      if (!class_exists($uclass)) {
         try {
-          ogApp()->loadController($class);
+          ogApp()->loadController( strtolower($class) );
         } catch (Exception $e) {
           try {
-            ogApp()->loadHandler($class);
+            ogApp()->loadHandler( strtolower($class) );
+            $suffix = 'Handler';
           } catch (Exception $e2) {
-            ogLog::throwError(__('core.router.controller_not_found', ['controller' => $class]), [], self::$logMeta);
+            ogLog::throwError(__('core.router.controller_not_found', ['controller' => $class]), ['class' => $class, 'class search' => $uclass], self::$logMeta);
           }
         }
       }
 
-      if (!class_exists($class)) {
-        ogLog::throwError(__('core.router.controller_not_found', ['controller' => $class]), [], self::$logMeta);
+      if (!class_exists($uclass . $suffix)) {
+        ogLog::throwError(__('core.router.controller_not_found', ['controller' => $class]), ['class' => $class, 'class search' => $uclass], self::$logMeta);
       }
+
+      $class = $uclass . $suffix;
 
       // Instanciar controller correctamente
       $reflection = new ReflectionClass($class);
       $constructor = $reflection->getConstructor();
-      
+
       if ($constructor && $constructor->getNumberOfRequiredParameters() > 0) {
         // Controller requiere parámetros (probablemente ogController)
         // Extraer resourceName desde el nombre de la clase
@@ -191,7 +196,7 @@ class ogRouter {
     }
 
     $mwClass = $this->middleware[$name];
-    
+
     // Cargar middleware bajo demanda usando ogApp
     if (!class_exists($mwClass)) {
       try {
