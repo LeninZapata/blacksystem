@@ -1,10 +1,6 @@
 Backend (Aplicacion):
-☐ agregar nuevos arhcivos en los handlers para el manejo de las consultas de graficas
-☐ Plantillas que se ejecutan a un triger, es decir si dice
-'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
-☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
-
-☐ Faker debe ser refactorizado actualmente tiene 500 lineas y nada que ver
+✔ agregar nuevos arhcivos en los handlers para el manejo de las consultas de graficas @done(01-01-2026 21:47)
+✔ Faker debe ser refactorizado actualmente tiene 500 lineas y nada que ver @done(01-01-2026 21:47)
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
   ☐ grafica de productos vendidos
   ☐ grafica de ingresos por producto
@@ -13,7 +9,15 @@ Backend (Aplicacion):
   ☐ graficas de conversiones
   ☐ chat por dias | horas
   ☐ ventas por dias | horas
+☐ los endpoint defaker solo deben estar disponibles en entorno de desarrollo (CREO QUE HAY  CREAR
+UN MIDDLEWARE PARA ESTO)
+
+☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
 
 Produccion:
 ☐ cuando envian un emoji validar el webhook y el de reation porque actualmente estan cambiando las validaciones
 para reaction no debe hacer nada, y para emoji lo que esta haciendo reaction ahorita
+
+Version de pago:
+☐ Plantillas que se ejecutan a un triger, es decir si dice
+'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'

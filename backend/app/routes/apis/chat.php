@@ -129,6 +129,12 @@ $router->group('/api/chat', function($router) {
     $range = ogRequest::query('range', 'last_7_days');
     ogResponse::json(ogApp()->handler('chat')::getStatsByProduct(['range' => $range]));
   });
+
+  // Estadísticas: Chats iniciados vs Mensajes - GET /api/chat/stats/chats-vs-messages?range=last_7_days
+  $router->get('/stats/chats-vs-messages', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json( ogApp()->handler('chatStats')::getChatsVsMessages(['range' => $range]) );
+  })->middleware(['auth', 'throttle:100,1']);
 });
 
 // ============================================

@@ -1,9 +1,10 @@
 <?php
+$is_localhost = ogSystem::isLocalhost();
 // Configuración de base de datos del proyecto
 return [
-  'host' => ogSystem::isLocalhost() ? 'localhost' : '',
-  'name' => ogSystem::isLocalhost() ? 'blacksystem' : '',
-  'user' => ogSystem::isLocalhost() ? 'root' : '',
-  'pass' => ogSystem::isLocalhost() ? '' : '',
+  'host' => $is_localhost ? 'localhost' : '',
+  'name' => $is_localhost ? 'blacksystem' : '',
+  'user' => $is_localhost ? 'root' : '',
+  'pass' => $is_localhost ? '' : '',
   'charset' => 'utf8mb4'
 ];

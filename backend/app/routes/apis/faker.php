@@ -3,57 +3,75 @@
 
 $router->group('/api/faker', function($router) {
 
-  // Generar datos fake - GET /api/faker?num=100&start_date=2025-01-01&end_date=2025-01-31
-  $router->get('', function() {
+  // ==========================================
+  // CLIENTES
+  // ==========================================
+
+  // Generar clientes fake - GET /api/faker/clients?num=50
+  $router->get('/clients', function() {
+    $params = [
+      'num' => ogRequest::query('num', 50)
+    ];
+    ogResponse::json(ogApp()->handler('faker')::generateClients($params));
+  })->middleware(OG_IS_DEV ? [] : ['auth']);
+
+  // Limpiar clientes fake - DELETE /api/faker/clients
+  $router->delete('/clients', function() {
+    ogResponse::json(ogApp()->handler('faker')::cleanClients());
+  })->middleware(OG_IS_DEV ? [] : ['auth']);
+
+  // ==========================================
+  // CHATS
+  // ==========================================
+
+  // Generar chats fake - GET /api/faker/chats
+  $router->get('/chats', function() {
+    ogResponse::json(ogApp()->handler('faker')::generateChats([]));
+  })->middleware(OG_IS_DEV ? [] : ['auth']);
+
+  // Limpiar chats fake - DELETE /api/faker/chats
+  $router->delete('/chats', function() {
+    ogResponse::json(ogApp()->handler('faker')::cleanChats());
+  })->middleware(OG_IS_DEV ? [] : ['auth']);
+
+  // ==========================================
+  // VENTAS
+  // ==========================================
+
+  // Generar ventas fake - GET /api/faker/sales?num=50
+  $router->get('/sales', function() {
     $params = [
       'num' => ogRequest::query('num', 50),
       'start_date' => ogRequest::query('start_date', date('Y-m-01')),
       'end_date' => ogRequest::query('end_date', date('Y-m-t'))
     ];
-    ogResponse::json(ogApp()->handler('faker')::generate($params));
+    ogResponse::json(ogApp()->handler('faker')::generateSales($params));
   })->middleware(OG_IS_DEV ? [] : ['auth']);
 
-  // Limpiar todos los datos faker - DELETE /api/faker
-  $router->delete('', function() {
-    ogResponse::json(ogApp()->handler('faker')::clean());
-  })->middleware(OG_IS_DEV ? [] : ['auth']);
-
-  // Generar métricas publicitarias - GET /api/faker/ad-metrics?num=10
-  $router->get('/ad-metrics', function() {
-    $params = [
-      'num' => ogRequest::query('num', 10),
-      'start_date' => ogRequest::query('start_date', date('Y-m-01')),
-      'end_date' => ogRequest::query('end_date', date('Y-m-t'))
-    ];
-    ogResponse::json(ogApp()->handler('faker')::generateAdMetrics($params));
-  })->middleware(OG_IS_DEV ? [] : ['auth']);
-
-  // Limpiar métricas publicitarias - DELETE /api/faker/ad-metrics
-  $router->delete('/ad-metrics', function() {
-    ogResponse::json(ogApp()->handler('faker')::cleanAdMetrics());
+  // Limpiar ventas fake - DELETE /api/faker/sales
+  $router->delete('/sales', function() {
+    ogResponse::json(ogApp()->handler('faker')::cleanSales());
   })->middleware(OG_IS_DEV ? [] : ['auth']);
 
 });
 
 // ============================================
-// ENDPOINTS:
+// ENDPOINTS DISPONIBLES:
 //
-// VENTAS Y CLIENTES:
-// - GET    /api/faker                          -> Genera datos fake (num, start_date, end_date)
-// - DELETE /api/faker                          -> Limpia todos los datos
+// CLIENTES:
+// - GET    /api/faker/clients              -> Genera clientes (num, start_date, end_date)
+// - DELETE /api/faker/clients              -> Limpia clientes
 //
-// MÉTRICAS PUBLICITARIAS:
-// - GET    /api/faker/ad-metrics               -> Genera métricas publicitarias (num, start_date, end_date)
-// - DELETE /api/faker/ad-metrics               -> Limpia métricas publicitarias
+// CHATS:
+// - GET    /api/faker/chats                -> Genera chats (1-3 por cliente)
+// - DELETE /api/faker/chats                -> Limpia chats
+//
+// VENTAS:
+// - GET    /api/faker/sales                -> Genera ventas (num, start_date, end_date)
+// - DELETE /api/faker/sales                -> Limpia ventas
 //
 // EJEMPLOS:
-// Ventas:
-// - /api/faker                                 -> 50 registros del mes actual
-// - /api/faker?num=200                         -> 200 registros del mes actual
-// - /api/faker?num=100&start_date=2025-01-01&end_date=2025-01-31
-//
-// Métricas publicitarias:
-// - /api/faker/ad-metrics                      -> 10 productos con métricas del mes actual
-// - /api/faker/ad-metrics?num=5                -> 5 productos con métricas
-// - /api/faker/ad-metrics?num=10&start_date=2025-01-01&end_date=2025-01-31
+// - /api/faker/clients?num=100             -> 100 clientes distribuidos
+// - /api/faker/chats                       -> Chats para todos los clientes
+// - /api/faker/sales?num=50                -> 50 ventas distribuidas
 // ============================================

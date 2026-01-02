@@ -68,25 +68,4 @@ $router->group('/api/sale', function($router) {
     ogResponse::json(ogApp()->handler('sale')::deleteByClient(['client_id' => $client_id]));
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Estadísticas por día
-  $router->get('/stats/by-day', function() {
-    $range = ogRequest::query('range', 'last_7_days');
-    ogResponse::json(ogApp()->handler('sale')::getStatsByDay(['range' => $range]));
-  })->middleware(['auth', 'throttle:100,1']);
-
-  // Ventas por producto
-  $router->get('/stats/by-product', function() {
-    $range = ogRequest::query('range', 'last_7_days');
-    ogResponse::json(ogApp()->handler('sale')::getStatsByProduct(['range' => $range]));
-  })->middleware(['auth', 'throttle:100,1']);
-
-  // Mensajes nuevos por día
-  $router->get('/stats/new-messages', function() {
-    $range = ogRequest::query('range', 'last_7_days');
-    ogResponse::json(ogApp()->handler('sale')::getNewMessagesByDay(['range' => $range]));
-  })->middleware(['auth', 'throttle:100,1']);
-
-  $router->get('/conversion-stats', function() {
-    ogResponse::json( ogApp()->handler('sale')::getConversionStatsByDay(  ['range' => ogRequest::query('range', 'last_7_days')]  ) );
-  });
 });

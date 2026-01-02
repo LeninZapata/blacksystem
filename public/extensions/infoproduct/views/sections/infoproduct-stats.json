@@ -26,19 +26,11 @@
               },
               {
                 "type": "html",
-                "content": "<div id='chart-ventas-por-dia'></div>"
+                "content": "<div id='chart-new-clients'></div>"
               },
               {
                 "type": "html",
-                "content": "<div class='charts-row'><div id='chart-ventas-por-producto'></div><div id='chart-ventas-producto-pastel'></div></div>"
-              },
-              {
-                "type": "html",
-                "content": "<div id='chart-chats-por-producto'></div>"
-              },
-              {
-                "type": "html",
-                "content": "<div id='chart-seguimientos'></div>"
+                "content": "<div id='chart-chats-vs-messages'></div>"
               }
             ]
           },

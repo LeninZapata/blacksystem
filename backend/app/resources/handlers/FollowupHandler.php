@@ -398,32 +398,4 @@ class FollowupHandler {
     }
   }
 
-  static function getStatsByDay($params) {
-    $range = $params['range'] ?? 'last_7_days';
-
-    $dates = ogApp()->handler('sale')::calculateDateRange($range);
-    if (!$dates) {
-      return ['success' => false, 'error' => 'Rango de fecha inválido'];
-    }
-
-    $sql = "
-      SELECT
-        DATE(dc) as date,
-        COUNT(*) as total_followups,
-        SUM(CASE WHEN processed = 2 THEN 1 ELSE 0 END) as sent,
-        SUM(CASE WHEN processed < 2 THEN 1 ELSE 0 END) as pending
-      FROM " . self::$table . "
-      WHERE dc >= ? AND dc <= ?
-      GROUP BY DATE(dc)
-      ORDER BY date ASC
-    ";
-
-    $results = ogDb::raw($sql, [$dates['start'], $dates['end']]);
-
-    return [
-      'success' => true,
-      'data' => $results,
-      'period' => $dates
-    ];
-  }
 }
