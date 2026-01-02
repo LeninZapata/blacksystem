@@ -136,7 +136,7 @@
       }
 
       this._scriptsLoaded = true;
-      console.log('✅ Framework scripts loaded');
+      ogLogger.info('framework', '✅ Framework scripts loaded');
 
       // Inicializar instancias pendientes
       this.initPendingInstances();
@@ -152,7 +152,7 @@
   // ==========================================
 
   ogFramework.initPendingInstances = function() {
-    console.log(`🚀 Initializing ${this._pendingInits.length} pending instances`);
+    ogLogger.info('framework', `🚀 Initializing ${this._pendingInits.length} pending instances`);
 
     this._pendingInits.forEach(({ slug, config }) => {
       this.initInstance(slug, config);
@@ -167,7 +167,7 @@
 
   ogFramework.initInstance = async function(slug, config) {
     try {
-      console.log(`🎯 Initializing instance: ${slug}`);
+      ogLogger.info('framework', `🎯 Initializing instance: ${slug}`);
 
       // Buscar contenedor
       const container = document.querySelector(config.container);
@@ -193,21 +193,21 @@
       // i18n
       if (config.i18n?.enabled && this.core.i18n) {
         await this.core.i18n.init(config.i18n);
-        console.log('✅ i18n loaded for', slug);
+        ogLogger?.info('framework', `✅ i18n initialized for: ${slug}`);
       }
 
       // Auth
       if (config.auth?.enabled && this.core.auth) {
-        console.log(`🔐 Initializing auth for ${slug}...`);
+        ogLogger?.info('framework', `🔐 Auth enabled, initializing...`);
         await this.core.auth.init(config.auth);
 
         if (!this.core.auth.isAuthenticated()) {
-          console.log(`⚠️ User not authenticated for ${slug}`);
+          ogLogger?.info('framework', `⚠️ User not authenticated for: ${slug}`)  ;
           this.instances[slug] = instance;
           return;
         }
 
-        console.log(`✅ User authenticated for ${slug}`);
+        ogLogger?.info('framework', `User authenticated for ${slug}`);
         await this.core.auth.showApp();
       } else {
         // Sin auth - mostrar app directamente

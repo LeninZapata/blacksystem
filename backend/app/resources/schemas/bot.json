@@ -3,33 +3,12 @@
   "table": "bots",
   "timestamps": true,
   "middleware": ["throttle:100,1"],
-
   "routes": {
-    "list": {
-      "method": "GET",
-      "path": "/api/bot",
-      "middleware": ["auth"]
-    },
-    "show": {
-      "method": "GET",
-      "path": "/api/bot/{id}",
-      "middleware": ["auth"]
-    },
-    "create": {
-      "method": "POST",
-      "path": "/api/bot",
-      "middleware": ["auth", "json"]
-    },
-    "update": {
-      "method": "PUT",
-      "path": "/api/bot/{id}",
-      "middleware": ["auth", "json"]
-    },
-    "delete": {
-      "method": "DELETE",
-      "path": "/api/bot/{id}",
-      "middleware": ["auth"]
-    }
+    "list":    { "method": "GET",    "path": "/api/bot",      "middleware": ["auth"] },
+    "show":    { "method": "GET",    "path": "/api/bot/{id}", "middleware": ["auth"] },
+    "create":  { "method": "POST",   "path": "/api/bot",      "middleware": ["auth", "json"] },
+    "update":  { "method": "PUT",    "path": "/api/bot/{id}", "middleware": ["auth", "json"] },
+    "delete":  { "method": "DELETE", "path": "/api/bot/{id}", "middleware": ["auth"] }
   },
 
   "fields": [
@@ -40,7 +19,7 @@
     { "name": "personality", "type": "string", "maxLength": 200 },
     { "name": "type", "type": "string", "required": true },
     { "name": "mode", "type": "string", "required": true },
-    { "name": "status", "type": "int", "required": false, "default": 1, "description": "0: inactivo, 1: activo" },
+    { "name": "status", "type": "tinyint", "required": false, "default": 1, "description": "0: inactivo, 1: activo" },
     { "name": "config", "type": "json" },
     { "name": "dc", "type": "datetime" },
     { "name": "da", "type": "datetime" },

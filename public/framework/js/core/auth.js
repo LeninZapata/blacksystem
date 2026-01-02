@@ -29,7 +29,6 @@ class ogAuth {
 
     this.setupLoginHandler();
 
-    ogLogger?.debug('core:auth', '🔍 Revisando sesión al init...');
     const isAuth = await this.check();
 
     if (isAuth) {
@@ -283,14 +282,13 @@ class ogAuth {
     const endpoint = this.config.api.me;
 
     ogLogger.info('core:auth', `⏱️ Iniciando monitoreo de sesión cada ${intervalSeconds} segundos (${intervalMs}ms)`);
-    ogLogger.debug('core:auth', `Endpoint de verificación: ${endpoint}`);
+    ogLogger.info('core:auth', `Endpoint de verificación: ${endpoint}`);
 
     this.sessionCheckInterval = setInterval(async () => {
       ogLogger?.debug('core:auth', `🔍 Ejecutando verificación periódica (cada ${intervalSeconds}s)`);
       await this.checkSessionWithServer();
     }, intervalMs);
-    
-    ogLogger?.debug('core:auth', `✅ Interval ID: ${this.sessionCheckInterval}`);
+
   }
 
   static stopSessionMonitoring() {

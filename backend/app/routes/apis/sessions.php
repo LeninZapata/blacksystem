@@ -218,19 +218,12 @@ $router->group('/api/sessions', function($router) {
         }
       } catch (Exception $e) {
         $errors++;
-        ogLog::error("Error limpiando sesión", [
-          'file' => $file,
-          'error' => $e->getMessage()
-        ], $logMeta);
+        ogLog::error("Error limpiando sesión", ['file'=>$file,'error'=>$e->getMessage()], $logMeta);
       }
     }
 
     if ($cleaned > 0) {
-      ogLog::info('Limpieza de sesiones completada', [
-        'cleaned' => $cleaned,
-        'errors' => $errors,
-        'size_freed_kb' => round($totalSize / 1024, 2)
-      ], $logMeta);
+      ogLog::info('Limpieza de sesiones completada', ['cleaned'=>$cleaned,'errors'=>$errors,'size_freed_kb'=>round($totalSize/1024,2)], $logMeta);
     }
 
     ogResponse::success([

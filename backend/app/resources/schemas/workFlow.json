@@ -11,27 +11,14 @@
     "delete": {"method": "DELETE", "path": "/api/workFlow/{id}", "middleware": ["auth"]}
   },
   "fields": [
-    {
-      "name": "user_id",
-      "type": "int",
-      "required": true
-    },
-    {
-      "name": "name",
-      "type": "string",
-      "maxLength": 200,
-      "required": true
-    },
-    {
-      "name": "description",
-      "type": "text",
-      "required": false
-    },
-    {
-      "name": "file_path",
-      "type": "string",
-      "maxLength": 500,
-      "required": false
-    }
+    { "name": "user_id", "type": "int", "required": true },
+    { "name": "name", "type": "string", "maxLength": 200, "required": true },
+    { "name": "description", "type": "text" },
+    { "name": "file_path", "type": "string", "maxLength": 500 },
+    { "name": "status", "type": "tinyint", "required": false, "default": 1, "description": "0: inactivo, 1: activo" },
+    { "name": "dc", "type": "datetime" },
+    { "name": "du", "type": "datetime" },
+    { "name": "tc", "type": "int" },
+    { "name": "tu", "type": "int" }
   ]
 }

@@ -47,7 +47,7 @@ class ogApi {
 
         if (config.isDevelopment) {
           const tokenDisplay = token.substring(0, 20) + '...';
-          ogLogger.debug('core:api', `🔑 Token incluido: ${tokenDisplay}`);
+          ogLogger.info('core:api', `🔑 Token incluido: ${tokenDisplay}`);
         }
       } else {
         ogLogger.warn('core:api', '⚠️ NO se encontró token para esta petición');

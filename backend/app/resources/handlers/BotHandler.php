@@ -3,10 +3,8 @@ class BotHandler {
   protected static $table = DB_TABLES['bots'];
   private static $logMeta = ['module' => 'BotHandler', 'layer' => 'app/resources'];
 
-  /**
-   * Guardar archivos de contexto del bot
-   * Genera: data/{numero}.json y workflow_{numero}.json
-   */
+  // Guardar archivos de contexto del bot
+  // Genera: data/{numero}.json y workflow_{numero}.json
   static function saveContextFile($botData, $action = 'create', $oldNumber = null) {
     if (!isset($botData['id']) || !isset($botData['number'])) {
       ogLog::error('saveContextFile - Datos insuficientes', null, self::$logMeta);

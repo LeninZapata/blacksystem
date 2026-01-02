@@ -72,16 +72,6 @@ class ogView {
 
     const frameworkPath = config?.frameworkPath || 'framework';
 
-    // 🔍 DEBUG: Config que se está usando
-    ogLogger?.debug('core:view', '🔍 Config actual:', {
-      slug: config?.slug,
-      baseUrl: config?.baseUrl,
-      frameworkPath: config?.frameworkPath,
-      coreViews: config?.routes?.coreViews,
-      extensionViews: config?.routes?.extensionViews,
-      cache_enabled: config?.cache?.views
-    });
-
     if (extensionContext) {
       basePath = `extensions/${extensionContext}/views`;
       cacheKey = `extension_view_${extensionContext}_${viewName.replace(/\//g, '_')}`;
@@ -111,23 +101,9 @@ class ogView {
       cacheKey = `core_view_${viewName.replace(/\//g, '_')}`;
     }
 
-    // 🔍 DEBUG: BasePath y CacheKey generados
-    ogLogger?.debug('core:view', '🔍 Rutas calculadas:', {
-      viewName,
-      basePath,
-      cacheKey
-    });
-
     try {
       // Solo leer del caché si está habilitado
       let viewData = config?.cache?.views ? cache.get(cacheKey) : null;
-
-      // 🔍 DEBUG: Estado del cache
-      ogLogger?.debug('core:view', '🔍 Cache status:', {
-        cacheEnabled: config?.cache?.views,
-        cacheKey,
-        foundInCache: !!viewData
-      });
 
       if (viewData) {
         ogLogger?.info('core:view', `✅ Cache views: usando caché para "${viewName}"`);
@@ -136,10 +112,7 @@ class ogView {
       if (!viewData) {
         const cacheBuster = `?t=${config.version || "1.0.0"}`;
         const url = `${config.baseUrl || "/"}${basePath}/${viewName}.json${cacheBuster}`;
-        
-        // 🔍 DEBUG: URL que se va a fetchear
-        ogLogger?.debug('core:view', '🔍 Fetching URL:', url);
-        
+
         const response = await fetch(url);
 
         if (!response.ok) {

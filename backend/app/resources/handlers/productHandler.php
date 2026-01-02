@@ -200,10 +200,7 @@ class ProductHandler {
     });
   }
 
-  /**
-   * Generar archivo individual del producto
-   * /bots/infoproduct/{product_id}/{product_id}.json
-   */
+  // Generar archivo individual del producto
   static function generateProductFile($productId, $action = 'create') {
     $product = ogDb::table(self::$table)->find($productId);
     if (!$product) return false;

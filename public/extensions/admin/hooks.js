@@ -1,7 +1,6 @@
 class adminHooks {
   // Hook para el dashboard
   static hook_dashboard() {
-    ogLogger.debug('ext:admin', 'hook_dashboard ejecutado');
 
     return [
       {
@@ -109,7 +108,6 @@ class adminHooks {
 
   // 🎯 Ejemplo de hook para el tab específico de usuarios dentro de admin-panel
   static hook_adminPanelUsers() {
-    ogLogger.debug('ext:admin', 'hook_adminPanelUsers ejecutado');
 
     return [
       {

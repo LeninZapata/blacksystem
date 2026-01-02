@@ -85,14 +85,14 @@ class DeliverProductAction {
       'S',
       'text',
       $metadata,
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     chatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $message,
       'format' => 'text',
       'metadata' => $metadata

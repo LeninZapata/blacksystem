@@ -16,9 +16,11 @@ class ogDb {
     return self::init()->table($table);
   }
 
-  // Raw SQL
-  static function raw($sql, $bindings = []) {
-    return empty($bindings) ? new ogRawExpr($sql) : self::init()->raw($sql, $bindings);
+  // Raw SQL - Corregido para funcionar con array vacío
+  static function raw($sql, $bindings = null) {
+    // Si bindings es null, devolver ogRawExpr (para usar en UPDATE/INSERT como valor)
+    // Si bindings es array (incluso vacío []), ejecutar query
+    return is_null($bindings) ? new ogRawExpr($sql) : self::init()->raw($sql, $bindings);
   }
 }
 

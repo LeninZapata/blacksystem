@@ -3,9 +3,7 @@ class UserHandler {
   protected static $table = DB_TABLES['users'];
   private static $logMeta = ['module' => 'user', 'layer' => 'framework'];
 
-  /**
-   * Actualizar configuracion del usuario
-   */
+  // Actualizar configuracion del usuario
   static function updateConfig($params) {
     $id = $params['id'];
     $data = ogRequest::data();
@@ -39,9 +37,7 @@ class UserHandler {
     ];
   }
 
-  /**
-   * Actualizar datos del usuario en la sesion activa
-   */
+  // Actualizar datos del usuario en la sesion activa
   private static function updateSessionUserData($token, $updates) {
     $cache = ogApp()->helper('cache');
     $cache::setConfig([

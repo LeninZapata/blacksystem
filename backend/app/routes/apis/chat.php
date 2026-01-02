@@ -1,14 +1,9 @@
 <?php
 // routes/apis/chat.php
-
 $router->group('/api/chat', function($router) {
 
   // Middleware condicional: sin auth en desarrollo, con auth en producción
   $devMiddleware = OG_IS_DEV ? [] : ['auth'];
-
-  // ============================================
-  // RUTAS DE UTILIDAD (desarrollo sin auth, producción con auth)
-  // ============================================
 
   // Reconstruir chat JSON desde DB
   $router->get('/rebuild/{number}/{bot_id}', function($number, $bot_id) {
@@ -17,7 +12,7 @@ $router->group('/api/chat', function($router) {
     if (empty($number) || empty($bot_id)) ogResponse::error('Parámetros requeridos: number, bot_id', 400);
 
     try {
-      $chat = ChatHandler::rebuildFromDB($number, $bot_id);
+      $chat = ogApp()->handler('chat')::rebuildFromDB($number, $bot_id);
 
       if (!$chat) {
         ogLog::warning("chat/rebuild - Sin mensajes en BD", ['number' => $number, 'bot_id' => $bot_id], ['module' => 'chat_api']);
@@ -45,7 +40,7 @@ $router->group('/api/chat', function($router) {
   $router->get('/show/{number}/{bot_id}', function($number, $bot_id) {
     if (empty($number) || empty($bot_id)) ogResponse::error('Parámetros requeridos: number, bot_id', 400);
 
-    $chat = ChatHandler::getChat($number, $bot_id, true);
+    $chat = ogApp()->handler('chat')::getChat($number, $bot_id, true);
     if (!$chat) ogResponse::error('Chat no encontrado', 404);
 
     ogResponse::success([
@@ -79,15 +74,15 @@ $router->group('/api/chat', function($router) {
     require_once APP_PATH . '/workflows/core/validators/ConversationValidator.php';
 
     $hasConversation = ConversationValidator::quickCheck($number, $bot_id, $maxDays);
-    $chatData = ConversationValidator::getChatData($number, $bot_id, false);
+    $chatData = ConversationValidator::getChatData($number, $bot_id, false, false);
 
     ogResponse::success([
       'has_conversation' => $hasConversation,
       'max_days' => $maxDays,
-      'conversation_started' => $chatData['full_chat']['conversation_started'] ?? null,
-      'current_sale' => $chatData['full_chat']['current_sale'] ?? null,
-      'completed_sales' => $chatData['full_chat']['summary']['completed_sales'] ?? 0,
-      'purchased_products' => $chatData['full_chat']['summary']['purchased_products'] ?? []
+      'conversation_started' => $chatData['conversation_started'] ?? null,
+      'current_sale' => $chatData['current_sale'] ?? null,
+      'completed_sales' => $chatData['summary']['completed_sales'] ?? 0,
+      'purchased_products' => $chatData['summary']['purchased_products'] ?? []
     ]);
   })->middleware($devMiddleware);
 
@@ -96,39 +91,44 @@ $router->group('/api/chat', function($router) {
   // ============================================
 
   $router->get('/conversation/{bot_id}/{client_id}', function($bot_id, $client_id) {
-    $result = ChatHandler::getConversation(['bot_id' => $bot_id, 'client_id' => $client_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('chat')::getConversation(['bot_id' => $bot_id, 'client_id' => $client_id]));
   })->middleware('auth');
 
   $router->get('/by-bot/{bot_id}', function($bot_id) {
-    $result = ChatHandler::getByBot(['bot_id' => $bot_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('chat')::getByBot(['bot_id' => $bot_id]));
   })->middleware('auth');
 
   $router->get('/by-client/{client_id}', function($client_id) {
-    $result = ChatHandler::getByClient(['client_id' => $client_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('chat')::getByClient(['client_id' => $client_id]));
   })->middleware('auth');
 
   $router->get('/by-sale/{sale_id}', function($sale_id) {
-    $result = ChatHandler::getBySale(['sale_id' => $sale_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('chat')::getBySale(['sale_id' => $sale_id]));
   })->middleware('auth');
 
   $router->get('/search/{text}', function($text) {
-    $result = ChatHandler::search(['text' => $text]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('chat')::search(['text' => $text]));
   })->middleware('auth');
 
   $router->get('/stats/{bot_id}', function($bot_id) {
-    $result = ChatHandler::getStats(['bot_id' => $bot_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('chat')::getStats(['bot_id' => $bot_id]));
   })->middleware('auth');
 
   $router->delete('/by-client/{client_id}', function($client_id) {
-    $result = ChatHandler::deleteByClient(['client_id' => $client_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('chat')::deleteByClient(['client_id' => $client_id]));
   })->middleware('auth');
+
+   // Estadísticas por día - GET /api/chat/stats/by-day?range=last_7_days
+  $router->get('/stats/by-day', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json(ogApp()->handler('chat')::getStatsByDay(['range' => $range]));
+  })->middleware('auth');
+
+  // Chats por producto - GET /api/chat/stats/by-product?range=last_7_days
+  $router->get('/stats/by-product', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json(ogApp()->handler('chat')::getStatsByProduct(['range' => $range]));
+  });
 });
 
 // ============================================

@@ -20,7 +20,7 @@ class InfoproductV2Handler {
 
   private $actionDispatcher;
   private $maxConversationDays = 2;
-  private $bufferDelay = 3;
+  private $bufferDelay = OG_IS_DEV ? 3 : 7;
   private $appPath;  // Path dinámico del plugin
 
   // Prompts personalizados
@@ -78,6 +78,18 @@ class InfoproductV2Handler {
     }
 
     $bot = array_merge($bot, $botData);
+    ogApp()->helper('cache')::memorySet('current_bot', $bot);
+
+    // ESTABLECER user_id GLOBALMENTE EN ChatHandler
+    $userId = $bot['user_id'] ?? null;
+    if ($userId) {
+      ogApp()->handler('chat')::setUserId($userId);
+      ogApp()->handler('followup')::setUserId($userId);
+      ogLog::info("handle - user_id establecido globalmente", [ 'user_id' => $userId, 'bot_id' => $bot['id'] ], $this->logMeta);
+    } else {
+      ogLog::warning("handle - Bot sin user_id", [ 'bot_id' => $bot['id'] ?? 'N/A', 'bot_number' => $botNumber ], $this->logMeta);
+    }
+
     // Agregar prompts personalizados al array $bot
     $bot['prompt_recibo'] = $this->prompt_recibo;
     $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
@@ -87,13 +99,14 @@ class InfoproductV2Handler {
     ogLog::info("handle - Mensaje clasificado", [ 'type' => $messageType, 'person number' => $person['number'] ?? 'N/A' ], $this->logMeta);
 
     $hasConversation = ConversationValidator::quickCheck( $person['number'], $bot['id'], $this->maxConversationDays );
+    $context['chat'] = $hasConversation['chat'];
     ogLog::info("handle - Conversación activa verificada", [ 'has_conversation' => $hasConversation ], $this->logMeta);
 
     // PRIORIDAD 1: Detectar welcome SIEMPRE (incluso con conversación activa)
     ogLog::info("handle - Detectando welcome", [], $this->logMeta);
     $welcomeCheck = WelcomeValidator::detect($bot, $message, $context);
 
-    if ($welcomeCheck['is_welcome']) {
+    if ( ($welcomeCheck['is_welcome'] && !$hasConversation['exists']) || ($welcomeCheck['is_welcome_diff_product'] && $hasConversation['exists']) ) {
       ogLog::info("handle - Welcome detectado ➜ Ejecutar welcome", [ 'product_id' => $welcomeCheck['product_id'], 'has_active_conversation' => $hasConversation ], $this->logMeta);
       $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
       return;

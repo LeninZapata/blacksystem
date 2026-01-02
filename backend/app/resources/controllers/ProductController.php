@@ -27,8 +27,6 @@ class ProductController extends ogController {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
 
-    // ogLog::debug('create - Datos para crear producto', $data, $this->logMeta);
-
     try {
       $id = ogDb::table(self::$table)->insert($data);
 

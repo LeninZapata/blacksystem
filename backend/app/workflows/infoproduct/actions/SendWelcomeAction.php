@@ -13,6 +13,9 @@ class SendWelcomeAction {
     $from = $person['number'];
     $name = $person['name'];
 
+    // Verificar si hay ventas pendientes anteriores y cancelar sus followups
+    self::cancelPendingSaleFollowups($from, $bot['id'], $productId);
+
     ogApp()->loadHandler('product');
     $messages = ProductHandler::getMessagesFile('welcome', $productId);
 
@@ -71,6 +74,7 @@ class SendWelcomeAction {
           if (!empty($followups)) {
             $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
             ogApp()->loadHandler('followup');
+
             FollowupHandler::registerFromSale(
               [
                 'sale_id' => $saleId,
@@ -82,7 +86,12 @@ class SendWelcomeAction {
               $followups,
               $botTimezone
             );
-            ogLog::info("send - Followups registrados exitosamente para la venta", [ 'sale_id' => $saleId, 'client_id' => $clientId, 'product_id' => $productId, 'timezone_bot' => $botTimezone ], self::$logMeta);
+            ogLog::info("send - Followups registrados exitosamente para la venta", [
+              'sale_id' => $saleId,
+              'client_id' => $clientId,
+              'product_id' => $productId,
+              'timezone_bot' => $botTimezone
+            ], self::$logMeta);
           }else{
             ogLog::info("send - No hay followups configurados para este producto", [ 'product_id' => $productId ], self::$logMeta);
           }
@@ -98,5 +107,61 @@ class SendWelcomeAction {
       'sale_id' => $saleId,
       'error' => null
     ];
+  }
+
+  // Cancelar followups de ventas pendientes anteriores
+  private static function cancelPendingSaleFollowups($number, $botId, $newProductId) {
+    try {
+      // Buscar ventas pendientes del mismo número y bot (que NO sean del producto actual)
+      $pendingSales = ogDb::table(DB_TABLES['sales'])
+        ->where('number', $number)
+        ->where('bot_id', $botId)
+        ->whereNotIn('process_status', ['sale_confirmed', 'cancelled', 'refunded'])
+        ->where('product_id', '!=', $newProductId)
+        ->get();
+
+      if (empty($pendingSales)) {
+        ogLog::info("cancelPendingSaleFollowups - No hay ventas pendientes anteriores", [
+          'number' => $number,
+          'bot_id' => $botId,
+          'new_product_id' => $newProductId
+        ], self::$logMeta);
+        return;
+      }
+
+      ogApp()->loadHandler('followup');
+      $totalCancelled = 0;
+
+      foreach ($pendingSales as $sale) {
+        $saleId = $sale['id'];
+        
+        // Cancelar followups de esta venta (processed = 2)
+        $affected = FollowupHandler::cancelBySale($saleId);
+        $totalCancelled += $affected;
+
+        ogLog::info("cancelPendingSaleFollowups - Followups cancelados por nueva bienvenida", [
+          'previous_sale_id' => $saleId,
+          'previous_product_id' => $sale['product_id'],
+          'new_product_id' => $newProductId,
+          'followups_cancelled' => $affected
+        ], self::$logMeta);
+      }
+
+      if ($totalCancelled > 0) {
+        ogLog::success("cancelPendingSaleFollowups - Total de followups cancelados", [
+          'number' => $number,
+          'bot_id' => $botId,
+          'total_cancelled' => $totalCancelled,
+          'sales_affected' => count($pendingSales)
+        ], self::$logMeta);
+      }
+
+    } catch (Exception $e) {
+      ogLog::error("cancelPendingSaleFollowups - Error", [
+        'number' => $number,
+        'bot_id' => $botId,
+        'error' => $e->getMessage()
+      ], self::$logMeta);
+    }
   }
 }

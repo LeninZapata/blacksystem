@@ -87,14 +87,14 @@ class VideoMessageProcessor implements MessageProcessorInterface {
         'caption' => $caption,
         'has_caption' => !empty($caption)
       ],
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $messageText,
       'format' => 'video',
       'metadata' => [

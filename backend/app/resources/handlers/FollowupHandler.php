@@ -4,7 +4,11 @@ class FollowupHandler {
 
   private static $table = DB_TABLES['followups'];
   private static $lastCalculatedDate = null;
-  
+  private static $logMeta = ['module' => 'FollowupHandler', 'layer' => 'app/resources'];
+
+  // Variable estática para almacenar el user_id globalmente (NUEVO)
+  private static $currentUserId = null;
+
   // Configuración de horarios (desde infoproduct-v2.php)
   private static $startHour = 8;  // 08:00 AM
   private static $endHour = 22;   // 22:00 (último permitido 21:59)
@@ -12,6 +16,56 @@ class FollowupHandler {
   // Configuración de variación aleatoria (desde infoproduct-v2.php)
   private static $minutesBefore = 15;  // Minutos a restar (máximo)
   private static $minutesAfter = 15;   // Minutos a sumar (máximo)
+
+  // Establecer el user_id global (NUEVO)
+  static function setUserId($userId) {
+    self::$currentUserId = $userId;
+  }
+
+  // Obtener el user_id actual (NUEVO)
+  static function getUserId() {
+    return self::$currentUserId;
+  }
+
+  // Resolver user_id automáticamente
+  private static function resolveUserId($botId = null) {
+    // Prioridad 1: user_id seteado en FollowupHandler
+    if (self::$currentUserId !== null) {
+      return self::$currentUserId;
+    }
+
+    // Prioridad 2: user_id desde ChatHandler (compartido)
+    ogApp()->loadHandler('chat');
+    $chatUserId = ChatHandler::getUserId();
+    if ($chatUserId !== null) {
+      self::$currentUserId = $chatUserId;
+      return $chatUserId;
+    }
+
+    // Prioridad 3: Obtener desde la tabla bots (si se proporciona botId)
+    if ($botId !== null) {
+      try {
+        $bot = ogDb::table(DB_TABLES['bots'])
+          ->where('id', $botId)
+          ->first();
+
+        if ($bot && isset($bot['user_id'])) {
+          self::$currentUserId = $bot['user_id'];
+          return $bot['user_id'];
+        }
+      } catch (Exception $e) {
+        ogLog::error("FollowupHandler - Error obteniendo user_id desde bot", [
+          'bot_id' => $botId,
+          'error' => $e->getMessage()
+        ], self::$logMeta);
+      }
+    }
+
+    // Si no se puede resolver, lanzar error
+    ogLog::throwError("FollowupHandler - No se pudo resolver user_id", [
+      'bot_id' => $botId
+    ], self::$logMeta);
+  }
 
   // Configurar horarios permitidos
   static function setAllowedHours($startHour, $endHour) {
@@ -31,6 +85,9 @@ class FollowupHandler {
       return ['success' => true, 'count' => 0];
     }
 
+    // Resolver user_id automáticamente (NUEVO)
+    $userId = self::resolveUserId($saleData['bot_id'] ?? null);
+
     self::$lastCalculatedDate = null;
     $count = 0;
     $botTz = new DateTimeZone($botTimezone);
@@ -40,11 +97,12 @@ class FollowupHandler {
 
       // Limitar mensaje a 20 caracteres
       $fullMessage = $fup['message'] ?? '';
-     /* $shortMessage = mb_strlen($fullMessage) > 20 
-        ? mb_substr($fullMessage, 0, 20) . '...' 
+     /* $shortMessage = mb_strlen($fullMessage) > 20
+        ? mb_substr($fullMessage, 0, 20) . '...'
         : $fullMessage;*/
 
       $data = [
+        'user_id' => $userId, // AGREGADO
         'sale_id' => $saleData['sale_id'],
         'product_id' => $saleData['product_id'],
         'client_id' => $saleData['client_id'],
@@ -61,6 +119,11 @@ class FollowupHandler {
         'dc' => date('Y-m-d H:i:s'),
         'tc' => time()
       ];
+
+      if ( empty( $fullMessage ) ) {
+        ogLog::warning("registerFromSale - Followup sin texto, omitido", [ 'tracking_id' => $fup['tracking_id'], 'index' => $count ], self::$logMeta);
+        continue;
+      }
 
       ogDb::table(self::$table)->insert($data);
       $count++;
@@ -285,5 +348,82 @@ class FollowupHandler {
         'du' => date('Y-m-d H:i:s'),
         'tu' => time()
       ]);
+  }
+
+  // Obtener followup por ID
+  static function getById($followupId) {
+    try {
+      $followup = ogDb::table(self::$table)
+        ->where('id', $followupId)
+        ->first();
+
+      return $followup;
+
+    } catch (Exception $e) {
+      ogLog::error("getById - Error", [
+        'followup_id' => $followupId,
+        'error' => $e->getMessage()
+      ], self::$logMeta);
+
+      return null;
+    }
+  }
+
+  // Obtener followups por sale_id
+  static function getBySale($saleId, $includeProcessed = false) {
+    try {
+      $query = ogDb::table(self::$table)
+        ->where('sale_id', $saleId);
+
+      if (!$includeProcessed) {
+        $query->where('processed', 0);
+      }
+
+      $followups = $query->orderBy('future_date', 'ASC')->get();
+
+      ogLog::debug("getBySale - Followups obtenidos", [
+        'sale_id' => $saleId,
+        'count' => count($followups)
+      ], self::$logMeta);
+
+      return $followups;
+
+    } catch (Exception $e) {
+      ogLog::error("getBySale - Error", [
+        'sale_id' => $saleId,
+        'error' => $e->getMessage()
+      ], self::$logMeta);
+
+      return [];
+    }
+  }
+
+  static function getStatsByDay($params) {
+    $range = $params['range'] ?? 'last_7_days';
+
+    $dates = ogApp()->handler('sale')::calculateDateRange($range);
+    if (!$dates) {
+      return ['success' => false, 'error' => 'Rango de fecha inválido'];
+    }
+
+    $sql = "
+      SELECT
+        DATE(dc) as date,
+        COUNT(*) as total_followups,
+        SUM(CASE WHEN processed = 2 THEN 1 ELSE 0 END) as sent,
+        SUM(CASE WHEN processed < 2 THEN 1 ELSE 0 END) as pending
+      FROM " . self::$table . "
+      WHERE dc >= ? AND dc <= ?
+      GROUP BY DATE(dc)
+      ORDER BY date ASC
+    ";
+
+    $results = ogDb::raw($sql, [$dates['start'], $dates['end']]);
+
+    return [
+      'success' => true,
+      'data' => $results,
+      'period' => $dates
+    ];
   }
 }

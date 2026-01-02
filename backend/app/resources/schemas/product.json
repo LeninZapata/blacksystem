@@ -11,44 +11,17 @@
     "delete": {"method": "DELETE", "path": "/api/product/{id}", "middleware": ["auth"]}
   },
   "fields": [
-    {
-      "name": "user_id",
-      "type": "int",
-      "required": true
-    },
-    {
-      "name": "context",
-      "type": "string",
-      "maxLength": 50,
-      "required": true
-    },
-    {
-      "name": "bot_id",
-      "type": "int",
-      "required": true
-    },
-    {
-      "name": "price",
-      "type": "decimal",
-      "precision": 10,
-      "scale": 2,
-      "required": true
-    },
-    {
-      "name": "name",
-      "type": "string",
-      "maxLength": 200,
-      "required": true
-    },
-    {
-      "name": "description",
-      "type": "text",
-      "required": false
-    },
-    {
-      "name": "config",
-      "type": "json",
-      "required": false
-    }
+    { "name": "user_id", "type": "int", "required": true },
+    { "name": "name", "type": "string", "maxLength": 200, "required": true },
+    { "name": "description", "type": "text" },
+    { "name": "config", "type": "json" },
+    { "name": "context", "type": "string", "maxLength": 50, "description": "infoproductws, ecommercews, etc." },
+    { "name": "bot_id", "type": "int" },
+    { "name": "price", "type": "decimal", "precision": 10, "scale": 2 },
+    { "name": "status", "type": "tinyint", "required": false, "default": 1, "description": "0: inactivo, 1: activo" },
+    { "name": "dc", "type": "datetime" },
+    { "name": "du", "type": "datetime" },
+    { "name": "tc", "type": "int" },
+    { "name": "tu", "type": "int" }
   ]
 }

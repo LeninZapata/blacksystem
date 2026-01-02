@@ -40,12 +40,12 @@ class BotController extends ogController {
     try {
       $id = ogDb::table(self::$table)->insert($data);
       ogLog::info('BotController - Bot creado', ['id' => $id, 'name' => $data['name']], ['module' => 'bot']);
-      
+
       if (isset($data['number'])) {
         $data['id'] = $id;
         ogApp()->handler('bot')::saveContextFile($data, 'create');
       }
-      
+
       ogResponse::success(['id' => $id], __('bot.create.success'), 201);
     } catch (Exception $e) {
       ogLog::error('BotController - Error SQL', ['message' => $e->getMessage()], ['module' => 'bot']);
@@ -93,7 +93,7 @@ class BotController extends ogController {
         'old_number' => $oldNumber,
         'new_number' => $newNumber
       ], ['module' => 'bot']);
-      
+
       if ($affected > 0) {
         $botData = ogDb::table(self::$table)->find($id);
         if ($botData) {
@@ -101,7 +101,7 @@ class BotController extends ogController {
           ogApp()->handler('bot')::saveContextFile($botData, 'update', $numberChanged ? $oldNumber : null);
         }
       }
-      
+
       ogResponse::success(['affected' => $affected], __('bot.update.success'));
     } catch (Exception $e) {
       ogLog::error('BotController - Error SQL', ['message' => $e->getMessage()], ['module' => 'bot']);

@@ -73,7 +73,7 @@ class infoproductProduct {
 
     if (result) {
       // Limpiar cache del select de productos para que se recargue con los datos actualizados
-      this.clearProductSelectCache();
+      ogModule('form').clearSelectCache('/api/product');
 
       ogToast.success(this.currentId
         ? __('infoproduct.products.success.updated')
@@ -208,24 +208,6 @@ class infoproductProduct {
   // Refrescar datatable
   static refresh() {
     if (window.ogDatatable) ogDatatable.refreshFirst();
-  }
-
-  // Limpiar cache del select de productos
-  static clearProductSelectCache() {
-    if (!window.form || !window.ogForm.selectCache) return;
-
-    // Buscar y eliminar todas las keys del cache que contengan '/api/product'
-    const keysToDelete = [];
-    window.ogForm.selectCache.forEach((value, key) => {
-      if (key.includes('/api/product')) {
-        keysToDelete.push(key);
-      }
-    });
-
-    keysToDelete.forEach(key => {
-      window.ogForm.selectCache.delete(key);
-      ogLogger.debug('ext:infoproduct', `Cache eliminado: ${key}`);
-    });
   }
 }
 

@@ -65,14 +65,14 @@ class StickerMessageProcessor implements MessageProcessorInterface {
       [
         'sticker_url' => $stickerMessage['media_url'] ?? null
       ],
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $messageText,
       'format' => 'sticker',
       'metadata' => [
@@ -101,14 +101,14 @@ class StickerMessageProcessor implements MessageProcessorInterface {
         'action' => 'sticker_rejected',
         'reason' => 'sticker_not_supported'
       ],
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $message,
       'format' => 'text',
       'metadata' => [

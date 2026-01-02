@@ -6,11 +6,17 @@ $router->group('/api/followup', function($router) {
   // GET /api/followup/pending?list=1 -> Solo listar
   // GET /api/followup/pending -> Procesar y enviar
   $router->get('/pending', function() {
+
+    set_time_limit(600);
+    ini_set('max_execution_time', 600);
+    // en el comando de CRON poner esto
+    // wget --timeout=600 --tries=1 -q -O - https://url.com/api/followup/pending /dev/null 2>&1
+
     $logMeta = ['module' => 'followup', 'layer' => 'app/routes'];
     $list = ogRequest::query('list', null);
 
     ogApp()->loadHandler('followup');
-    $data = FollowupHandler::getPending();
+    $data = ogApp()->handler('followup')::getPending();
     $botsConfig = $data['bots_config'];
     $followups = $data['followups'];
 
@@ -58,7 +64,7 @@ $router->group('/api/followup', function($router) {
             ogLog::info("CRON Followup - Upsell ejecutado exitosamente", [ 'followup_id' => $fup['id'], 'new_sale_id' => $upsellResult['new_sale_id'], 'upsell_product_id' => $upsellResult['upsell_product_id'] ], $logMeta);
 
             // Marcar followup especial como procesado
-            FollowupHandler::markProcessed($fup['id']);
+            ogApp()->handler('followup')::markProcessed($fup['id']);
             $upsellsExecuted++;
             $sent++;
           } else {
@@ -82,7 +88,7 @@ $router->group('/api/followup', function($router) {
 
         if ($result['success']) {
           // Marcar como procesado
-          FollowupHandler::markProcessed($fup['id']);
+          ogApp()->handler('followup')::markProcessed($fup['id']);
 
           // Preparar mensaje corto (primeros 20 caracteres)
           $shortMessage = mb_strlen($fup['text']) > 20 
@@ -158,17 +164,14 @@ $router->group('/api/followup', function($router) {
 
   // Cancelar followups por venta - PUT /api/followup/cancel/{sale_id}
   $router->put('/cancel/{sale_id}', function($sale_id) {
-    $affected = FollowupHandler::cancelBySale($sale_id);
+    $affected = ogApp()->handler('followup')::cancelBySale($sale_id);
+    ogLog::info("Followups cancelados por venta", ['sale_id'=>$sale_id,'affected'=>$affected], ['module'=>'followup']);
+    ogResponse::json(['success'=>true,'affected'=>$affected]);
+  })->middleware(['auth', 'throttle:100,1']);
 
-    ogLog::info("Followups cancelados por venta", [
-      'sale_id' => $sale_id,
-      'affected' => $affected
-    ], ['module' => 'followup']);
-
-    ogResponse::json([
-      'success' => true,
-      'affected' => $affected
-    ]);
+  // Estadísticas por día - GET /api/followup/stats/by-day?range=last_7_days
+  $router->get('/stats/by-day', function() {
+    ogResponse::json( ogApp()->handler('followup')::getStatsByDay(['range' =>  ogRequest::query('range', 'last_7_days') ]) );
   })->middleware(['auth', 'throttle:100,1']);
 
 });

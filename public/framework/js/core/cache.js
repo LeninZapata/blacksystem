@@ -269,8 +269,6 @@ class ogCache {
 
     // También mantener window.debugCache genérico (apunta al último)
     window.debugCache = window[debugKey];
-
-    ogLogger?.debug('core:cache', `Cache debug enabled for: ${slug} (access via window.${debugKey})`);
   }
 }
 

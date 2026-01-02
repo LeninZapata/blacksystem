@@ -26,7 +26,7 @@ class ImageMessageProcessor implements MessageProcessorInterface {
       ];
     }
 
-    // ✅ VALIDACIÓN INTELIGENTE: Solo enviar mensaje de espera si hay venta pendiente
+    // VALIDACIÓN INTELIGENTE: Solo enviar mensaje de espera si hay venta pendiente
     if ($this->shouldSendWaitMessage($chatData)) {
       ogLog::info("process - Enviando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'pending_sale' ], $this->logMeta);
       $this->sendWaitMessage($person['number']);
@@ -54,18 +54,15 @@ class ImageMessageProcessor implements MessageProcessorInterface {
     ];
   }
 
-  /**
-   * ✅ Determina si debe enviar mensaje de espera
-   * Solo lo envía si hay una venta pendiente (current_sale !== null)
-   */
+  // Determina si debe enviar mensaje de espera
+  // Solo lo envía si hay una venta pendiente (current_sale !== null)
   private function shouldSendWaitMessage($chatData) {
     if (!$chatData) {
       ogLog::warn("shouldSendWaitMessage - No chatData", [], $this->logMeta );
       return false;
     }
 
-    $currentSale = $chatData['full_chat']['current_sale'] ?? null;
-    ogLog::debug("shouldSendWaitMessage - Validación", [ 'has_current_sale' => $currentSale !== null ], $this->logMeta);
+    $currentSale = $chatData['current_sale'] ?? null;
 
     // Solo enviar mensaje si hay venta pendiente
     return $currentSale !== null;

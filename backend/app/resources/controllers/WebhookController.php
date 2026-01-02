@@ -40,7 +40,21 @@ class WebhookController {
 
       if (!$bot) {
         ogResponse::json(['success' => false, 'error' => "Bot no encontrado: {$sender['number']}"], 404);
-      } ogLog::info('whatsapp - Bot encontrado', ['bot_number' => $bot['number'], 'bot_name' => $bot['bot_name'] ?? null ], $this->logMeta);
+      } ogLog::info('whatsapp - Bot encontrado', ['bot_number' => $bot['number'], 'bot_name' => $bot['name'] ?? null ], $this->logMeta);
+
+      // Enriquecer el standard con datos del bot
+      $standard['sender']['user_id'] = $bot['user_id'] ?? null;
+      $standard['sender']['bot_id'] = $bot['id'] ?? null;
+      $standard['sender']['bot_name'] = $bot['name'] ?? null;
+      $standard['bot'] = [
+        'id' => $bot['id'] ?? null,
+        'user_id' => $bot['user_id'] ?? null,
+        'name' => $bot['name'] ?? null,
+        'number' => $bot['number'] ?? null,
+        'type' => $bot['type'] ?? null,
+        'mode' => $bot['mode'] ?? null,
+        'country_code' => $bot['country_code'] ?? null
+      ];
 
       $chatapi->setConfig($bot, $detectedProvider);
 

@@ -17,7 +17,7 @@ class deepSeekProvider extends baseAIProvider {
       $payload = ['model' => $model, 'messages' => $messages, 'temperature' => $temperature, 'max_tokens' => $maxTokens, 'stream' => false];
 
       ogApp()->helper('http');
-      $response = ogHttp::post($this->baseUrl . '/chat/completions', $payload, [
+      $response = ogApp()->helper('http')::post($this->baseUrl . '/chat/completions', $payload, [
         'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->apiKey],
         'timeout' => 60
       ]);
@@ -71,7 +71,7 @@ class deepSeekProvider extends baseAIProvider {
       $payload = ['model' => 'deepseek-vision', 'messages' => $messages, 'temperature' => 0.7, 'max_tokens' => 1500];
 
       ogApp()->helper('http');
-      $response = ogHttp::post($this->baseUrl . '/chat/completions', $payload, [
+      $response = ogApp()->helper('http')::post($this->baseUrl . '/chat/completions', $payload, [
         'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->apiKey],
         'timeout' => 60
       ]);

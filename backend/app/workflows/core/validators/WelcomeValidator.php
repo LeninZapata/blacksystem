@@ -4,35 +4,31 @@ class WelcomeValidator {
 
   static function detect($bot, $message, $context) {
     $isFBAds = ($context['is_fb_ads'] ?? false) && !empty($context['source_app'] ?? null);
-    
-    if ($isFBAds) {
-      $productId = self::detectProduct($bot, $message, $context);
-      return [
-        'is_welcome' => $productId !== null,
-        'product_id' => $productId,
-        'source' => 'fb_ads'
-      ];
-    }
 
     $productId = self::detectProduct($bot, $message, $context);
-    
-    return [
+    $result = [
       'is_welcome' => $productId !== null,
       'product_id' => $productId,
-      'source' => 'normal'
+      'source' => 'fb_ads',
+      'is_welcome_diff_product' => $productId !== null && ($context['chat']['current_sale']['product_id'] ?? null) !== $productId,
     ];
+    if (!$isFBAds) {
+      $result['source'] = 'normal';
+    }
+
+    return $result;
   }
 
   static function detectProduct($bot, $message, $context) {
     $botNumber = $bot['number'] ?? null;
-    
+
     if (!$botNumber) {
       return null;
     }
 
     ogApp()->loadHandler('product');
     $activators = ProductHandler::getActivatorsFile($botNumber);
-    
+
     if (empty($activators)) {
       return null;
     }

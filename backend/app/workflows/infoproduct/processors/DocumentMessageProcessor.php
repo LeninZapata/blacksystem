@@ -77,14 +77,14 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
         'rejected' => true,
         'reason' => 'document_not_supported'
       ],
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $messageText,
       'format' => 'document',
       'metadata' => [
@@ -116,14 +116,14 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
         'action' => 'document_rejected',
         'reason' => 'document_not_supported'
       ],
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $message,
       'format' => 'text',
       'metadata' => [

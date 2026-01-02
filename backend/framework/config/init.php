@@ -2,7 +2,7 @@
 // FRAMEWORK/CONFIG/INIT.PHP - Inicialización del framework
 
 // Cargar helpers de sistema (funciones globales sin clase)
-require_once __DIR__ . '/../helpers/system.php';
+require_once __DIR__ . '/../helpers/ogSystem.php';
 
 // Cargar configuración de entorno
 require_once __DIR__ . '/environment.php';

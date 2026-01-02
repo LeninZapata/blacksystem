@@ -1,455 +1,404 @@
 <?php
 class ChatHandler {
+  protected static $table = DB_TABLES['chats'];
+  private static $logMeta = ['module' => 'ChatHandler', 'layer' => 'app/resources'];
 
-  private static $table = DB_TABLES['chats'];
-  private static $logMeta = [ 'module' => 'ChatHandler', 'layer' => 'app/handler' ];
+  // Variable estática para almacenar el user_id globalmente
+  private static $currentUserId = null;
 
-  // Registrar mensaje de chat
-  static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type = 'P', $format = 'text', $metadata = null, $saleId = 0) {
-    $data = [
-      'bot_id' => $botId,
-      'bot_number' => $botNumber,
-      'client_id' => $clientId,
-      'client_number' => $clientNumber,
-      'sale_id' => $saleId,
+  // Establecer el user_id global para la sesión actual
+  // Debe llamarse al inicio del flujo (desde WebhookController o infoproduct-v2)
+  static function setUserId($userId) {
+    self::$currentUserId = $userId;
+  }
+
+  // Obtener el user_id actual
+  static function getUserId() {
+    return self::$currentUserId;
+  }
+
+  // Obtener user_id desde el bot_id (fallback si no está seteado)
+  private static function resolveUserId($botId) {
+    // Prioridad 1: user_id seteado globalmente
+    if (self::$currentUserId !== null) {
+      return self::$currentUserId;
+    }
+
+    // Prioridad 2: Obtener desde la tabla bots
+    try {
+      $bot = ogDb::table(DB_TABLES['bots'])->where('id', $botId)->first();
+
+      if ($bot && isset($bot['user_id'])) {
+        ogLog::info("ChatHandler - user_id obtenido desde bot", [ 'bot_id' => $botId, 'user_id' => $bot['user_id'] ], self::$logMeta);
+
+        // Guardarlo para próximas llamadas
+        self::$currentUserId = $bot['user_id'];
+        return $bot['user_id'];
+      }
+    } catch (Exception $e) {
+      ogLog::error("ChatHandler - Error obteniendo user_id desde bot", [ 'bot_id' => $botId, 'error' => $e->getMessage() ], self::$logMeta);
+    }
+
+    // Si no se puede resolver, lanzar error
+    ogLog::throwError("ChatHandler - No se pudo resolver user_id", [ 'bot_id' => $botId ], self::$logMeta);
+  }
+
+  // Registrar mensaje en la base de datos
+  static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type, $format, $metadata = null, $saleId = 0) {
+    try {
+      // Resolver user_id automáticamente
+      $userId = self::resolveUserId($botId);
+
+      $data = [
+        'user_id' => $userId, // SIEMPRE INCLUIDO
+        'bot_id' => $botId,
+        'bot_number' => $botNumber,
+        'client_id' => $clientId,
+        'client_number' => $clientNumber,
+        'sale_id' => $saleId,
+        'type' => $type,
+        'format' => $format,
+        'message' => $message,
+        'metadata' => $metadata ? json_encode($metadata) : null,
+        'status' => 1,
+        'dc' => date('Y-m-d H:i:s'),
+        'tc' => time()
+      ];
+
+      $chatId = ogDb::table(self::$table)->insert($data);
+
+      return $chatId;
+
+    } catch (Exception $e) {
+      ogLog::error("ChatHandler::register - Error", [
+        'error' => $e->getMessage(),
+        'bot_id' => $botId
+      ], self::$logMeta);
+
+      throw $e;
+    }
+  }
+
+  // Agregar mensaje al archivo JSON del chat
+  // AHORA RESUELVE user_id AUTOMÁTICAMENTE
+  static function addMessage($data, $type = 'P') {
+    $number = $data['number'];
+    $botId = $data['bot_id'];
+    $clientId = $data['client_id'];
+    $saleId = $data['sale_id'];
+    $message = $data['message'];
+    $format = $data['format'] ?? 'text';
+    $metadata = $data['metadata'] ?? null;
+
+    // Resolver user_id automáticamente
+    $userId = self::resolveUserId($botId);
+
+    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
+    $file = ogApp()->helper('file');
+
+    $chat = $file->getJson($chatFile, function() use ($userId, $number, $botId, $clientId) {
+      return [
+        'user_id' => $userId, // INCLUIR EN NUEVA CONVERSACIÓN
+        'client_id' => $clientId,
+        'client_number' => $number,
+        'bot_id' => $botId,
+        'conversation_started' => date('Y-m-d H:i:s'),
+        'last_activity' => date('Y-m-d H:i:s'),
+        'current_sale' => null,
+        'summary' => [
+          'total_messages' => 0,
+          'sales_initiated' => [],
+          'sales_confirmed' => [],
+          'purchased_products' => []
+        ],
+        'messages' => []
+      ];
+    });
+
+    // Asegurar que el chat tenga user_id (para chats existentes)
+    if (!isset($chat['user_id'])) {
+      $chat['user_id'] = $userId;
+    }
+
+    // Actualizar última actividad
+    $chat['last_activity'] = date('Y-m-d H:i:s');
+
+    // Manejar tipo especial 'start_sale'
+    if ($type === 'start_sale') {
+      $productId = $data['product_id'] ?? null;
+      $productName = $data['product_name'] ?? '';
+
+      $chat['current_sale'] = [
+        'sale_id' => $saleId,
+        'product_id' => $productId,
+        'product_name' => $productName,
+        'sale_status' => 'initiated',
+        'started_at' => date('Y-m-d H:i:s'),
+        'origin' => $metadata['origin'] ?? 'organic'
+      ];
+
+      if ($productId && !in_array($productId, $chat['summary']['sales_initiated'])) {
+        $chat['summary']['sales_initiated'][] = $productId;
+      }
+
+      $type = 'S'; // Sistema
+    }
+
+    // Agregar mensaje al array
+    $newMessage = [
+      'date' => date('Y-m-d H:i:s'),
       'type' => $type,
       'format' => $format,
       'message' => $message,
-      'metadata' => is_array($metadata) ? json_encode($metadata, JSON_UNESCAPED_UNICODE) : $metadata,
-      'dc' => date('Y-m-d H:i:s'),
-      'tc' => time()
+      'metadata' => $metadata
     ];
 
-    try {
-      $id = ogDb::table(self::$table)->insert($data);
-      return ['success' => true, 'chat_id' => $id, 'data' => array_merge($data, ['id' => $id])];
-    } catch (Exception $e) {
-      ogLog::error('register - Error', ['message' => $e->getMessage()], self::$logMeta);
-      return [
-        'success' => false, 'error' => __('chat.create.error'), 'details' => OG_IS_DEV ? $e->getMessage() : null
-      ];
-    }
+    $chat['messages'][] = $newMessage;
+    $chat['summary']['total_messages'] = count($chat['messages']);
+
+    // Guardar archivo actualizado
+    $file->saveJson($chatFile, $chat, 'chat', 'update');
+
+    return $chat;
   }
 
-  // Obtener historial de chat por cliente
-  static function getByClient($params) {
-    $clientId = $params['client_id'];
-    $limit = ogRequest::query('limit', 50);
-
-    $chats = ogDb::table(self::$table)
-      ->where('client_id', $clientId)
-      ->orderBy('dc', 'DESC')
-      ->limit($limit)
-      ->get();
-
-    if (!is_array($chats)) $chats = [];
-
-    foreach ($chats as &$chat) {
-      if (isset($chat['metadata']) && is_string($chat['metadata'])) {
-        $chat['metadata'] = json_decode($chat['metadata'], true);
-      }
-    }
-
-    return ['success' => true, 'data' => $chats];
-  }
-
-  // Obtener historial de chat por bot
-  static function getByBot($params) {
-    $botId = $params['bot_id'];
-    $limit = ogRequest::query('limit', 50);
-
-    $chats = ogDb::table(self::$table)
-      ->where('bot_id', $botId)
-      ->orderBy('dc', 'DESC')
-      ->limit($limit)
-      ->get();
-
-    if (!is_array($chats)) $chats = [];
-
-    foreach ($chats as &$chat) {
-      if (isset($chat['metadata']) && is_string($chat['metadata'])) {
-        $chat['metadata'] = json_decode($chat['metadata'], true);
-      }
-    }
-
-    return ['success' => true, 'data' => $chats];
-  }
-
-  // Obtener historial de chat por venta
-  static function getBySale($params) {
-    $saleId = $params['sale_id'];
-
-    $chats = ogDb::table(self::$table)
-      ->where('sale_id', $saleId)
-      ->orderBy('dc', 'ASC')
-      ->get();
-
-    if (!is_array($chats)) $chats = [];
-
-    foreach ($chats as &$chat) {
-      if (isset($chat['metadata']) && is_string($chat['metadata'])) {
-        $chat['metadata'] = json_decode($chat['metadata'], true);
-      }
-    }
-
-    return ['success' => true, 'data' => $chats];
-  }
-
-  // Obtener conversación entre bot y cliente
-  static function getConversation($params) {
-    $botId = $params['bot_id'];
-    $clientId = $params['client_id'];
-    $limit = ogRequest::query('limit', 100);
-
-    $chats = ogDb::table(self::$table)
-      ->where('bot_id', $botId)
-      ->where('client_id', $clientId)
-      ->orderBy('dc', 'ASC')
-      ->limit($limit)
-      ->get();
-
-    if (!is_array($chats)) $chats = [];
-
-    foreach ($chats as &$chat) {
-      if (isset($chat['metadata']) && is_string($chat['metadata'])) {
-        $chat['metadata'] = json_decode($chat['metadata'], true);
-      }
-    }
-
-    return ['success' => true, 'data' => $chats];
-  }
-
-  // Eliminar todos los chats de un cliente
-  static function deleteByClient($params) {
-    $clientId = $params['client_id'];
-
-    try {
-      $affected = ogDb::table(self::$table)->where('client_id', $clientId)->delete();
-      return [
-        'success' => true,
-        'message' => __('chat.delete_all.success'),
-        'deleted' => $affected
-      ];
-    } catch (Exception $e) {
-      return [
-        'success' => false,
-        'error' => __('chat.delete_all.error'),
-        'details' => OG_IS_DEV ? $e->getMessage() : null
-      ];
-    }
-  }
-
-  // Obtener estadísticas de chat
-  static function getStats($params) {
-    $botId = $params['bot_id'] ?? null;
-
-    $query = ogDb::table(self::$table);
-    if ($botId) {
-      $query = $query->where('bot_id', $botId);
-    }
-
-    $stats = [
-      'total_messages' => $query->count(),
-      'by_type' => [
-        'system' => ogDb::table(self::$table)->where('type', 'S')->count(),
-        'bot' => ogDb::table(self::$table)->where('type', 'B')->count(),
-        'prospect' => ogDb::table(self::$table)->where('type', 'P')->count()
-      ],
-      'by_format' => [
-        'text' => ogDb::table(self::$table)->where('format', 'text')->count(),
-        'audio' => ogDb::table(self::$table)->where('format', 'audio')->count(),
-        'image' => ogDb::table(self::$table)->where('format', 'image')->count(),
-        'video' => ogDb::table(self::$table)->where('format', 'video')->count(),
-        'document' => ogDb::table(self::$table)->where('format', 'document')->count()
-      ]
-    ];
-
-    return ['success' => true, 'data' => $stats];
-  }
-
-  // Buscar mensajes por texto
-  static function search($params) {
-    $searchText = $params['text'] ?? '';
-    $limit = ogRequest::query('limit', 50);
-
-    if (empty($searchText)) {
-      return ['success' => false, 'error' => __('chat.search_text_required')];
-    }
-
-    $chats = ogDb::table(self::$table)
-      ->where('message', 'LIKE', "%{$searchText}%")
-      ->orderBy('dc', 'DESC')
-      ->limit($limit)
-      ->get();
-
-    if (!is_array($chats)) $chats = [];
-
-    foreach ($chats as &$chat) {
-      if (isset($chat['metadata']) && is_string($chat['metadata'])) {
-        $chat['metadata'] = json_decode($chat['metadata'], true);
-      }
-    }
-
-    return ['success' => true, 'data' => $chats, 'total' => count($chats)];
-  }
-
-  // Agregar mensaje al chat JSON
-  static function addMessage($data, $type = 'P') {
-    $required = ['number', 'bot_id', 'client_id', 'sale_id'];
-    foreach ($required as $field) {
-      if (!isset($data[$field])) {
-        ogLog::error('addMessage - Campo requerido faltante', ['field' => $field], self::$logMeta);
-        return false;
-      }
-    }
-
-    $number = $data['number'];
-    $botId = $data['bot_id'];
-    $chatId = "chat_{$number}_bot_{$botId}";
-    $chatFile = CHATS_STORAGE_PATH . '/' . $chatId . '.json';
-
-    // ogLog::debug("addMessage - Agregando mensaje al chat", [ 'chat_file' => $chatFile, 'message_type' => $type, 'message_format' => $data['format'] ?? 'text', 'data' => $data ], self::$logMeta);
-
-    $chatData = self::getOrCreateChatStructure($chatFile, $data);
-
-    // Normalizar tipo a 'P', 'B', 'S'
-    $normalizedType = self::normalizeType($type);
-
-    $message = [
-      'date' => date('Y-m-d H:i:s'),
-      'type' => $normalizedType,
-      'format' => $data['format'] ?? 'text',
-      'message' => $data['message'] ?? '',
-      'metadata' => $data['metadata'] ?? null
-    ];
-
-    $chatData['messages'][] = $message;
-
-    // Actualizar last_activity solo si es mensaje del cliente (tipo 'P')
-    if ($normalizedType === 'P') {
-      $chatData['last_activity'] = date('Y-m-d H:i:s');
-    }
-
-    return self::saveChatFile($chatFile, $chatData);
-  }
-
-  // Obtener chat desde JSON con opción de reconstrucción
-  static function getChat($number, $botId, $forceReconstruction = false) {
-    $chatId = "chat_{$number}_bot_{$botId}";
-    $chatFile = CHATS_STORAGE_PATH . '/' . $chatId . '.json';
-
-    // Si se fuerza reconstrucción, regenerar desde DB directamente
-    if ($forceReconstruction) {
-      return self::rebuildFromDB($number, $botId);
-    }
-
-    // Si no, intentar leer archivo JSON, si no existe entonces reconstruir desde DB
-    return ogFile::getJson($chatFile, function() use ($number, $botId) {
-      return self::rebuildFromDB($number, $botId);
-    });
-  }
-
-  // Reconstruir chat desde BD
+  
+  // Reconstruir chat desde la base de datos
+  // AHORA INCLUYE user_id EN LA CABECERA
   static function rebuildFromDB($number, $botId) {
     try {
-      $client = ogDb::table('clients')->where('number', $number)->first();
-      if (!$client) {
-        ogLog::warning('rebuildFromDB - Cliente no encontrado', ['number' => $number], self::$logMeta);
-        return false;
-      }
+      ogLog::info("rebuildFromDB - INICIO", [
+        'number' => $number,
+        'bot_id' => $botId
+      ], self::$logMeta);
 
-      $clientId = $client['id'];
-      $clientName = $client['name'] ?? '';
-
+      // Obtener todos los mensajes de la BD
       $messages = ogDb::table(self::$table)
-        ->where('client_id', $clientId)
+        ->where('client_number', $number)
         ->where('bot_id', $botId)
+        ->where('status', 1)
         ->orderBy('dc', 'ASC')
         ->get();
 
-      if (!$messages || count($messages) === 0) {
-        ogLog::info('rebuildFromDB - No hay mensajes para reconstruir', ['number' => $number, 'bot_id' => $botId], self::$logMeta);
-        return false;
+      if (empty($messages)) {
+        ogLog::info("rebuildFromDB - No hay mensajes para reconstruir", [
+          'number' => $number,
+          'bot_id' => $botId
+        ], self::$logMeta);
+        return null;
       }
 
-      $currentSale = ogDb::table('sales')
-        ->where('client_id', $clientId)
-        ->where('bot_id', $botId)
-        ->whereIn('process_status', ['initiated', 'pending'])
-        ->orderBy('dc', 'DESC')
-        ->first();
+      // OBTENER user_id DEL PRIMER MENSAJE
+      $userId = $messages[0]['user_id'] ?? null;
 
-      $salesInProcess = ogDb::table('sales')
-        ->where('client_id', $clientId)
-        ->where('bot_id', $botId)
-        ->whereIn('process_status', ['initiated', 'pending'])
-        ->get();
-
-      $completedSales = ogDb::table('sales')
-        ->where('client_id', $clientId)
-        ->where('bot_id', $botId)
-        ->where('process_status', 'sale_confirmed')
-        ->get();
-
-      // Calcular last_activity (último mensaje del cliente tipo 'P')
-      $lastActivity = null;
-      $conversationStarted = $messages[0]['dc'] ?? date('Y-m-d H:i:s');
-
-      for ($i = count($messages) - 1; $i >= 0; $i--) {
-        if (($messages[$i]['type'] ?? null) === 'P') {
-          $lastActivity = $messages[$i]['dc'];
-          break;
-        }
+      if (!$userId) {
+        // Fallback: intentar resolver desde bot
+        $userId = self::resolveUserId($botId);
       }
 
-      if (!$lastActivity) {
-        $lastActivity = $conversationStarted;
-      }
+      ogLog::info("rebuildFromDB - user_id detectado", [
+        'user_id' => $userId
+      ], self::$logMeta);
 
-      $chatData = [
-        'chat_id' => "chat_{$number}_bot_{$botId}",
-        'number' => $number,
+      $clientId = $messages[0]['client_id'] ?? null;
+      $conversationStarted = $messages[0]['dc'] ?? null;
+      $lastActivity = end($messages)['dc'] ?? null;
+
+      // Construir estructura del chat
+      $chat = [
+        'user_id' => $userId, // AGREGAR EN CABECERA
         'client_id' => $clientId,
-        'client_name' => $clientName,
+        'client_number' => $number,
         'bot_id' => $botId,
-        'purchase_method' => 'Recibo de pago',
         'conversation_started' => $conversationStarted,
         'last_activity' => $lastActivity,
-        'current_sale' => $currentSale ? [
-          'sale_id' => $currentSale['id'],
-          'product_id' => $currentSale['product_id'],
-          'product_name' => $currentSale['product_name'],
-          'sale_status' => $currentSale['process_status'],
-          'sale_type' => $currentSale['sale_type'],
-          'origin' => $currentSale['origin'] ?? 'organic'
-        ] : null,
-        'last_sale' => $currentSale['id'] ?? ($completedSales ? end($completedSales)['id'] : 0),
+        'current_sale' => null,
         'summary' => [
-          'completed_sales' => count($completedSales),
-          'sales_in_process' => count($salesInProcess),
-          'total_value' => self::calculateTotalValue($completedSales),
-          'purchased_products' => array_column($completedSales, 'product_name'),
-          'upsells_offered' => []
+          'total_messages' => 0,
+          'sales_initiated' => [],
+          'sales_confirmed' => [],
+          'purchased_products' => []
         ],
         'messages' => []
       ];
 
+      // Procesar mensajes
       foreach ($messages as $msg) {
-        $metadata = isset($msg['metadata']) && is_string($msg['metadata']) 
-          ? json_decode($msg['metadata'], true) 
-          : ($msg['metadata'] ?? null);
+        $metadata = !empty($msg['metadata']) ? json_decode($msg['metadata'], true) : null;
+        $action = $metadata['action'] ?? null;
 
-        $chatData['messages'][] = [
+        // Construir mensaje
+        $chatMessage = [
           'date' => $msg['dc'],
           'type' => $msg['type'],
           'format' => $msg['format'],
           'message' => $msg['message'],
           'metadata' => $metadata
         ];
+
+        $chat['messages'][] = $chatMessage;
+
+        // Procesar acciones especiales
+        if ($action === 'start_sale') {
+          $saleId = $metadata['sale_id'] ?? null;
+          $productId = $metadata['product_id'] ?? null;
+          $productName = $metadata['product_name'] ?? '';
+
+          if ($saleId) {
+            // Verificar si esta venta fue confirmada
+            $isConfirmed = false;
+            foreach ($messages as $checkMsg) {
+              $checkMeta = !empty($checkMsg['metadata']) ? json_decode($checkMsg['metadata'], true) : null;
+              if (
+                ($checkMeta['action'] ?? null) === 'sale_confirmed' &&
+                ($checkMeta['sale_id'] ?? null) == $saleId
+              ) {
+                $isConfirmed = true;
+                break;
+              }
+            }
+
+            // Solo actualizar current_sale si NO está confirmada
+            if (!$isConfirmed) {
+              $chat['current_sale'] = [
+                'sale_id' => $saleId,
+                'product_id' => $productId,
+                'product_name' => $productName,
+                'sale_status' => 'initiated',
+                'started_at' => $msg['dc'],
+                'origin' => $metadata['origin'] ?? 'organic'
+              ];
+            }
+
+            if ($productId && !in_array($productId, $chat['summary']['sales_initiated'])) {
+              $chat['summary']['sales_initiated'][] = $productId;
+            }
+          }
+        }
+
+        if ($action === 'sale_confirmed') {
+          $saleId = $metadata['sale_id'] ?? null;
+          $productId = $metadata['product_id'] ?? null;
+
+          if ($saleId && !in_array($saleId, $chat['summary']['sales_confirmed'])) {
+            $chat['summary']['sales_confirmed'][] = $saleId;
+          }
+
+          if ($productId && !in_array($productId, $chat['summary']['purchased_products'])) {
+            $chat['summary']['purchased_products'][] = $productId;
+          }
+
+          // Limpiar current_sale si es la venta actual
+          if (
+            $chat['current_sale'] &&
+            $chat['current_sale']['sale_id'] == $saleId
+          ) {
+            $chat['current_sale'] = null;
+          }
+        }
       }
 
+      $chat['summary']['total_messages'] = count($chat['messages']);
+
+      // Guardar archivo reconstruido
       $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
-      if (self::saveChatFile($chatFile, $chatData)) {
-        ogLog::info('rebuildFromDB - Chat reconstruido exitosamente', ['number' => $number, 'bot_id' => $botId], self::$logMeta);
-        return $chatData;
-      }
+      $file = ogApp()->helper('file');
+      $file->saveJson($chatFile, $chat, 'chat', 'rebuild');
 
-      return false;
+      ogLog::success("rebuildFromDB - Chat reconstruido exitosamente", [ 'number' => $number, 'bot_id' => $botId, 'user_id' => $userId, 'total_messages' => $chat['summary']['total_messages'], 'current_sale' => $chat['current_sale'] ? $chat['current_sale']['sale_id'] : null ], self::$logMeta);
+
+      return $chat;
 
     } catch (Exception $e) {
-      ogLog::error('rebuildFromDB - Error', ['error' => $e->getMessage()], self::$logMeta);
-      return false;
+      ogLog::error("rebuildFromDB - Error", [
+        'number' => $number,
+        'bot_id' => $botId,
+        'error' => $e->getMessage()
+      ], self::$logMeta);
+
+      throw $e;
     }
   }
 
-  // Obtener o crear estructura inicial del chat
-  private static function getOrCreateChatStructure($chatFile, $data) {
-    if (file_exists($chatFile)) {
-      $content = file_get_contents($chatFile);
-      $chatData = json_decode($content, true);
-      if ($chatData !== null) {
-        return $chatData;
+  // Obtener chat (desde JSON o reconstruir desde BD)
+  static function getChat($number, $botId, $rebuildIfNeeded = true, $forceRebuild = false ) {
+
+    if ($forceRebuild) {
+      $rebuiltChat = self::rebuildFromDB($number, $botId);
+
+      if ($rebuiltChat) {
+        return $rebuiltChat;
       }
     }
 
-    $client = ogDb::table('clients')->find($data['client_id']);
-    $clientName = $client['name'] ?? '';
+    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
+    return ogApp()->helper('file')::getJson($chatFile, function() use ($number, $botId, $rebuildIfNeeded) {
+      if ( $rebuildIfNeeded == false ) return null;
+      $rebuiltChat = self::rebuildFromDB($number, $botId);
+      $rebuiltChat['sale_id'] = $rebuiltChat['current_sale']['sale_id'] ?? 0;
+      return $rebuiltChat;
+    });
+
+    return null;
+  }
+
+  static function getStatsByDay($params) {
+    $range = $params['range'] ?? 'last_7_days';
+
+    $dates = ogApp()->handler('sale')::calculateDateRange($range);
+    if (!$dates) {
+      return ['success' => false, 'error' => 'Rango de fecha inválido'];
+    }
+
+    $sql = "
+      SELECT
+        DATE(dc) as date,
+        COUNT(*) as total_chats,
+        SUM(CASE WHEN type = 'P' THEN 1 ELSE 0 END) as client_messages,
+        SUM(CASE WHEN type = 'B' THEN 1 ELSE 0 END) as bot_messages
+      FROM " . self::$table . "
+      WHERE dc >= ? AND dc <= ?
+      GROUP BY DATE(dc)
+      ORDER BY date ASC
+    ";
+
+    $results = ogDb::raw($sql, [$dates['start'], $dates['end']]);
 
     return [
-      'chat_id' => "chat_{$data['number']}_bot_{$data['bot_id']}",
-      'number' => $data['number'],
-      'client_id' => $data['client_id'],
-      'client_name' => $clientName,
-      'bot_id' => $data['bot_id'],
-      'purchase_method' => ($data['bot_mode'] ?? 'R') === 'C' ? 'Checkout' : 'Recibo de Pago',
-      'conversation_started' => date('Y-m-d H:i:s'),
-      'last_activity' => date('Y-m-d H:i:s'),
-      'current_sale' => isset($data['sale_id']) && $data['sale_id'] > 0 ? [
-        'sale_id' => $data['sale_id'],
-        'product_id' => $data['product_id'] ?? null,
-        'product_name' => $data['product_name'] ?? null,
-        'sale_status' => 'initiated',
-        'sale_type' => 'main'
-      ] : null,
-      'last_sale' => $data['sale_id'] ?? 0,
-      'summary' => [
-        'completed_sales' => 0,
-        'sales_in_process' => 1,
-        'total_value' => 0,
-        'purchased_products' => [],
-        'upsells_offered' => []
-      ],
-      'messages' => []
+      'success' => true,
+      'data' => $results,
+      'period' => $dates
     ];
   }
 
-  // Guardar archivo de chat
-  private static function saveChatFile($chatFile, $chatData) {
-    $dir = dirname($chatFile);
+  static function getStatsByProduct($params) {
+    $range = $params['range'] ?? 'last_7_days';
 
-    if (!is_dir($dir)) {
-      if (!mkdir($dir, 0755, true)) {
-        ogLog::error('saveChatFile - No se pudo crear directorio', ['dir' => $dir], self::$logMeta);
-        return false;
-      }
+    $dates = ogApp()->handler('sale')::calculateDateRange($range);
+    if (!$dates) {
+      return ['success' => false, 'error' => 'Rango de fecha inválido'];
     }
 
-    $json = json_encode($chatData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    $sql = "
+      SELECT
+        s.product_id,
+        s.product_name,
+        COUNT(c.id) as total_chats,
+        SUM(CASE WHEN c.type = 'P' THEN 1 ELSE 0 END) as client_messages,
+        SUM(CASE WHEN c.type = 'B' THEN 1 ELSE 0 END) as bot_messages
+      FROM " . self::$table . " c
+      INNER JOIN " . DB_TABLES['sales'] . " s ON c.sale_id = s.id
+      WHERE c.dc >= ? AND c.dc <= ?
+      GROUP BY s.product_id, s.product_name
+      ORDER BY client_messages DESC
+    ";
 
-    if (file_put_contents($chatFile, $json) === false) {
-      ogLog::error('saveChatFile - Error al escribir archivo', ['ogFile' => $chatFile], self::$logMeta);
-      return false;
-    }
+    $results = ogDb::raw($sql, [$dates['start'], $dates['end']]);
 
-    return true;
-  }
-
-  // Normalizar tipo de mensaje a 'P', 'B', 'S'
-  private static function normalizeType($type) {
-    $type = strtolower($type);
-    
-    $map = [
-      'start_sale' => 'S',
-      's' => 'S',
-      'system' => 'S',
-      'b' => 'B',
-      'bot' => 'B',
-      'p' => 'P',
-      'prospect' => 'P',
-      'prospecto' => 'P'
+    return [
+      'success' => true,
+      'data' => $results,
+      'period' => $dates
     ];
-
-    return $map[$type] ?? 'P';
-  }
-
-  private static function calculateTotalValue($sales) {
-    $total = 0;
-
-    foreach ($sales as $sale) {
-      $value = $sale['billed_amount'] ?? $sale['amount'] ?? 0;
-      $total += (float)$value;
-    }
-
-    return $total;
   }
 }

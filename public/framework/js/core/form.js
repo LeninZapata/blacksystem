@@ -2005,6 +2005,25 @@ class ogForm {
     const i18n = ogModule('i18n');
     return i18n ? i18n.processString(title) : title;
   }
+
+  // Limpiar cache de selects por source
+  static clearSelectCache(source) {
+    if (!this.selectCache) return 0;
+
+    const keysToDelete = [];
+    this.selectCache.forEach((value, key) => {
+      if (key.includes(source)) {
+        keysToDelete.push(key);
+      }
+    });
+
+    keysToDelete.forEach(key => {
+      this.selectCache.delete(key);
+      ogLogger?.debug('core:form', `Cache eliminado: ${key}`);
+    });
+
+    return keysToDelete.length;
+  }
 }
 
 // Exponer GLOBALMENTE como ogModal

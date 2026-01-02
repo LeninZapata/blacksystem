@@ -15,7 +15,7 @@ class CredentialController extends ogController {
     } else {
       ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }
-    
+
     if (!isset($data['name']) || empty($data['name'])) {
       ogResponse::json(['success' => false, 'error' => __('credential.name_required')], 200);
     }
@@ -29,7 +29,7 @@ class CredentialController extends ogController {
     }
 
     $data['dc'] = date('Y-m-d H:i:s');
-    $data['ta'] = time();
+    $data['tc'] = time();
 
     try {
       $id = ogDb::table(self::$table)->insert($data);
@@ -49,20 +49,20 @@ class CredentialController extends ogController {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
 
-    $data['da'] = date('Y-m-d H:i:s');
+    $data['du'] = date('Y-m-d H:i:s');
     $data['tu'] = time();
 
     try {
       $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
-      
+
       // Actualizar archivos JSON de todos los bots que usan esta credencial
       $botsUpdated = ogApp()->handler('credential')::updateBotsContext($id);
-      
+
       ogLog::info('credentialController - Credencial actualizada', [
         'id' => $id,
         'bots_updated' => $botsUpdated
       ], ['module' => 'credential']);
-      
+
       ogResponse::success([
         'affected' => $affected,
         'bots_updated' => $botsUpdated
@@ -85,7 +85,7 @@ class CredentialController extends ogController {
 
   function list() {
     $query = ogDb::table(self::$table);
-    
+
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
       $query = $query->where($key, $value);

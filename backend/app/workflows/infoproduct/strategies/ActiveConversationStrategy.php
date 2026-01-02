@@ -12,7 +12,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $this->saveUserMessages($processedData, $context);
 
     $aiText = $processedData['ai_text'];
-    $chat = $chatData['full_chat'] ?? [];
+    $chat = $chatData ?? [];
 
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
     ogLog::debug("execute - Prompt construido", $prompt, $this->logMeta);
@@ -27,8 +27,6 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
         'error' => $aiResponse['error'] ?? 'AI call failed'
       ];
     }
-
-    // ✅ LOG DE RESPUESTA DE LA IA
     ogLog::info("execute - Respuesta de IA recibida", [ 'response_length' => strlen($aiResponse['response']), 'response_preview' => substr($aiResponse['response'], 0, 200) . '...' ], $this->logMeta);
 
     $parsedResponse = $this->parseResponse($aiResponse['response']);
@@ -42,7 +40,6 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       ];
     }
 
-    // ✅ LOG DE RESPUESTA PARSEADA
     ogLog::info("execute - Respuesta parseada correctamente", [ 'message_length' => strlen($parsedResponse['message'] ?? ''), 'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150), 'has_metadata' => isset($parsedResponse['metadata']), 'action' => $parsedResponse['metadata']['action'] ?? 'none' ], $this->logMeta);
 
     $this->sendMessages($parsedResponse, $context);
@@ -71,14 +68,14 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
         'P',
         $msg['type'] ?? 'text',
         null,
-        $chatData['sale_id']
+        $chatData['current_sale']['sale_id'] ?? null
       );
 
       ChatHandler::addMessage([
         'number' => $person['number'],
         'bot_id' => $bot['id'],
         'client_id' => $chatData['client_id'],
-        'sale_id' => $chatData['sale_id'],
+        'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
         'message' => $msg['text'],
         'format' => $msg['type'] ?? 'text',
         'metadata' => null
@@ -152,14 +149,14 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       'B',
       'text',
       $metadata,
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $message,
       'format' => 'text',
       'metadata' => $metadata

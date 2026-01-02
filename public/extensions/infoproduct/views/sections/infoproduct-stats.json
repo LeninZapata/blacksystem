@@ -1,0 +1,59 @@
+{
+  "id": "infoproduct-stats",
+  "title": "Estadísticas de Infoproductos",
+  "type": "content",
+  "styles": [
+    "infoproduct/assets/css/productStats.css"
+  ],
+  "scripts": [
+    "infoproduct/assets/js/productStats.js"
+  ],
+  "content": [
+    {
+      "type": "component",
+      "component": "tabs",
+      "config": {
+        "id": "stats-tabs",
+        "preloadAllTabs": false,
+        "tabs": [
+          {
+            "id": "tab-ventas",
+            "title": "📊 Ventas",
+            "content": [
+              {
+                "type": "html",
+                "content": "<div class='stats-controls'><select id='range-selector' class='form-control' onchange='productStats.changeRange(this.value)'><option value='today'>Hoy</option><option value='yesterday'>Ayer</option><option value='last_7_days' selected>Últimos 7 días</option><option value='last_10_days'>Últimos 10 días</option><option value='last_15_days'>Últimos 15 días</option><option value='this_week'>Esta semana</option><option value='this_month'>Este mes</option><option value='last_30_days'>Últimos 30 días</option><option value='last_month'>Mes pasado</option></select></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='chart-ventas-por-dia'></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div class='charts-row'><div id='chart-ventas-por-producto'></div><div id='chart-ventas-producto-pastel'></div></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='chart-chats-por-producto'></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='chart-seguimientos'></div>"
+              }
+            ]
+          },
+          {
+            "id": "tab-gastos",
+            "title": "💸 Gastos",
+            "content": [
+              {
+                "type": "html",
+                "content": "<div style='padding: 2rem; text-align: center; color: #666;'><h3>🚧 Próximamente</h3><p>Gráficos de gastos por día, categoría, etc.</p></div>"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

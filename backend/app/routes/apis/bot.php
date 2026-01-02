@@ -1,7 +1,6 @@
 <?php
 // routes/apis/bot.php
 // Las rutas CRUD (create, update, delete, list, show) se auto-registran desde bot.json
-
 $router->group('/api/bot', function($router) {
 
   // Aquí puedes agregar rutas personalizadas si las necesitas en el futuro

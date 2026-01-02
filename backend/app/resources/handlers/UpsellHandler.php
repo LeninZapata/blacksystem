@@ -82,6 +82,7 @@ class UpsellHandler {
     // PASO 7: Registrar followup especial con special='upsell'
     // Guardar metadata en instruction para tracking
     $followupData = [
+      'user_id' => ogApp()->handler('chat')::getUserId(),
       'sale_id' => $rootSaleId, // Siempre apuntar al root
       'product_id' => $upsellToExecute['product_id'],
       'client_id' => $clientId,
@@ -154,7 +155,7 @@ class UpsellHandler {
 
     while ($parentSaleId && $depth < $maxDepth) {
       $parentSale = ogDb::table(DB_TABLES['sales'])->find($parentSaleId);
-      
+
       if (!$parentSale || !$parentSale['parent_sale_id']) {
         return $parentSaleId;
       }
@@ -288,8 +289,7 @@ class UpsellHandler {
     ], 'S');
 
     // RECONSTRUIR CHAT: Regenerar archivo JSON con nuevo current_sale
-    ChatHandler::getChat($number, $botId, true);
-
+    ChatHandler::getChat($number, $botId, true, true);
     ogLog::info("executeUpsell - Chat reconstruido con nueva venta upsell", [ 'number' => $number, 'new_sale_id' => $newSaleId ], self::$logMeta);
 
     // Enviar welcome del upsell (desde welcome_upsell_{product_id}.json)

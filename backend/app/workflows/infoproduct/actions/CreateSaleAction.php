@@ -12,6 +12,13 @@ class CreateSaleAction {
     $from = $person['number'];
     $name = $person['name'];
     $device = $person['platform'] ?? null;
+    
+    // OBTENER USER_ID DEL BOT
+    $userId = $bot['user_id'] ?? null;
+    
+    if (!$userId) {
+      ogLog::error("CreateSaleAction - user_id no encontrado en bot", [ 'bot_id' => $bot['id'] ?? null ], self::$logMeta);
+    }
 
     // Detectar si es upsell
     $isUpsell = ($context['type'] ?? null) === 'upsell';
@@ -40,7 +47,7 @@ class CreateSaleAction {
 
     $countryCode = $bot['country_code'] ?? 'EC';
     ogApp()->loadHandler('client');
-    $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device);
+    $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device, $userId);
 
     if (!$clientResult['success']) {
       ogLog::error("CreateSaleAction - Error al crear o actualizar cliente", [ 'number' => $from, 'error' => $clientResult['error'] ?? null, 'details' => $clientResult['details'] ?? null ], self::$logMeta);
@@ -60,6 +67,7 @@ class CreateSaleAction {
     ogLog::info("CreateSaleAction - Origen de la venta detectado: {$origin}", [], self::$logMeta);
 
     $saleData = [
+      'user_id' => $userId, // AGREGAR USER_ID
       'sale_type' => 'main',
       'context' => 'whatsapp',
       'number' => $from,

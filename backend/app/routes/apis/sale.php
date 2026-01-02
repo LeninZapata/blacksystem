@@ -1,82 +1,92 @@
 <?php
-// routes/apis/sale.php - Rutas custom de sale
-
+// routes/apis/sale.php
 $router->group('/api/sale', function($router) {
 
-  // Obtener ventas por cliente - GET /api/sale/client/{client_id}
+  // Obtener ventas por cliente
   $router->get('/client/{client_id}', function($client_id) {
-    $result = SaleHandler::getByClient(['client_id' => $client_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::getByClient(['client_id' => $client_id]));
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Obtener ventas por bot - GET /api/sale/bot/{bot_id}
+  // Obtener ventas por bot
   $router->get('/bot/{bot_id}', function($bot_id) {
-    $result = SaleHandler::getByBot(['bot_id' => $bot_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::getByBot(['bot_id' => $bot_id]));
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Obtener ventas por producto - GET /api/sale/product/{product_id}
+  // Obtener ventas por producto
   $router->get('/product/{product_id}', function($product_id) {
-    $result = SaleHandler::getByProduct(['product_id' => $product_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::getByProduct(['product_id' => $product_id]));
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Obtener ventas por estado - GET /api/sale/status/{status}
+  // Obtener ventas por estado
   $router->get('/status/{status}', function($status) {
-    $result = SaleHandler::getByStatus(['status' => $status]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::getByStatus(['status' => $status]));
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Actualizar estado de venta - PUT /api/sale/{id}/status
+  // Actualizar estado de venta
   $router->put('/{id}/status', function($id) {
     $data = ogRequest::data();
     $status = $data['status'] ?? null;
-    
     if (!$status) {
       ogResponse::json(['success' => false, 'error' => __('sale.status_required')], 400);
     }
-    
-    $result = SaleHandler::updateStatus($id, $status);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::updateStatus($id, $status));
   })->middleware(['auth', 'json', 'throttle:100,1']);
 
-  // Registrar pago - POST /api/sale/{id}/payment
+  // Registrar pago
   $router->post('/{id}/payment', function($id) {
     $data = ogRequest::data();
     $transactionId = $data['transaction_id'] ?? null;
     $paymentMethod = $data['payment_method'] ?? null;
     $paymentDate = $data['payment_date'] ?? null;
-    
+
     if (!$transactionId || !$paymentMethod) {
       ogResponse::json(['success' => false, 'error' => __('sale.payment_data_required')], 400);
     }
-    
-    $result = SaleHandler::registerPayment($id, $transactionId, $paymentMethod, $paymentDate);
+
+    $result = ogApp()->handler('sale')::registerPayment($id, $transactionId, $paymentMethod, $paymentDate);
     ogResponse::json($result);
   })->middleware(['auth', 'json', 'throttle:100,1']);
 
-  // Estadísticas de ventas - GET /api/sale/stats
+  // Estadísticas de ventas
   $router->get('/stats', function() {
-    $botId = ogRequest::query('bot_id', null);
-    $result = SaleHandler::getStats(['bot_id' => $botId]);
+    $result = ogApp()->handler('sale')::getStats(['bot_id' => ogRequest::query('bot_id', null)]);
     ogResponse::json($result);
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Obtener venta con relaciones (upsells/OB) - GET /api/sale/{id}/related
+  // Obtener venta con relaciones (upsells/OB)
   $router->get('/{id}/related', function($id) {
-    $result = SaleHandler::getWithRelated(['sale_id' => $id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::getWithRelated(['sale_id' => $id]));
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Buscar por transaction_id - GET /api/sale/transaction/{transaction_id}
+  // Buscar por transaction_id
   $router->get('/transaction/{transaction_id}', function($transaction_id) {
-    $result = SaleHandler::getByTransactionId(['transaction_id' => $transaction_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::getByTransactionId(['transaction_id' => $transaction_id]));
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Eliminar ventas por cliente - DELETE /api/sale/client/{client_id}
+  // Eliminar ventas por cliente
   $router->delete('/client/{client_id}', function($client_id) {
-    $result = SaleHandler::deleteByClient(['client_id' => $client_id]);
-    ogResponse::json($result);
+    ogResponse::json(ogApp()->handler('sale')::deleteByClient(['client_id' => $client_id]));
   })->middleware(['auth', 'throttle:100,1']);
+
+  // Estadísticas por día
+  $router->get('/stats/by-day', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json(ogApp()->handler('sale')::getStatsByDay(['range' => $range]));
+  })->middleware(['auth', 'throttle:100,1']);
+
+  // Ventas por producto
+  $router->get('/stats/by-product', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json(ogApp()->handler('sale')::getStatsByProduct(['range' => $range]));
+  })->middleware(['auth', 'throttle:100,1']);
+
+  // Mensajes nuevos por día
+  $router->get('/stats/new-messages', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json(ogApp()->handler('sale')::getNewMessagesByDay(['range' => $range]));
+  })->middleware(['auth', 'throttle:100,1']);
+
+  $router->get('/conversion-stats', function() {
+    ogResponse::json( ogApp()->handler('sale')::getConversionStatsByDay(  ['range' => ogRequest::query('range', 'last_7_days')]  ) );
+  });
 });

@@ -82,6 +82,9 @@ class botws {
       : await this.create(body);
 
     if (result) {
+      // Limpiar cache del select de bots
+      ogModule('form').clearSelectCache('/api/bot');
+
       ogComponent('toast').success(this.currentId
         ? __('botws.bot.success.updated')
         : __('botws.bot.success.created')

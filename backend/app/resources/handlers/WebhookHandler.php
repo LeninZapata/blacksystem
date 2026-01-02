@@ -36,9 +36,7 @@ class WebhookHandler {
     return null;
   }
 
-  /**
-   * Validar estructura básica del webhook
-   */
+  // Validar estructura básica del webhook
   static function validate($rawData) {
     if (empty($rawData)) {
       return ['valid' => false, 'error' => 'Webhook vacío'];

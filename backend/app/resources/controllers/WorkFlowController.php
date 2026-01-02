@@ -23,7 +23,7 @@ class WorkFlowController extends ogController {
 
 
     $data['dc'] = date('Y-m-d H:i:s');
-    $data['ta'] = time();
+    $data['tc'] = time();
 
     try {
       $id = ogDb::table(self::$table)->insert($data);
@@ -39,7 +39,7 @@ class WorkFlowController extends ogController {
 
     $data = ogRequest::data();
 
-    $data['da'] = date('Y-m-d H:i:s');
+    $data['du'] = date('Y-m-d H:i:s');
     $data['tu'] = time();
 
     try {

@@ -27,6 +27,7 @@ class ogCache {
   private static $sessionStarted = false;
   private static $configs = [];
   private static $activeConfigKey = 'default';
+  private static $memory = [];
 
   // Configuracion por defecto
   private static $defaultConfig = [
@@ -52,10 +53,10 @@ class ogCache {
 
   /**
    * SET CONFIG - Establecer configuracion personalizada
-   * 
+   *
    * @param array $config Configuracion personalizada
    * @param string $key Clave unica para esta configuracion (opcional)
-   * 
+   *
    * Ejemplo para sesiones:
    * ogCache::setConfig([
    *   'dir' => STORAGE_PATH . '/sessions',
@@ -113,20 +114,20 @@ class ogCache {
     if (str_starts_with($key, 'global_')) {
       self::startSession();
       $value = $_SESSION['cache'][$key] ?? $default;
-      
+
       if ($forget && isset($_SESSION['cache'][$key])) {
         unset($_SESSION['cache'][$key]);
       }
-      
+
       return $value;
     }
 
     $value = self::getFromFile($key, $default);
-    
+
     if ($forget && $value !== $default) {
       self::forgetFile($key);
     }
-    
+
     return $value;
   }
 
@@ -236,29 +237,29 @@ class ogCache {
    */
   private static function buildFilename($key, $expiresAt, $vars = []) {
     $config = self::getConfig();
-    
+
     $filename = $config['format'];
     $filename = str_replace('{expires}', $expiresAt, $filename);
-    
+
     // Reemplazar {key:N} con primeros N caracteres de la key
     if (preg_match('/\{key:(\d+)\}/', $filename, $matches)) {
       $length = (int)$matches[1];
       $keyShort = substr($key, 0, $length);
       $filename = str_replace('{key:' . $length . '}', $keyShort, $filename);
     }
-    
+
     // Reemplazar {key} con key completa
     $filename = str_replace('{key}', $key, $filename);
-    
+
     // Reemplazar {hash} con md5 completo
     $hash = md5($key);
     $filename = str_replace('{hash}', $hash, $filename);
-    
+
     // Reemplazar variables personalizadas
     foreach ($vars as $varKey => $varValue) {
       $filename = str_replace('{' . $varKey . '}', $varValue, $filename);
     }
-    
+
     return $filename . '.' . $config['ext'];
   }
 
@@ -268,36 +269,36 @@ class ogCache {
   private static function findFile($key, $vars = []) {
     $config = self::getConfig();
     self::initDir();
-    
+
     // Construir pattern segun formato
     $pattern = $config['format'];
     $pattern = str_replace('{expires}', '*', $pattern);
-    
+
     // Manejar {key:N} - primeros N caracteres de la key
     if (preg_match('/\{key:(\d+)\}/', $pattern, $matches)) {
       $length = (int)$matches[1];
       $keyShort = substr($key, 0, $length);
       $pattern = str_replace('{key:' . $length . '}', $keyShort, $pattern);
     }
-    
+
     // Manejar {key} - key completa
     $pattern = str_replace('{key}', $key, $pattern);
-    
+
     // Manejar {hash} - md5 completo
     $hash = md5($key);
     $pattern = str_replace('{hash}', $hash, $pattern);
-    
+
     // Reemplazar variables conocidas
     foreach ($vars as $varKey => $varValue) {
       $pattern = str_replace('{' . $varKey . '}', $varValue, $pattern);
     }
-    
+
     // Reemplazar variables desconocidas con *
     $pattern = preg_replace('/\{[a-z0-9_:]+\}/i', '*', $pattern);
-    
+
     $fullPattern = $config['dir'] . '/' . $pattern . '.' . $config['ext'];
     $files = glob($fullPattern);
-    
+
     return !empty($files) ? $files[0] : null;
   }
 
@@ -312,11 +313,11 @@ class ogCache {
     $config = self::getConfig();
     $filename = basename($file, '.' . $config['ext']);
     $parts = explode('_', $filename);
-    
+
     // Asumir que el primer elemento es el timestamp de expiracion
     if (!empty($parts) && is_numeric($parts[0])) {
       $expiresAt = (int)$parts[0];
-      
+
       if ($expiresAt < time()) {
         unlink($file);
         return $default;
@@ -338,16 +339,16 @@ class ogCache {
   private static function setToFile($key, $value, $ttl = null, $vars = []) {
     $config = self::getConfig();
     self::initDir();
-    
+
     $ttl = $ttl ?? OG_SESSION_TTL;
     $expiresAt = time() + $ttl;
-    
+
     // Eliminar archivo antiguo si existe
     $oldFile = self::findFile($key, $vars);
     if ($oldFile && file_exists($oldFile)) {
       unlink($oldFile);
     }
-    
+
     // Crear nuevo archivo
     $filename = self::buildFilename($key, $expiresAt, $vars);
     $filepath = $config['dir'] . '/' . $filename;
@@ -376,14 +377,14 @@ class ogCache {
    */
   static function cleanup($configKey = null) {
     $originalConfigKey = self::$activeConfigKey;
-    
+
     if ($configKey !== null) {
       if (!isset(self::$configs[$configKey])) {
         return 0;
       }
       self::$activeConfigKey = $configKey;
     }
-    
+
     $config = self::getConfig();
     self::initDir();
 
@@ -419,7 +420,7 @@ class ogCache {
         // Ignorar errores
       }
     }
-    
+
     // Restaurar configuracion original
     self::$activeConfigKey = $originalConfigKey;
 
@@ -431,13 +432,61 @@ class ogCache {
    */
   static function cleanupAll() {
     $total = 0;
-    
+
     foreach (array_keys(self::$configs) as $configKey) {
       $cleaned = self::cleanup($configKey);
       $total += $cleaned;
     }
-    
+
     return $total;
+  }
+
+  /**
+   * MEMORY SET - Guardar en memoria (solo durante ejecución)
+   */
+  static function memorySet($key, $value) {
+    self::$memory[$key] = $value;
+  }
+
+  /**
+   * MEMORY GET - Obtener de memoria
+   */
+  static function memoryGet($key, $default = null) {
+    return self::$memory[$key] ?? $default;
+  }
+
+  /**
+   * MEMORY HAS - Verificar existencia en memoria
+   */
+  static function memoryHas($key) {
+    return isset(self::$memory[$key]);
+  }
+
+  /**
+   * MEMORY FORGET - Eliminar de memoria
+   */
+  static function memoryForget($key) {
+    unset(self::$memory[$key]);
+  }
+
+  /**
+   * MEMORY CLEAR - Limpiar toda la memoria
+   */
+  static function memoryClear() {
+    self::$memory = [];
+  }
+
+  /**
+   * MEMORY REMEMBER - Obtener o ejecutar callback (solo memoria)
+   */
+  static function memoryRemember($key, $callback) {
+    if (isset(self::$memory[$key])) {
+      return self::$memory[$key];
+    }
+
+    $value = $callback();
+    self::$memory[$key] = $value;
+    return $value;
   }
 }
 
@@ -488,3 +537,29 @@ class ogCache {
  * // Limpiar todas las configs
  * ogCache::cleanupAll();
  */
+
+/*  Usos de Memory volatil
+// Guardar
+ogCache::memorySet('user_data', $userData);
+ogCache::memorySet('temp_result', ['count' => 100]);
+
+// Obtener
+$data = ogCache::memoryGet('user_data');
+$result = ogCache::memoryGet('temp_result', []); // con default
+
+// Verificar
+if (ogCache::memoryHas('user_data')) {
+  // existe
+}
+
+// Remember (ejecuta callback solo si no existe)
+$users = ogCache::memoryRemember('all_users', function() {
+  return ogDb::table('users')->get();
+});
+
+// Eliminar
+ogCache::memoryForget('user_data');
+
+// Limpiar todo
+ogCache::memoryClear();
+*/

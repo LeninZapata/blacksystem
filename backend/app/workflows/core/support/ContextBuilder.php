@@ -23,7 +23,7 @@ class ContextBuilder {
   }
 
   static function loadChatData($number, $botId) {
-    return ChatHandler::getChat($number, $botId, true);
+    return ChatHandler::getChat($number, $botId);
   }
 
   static function buildEmptyContext($bot, $person) {

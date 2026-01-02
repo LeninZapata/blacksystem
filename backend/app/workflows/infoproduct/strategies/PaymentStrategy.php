@@ -11,37 +11,37 @@ class PaymentStrategy implements ConversationStrategyInterface {
     require_once ogApp()->getPath() . '/workflows/infoproduct/validators/PaymentProofValidator.php';
     $validation = PaymentProofValidator::validate($imageAnalysis);
 
-    // ✅ PASO 1: Guardar mensaje de imagen siempre (DB + JSON)
+    // PASO 1: Guardar mensaje de imagen siempre (DB + JSON)
     $this->saveImageMessage($imageAnalysis, $context);
 
-    // ✅ PASO 2: Detectar recibo duplicado (sin venta activa)
-    $currentSale = $chatData['full_chat']['current_sale'] ?? null;
+    // PASO 2: Detectar recibo duplicado (sin venta activa)
+    $currentSale = $chatData['current_sale'] ?? null;
     $isProofPayment = $imageAnalysis['metadata']['description']['is_proof_payment'] ?? false;
 
     if (!$currentSale && $isProofPayment) {
       ogLog::info("execute - Recibo duplicado detectado", [ 'number' => $person['number'], 'current_sale' => 'null', 'is_proof_payment' => true, 'action' => 'invocar_ia_para_responder' ], $this->logMeta);
-      // ✅ Invocar IA para que responda (igual que ActiveConversationStrategy)
+      // Invocar IA para que responda (igual que ActiveConversationStrategy)
       return $this->handleDuplicateReceipt($context, $imageAnalysis);
     }
 
-    // ✅ PASO 3: Detectar imagen sin venta pendiente (NO es recibo o recibo inválido)
+    // PASO 3: Detectar imagen sin venta pendiente (NO es recibo o recibo inválido)
     if (!$currentSale && !$isProofPayment) {
       ogLog::info("execute - Imagen enviada sin venta pendiente", [ 'number' => $person['number'], 'current_sale' => 'null', 'is_proof_payment' => false, 'ai_analysis' => $imageAnalysis['metadata']['description'] ?? null, 'action' => 'dejar_que_ia_interprete' ], $this->logMeta);
 
-      // ✅ Dejar que la IA interprete la imagen (no es contexto de pago)
+      // Dejar que la IA interprete la imagen (no es contexto de pago)
       return $this->handleImageWithoutSale($context, $imageAnalysis);
     }
 
-    // ✅ PASO 4: Validar recibo (solo si hay venta activa)
+    // PASO 4: Validar recibo (solo si hay venta activa)
     if (!$validation['is_valid']) {
       $errorMessage = "Lo siento, no pude validar el comprobante de pago. Por favor, envía una foto clara del recibo.";
 
-      ogLog::info("execute - Recibo inválido (con venta activa)", [ 'number' => $person['number'], 'current_sale' => $currentSale['sale_id'] ?? null, 'errors' => $validation['errors'], 'ai_analysis' => $validation['data'] ] , $this->logMeta );  // ✅ JSON completo de la IA ], $this->logMeta);
+      ogLog::info("execute - Recibo inválido (con venta activa)", [ 'number' => $person['number'], 'current_sale' => $currentSale['sale_id'] ?? null, 'errors' => $validation['errors'], 'ai_analysis' => $validation['data'] ] , $this->logMeta );  // JSON completo de la IA ], $this->logMeta);
 
       $chatapi = ogApp()->service('chatApi');
       $chatapi::send($person['number'], $errorMessage);
 
-      //ogApp()->loadHandler('chat');
+      oglog::debug("execute - Registrando mensaje de error por recibo inválido", [ 'number' => $person['number'], 'chatData' => $chatData ], $this->logMeta);
       ogApp()->handler('chat')::register(
         $bot['id'],
         $bot['number'],
@@ -51,7 +51,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
         'B',
         'text',
         ['action' => 'invalid_receipt_format', 'errors' => $validation['errors']],
-        $chatData['sale_id']
+        $chatData['current_sale']['sale_id'] ?? null
       );
 
       return [
@@ -62,9 +62,9 @@ class PaymentStrategy implements ConversationStrategyInterface {
     }
 
     $paymentData = $validation['data'];
-    $saleId = $chatData['sale_id'];
+    $saleId = $chatData['current_sale']['sale_id'] ?? null;
 
-    // ✅ PASO 5: Procesar pago (solo si hay venta activa)
+    // PASO 5: Procesar pago (solo si hay venta activa)
     ogLog::info("execute - Procesando pago válido", [ 'sale_id' => $saleId, 'amount' => $paymentData['amount'] ], $this->logMeta);
 
     // 1. Actualizar venta (billed_amount)
@@ -93,7 +93,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
   }
 
   /**
-   * ✅ NUEVO: Manejar imagen sin venta pendiente
+   * NUEVO: Manejar imagen sin venta pendiente
    * Deja que la IA interprete la imagen en contexto conversacional
    */
   private function handleImageWithoutSale($context, $imageAnalysis) {
@@ -127,7 +127,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       ];
     }
 
-    // ✅ LOG DE RESPUESTA DE LA IA
+    // LOG DE RESPUESTA DE LA IA
     ogLog::info("handleImageWithoutSale - Respuesta de IA recibida", [ 'response_length' => strlen($aiResponse['response']), 'response_preview' => substr($aiResponse['response'], 0, 200) . '...' ], $this->logMeta);
 
     // Parsear respuesta
@@ -141,7 +141,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       ];
     }
 
-    // ✅ LOG DE RESPUESTA PARSEADA
+    // LOG DE RESPUESTA PARSEADA
     ogLog::info("handleImageWithoutSale - Respuesta parseada correctamente", [ 'message_length' => strlen($parsedResponse['message'] ?? ''), 'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150), 'has_metadata' => isset($parsedResponse['metadata']), 'action' => $parsedResponse['metadata']['action'] ?? 'none' ], $this->logMeta);
 
     // Enviar mensaje al cliente
@@ -160,7 +160,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
   }
 
   /**
-   * ✅ NUEVO: Manejar recibo duplicado (sin venta activa)
+   * NUEVO: Manejar recibo duplicado (sin venta activa)
    * Solo guarda en chat y hace que la IA responda
    */
   private function handleDuplicateReceipt($context, $imageAnalysis) {
@@ -175,7 +175,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
     ogApp()->loadHandler('chat');
-    $chat = ChatHandler::getChat($person['number'], $bot['id'], true);
+    $chat = ChatHandler::getChat($person['number'], $bot['id']);
 
     // Construir prompt igual que ActiveConversationStrategy
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
@@ -194,7 +194,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       ];
     }
 
-    // ✅ LOG DE RESPUESTA DE LA IA
+    // LOG DE RESPUESTA DE LA IA
     ogLog::info("handleDuplicateReceipt - Respuesta de IA recibida", [ 'response_length' => strlen($aiResponse['response']), 'response_preview' => substr($aiResponse['response'], 0, 200) . '...' ], $this->logMeta );
 
     // Parsear respuesta
@@ -209,7 +209,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       ];
     }
 
-    // ✅ LOG DE RESPUESTA PARSEADA
+    // LOG DE RESPUESTA PARSEADA
     ogLog::info("handleDuplicateReceipt - Respuesta parseada correctamente", [ 'message_length' => strlen($parsedResponse['message'] ?? ''), 'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150), 'has_metadata' => isset($parsedResponse['metadata']), 'action' => $parsedResponse['metadata']['action'] ?? 'none' ], $this->logMeta);
 
     // Enviar mensaje al cliente
@@ -232,44 +232,59 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $person = $context['person'];
     $chatData = $context['chat_data'];
 
-    // ✅ Guardar JSON completo del análisis
-    $description = $imageAnalysis['metadata']['description'] ?? [];
-    $messageJson = json_encode($description, JSON_UNESCAPED_UNICODE);
+    $imageData = $imageAnalysis['metadata']['description'] ?? [];
+    $messageText = json_encode($imageData, JSON_UNESCAPED_UNICODE);
 
     ogApp()->loadHandler('chat');
-    chatHandler::register(
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
       $person['number'],
-      $messageJson,  // ✅ JSON completo
+      $messageText,
       'P',
       'image',
       $imageAnalysis['metadata'],
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
-    chatHandler::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
-      'message' => $messageJson,  // ✅ JSON completo
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
+      'message' => $messageText,
       'format' => 'image',
       'metadata' => $imageAnalysis['metadata']
     ], 'P');
   }
 
   private function updateSale($paymentData, $saleId) {
-    $billedAmount = $paymentData['amount'] ?? null;
+    $billedAmount = $paymentData['amount'] ?? 0;
 
-    if ($billedAmount && $billedAmount > 0) {
-      ogDb::table('sales')->where('id', $saleId)->update([
+    try {
+      ogDb::table('sales')
+        ->where('id', $saleId)
+        ->update([
           'billed_amount' => $billedAmount,
           'du' => date('Y-m-d H:i:s'),
           'tu' => time()
         ]);
-      ogLog::info("updateSale - Venta actualizada: billed_amount = {$billedAmount}", [ 'sale_id' => $saleId ], $this->logMeta);
+
+      ogLog::info("updateSale - billed_amount actualizado", [
+        'sale_id' => $saleId,
+        'billed_amount' => $billedAmount
+      ], $this->logMeta);
+
+      return true;
+
+    } catch (Exception $e) {
+      ogLog::error("updateSale - Error al actualizar", [
+        'sale_id' => $saleId,
+        'error' => $e->getMessage()
+      ], $this->logMeta);
+
+      return false;
     }
   }
 
@@ -277,7 +292,9 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $client = ogDb::table('clients')->find($clientId);
 
     if (!$client) {
-      ogLog::error("updateClient - Cliente no encontrado", [ 'client_id' => $clientId ], $this->logMeta);
+      ogLog::error("updateClient - Cliente no encontrado", [
+        'client_id' => $clientId
+      ], $this->logMeta);
       return false;
     }
 
@@ -288,7 +305,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // 1. Actualizar nombre si aplica (lógica flexible)
     $receiptName = $paymentData['name'] ?? null;
-    $validName = $validation['valid_name'] ?? false;
+    $validName = $validation['data']['valid_name'] ?? false;
     $wordCount = $receiptName ? str_word_count($receiptName) : 0;
     $hasValidName = $validName || ($wordCount >= 2);
 
@@ -326,23 +343,25 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $message = "Venta confirmada - Recibo validado correctamente";
     $metadata = [
       'action' => 'sale_confirmed',
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
+      'product_id' => $chatData['current_sale']['product_id'] ?? null,
       'receipt_data' => [
         'amount_found' => $receiptData['amount'] ?? 0,
         'name_found' => $receiptData['name'] ?? '',
-        'valid_name' => $validation['valid_name'] ?? false,
-        'valid_amount' => $validation['valid_amount'] ?? false,
+        'valid_name' => $validation['data']['valid_name'] ?? false,
+        'valid_amount' => $validation['data']['valid_amount'] ?? false,
         'resume' => $receiptData['resume'] ?? ''
       ],
       'updates' => [
         'billed_amount_updated' => $receiptData['amount'] ?? 0,
-        'client_name_updated' => ($validation['valid_name'] ?? false) && !empty($receiptData['name'] ?? '')
-      ]
+        'client_name_updated' => ($validation['data']['valid_name'] ?? false) && !empty($receiptData['name'] ?? '')
+      ],
+      'origin' => $chatData['current_sale']['origin'] ?? 'organic'
     ];
 
     // Guardar en DB
     ogApp()->loadHandler('chat');
-    chatHandler::register(
+    ChatHandler::register(
       $bot['id'],
       $bot['number'],
       $chatData['client_id'],
@@ -351,26 +370,100 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'S',
       'text',
       $metadata,
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     // Guardar en JSON
-    chatHandler::addMessage([
+    ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $message,
       'format' => 'text',
       'metadata' => $metadata
     ], 'S');
+
+    // NUEVO: Buscar y actualizar tracking_funnel_id desde el último followup
+    $this->updateTrackingFunnelId($chatData, $chatData['current_sale']['sale_id'] ?? null);
+  }
+
+  /**
+   * NUEVO: Buscar tracking_id del último followup y actualizar en sales
+   */
+  private function updateTrackingFunnelId($chatData, $saleId) {
+    if (!$saleId) {
+      ogLog::warning("updateTrackingFunnelId - No sale_id disponible", [], $this->logMeta);
+      return;
+    }
+
+    // Buscar el último followup_sent en los mensajes (de atrás hacia adelante)
+    $trackingId = $this->getLastFollowupTrackingId($chatData);
+
+    if (!$trackingId) {
+      ogLog::info("updateTrackingFunnelId - No se encontró tracking_id en followups", [
+        'sale_id' => $saleId
+      ], $this->logMeta);
+      return;
+    }
+
+    // Actualizar tracking_funnel_id en la venta
+    try {
+      ogDb::table(DB_TABLES['sales'])
+        ->where('id', $saleId)
+        ->update([
+          'tracking_funnel_id' => $trackingId,
+          'du' => date('Y-m-d H:i:s'),
+          'tu' => time()
+        ]);
+
+      ogLog::info("updateTrackingFunnelId - tracking_funnel_id actualizado", [
+        'sale_id' => $saleId,
+        'tracking_funnel_id' => $trackingId
+      ], $this->logMeta);
+
+    } catch (Exception $e) {
+      ogLog::error("updateTrackingFunnelId - Error al actualizar", [ 'sale_id' => $saleId, 'tracking_id' => $trackingId, 'error' => $e->getMessage() ], $this->logMeta);
+    }
+  }
+
+  /**
+   * NUEVO: Obtener tracking_id del último followup enviado
+   */
+  private function getLastFollowupTrackingId($chatData) {
+    $messages = $chatData['messages'] ?? [];
+
+    // Recorrer mensajes de atrás hacia adelante (más reciente primero)
+    for ($i = count($messages) - 1; $i >= 0; $i--) {
+      $msg = $messages[$i];
+      $type = $msg['type'] ?? null;
+      $metadata = $msg['metadata'] ?? [];
+      $action = $metadata['action'] ?? null;
+
+      // Buscar mensaje de tipo Sistema con action = followup_sent
+      if ($type === 'S' && $action === 'followup_sent') {
+        $trackingId = $metadata['tracking_id'] ?? null;
+
+        if ($trackingId) {
+          ogLog::info("getLastFollowupTrackingId - Tracking encontrado", [
+            'tracking_id' => $trackingId,
+            'followup_id' => $metadata['followup_id'] ?? null,
+            'message_date' => $msg['date'] ?? null
+          ], $this->logMeta);
+
+          return $trackingId;
+        }
+      }
+    }
+
+    return null;
   }
 
   private function processPayment($paymentData, $saleId) {
     ogApp()->loadHandler('sale');
-    saleHandler::updateStatus($saleId, 'completed');
+    SaleHandler::updateStatus($saleId, 'sale_confirmed');
 
-    saleHandler::registerPayment(
+    SaleHandler::registerPayment(
       $saleId,
       'RECEIPT_' . time(),
       'Recibo de pago',
@@ -379,14 +472,14 @@ class PaymentStrategy implements ConversationStrategyInterface {
   }
 
   private function deliverProduct($chatData, $context) {
-    $productId = $chatData['full_chat']['current_sale']['product_id'] ?? null;
+    $productId = $chatData['current_sale']['product_id'] ?? null;
     if ($productId) {
       require_once ogApp()->getPath() . '/workflows/infoproduct/actions/DeliverProductAction.php';
       DeliverProductAction::send($productId, $context);
     }
   }
 
-  // ✅ MÉTODOS COMPARTIDOS CON ActiveConversationStrategy
+  // MÉTODOS COMPARTIDOS CON ActiveConversationStrategy
 
   private function buildPrompt($bot, $chat, $aiText) {
 
@@ -455,14 +548,14 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'B',
       'text',
       $metadata,
-      $chatData['sale_id']
+      $chatData['current_sale']['sale_id'] ?? null
     );
 
     ChatHandler::addMessage([
       'number' => $person['number'],
       'bot_id' => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['sale_id'],
+      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $message,
       'format' => 'text',
       'metadata' => $metadata
@@ -470,7 +563,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
   }
 
   private function processUpsell($chatData, $bot) {
-    $currentSale = $chatData['full_chat']['current_sale'] ?? null;
+    $currentSale = $chatData['current_sale'] ?? null;
     if (!$currentSale) return;
 
     $saleData = [
@@ -478,7 +571,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'product_id' => $currentSale['product_id'],
       'client_id' => $chatData['client_id'],
       'bot_id' => $bot['id'],
-      'number' => $chatData['full_chat']['number'],
+      'number' => $chatData['client_number'],
       'origin' => $currentSale['origin'] ?? 'organic'
     ];
 

@@ -110,11 +110,7 @@ $router->group('/api/cleanup', function($router) {
       $success = $removeDirectory($fullPath);
 
       if ($success) {
-        ogLog::info("Carpeta eliminada: {$path}", [
-          'files' => $fileCount,
-          'directories' => $dirCount,
-          'base' => $base
-        ], $logMeta);
+        ogLog::info("Carpeta eliminada: {$path}", ['files'=>$fileCount,'directories'=>$dirCount,'base'=>$base], $logMeta);
 
         ogResponse::success([
           'path' => $path,

@@ -15,7 +15,7 @@ class openAiProvider extends baseAIProvider {
 
       $payload = ['model' => $model, 'messages' => $messages, 'temperature' => $temperature, 'max_tokens' => $maxTokens];
 
-      $response = ogHttp::post($this->baseUrl . '/chat/completions', $payload, [
+      $response = ogApp()->helper('http')::post($this->baseUrl . '/chat/completions', $payload, [
         'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->apiKey],
         'timeout' => 60
       ]);
@@ -55,7 +55,7 @@ class openAiProvider extends baseAIProvider {
       $body .= "whisper-1\r\n";
       $body .= "--{$boundary}--\r\n";
 
-      $response = ogHttp::post($this->baseUrl . '/audio/transcriptions', $body, [
+      $response = ogApp()->helper('http')::post($this->baseUrl . '/audio/transcriptions', $body, [
         'headers' => [
           'Authorization: Bearer ' . $this->apiKey,
           'Content-Type: multipart/form-data; boundary=' . $boundary
@@ -94,7 +94,7 @@ class openAiProvider extends baseAIProvider {
 
       $payload = ['model' => 'gpt-4o-mini', 'messages' => $messages, 'max_tokens' => 2500];
 
-      $response = ogHttp::post($this->baseUrl . '/chat/completions', $payload, [
+      $response = ogApp()->helper('http')::post($this->baseUrl . '/chat/completions', $payload, [
         'headers' => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->apiKey],
         'timeout' => 60
       ]);

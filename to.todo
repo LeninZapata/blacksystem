@@ -1,4 +1,10 @@
 Backend (Aplicacion):
+☐ agregar nuevos arhcivos en los handlers para el manejo de las consultas de graficas
+☐ Plantillas que se ejecutan a un triger, es decir si dice
+'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
+☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
+
+☐ Faker debe ser refactorizado actualmente tiene 500 lineas y nada que ver
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
   ☐ grafica de productos vendidos
   ☐ grafica de ingresos por producto
@@ -8,24 +14,6 @@ Backend (Aplicacion):
   ☐ chat por dias | horas
   ☐ ventas por dias | horas
 
-☐ Prueba mejr el buffer
-☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
-☐ que pasa si el cliente te dice que ya no quiere ok esto hace que sale estatus sea cancelled 
-pero que pasa si viene de nuevo por un welcome o un mensaje creo que debe actaulizar el estatus a active
-Frontend (Aplicacion):
-☐ Cuando editas el nombre de un bot y previamente por ejemplo abriste producto ok el seelct se queda en cache
-pero si editar el bot el nombre y vas de nuevo  a producto el select sigue con el nombre anterior
-entonces al actualizar una resource hay que limpiar el cache de selects o algo asi
-☐ Verificar si el archivo de workflow existe
-puede ser dentro del mismo listado de workflow en un boton tipo editar con eso que muestra un toast si exsite o no el archivo
-tambien que verifique al momento de crear o actualizar un workflow si el archivo existe en donde estaran estos archivos y si no existe que muestre un error
-☐ Agregar el aparatado de promtps de tipo 'conversation', 'image', 'audio' porque se necesita versionar
-entonces el bot puede seleccionar cuales son sus prompts aparte del agente y de ai, necesita seleccionar con
-que prompt va a trabajar. Actualmente esta hardcodeado en message.php
-☐ Agregar el nombre del prompt y prompt de imagen en flujo de trabajo o bot
-revisa donde ponerlo pero debes ponerlo el nombre no mas
-✘ Reorganizar todo el menu para una mejor entendimiento @cancelled(29-12-2025 00:48)
-esta normal para empezar
-✘ Agrea que se pueda agregar nuevas ofertas seguidas, las ofertas comienzan cuando los @cancelled(29-12-2025 00:47)
-seguimientos terminan  y comienza una nueva oferta de seguimiento.
-RESOlucion: AUN no estamos para hacer este tipo de requerimientos de nueva oferta.
+Produccion:
+☐ cuando envian un emoji validar el webhook y el de reation porque actualmente estan cambiando las validaciones
+para reaction no debe hacer nada, y para emoji lo que esta haciendo reaction ahorita

@@ -87,64 +87,75 @@ class ClientHandler {
   // Registrar o actualizar cliente
   // Si existe, actualiza última interacción
   // Si no existe, lo crea
-  static function registerOrUpdate($number, $name = null, $countryCode = null, $device = null) {
-    // Buscar cliente existente
-    $client = ogDb::table(self::$table)->where('number', $number)->first();
-
-    if ($client) {
-      // Actualizar última interacción
-      $data = [
-        'du' => date('Y-m-d H:i:s'),
-        'tu' => time()
-      ];
-
-      // Actualizar nombre si se proporciona y no existe
-      if ($name && empty($client['name'])) {
-        $data['name'] = $name;
-      }
-
-      // Actualizar device si se proporciona
-      if ($device) {
-        $data['device'] = $device;
-      }
-
-      ogDb::table(self::$table)->where('id', $client['id'])->update($data);
-      ogLog::success("registerOrUpdate - Cliente actualizado", [ 'client_id' => $client['id'], 'number' => $number ], self::$logMeta);
-      return [
-        'success' => true,
-        'client_id' => $client['id'],
-        'action' => 'updated',
-        'data' => array_merge($client, $data)
-      ];
-    }
-
-    // Crear nuevo cliente
-    $data = [
-      'number' => $number,
-      'name' => $name,
-      'country_code' => $countryCode ?? 'EC',
-      'device' => $device,
-      'status' => 1,
-      'total_purchases' => 0,
-      'amount_spent' => 0.00,
-      'dc' => date('Y-m-d H:i:s'),
-      'tc' => time()
-    ];
-
+  static function registerOrUpdate($number, $name, $countryCode, $device = null, $userId = null) {
     try {
-      $id = ogDb::table(self::$table)->insert($data);
-      ogLog::success("registerOrUpdate - Cliente creado", $data, self::$logMeta);
+      // Buscar cliente existente
+      $existing = ogDb::table(self::$table)
+        ->where('number', $number)
+        ->first();
+
+      if ($existing) {
+        // Actualizar cliente existente
+        $updateData = [
+          'name' => $name,
+          'device' => $device,
+          'du' => date('Y-m-d H:i:s'),
+          'tu' => time()
+        ];
+
+        ogDb::table(self::$table)
+          ->where('id', $existing['id'])
+          ->update($updateData);
+
+        ogLog::info("registerOrUpdate - Cliente actualizado", [
+          'client_id' => $existing['id'],
+          'number' => $number
+        ], self::$logMeta);
+
+        return [
+          'success' => true,
+          'client_id' => $existing['id'],
+          'action' => 'updated'
+        ];
+      }
+
+      // Crear nuevo cliente
+      $clientData = [
+        'user_id' => $userId, // AGREGAR USER_ID
+        'number' => $number,
+        'name' => $name,
+        'country_code' => $countryCode,
+        'device' => $device,
+        'total_purchases' => 0,
+        'amount_spent' => 0.00,
+        'status' => 1,
+        'dc' => date('Y-m-d H:i:s'),
+        'tc' => time()
+      ];
+
+      $clientId = ogDb::table(self::$table)->insert($clientData);
+
+      ogLog::info("registerOrUpdate - Cliente creado", [
+        'client_id' => $clientId,
+        'number' => $number,
+        'user_id' => $userId
+      ], self::$logMeta);
+
       return [
         'success' => true,
-        'client_id' => $id,
-        'action' => 'created',
-        'data' => array_merge($data, ['id' => $id])
+        'client_id' => $clientId,
+        'action' => 'created'
       ];
+
     } catch (Exception $e) {
+      ogLog::error("registerOrUpdate - Error", [
+        'error' => $e->getMessage(),
+        'number' => $number
+      ], self::$logMeta);
+
       return [
         'success' => false,
-        'error' => __('client.create.error'),
-        'details' => OG_IS_DEV ? $e->getMessage() : null
+        'error' => $e->getMessage()
       ];
     }
   }
