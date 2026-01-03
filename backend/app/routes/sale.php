@@ -68,4 +68,16 @@ $router->group('/api/sale', function($router) {
     ogResponse::json(ogApp()->handler('sale')::deleteByClient(['client_id' => $client_id]));
   })->middleware(['auth', 'throttle:100,1']);
 
+  // Estadísticas: Ventas $ y Conversión % - GET /api/sale/stats/revenue-conversion?range=last_7_days
+  $router->get('/stats/revenue-conversion', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json( ogApp()->handler('saleStats')::getSalesRevenueAndConversion(['range' => $range]) );
+  })->middleware(['auth', 'throttle:100,1']);
+
+  // Estadísticas: Ventas Directas vs Remarketing - GET /api/sale/stats/direct-vs-remarketing?range=last_7_days
+  $router->get('/stats/direct-vs-remarketing', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json( ogApp()->handler('saleStats')::getSalesDirectVsRemarketing(['range' => $range]) );
+  })->middleware(['auth', 'throttle:100,1']);
+
 });

@@ -22,6 +22,12 @@
         "title": "Credenciales",
         "view": "sections/automation-credentials",
         "order": 2
+      },
+      {
+        "id": "automation-product-ad-assets",
+        "title": "Activos Publicitarios",
+        "view": "sections/automation-product-ad-assets",
+        "order": 3
       }
     ]
   }

@@ -374,6 +374,14 @@ class ogConditions {
       fieldElement.style.display = '';
       fieldElement.classList.remove('wpfw-depend-on');
 
+      // Si es un grouper, remover form-hidden de los form-groups internos
+      if (fieldElement.classList.contains('grouper')) {
+        const formGroups = fieldElement.querySelectorAll('.form-group, .form-checkbox');
+        formGroups.forEach(group => {
+          group.classList.remove('form-hidden');
+        });
+      }
+
       const inputs = fieldElement.querySelectorAll('input, select, textarea');
       inputs.forEach(input => {
         input.disabled = false;
@@ -381,6 +389,14 @@ class ogConditions {
     } else {
       fieldElement.style.display = 'none';
       fieldElement.classList.add('wpfw-depend-on');
+
+      // Si es un grouper, agregar form-hidden a los form-groups internos
+      if (fieldElement.classList.contains('grouper')) {
+        const formGroups = fieldElement.querySelectorAll('.form-group, .form-checkbox');
+        formGroups.forEach(group => {
+          group.classList.add('form-hidden');
+        });
+      }
 
       const inputs = fieldElement.querySelectorAll('input, select, textarea');
       inputs.forEach(input => {

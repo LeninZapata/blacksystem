@@ -1,0 +1,30 @@
+{
+  "resource": "productAdAsset",
+  "table": "product_ad_assets",
+  "timestamps": false,
+  "middleware": ["throttle:100,1"],
+  "routes": {
+    "list": {"method": "GET", "path": "/api/productAdAsset", "middleware": ["auth"]},
+    "show": {"method": "GET", "path": "/api/productAdAsset/{id}", "middleware": ["auth"]},
+    "create": {"method": "POST", "path": "/api/productAdAsset", "middleware": ["auth", "json"]},
+    "update": {"method": "PUT", "path": "/api/productAdAsset/{id}", "middleware": ["auth", "json"]},
+    "delete": {"method": "DELETE", "path": "/api/productAdAsset/{id}", "middleware": ["auth"]}
+  },
+  "fields": [
+    {"name": "product_id", "type": "int", "required": true},
+    {"name": "user_id", "type": "int", "required": true},
+    {"name": "ad_platform", "type": "string", "maxLength": 50, "required": true},
+    {"name": "ad_asset_type", "type": "string", "maxLength": 50, "required": true},
+    {"name": "ad_asset_id", "type": "string", "maxLength": 100, "required": true},
+    {"name": "ad_asset_name", "type": "string", "maxLength": 255},
+    {"name": "is_active", "type": "tinyint", "required": false, "default": 1},
+    {"name": "auto_adjust_budget", "type": "tinyint", "required": false, "default": 0},
+    {"name": "query_frequency", "type": "int", "required": false, "default": 60},
+    {"name": "notes", "type": "text"},
+    {"name": "status", "type": "tinyint", "required": false, "default": 1},
+    {"name": "dc", "type": "datetime"},
+    {"name": "du", "type": "datetime"},
+    {"name": "tc", "type": "int"},
+    {"name": "tu", "type": "int"}
+  ]
+}

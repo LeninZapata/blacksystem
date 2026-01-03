@@ -135,6 +135,12 @@ $router->group('/api/chat', function($router) {
     $range = ogRequest::query('range', 'last_7_days');
     ogResponse::json( ogApp()->handler('chatStats')::getChatsVsMessages(['range' => $range]) );
   })->middleware(['auth', 'throttle:100,1']);
+
+  // Estadísticas: Actividad de mensajes - GET /api/chat/stats/messages-activity?range=last_7_days
+  $router->get('/stats/messages-activity', function() {
+    $range = ogRequest::query('range', 'last_7_days');
+    ogResponse::json( ogApp()->handler('chatStats')::getMessagesActivity(['range' => $range]) );
+  })->middleware(['auth', 'throttle:100,1']);
 });
 
 // ============================================

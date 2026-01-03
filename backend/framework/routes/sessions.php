@@ -1,5 +1,5 @@
 <?php
-// routes/apis/sessions.php - Endpoints de sesiones mejorados
+// routes/sessions.php - Endpoints de sesiones mejorados
 // desde CROM curl http://yourdomain.com/api/sessions/cleanup para eliminar session caducadas
 $router->group('/api/sessions', function($router) {
 

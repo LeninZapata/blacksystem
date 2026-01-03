@@ -1,5 +1,5 @@
 <?php
-// routes/apis/auth.php - Todas las rutas de autenticacion
+// routes/auth.php - Todas las rutas de autenticacion
 $router->group('/api/auth', function($router) {
 
   // Login - autenticar usuario

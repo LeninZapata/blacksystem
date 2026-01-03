@@ -9,7 +9,7 @@ class ogRouteDiscovery {
     // 1. Rutas desde JSON (resources)
     $routes = array_merge($routes, self::getResourceRoutes());
 
-    // 2. Rutas manuales (routes/apis/)
+    // 2. Rutas manuales (routes/)
     $routes = array_merge($routes, self::getManualRoutes());
 
     // 3. Rutas de extensiones
@@ -79,10 +79,10 @@ class ogRouteDiscovery {
 
     return $routes;
   }
-  // Obtener rutas manuales de routes/apis/
+  // Obtener rutas manuales de routes/
   private static function getManualRoutes() {
     $routes = [];
-    $apisDir = ogApp()->getPath() . '/routes/apis';
+    $apisDir = ogApp()->getPath() . '/routes';
 
     if (!is_dir($apisDir)) return $routes;
 
@@ -103,8 +103,8 @@ class ogRouteDiscovery {
 
     // Buscar en framework primero, luego en app
     $apisDirs = [
-      OG_FRAMEWORK_PATH . '/routes/apis',
-      ogApp()->getPath() . '/routes/apis'
+      OG_FRAMEWORK_PATH . '/routes',
+      ogApp()->getPath() . '/routes'
     ];
 
     foreach ($apisDirs as $apisDir) {
@@ -553,7 +553,7 @@ class ogRouteDiscovery {
 
   // Busca middlewares definidos en el archivo de rutas manuales para rutas tipo manual
   private static function resolveMiddlewareForManualRoute($module, $method, $path) {
-    $apisDir = ogApp()->getPath() . '/routes/apis';
+    $apisDir = ogApp()->getPath() . '/routes';
     $filePath = $apisDir . '/' . $module . '.php';
     $middlewares = [];
     if (!file_exists($filePath)) return $middlewares;
@@ -604,7 +604,7 @@ class ogRouteDiscovery {
 
     // Resuelve el valor de una variable middleware definida en el archivo PHP
   private static function resolveMiddlewareVariable($module, $varName) {
-    $apisDir = ogApp()->getPath() . '/routes/apis';
+    $apisDir = ogApp()->getPath() . '/routes';
     $filePath = $apisDir . '/' . $module . '.php';
     if (!file_exists($filePath)) return [];
     $content = file_get_contents($filePath);

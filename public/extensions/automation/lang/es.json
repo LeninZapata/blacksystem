@@ -1,69 +1,197 @@
 {
-  "automation.credentials.listado.title": "🔑 Credenciales",
-  "automation.credentials.listado.header.title": "🔑 Gestión de Credenciales",
-  "automation.credentials.listado.header.description": "Administra las credenciales de APIs e integraciones",
-  "automation.credentials.column.id": "ID",
-  "automation.credentials.column.name": "Nombre",
-  "automation.credentials.column.type": "Tipo",
-  "automation.credentials.column.created": "Fecha de Creación",
-  "automation.credentials.form.title": "Formulario de Credencial",
-  "automation.credentials.form.description": "Completa los datos de la credencial",
-  "automation.credentials.field.name": "Nombre",
-  "automation.credentials.field.name_placeholder": "Ej: OpenAI API, Evolution API",
-  "automation.credentials.field.type": "Tipo",
-  "automation.credentials.field.ai_agent": "Selecciona tu agente",
-  "automation.credentials.field.api_token": "API Token",
-  "automation.credentials.field.api_token_placeholder": "Ingresa tu token de API",
-  "automation.credentials.field.chat_api": "Selecciona API de chat",
-  "automation.credentials.field.chat_config": "Configuración de Chat API",
-  "automation.credentials.field.base_url": "Base URL",
-  "automation.credentials.field.base_url_placeholder": "https://api.tuservidor.com",
-  "automation.credentials.field.instance": "Instancia",
-  "automation.credentials.field.instance_placeholder": "nombre-instancia",
-  "automation.credentials.field.credential_value": "API Key",
-  "automation.credentials.field.credential_value_placeholder": "Ingresa tu API Key",
-  "automation.credentials.field.config": "Configuración (JSON)",
-  "automation.credentials.field.config_placeholder": "{\"api_key\": \"tu-clave-api\", \"endpoint\": \"https://api.ejemplo.com\"}",
-  "automation.credentials.type.ai_agent": "AI Agent",
-  "automation.credentials.type.chat": "Chat API",
-  "automation.credentials.ogModal.new.title": "🔑 Nueva Credencial",
-  "automation.credentials.ogModal.edit.title": "✏️ Editar Credencial",
-  "automation.credentials.confirm.delete": "¿Eliminar credencial?",
-  "automation.credentials.success.created": "Credencial creada correctamente",
-  "automation.credentials.success.updated": "Credencial actualizada correctamente",
-  "automation.credentials.success.deleted": "Credencial eliminada correctamente",
-  "automation.credentials.error.create_failed": "Error al crear credencial",
-  "automation.credentials.error.update_failed": "Error al actualizar credencial",
-  "automation.credentials.error.delete_failed": "Error al eliminar credencial",
-  "automation.credentials.error.load_failed": "Error al cargar credencial",
-  "automation.credentials.error.user_not_found": "Usuario no identificado",
-  "automation.credentials.error.invalid_json": "El formato JSON no es válido",
-  "automation.credentials.refresh.success": "Lista actualizada",
-  "automation.workflow.listado.title": "⚡ Workflows",
-  "automation.workflow.listado.header.title": "⚡ Gestión de Workflows",
-  "automation.workflow.listado.header.description": "Administra los flujos de trabajo del sistema",
-  "automation.workflow.column.id": "ID",
-  "automation.workflow.column.name": "Nombre",
-  "automation.workflow.column.description": "Descripción",
-  "automation.workflow.column.created": "Fecha de Creación",
-  "automation.workflow.form.title": "Formulario de Workflow",
-  "automation.workflow.form.description": "Completa los datos del workflow",
-  "automation.workflow.field.name": "Nombre",
-  "automation.workflow.field.name_placeholder": "Ej: Flujo de ventas, Onboarding",
-  "automation.workflow.field.description": "Descripción",
-  "automation.workflow.field.description_placeholder": "Describe el propósito del workflow",
-  "automation.workflow.field.file_path": "Ruta de archivo",
-  "automation.workflow.field.file_path_placeholder": "Ej: /shared/workflows/ventas.json",
-  "automation.workflow.ogModal.new.title": "⚡ Nuevo Workflow",
-  "automation.workflow.ogModal.edit.title": "✏️ Editar Workflow",
-  "automation.workflow.confirm.delete": "¿Eliminar workflow?",
-  "automation.workflow.success.created": "Workflow creado correctamente",
-  "automation.workflow.success.updated": "Workflow actualizado correctamente",
-  "automation.workflow.success.deleted": "Workflow eliminado correctamente",
-  "automation.workflow.error.create_failed": "Error al crear workflow",
-  "automation.workflow.error.update_failed": "Error al actualizar workflow",
-  "automation.workflow.error.delete_failed": "Error al eliminar workflow",
-  "automation.workflow.error.load_failed": "Error al cargar workflow",
-  "automation.workflow.error.save_failed": "Error al guardar workflow",
-  "automation.workflow.refresh.success": "Lista actualizada"
+  "automation": {
+    "credentials": {
+      "listado": {
+        "title": "🔑 Credenciales",
+        "header": {
+          "title": "🔑 Gestión de Credenciales",
+          "description": "Administra las credenciales de APIs e integraciones"
+        }
+      },
+      "column": {
+        "id": "ID",
+        "name": "Nombre",
+        "type": "Tipo",
+        "created": "Fecha de Creación"
+      },
+      "form": {
+        "title": "Formulario de Credencial",
+        "description": "Completa los datos de la credencial"
+      },
+      "field": {
+        "name": "Nombre",
+        "name_placeholder": "Ej: OpenAI API, Evolution API, Facebook Ads",
+        "type": "Tipo",
+        "ai_agent": "Selecciona tu agente",
+        "api_token": "API Token",
+        "api_token_placeholder": "Ingresa tu token de API",
+        "chat_api": "Selecciona API de chat",
+        "chat_config": "Configuración de Chat API",
+        "base_url": "Base URL",
+        "base_url_placeholder": "https://api.tuservidor.com",
+        "instance": "Instancia",
+        "instance_placeholder": "nombre-instancia",
+        "credential_value": "API Key",
+        "credential_value_placeholder": "Ingresa tu API Key",
+        "config": "Configuración (JSON)",
+        "config_placeholder": "{\"api_key\": \"tu-clave-api\", \"endpoint\": \"https://api.ejemplo.com\"}",
+        "ad_type": "Plataforma Publicitaria"
+      },
+      "type": {
+        "ai_agent": "AI Agent",
+        "chat": "Chat API",
+        "ad": "Administrador de Anuncios"
+      },
+      "ad_platform": {
+        "facebook": "Facebook Ads",
+        "google": "Google Ads",
+        "tiktok": "TikTok Ads"
+      },
+      "ogModal": {
+        "new": {
+          "title": "🔑 Nueva Credencial"
+        },
+        "edit": {
+          "title": "✏️ Editar Credencial"
+        }
+      },
+      "confirm": {
+        "delete": "¿Eliminar credencial?"
+      },
+      "success": {
+        "created": "Credencial creada correctamente",
+        "updated": "Credencial actualizada correctamente",
+        "deleted": "Credencial eliminada correctamente"
+      },
+      "error": {
+        "create_failed": "Error al crear credencial",
+        "update_failed": "Error al actualizar credencial",
+        "delete_failed": "Error al eliminar credencial",
+        "load_failed": "Error al cargar credencial",
+        "user_not_found": "Usuario no identificado",
+        "invalid_json": "El formato JSON no es válido"
+      },
+      "refresh": {
+        "success": "Lista actualizada"
+      }
+    },
+    "product_ad_assets": {
+      "listado": {
+        "title": "📊 Activos Publicitarios",
+        "header": {
+          "title": "📊 Gestión de Activos Publicitarios",
+          "description": "Vincula productos con IDs de activos publicitarios (Facebook, Google, TikTok)"
+        }
+      },
+      "column": {
+        "id": "ID",
+        "product_id": "ID Producto",
+        "ad_asset_name": "Nombre del Activo",
+        "ad_platform": "Plataforma",
+        "ad_asset_type": "Tipo",
+        "ad_asset_id": "ID del Activo",
+        "is_active": "Estado",
+        "created": "Fecha de Creación"
+      },
+      "form": {
+        "title": "Formulario de Activo Publicitario",
+        "description": "Vincula un producto con un activo publicitario"
+      },
+      "field": {
+        "product_id": "Producto",
+        "ad_platform": "Plataforma Publicitaria",
+        "ad_asset_type": "Tipo de Activo",
+        "ad_asset_id": "ID del Activo",
+        "ad_asset_id_placeholder": "Ej: 120232490086400388",
+        "ad_asset_name": "Nombre Descriptivo",
+        "ad_asset_name_placeholder": "Ej: [DANNES] - Estimulación Lenguaje",
+        "is_active": "Consultar métricas de este activo",
+        "notes": "Notas",
+        "notes_placeholder": "Información adicional sobre este activo"
+      },
+      "asset_type": {
+        "campaign": "Campaña",
+        "adset": "Conjunto de Anuncios",
+        "ad": "Anuncio"
+      },
+      "ogModal": {
+        "new": {
+          "title": "📊 Nuevo Activo Publicitario"
+        },
+        "edit": {
+          "title": "✏️ Editar Activo Publicitario"
+        }
+      },
+      "confirm": {
+        "delete": "¿Eliminar este activo publicitario?"
+      },
+      "success": {
+        "created": "Activo publicitario creado correctamente",
+        "updated": "Activo publicitario actualizado correctamente",
+        "deleted": "Activo publicitario eliminado correctamente"
+      },
+      "error": {
+        "create_failed": "Error al crear activo publicitario",
+        "update_failed": "Error al actualizar activo publicitario",
+        "delete_failed": "Error al eliminar activo publicitario",
+        "load_failed": "Error al cargar activo publicitario"
+      },
+      "refresh": {
+        "success": "Lista actualizada"
+      }
+    },
+    "workflow": {
+      "listado": {
+        "title": "⚡ Workflows",
+        "header": {
+          "title": "⚡ Gestión de Workflows",
+          "description": "Administra los flujos de trabajo del sistema"
+        }
+      },
+      "column": {
+        "id": "ID",
+        "name": "Nombre",
+        "description": "Descripción",
+        "created": "Fecha de Creación"
+      },
+      "form": {
+        "title": "Formulario de Workflow",
+        "description": "Completa los datos del workflow"
+      },
+      "field": {
+        "name": "Nombre",
+        "name_placeholder": "Ej: Flujo de ventas, Onboarding",
+        "description": "Descripción",
+        "description_placeholder": "Describe el propósito del workflow",
+        "file_path": "Ruta de archivo",
+        "file_path_placeholder": "Ej: /shared/workflows/ventas.json"
+      },
+      "ogModal": {
+        "new": {
+          "title": "⚡ Nuevo Workflow"
+        },
+        "edit": {
+          "title": "✏️ Editar Workflow"
+        }
+      },
+      "confirm": {
+        "delete": "¿Eliminar workflow?"
+      },
+      "success": {
+        "created": "Workflow creado correctamente",
+        "updated": "Workflow actualizado correctamente",
+        "deleted": "Workflow eliminado correctamente"
+      },
+      "error": {
+        "create_failed": "Error al crear workflow",
+        "update_failed": "Error al actualizar workflow",
+        "delete_failed": "Error al eliminar workflow",
+        "load_failed": "Error al cargar workflow",
+        "save_failed": "Error al guardar workflow"
+      },
+      "refresh": {
+        "success": "Lista actualizada"
+      }
+    }
+  }
 }

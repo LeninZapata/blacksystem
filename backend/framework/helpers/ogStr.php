@@ -50,4 +50,17 @@ class ogStr {
     json_decode($string);
     return json_last_error() === JSON_ERROR_NONE;
   }
+
+  // Convertir kebab-case o snake_case a camelCase
+  static function toCamelCase($string) {
+    if (empty($string)) return '';
+
+    // Convertir kebab-case (ad-metrics) o snake_case (ad_metrics) a camelCase
+    $string = str_replace(['-', '_'], ' ', $string);
+    $string = ucwords($string);
+    $string = str_replace(' ', '', $string);
+    $string = lcfirst($string); // Primera letra en minúscula
+
+    return $string;
+  }
 }

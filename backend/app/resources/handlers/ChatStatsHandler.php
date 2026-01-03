@@ -49,8 +49,8 @@ class ChatStatsHandler {
     ];
   }
 
-  // Chats iniciados vs Mensajes (P y B)
-  static function getChatsVsMessages($params) {
+  // Actividad de mensajes (total, chats nuevos, seguimientos)
+  static function getMessagesActivity($params) {
     $range = $params['range'] ?? 'last_7_days';
     $dates = self::getDateRange($range);
     
@@ -58,11 +58,11 @@ class ChatStatsHandler {
       return ['success' => false, 'error' => 'Rango inválido'];
     }
 
-    // Query: Chats iniciados por día (contar clientes únicos)
-    $sqlChatsInitiated = "
+    // Query: Chats nuevos por día (clientes únicos)
+    $sqlChats = "
       SELECT 
         DATE(dc) as date,
-        COUNT(DISTINCT client_id) as chats_initiated
+        COUNT(DISTINCT client_id) as new_chats
       FROM " . DB_TABLES['chats'] . "
       WHERE dc >= ? AND dc <= ?
         AND status = 1
@@ -70,50 +70,53 @@ class ChatStatsHandler {
       ORDER BY date ASC
     ";
 
-    $chatsInitiated = ogDb::raw($sqlChatsInitiated, [$dates['start'], $dates['end']]);
+    $chatsData = ogDb::raw($sqlChats, [$dates['start'], $dates['end']]);
 
-    // Query: Mensajes entre prospecto y bot (tipo P y B)
-    $sqlMessages = "
+    // Query: Seguimientos programados por día
+    $sqlFollowups = "
       SELECT 
-        DATE(dc) as date,
-        COUNT(*) as total_messages
-      FROM " . DB_TABLES['chats'] . "
-      WHERE dc >= ? AND dc <= ?
+        DATE(future_date) as date,
+        COUNT(*) as followups_scheduled
+      FROM " . DB_TABLES['followups'] . "
+      WHERE future_date >= ? AND future_date <= ?
         AND status = 1
-        AND type IN ('P', 'B')
-      GROUP BY DATE(dc)
+      GROUP BY DATE(future_date)
       ORDER BY date ASC
     ";
 
-    $messages = ogDb::raw($sqlMessages, [$dates['start'], $dates['end']]);
+    $followupsData = ogDb::raw($sqlFollowups, [$dates['start'], $dates['end']]);
 
     // Combinar resultados
     $statsMap = [];
     
-    // Inicializar con chats iniciados
-    foreach ($chatsInitiated as $row) {
+    // Inicializar con chats
+    foreach ($chatsData as $row) {
       $statsMap[$row['date']] = [
         'date' => $row['date'],
-        'chats_initiated' => (int)$row['chats_initiated'],
-        'total_messages' => 0
+        'new_chats' => (int)$row['new_chats'],
+        'followups_scheduled' => 0
       ];
     }
 
-    // Agregar mensajes
-    foreach ($messages as $row) {
+    // Agregar seguimientos
+    foreach ($followupsData as $row) {
       if (!isset($statsMap[$row['date']])) {
         $statsMap[$row['date']] = [
           'date' => $row['date'],
-          'chats_initiated' => 0,
-          'total_messages' => 0
+          'new_chats' => 0,
+          'followups_scheduled' => 0
         ];
       }
       
-      $statsMap[$row['date']]['total_messages'] = (int)$row['total_messages'];
+      $statsMap[$row['date']]['followups_scheduled'] = (int)$row['followups_scheduled'];
     }
 
-    // Convertir a array ordenado
-    $results = array_values($statsMap);
+    // Calcular total de mensajes
+    $results = array_map(function($row) {
+      $row['total_messages'] = $row['new_chats'] + $row['followups_scheduled'];
+      return $row;
+    }, array_values($statsMap));
+
     usort($results, fn($a, $b) => strcmp($a['date'], $b['date']));
 
     return [

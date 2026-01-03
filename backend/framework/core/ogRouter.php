@@ -10,7 +10,8 @@ class ogRouter {
   protected $middleware = [
     'auth' => 'ogAuthMiddleware',
     'json' => 'ogJsonMiddleware',
-    'throttle' => 'ogThrottleMiddleware'
+    'throttle' => 'ogThrottleMiddleware',
+    'dev' => 'ogDevMiddleware'
   ];
 
   // Registrar rutas

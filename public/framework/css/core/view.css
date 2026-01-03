@@ -83,3 +83,10 @@
   color: #6c757d;
   font-style: italic;
 }
+
+/* Mobile */
+@media (max-width: 600px) {
+  .view-container {
+    padding: 0.4rem;
+  }
+}

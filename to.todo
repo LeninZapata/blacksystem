@@ -9,11 +9,12 @@ Backend (Aplicacion):
   ☐ graficas de conversiones
   ☐ chat por dias | horas
   ☐ ventas por dias | horas
-☐ los endpoint defaker solo deben estar disponibles en entorno de desarrollo (CREO QUE HAY  CREAR
+☐ en las graficas en los handler se repite el metodo de rando de fehcas
+hay que ver si se puede hacer un metodo comun para esto
+✔ los endpoint defaker solo deben estar disponibles en entorno de desarrollo (CREO QUE HAY  CREAR @done(02-01-2026 09:20)
 UN MIDDLEWARE PARA ESTO)
 
 ☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
-
 Produccion:
 ☐ cuando envian un emoji validar el webhook y el de reation porque actualmente estan cambiando las validaciones
 para reaction no debe hacer nada, y para emoji lo que esta haciendo reaction ahorita

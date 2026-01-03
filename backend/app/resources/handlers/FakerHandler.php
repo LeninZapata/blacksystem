@@ -16,6 +16,11 @@ class FakerHandler {
     });
   }
 
+  // Calcular probabilidad (0-100)
+  private static function probability($chance) {
+    return rand(1, 100) <= $chance;
+  }
+
   // Distribuir registros por fecha (aleatoria y realista)
   private static function distributeDates($total, $startDate, $endDate) {
     $start = new DateTime($startDate);
@@ -197,6 +202,9 @@ class FakerHandler {
           $billedAmount = null;
         }
 
+        // tracking_funnel_id: 40% probabilidad de tener valor (remarketing)
+        $trackingFunnelId = self::probability(40) ? 'FUNNEL_' . substr(md5(uniqid()), 0, 10) : null;
+
         ogDb::table('sales')->insert([
           'user_id' => $userId,
           'sale_type' => 'main',
@@ -214,7 +222,7 @@ class FakerHandler {
           'billed_amount' => $billedAmount,
           'process_status' => $processStatus,
           'transaction_id' => $transactionId,
-          'tracking_funnel_id' => null,
+          'tracking_funnel_id' => $trackingFunnelId,
           'parent_transaction_id' => null,
           'payment_date' => $paymentDate,
           'payment_method' => $paymentMethod,

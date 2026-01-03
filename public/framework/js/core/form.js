@@ -1636,6 +1636,7 @@ class ogForm {
         // Si el campo está oculto (por condiciones o cualquier otro motivo), no validar
         if (fieldContainer && (
           fieldContainer.classList.contains('wpfw-depend-on') ||
+          fieldContainer.classList.contains('form-hidden') ||
           fieldContainer.style.display === 'none' ||
           window.getComputedStyle(fieldContainer).display === 'none'
         )) {

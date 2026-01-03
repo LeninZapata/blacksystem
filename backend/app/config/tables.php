@@ -10,6 +10,7 @@ return [
   'work_flows' => 'work_flows',
   'followups' => 'followups',
   'users' => 'users',
+  'product_ad_assets' => 'product_ad_assets',
     //'roles' => 'roles',
     //'permissions' => 'permissions',
     //'sessions' => 'sessions',

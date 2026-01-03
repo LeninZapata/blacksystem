@@ -25,24 +25,22 @@ class credential {
   }
 
   static fillForm(formId, data) {
-    const fillData = {
-      name: data.name,
-      type: data.type
-    };
+    const fillData = { name: data.name, type: data.type };
 
     // Si hay config, extraer los campos específicos
     if (data.config && typeof data.config === 'object') {
       if (data.config.type_value) {
         if (data.type === 'ai-agent') {
           fillData.ai_agent = data.config.type_value;
-          if (data.config.credential_value) {
-            fillData.api_token = data.config.credential_value;
-          }
+          if (data.config.credential_value) fillData.api_token = data.config.credential_value;
         } else if (data.type === 'chat') {
           fillData.chat_api = data.config.type_value;
           if (data.config.base_url) fillData.base_url = data.config.base_url;
           if (data.config.instance) fillData.instance = data.config.instance;
           if (data.config.credential_value) fillData.credential_value = data.config.credential_value;
+        } else if (data.type === 'ad') {
+          fillData.ad_type = data.config.type_value;
+          if (data.config.credential_value) fillData.api_token = data.config.credential_value;
         }
       }
     }
@@ -75,11 +73,7 @@ class credential {
 
   static buildBody(formData) {
     // Construir config JSON automáticamente
-    let config = {
-      type: formData.type,
-      type_value: '',
-      credential_value: ''
-    };
+    let config = { type: formData.type, type_value: '', credential_value: '' };
 
     if (formData.type === 'ai-agent') {
       config.type_value = formData.ai_agent || '';
@@ -89,13 +83,12 @@ class credential {
       config.base_url = formData.base_url || '';
       config.instance = formData.instance || '';
       config.credential_value = formData.credential_value || '';
+    } else if (formData.type === 'ad') {
+      config.type_value = formData.ad_type || '';
+      config.credential_value = formData.api_token || '';
     }
 
-    return {
-      name: formData.name,
-      type: formData.type,
-      config: config
-    };
+    return { name: formData.name, type: formData.type, config: config };
   }
 
   static async create(data) {

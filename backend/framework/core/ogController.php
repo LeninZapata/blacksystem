@@ -26,7 +26,7 @@ class ogController {
     $this->resource = $resourceName;
 
     // Cargar handlers personalizados si existen: framework → app
-    $handlerFile = OG_FRAMEWORK_PATH . "/handlers/og{$resourceName}Handler.php";
+    $handlerFile = OG_FRAMEWORK_PATH . "/resources/handlers/og{$resourceName}Handler.php";
     if (file_exists($handlerFile)) {
       require_once $handlerFile;
     } else {

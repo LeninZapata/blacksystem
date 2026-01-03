@@ -26,6 +26,10 @@
               },
               {
                 "type": "html",
+                "content": "<div id='chart-sales-direct-remarketing'></div>"
+              },
+              {
+                "type": "html",
                 "content": "<div id='chart-new-clients'></div>"
               },
               {

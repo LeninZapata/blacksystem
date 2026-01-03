@@ -1,6 +1,6 @@
 <?php
 /**
- * routes/apis/logs.php - Endpoints de logs usando logReader
+ * routes/logs.php - Endpoints de logs usando logReader
  *
  * Toda la lógica de lectura y filtrado está en logReader
  * Este archivo solo maneja las rutas y respuestas
