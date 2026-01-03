@@ -1,18 +1,18 @@
 <?php
-// routes/ad-metrics.php - Rutas para métricas publicitarias
+// routes/adMetrics.php - Rutas para métricas publicitarias
 
-$router->group('/api/ad-metrics', function($router) {
+$router->group('/api/adMetrics', function($router) {
 
   // Obtener métricas por product_id
-  // GET /api/ad-metrics/product/{product_id}?date_from=2024-01-01&date_to=2024-01-31
+  // GET /api/adMetrics/product/{product_id}?date_from=2024-01-01&date_to=2024-01-31
   $router->get('/product/{product_id}', function($productId) {
     ogResponse::json(
       ogApp()->handler('adMetrics')::getByProduct(['product_id' => $productId])
     );
-  })->middleware(['throttle:100,1']);
+  })->middleware(['auth', 'throttle:100,1']);
 
   // Obtener métricas por assets específicos
-  // GET /api/ad-metrics/assets?assets=[...]&date_from=2024-01-01&date_to=2024-01-31
+  // GET /api/adMetrics/assets?assets=[...]&date_from=2024-01-01&date_to=2024-01-31
   $router->get('/assets', function() {
     ogResponse::json(
       ogApp()->handler('adMetrics')::getByAssets([])
@@ -20,11 +20,27 @@ $router->group('/api/ad-metrics', function($router) {
   })->middleware(['auth', 'throttle:100,1']);
 
   // Endpoint de prueba (usando datos del script)
-  // GET /api/ad-metrics/test?date_from=2024-01-01&date_to=2024-01-31
+  // GET /api/adMetrics/test?date_from=2024-01-01&date_to=2024-01-31
   $router->get('/test', function() {
     ogResponse::json(
       ogApp()->handler('adMetrics')::getTestMetrics([])
     );
   })->middleware(['throttle:100,1']);
+
+  // Guardar métricas HOURLY de todos los productos (CRON cada hora)
+  // GET /api/adMetrics/save-all
+  $router->get('/save-all', function() {
+    ogResponse::json(
+      ogApp()->handler('adMetrics')::saveAllMetrics([])
+    );
+  })->middleware(['throttle:10,1']);
+
+  // Guardar métricas DIARIAS del día anterior (CRON 1am, 3am)
+  // GET /api/adMetrics/save-daily
+  $router->get('/save-daily', function() {
+    ogResponse::json(
+      ogApp()->handler('adMetrics')::saveDailyMetrics([])
+    );
+  })->middleware(['throttle:10,1']);
 
 });
