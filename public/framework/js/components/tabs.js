@@ -1,4 +1,3 @@
-
 class ogTabs {
   static tabCache = new Map();
   static extensionContextMap = new Map(); // Guardar contexto por ID de tabs
@@ -159,6 +158,7 @@ class ogTabs {
     }
 
     const cacheKey = `${tabsData.id}-${tabId}`;
+    const isFirstLoad = !this.tabCache.has(cacheKey);
 
     if (this.tabCache.has(cacheKey)) {
       const cachedNode = this.tabCache.get(cacheKey);
@@ -181,6 +181,10 @@ class ogTabs {
 
       tabContent.innerHTML = '';
       tabContent.appendChild(tempContainer);
+
+      if (isFirstLoad && tab.onLoad) {
+        this.executeCallback(tab.onLoad);
+      }
 
     } catch (error) {
       ogLogger.error('com:tabs', `Error cargando tab ${tabId}:`, error);
@@ -281,6 +285,36 @@ class ogTabs {
 
   static clearCache() {
     this.tabCache.clear();
+  }
+
+  static executeCallback(callback) {
+    try {
+      // Si contiene paréntesis, asumir que es código ejecutable
+      if (callback.includes('(') || callback.includes(';')) {
+        new Function(callback)();
+        return;
+      }
+
+      // Intentar ejecutar como referencia a función (ej: productStats.onGastosTabLoaded)
+      const parts = callback.split('.');
+      let fn = window;
+
+      for (const part of parts) {
+        fn = fn[part];
+        if (!fn) {
+          ogLogger.warn('com:tabs', `Callback no encontrado: ${callback}`);
+          return;
+        }
+      }
+
+      if (typeof fn === 'function') {
+        fn();
+      } else {
+        ogLogger.warn('com:tabs', `${callback} no es una función`);
+      }
+    } catch (error) {
+      ogLogger.error('com:tabs', `Error ejecutando callback ${callback}:`, error);
+    }
   }
 }
 

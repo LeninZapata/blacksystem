@@ -1,3 +1,7 @@
+PROBLEMA:
+✔ @CRITICAL lo que pasa es que si no existe una conversacion esta siguiente la secuencia @done(03-01-2026 10:15)
+en una conversion normal, y debe parar todo el flujo en realidad
+
 Backend (Aplicacion):
 ✔ agregar nuevos arhcivos en los handlers para el manejo de las consultas de graficas @done(01-01-2026 21:47)
 ✔ Faker debe ser refactorizado actualmente tiene 500 lineas y nada que ver @done(01-01-2026 21:47)
@@ -15,6 +19,7 @@ hay que ver si se puede hacer un metodo comun para esto
 UN MIDDLEWARE PARA ESTO)
 
 ☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
+
 Mas adelant:
 ☐ Ahora cuando guardas los datos de anuncios debe ser por timezone de la cuenta publicitaria
 con esto se evita que los datos no cuadren por el tema de las zonas horarias

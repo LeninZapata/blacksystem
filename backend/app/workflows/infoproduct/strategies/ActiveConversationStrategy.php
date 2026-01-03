@@ -53,9 +53,9 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
 
   private function saveUserMessages($processedData, $context) {
     $messages = $processedData['interpreted_messages'] ?? [];
+    $chatData = $context['chat_data'];
     $bot = $context['bot'];
     $person = $context['person'];
-    $chatData = $context['chat_data'];
 
     ogApp()->loadHandler('chat');
     foreach ($messages as $msg) {

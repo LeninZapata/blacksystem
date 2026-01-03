@@ -500,4 +500,345 @@ class adMetricsHandler {
       ];
     }
   }
+
+  // Obtener métricas de gastos por día (combina daily + hourly del día actual)
+  static function getAdSpendByDay($params) {
+    $range = $params['range'] ?? 'last_7_days';
+    $dates = ogApp()->helper('date')::getDateRange($range);
+    
+    if (!$dates) {
+      return ['success' => false, 'error' => 'Rango inválido'];
+    }
+
+    $today = date('Y-m-d');
+    $yesterday = date('Y-m-d', strtotime('-1 day'));
+
+    // Determinar si necesitamos datos de hoy
+    $needsToday = strtotime($dates['end']) >= strtotime($today);
+
+    try {
+      $results = [];
+
+      // PASO 1: Obtener datos históricos (ad_metrics_daily)
+      // Hasta ayer inclusive si necesitamos hoy, sino hasta la fecha final
+      $historicEnd = $needsToday ? $yesterday : date('Y-m-d', strtotime($dates['end']));
+
+      if (strtotime($dates['start']) <= strtotime($historicEnd)) {
+        $sqlHistoric = "
+          SELECT 
+            d.metric_date as date,
+            SUM(d.spend) as spend,
+            SUM(d.impressions) as impressions,
+            SUM(d.clicks) as clicks,
+            SUM(d.link_clicks) as link_clicks,
+            SUM(d.conversions) as conversions,
+            SUM(d.results) as results,
+            SUM(d.purchase) as ad_purchases,
+            SUM(d.purchase_value) as ad_purchase_value,
+            COUNT(DISTINCT s.id) as real_purchases,
+            COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
+          FROM ad_metrics_daily d
+          LEFT JOIN sales s ON DATE(s.payment_date) = d.metric_date 
+            AND s.context = 'whatsapp' 
+            AND s.process_status = 'sale_confirmed'
+            AND s.status = 1
+          WHERE d.metric_date >= ? AND d.metric_date <= ?
+          GROUP BY d.metric_date
+          ORDER BY d.metric_date ASC
+        ";
+
+        $historicData = ogDb::raw($sqlHistoric, [$dates['start'], $historicEnd]);
+        
+        foreach ($historicData as $row) {
+          $results[$row['date']] = [
+            'date' => $row['date'],
+            'spend' => (float)$row['spend'],
+            'impressions' => (int)$row['impressions'],
+            'clicks' => (int)$row['clicks'],
+            'link_clicks' => (int)$row['link_clicks'],
+            'conversions' => (int)$row['conversions'],
+            'results' => (int)$row['results'],
+            'ad_purchases' => (int)$row['ad_purchases'],
+            'ad_purchase_value' => (float)$row['ad_purchase_value'],
+            'real_purchases' => (int)$row['real_purchases'],
+            'real_purchase_value' => (float)$row['real_purchase_value'],
+            'cpm' => 0,
+            'cpc' => 0,
+            'ctr' => 0,
+            'roas' => 0
+          ];
+        }
+      }
+
+      // PASO 2: Obtener datos de hoy (ad_metrics_hourly con is_latest = 1)
+      if ($needsToday) {
+        $sqlToday = "
+          SELECT 
+            h.query_date as date,
+            SUM(h.spend) as spend,
+            SUM(h.impressions) as impressions,
+            SUM(h.clicks) as clicks,
+            SUM(h.link_clicks) as link_clicks,
+            SUM(h.conversions) as conversions,
+            SUM(h.results) as results,
+            SUM(h.purchase) as ad_purchases,
+            SUM(h.purchase_value) as ad_purchase_value,
+            COUNT(DISTINCT s.id) as real_purchases,
+            COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
+          FROM ad_metrics_hourly h
+          LEFT JOIN sales s ON DATE(s.payment_date) = h.query_date 
+            AND s.context = 'whatsapp' 
+            AND s.process_status = 'sale_confirmed'
+            AND s.status = 1
+          WHERE h.query_date = ?
+            AND h.is_latest = 1
+          GROUP BY h.query_date
+        ";
+
+        $todayData = ogDb::raw($sqlToday, [$today]);
+
+        if (!empty($todayData)) {
+          $row = $todayData[0];
+          $results[$today] = [
+            'date' => $today,
+            'spend' => (float)$row['spend'],
+            'impressions' => (int)$row['impressions'],
+            'clicks' => (int)$row['clicks'],
+            'link_clicks' => (int)$row['link_clicks'],
+            'conversions' => (int)$row['conversions'],
+            'results' => (int)$row['results'],
+            'ad_purchases' => (int)$row['ad_purchases'],
+            'ad_purchase_value' => (float)$row['ad_purchase_value'],
+            'real_purchases' => (int)$row['real_purchases'],
+            'real_purchase_value' => (float)$row['real_purchase_value'],
+            'cpm' => 0,
+            'cpc' => 0,
+            'ctr' => 0,
+            'roas' => 0
+          ];
+        }
+      }
+
+      // PASO 3: Calcular métricas derivadas
+      foreach ($results as &$row) {
+        $row['cpm'] = $row['impressions'] > 0 ? ($row['spend'] / $row['impressions']) * 1000 : 0;
+        $row['cpc'] = $row['clicks'] > 0 ? $row['spend'] / $row['clicks'] : 0;
+        $row['ctr'] = $row['impressions'] > 0 ? ($row['clicks'] / $row['impressions']) * 100 : 0;
+        
+        // ROAS = (Ingresos / Gasto) - usando ventas reales
+        $row['roas'] = $row['spend'] > 0 ? ($row['real_purchase_value'] / $row['spend']) : 0;
+
+        // Redondear
+        $row['cpm'] = round($row['cpm'], 2);
+        $row['cpc'] = round($row['cpc'], 2);
+        $row['ctr'] = round($row['ctr'], 2);
+        $row['roas'] = round($row['roas'], 2);
+        $row['spend'] = round($row['spend'], 2);
+        $row['ad_purchase_value'] = round($row['ad_purchase_value'], 2);
+        $row['real_purchase_value'] = round($row['real_purchase_value'], 2);
+      }
+
+      // Ordenar por fecha
+      ksort($results);
+      $results = array_values($results);
+
+      // Calcular totales
+      $totals = [
+        'spend' => 0,
+        'impressions' => 0,
+        'clicks' => 0,
+        'link_clicks' => 0,
+        'conversions' => 0,
+        'results' => 0,
+        'ad_purchases' => 0,
+        'ad_purchase_value' => 0,
+        'real_purchases' => 0,
+        'real_purchase_value' => 0
+      ];
+
+      foreach ($results as $row) {
+        $totals['spend'] += $row['spend'];
+        $totals['impressions'] += $row['impressions'];
+        $totals['clicks'] += $row['clicks'];
+        $totals['link_clicks'] += $row['link_clicks'];
+        $totals['conversions'] += $row['conversions'];
+        $totals['results'] += $row['results'];
+        $totals['ad_purchases'] += $row['ad_purchases'];
+        $totals['ad_purchase_value'] += $row['ad_purchase_value'];
+        $totals['real_purchases'] += $row['real_purchases'];
+        $totals['real_purchase_value'] += $row['real_purchase_value'];
+      }
+
+      // Métricas derivadas de totales
+      $totals['cpm'] = $totals['impressions'] > 0 ? ($totals['spend'] / $totals['impressions']) * 1000 : 0;
+      $totals['cpc'] = $totals['clicks'] > 0 ? $totals['spend'] / $totals['clicks'] : 0;
+      $totals['ctr'] = $totals['impressions'] > 0 ? ($totals['clicks'] / $totals['impressions']) * 100 : 0;
+      $totals['roas'] = $totals['spend'] > 0 ? ($totals['real_purchase_value'] / $totals['spend']) : 0;
+
+      // Redondear totales
+      $totals['spend'] = round($totals['spend'], 2);
+      $totals['ad_purchase_value'] = round($totals['ad_purchase_value'], 2);
+      $totals['real_purchase_value'] = round($totals['real_purchase_value'], 2);
+      $totals['cpm'] = round($totals['cpm'], 2);
+      $totals['cpc'] = round($totals['cpc'], 2);
+      $totals['ctr'] = round($totals['ctr'], 2);
+      $totals['roas'] = round($totals['roas'], 2);
+
+      return [
+        'success' => true,
+        'data' => $results,
+        'totals' => $totals,
+        'period' => [
+          'start' => $dates['start'],
+          'end' => $dates['end'],
+          'range' => $range,
+          'includes_today' => $needsToday
+        ]
+      ];
+
+    } catch (Exception $e) {
+      ogLog::error('getAdSpendByDay - Error', ['error' => $e->getMessage()], self::$logMeta);
+      return [
+        'success' => false,
+        'error' => 'Error al obtener métricas de gastos',
+        'details' => OG_IS_DEV ? $e->getMessage() : null
+      ];
+    }
+  }
+
+  // Obtener métricas de gastos por producto
+  static function getAdSpendByProduct($params) {
+    $range = $params['range'] ?? 'last_7_days';
+    $dates = ogApp()->helper('date')::getDateRange($range);
+    
+    if (!$dates) {
+      return ['success' => false, 'error' => 'Rango inválido'];
+    }
+
+    $today = date('Y-m-d');
+
+    try {
+      // Obtener datos históricos agrupados por producto
+      $sqlHistoric = "
+        SELECT 
+          d.product_id,
+          p.name as product_name,
+          SUM(d.spend) as spend,
+          SUM(d.impressions) as impressions,
+          SUM(d.clicks) as clicks,
+          SUM(d.conversions) as conversions,
+          SUM(d.purchase) as purchases,
+          SUM(d.purchase_value) as purchase_value
+        FROM ad_metrics_daily d
+        LEFT JOIN products p ON d.product_id = p.id
+        WHERE d.metric_date >= ? AND d.metric_date < ?
+        GROUP BY d.product_id, p.name
+        ORDER BY spend DESC
+      ";
+
+      $historicData = ogDb::raw($sqlHistoric, [$dates['start'], $today]);
+
+      // Obtener datos de hoy
+      $sqlToday = "
+        SELECT 
+          h.product_id,
+          p.name as product_name,
+          SUM(h.spend) as spend,
+          SUM(h.impressions) as impressions,
+          SUM(h.clicks) as clicks,
+          SUM(h.conversions) as conversions,
+          SUM(h.purchase) as purchases,
+          SUM(h.purchase_value) as purchase_value
+        FROM ad_metrics_hourly h
+        LEFT JOIN products p ON h.product_id = p.id
+        WHERE h.query_date = ?
+          AND h.is_latest = 1
+        GROUP BY h.product_id, p.name
+      ";
+
+      $todayData = ogDb::raw($sqlToday, [$today]);
+
+      // Combinar resultados por product_id
+      $productMap = [];
+
+      foreach ($historicData as $row) {
+        $productId = $row['product_id'];
+        $productMap[$productId] = [
+          'product_id' => $productId,
+          'product_name' => $row['product_name'] ?? "Producto #{$productId}",
+          'spend' => (float)$row['spend'],
+          'impressions' => (int)$row['impressions'],
+          'clicks' => (int)$row['clicks'],
+          'conversions' => (int)$row['conversions'],
+          'purchases' => (int)$row['purchases'],
+          'purchase_value' => (float)$row['purchase_value']
+        ];
+      }
+
+      // Agregar datos de hoy
+      foreach ($todayData as $row) {
+        $productId = $row['product_id'];
+        
+        if (!isset($productMap[$productId])) {
+          $productMap[$productId] = [
+            'product_id' => $productId,
+            'product_name' => $row['product_name'] ?? "Producto #{$productId}",
+            'spend' => 0,
+            'impressions' => 0,
+            'clicks' => 0,
+            'conversions' => 0,
+            'purchases' => 0,
+            'purchase_value' => 0
+          ];
+        }
+
+        $productMap[$productId]['spend'] += (float)$row['spend'];
+        $productMap[$productId]['impressions'] += (int)$row['impressions'];
+        $productMap[$productId]['clicks'] += (int)$row['clicks'];
+        $productMap[$productId]['conversions'] += (int)$row['conversions'];
+        $productMap[$productId]['purchases'] += (int)$row['purchases'];
+        $productMap[$productId]['purchase_value'] += (float)$row['purchase_value'];
+      }
+
+      // Calcular métricas derivadas y redondear
+      $results = [];
+      foreach ($productMap as $product) {
+        $product['cpm'] = $product['impressions'] > 0 ? ($product['spend'] / $product['impressions']) * 1000 : 0;
+        $product['cpc'] = $product['clicks'] > 0 ? $product['spend'] / $product['clicks'] : 0;
+        $product['ctr'] = $product['impressions'] > 0 ? ($product['clicks'] / $product['impressions']) * 100 : 0;
+        $product['roi'] = $product['spend'] > 0 ? (($product['purchase_value'] - $product['spend']) / $product['spend']) * 100 : 0;
+
+        // Redondear
+        $product['spend'] = round($product['spend'], 2);
+        $product['purchase_value'] = round($product['purchase_value'], 2);
+        $product['cpm'] = round($product['cpm'], 2);
+        $product['cpc'] = round($product['cpc'], 2);
+        $product['ctr'] = round($product['ctr'], 2);
+        $product['roi'] = round($product['roi'], 2);
+
+        $results[] = $product;
+      }
+
+      // Ordenar por gasto descendente
+      usort($results, fn($a, $b) => $b['spend'] <=> $a['spend']);
+
+      return [
+        'success' => true,
+        'data' => $results,
+        'period' => [
+          'start' => $dates['start'],
+          'end' => $dates['end'],
+          'range' => $range
+        ]
+      ];
+
+    } catch (Exception $e) {
+      ogLog::error('getAdSpendByProduct - Error', ['error' => $e->getMessage()], self::$logMeta);
+      return [
+        'success' => false,
+        'error' => 'Error al obtener métricas por producto',
+        'details' => OG_IS_DEV ? $e->getMessage() : null
+      ];
+    }
+  }
 }

@@ -63,17 +63,29 @@ class ogDbBuilder {
   }
 
   // Where
+  // En la clase ogDbBuilder, modifica el método where():
   function where($col, $op = null, $val = null, $bool = 'AND') {
     $i = clone $this;
     if (is_array($col)) {
       foreach ($col as $k => $v) $i = $i->where($k, '=', $v);
       return $i;
     }
+
+    // Solo almacenar el nombre de la columna, SIN backticks
+    $columnName = $col;
+
     if ($val === null) {
       $val = $op;
       $op = '=';
     }
-    $i->wheres[] = ['type' => 'basic', 'column' => $col, 'operator' => $op, 'value' => $val, 'boolean' => $bool];
+
+    $i->wheres[] = [
+      'type' => 'basic',
+      'column' => $columnName,
+      'operator' => $op,
+      'value' => $val,
+      'boolean' => $bool
+    ];
     return $i;
   }
 
@@ -298,7 +310,7 @@ class ogDbBuilder {
   protected function compileSelect() {
     $sql = $this->distinct ? 'SELECT DISTINCT ' : 'SELECT ';
     $sql .= $this->columns === ['*'] ? '*' : implode(', ', $this->columns);
-    $sql .= " FROM `{$this->table}`";
+    $sql .= " FROM {$this->table}";
 
     if ($this->joins) {
       foreach ($this->joins as $j) {
@@ -341,29 +353,34 @@ class ogDbBuilder {
 
     foreach ($this->wheres as $i => $w) {
       $bool = $i === 0 ? '' : "{$w['boolean']} ";
+      $column = $w['column'];
+
+      // Determinar si necesita backticks
+      $colName = $this->formatColumnName($column);
+
       switch ($w['type']) {
         case 'basic':
-          $sql[] = $bool . "`{$w['column']}` {$w['operator']} ?";
+          $sql[] = $bool . "{$colName} {$w['operator']} ?";
           $binds[] = $w['value'];
           break;
         case 'in':
           $places = implode(', ', array_fill(0, count($w['values']), '?'));
-          $sql[] = $bool . "`{$w['column']}` IN ($places)";
+          $sql[] = $bool . "{$colName} IN ($places)";
           $binds = array_merge($binds, $w['values']);
           break;
         case 'notIn':
           $places = implode(', ', array_fill(0, count($w['values']), '?'));
-          $sql[] = $bool . "`{$w['column']}` NOT IN ($places)";
+          $sql[] = $bool . "{$colName} NOT IN ($places)";
           $binds = array_merge($binds, $w['values']);
           break;
         case 'null':
-          $sql[] = $bool . "`{$w['column']}` IS NULL";
+          $sql[] = $bool . "{$colName} IS NULL";
           break;
         case 'notNull':
-          $sql[] = $bool . "`{$w['column']}` IS NOT NULL";
+          $sql[] = $bool . "{$colName} IS NOT NULL";
           break;
         case 'between':
-          $sql[] = $bool . "`{$w['column']}` BETWEEN ? AND ?";
+          $sql[] = $bool . "{$colName} BETWEEN ? AND ?";
           $binds[] = $w['values'][0];
           $binds[] = $w['values'][1];
           break;
@@ -376,6 +393,25 @@ class ogDbBuilder {
   function toSql() {
     [$sql] = $this->compileSelect();
     return $sql;
+  }
+
+
+  // Método auxiliar para formatear nombres de columna
+  protected function formatColumnName($column) {
+    if ($column instanceof ogRawExpr) {
+      return (string)$column;
+    }
+
+    // Si ya tiene backticks o es función SQL, dejar tal cual
+    if (strpos($column, '`') !== false ||
+      strpos($column, '(') !== false ||
+      strpos($column, ')') !== false ||
+      strpos($column, '.') !== false) {
+      return $column;
+    }
+
+    // Agregar backticks a nombres simples
+    return "`{$column}`";
   }
 
   // SQL con valores interpolados (para debugging)
@@ -429,6 +465,7 @@ class ogDbBuilder {
   function getConnection() {
     return $this->conn;
   }
+
 }
 
 // Raw Expression

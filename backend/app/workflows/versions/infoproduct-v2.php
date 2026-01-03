@@ -113,13 +113,13 @@ class InfoproductV2Handler {
     }
 
     // PRIORIDAD 2: Continuar conversación (si no es welcome)
-    if ($hasConversation) {
+    if ( $hasConversation['exists'] ?? false ) {
       ogLog::info("handle - No es welcome ➜ Continuar conversación", [], $this->logMeta);
       $this->continueConversation($bot, $person, $message, $messageType);
       return;
     }
 
-    ogLog::info("No action taken - No conversation and not welcome", [
+    ogLog::info("No hacer nada, no hay conversacion iniciada y no es un welcome", [
       'number' => $person['number']
     ], ['module' => 'infoproduct_v2']);
   }
