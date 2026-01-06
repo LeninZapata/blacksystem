@@ -25,6 +25,12 @@ class permissions {
     const permissions = userConfig.permissions || {};
     const selectorId = `permissions-${version}`;
 
+    // Solo guardar la estructura de permisos, no todo el config
+    const permissionsData = {
+      permissions: permissions,
+      preferences: userConfig.preferences || { theme: 'light', language: 'es', notifications: true }
+    };
+
     // Cargar tabs de todas las vistas
     await this.loadAllViewsTabs(extensionsData);
 
@@ -46,12 +52,12 @@ class permissions {
           ${extensionsData.map(extension => this.renderPlugin(extension, permissions, selectorId)).join('')}
         </div>
 
-        <input type="hidden" name="config" id="${selectorId}-data" value='${JSON.stringify(config)}'>
+        <input type="hidden" name="config" id="${selectorId}-data" value='${JSON.stringify(permissionsData)}'>
       </div>
     `;
 
     container.innerHTML = html;
-    this.instances.set(selectorId, { config, extensionsData });
+    this.instances.set(selectorId, { permissionsData, extensionsData });
     this.bindEvents(selectorId);
 
     ogLogger.success('com:permissions', 'Renderizado exitosamente');
@@ -96,21 +102,41 @@ class permissions {
    * Cargar JSON de una vista
    */
   static async loadViewJson(extensionName, viewPath) {
-    // Obtener baseUrl del config actual
     const config = window.ogFramework?.activeConfig || window.appConfig;
     const baseUrl = config?.baseUrl || '/';
-
-    // Construir URL: {baseUrl}extensions/{extension}/views/{viewPath}.json
     const url = `${baseUrl}extensions/${extensionName}/views/${viewPath}.json`;
-
-    // ogLogger?.debug('com:permissions', `🔍 Cargando vista: ${url}`);
-
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-
     return await response.json();
+  }
+
+  /**
+   * Verifica si un extension tiene algún hijo seleccionado
+   */
+  static hasAnyChildrenSelected(extensionPerms) {
+    if (!extensionPerms || typeof extensionPerms !== 'object') return false;
+
+    const menus = extensionPerms.menus;
+    if (!menus) return false;
+    if (menus === '*') return true;
+
+    if (typeof menus === 'object') {
+      return Object.keys(menus).some(menuKey => {
+        const menuValue = menus[menuKey];
+        if (menuValue === true) return true;
+        if (typeof menuValue === 'object') {
+          if (menuValue.tabs === '*') return true;
+          if (menuValue.tabs && typeof menuValue.tabs === 'object') {
+            return Object.values(menuValue.tabs).some(t => t === true);
+          }
+        }
+        return false;
+      });
+    }
+
+    return false;
   }
 
   /**
@@ -118,7 +144,7 @@ class permissions {
    */
   static renderPlugin(extension, permissions, selectorId) {
     const extensionPerms = permissions.extensions?.[extension.name] || {};
-    const isEnabled = extensionPerms.enabled !== false;
+    const isEnabled = this.hasAnyChildrenSelected(extensionPerms);
     const pluginId = `${selectorId}-extension-${extension.name}`;
 
     return `
@@ -185,22 +211,15 @@ class permissions {
     let isMenuChecked = false;
 
     if (allMenus) {
-      // Si "Todos los menús" está marcado
       isMenuChecked = true;
     } else if (menuPerms === true) {
-      // Menú simple sin tabs
       isMenuChecked = true;
     } else if (typeof menuPerms === 'object') {
-      // Menú con tabs
       if (menuPerms.tabs === '*') {
-        // Todas las tabs marcadas
         isMenuChecked = true;
       } else if (menuPerms.tabs && typeof menuPerms.tabs === 'object') {
-        // Verificar si hay al menos 1 tab en true
         const hasAnyTabChecked = Object.values(menuPerms.tabs).some(value => value === true);
         isMenuChecked = hasAnyTabChecked;
-
-        ogLogger.debug('com:permissions', `Menú "${menuItem.id}": hasAnyTabChecked=${hasAnyTabChecked}, tabs:`, menuPerms.tabs);
       }
     }
 
@@ -234,50 +253,51 @@ class permissions {
           ` : ''}
         </div>
 
-        ${hasExpandableTabs ? `
-          <div class="permission-tabs ${isExpanded ? 'open' : ''}" id="${tabsId}">
-            ${this.renderTabs(tabs, extension, menuItem, menuPerms, selectorId)}
-          </div>
-        ` : ''}
+        ${hasExpandableTabs ? this.renderTabs(tabs, menuItem, extension, menuPerms, allMenus, tabsId, isExpanded) : ''}
       </div>
     `;
   }
 
   /**
-   * Renderiza las tabs de un menú/vista
+   * Renderiza los tabs de un menú
    */
-  static renderTabs(tabs, extension, menuItem, menuPerms, selectorId) {
-    const tabsPerms = typeof menuPerms === 'object' ? menuPerms.tabs || {} : {};
-    const allTabs = tabsPerms === '*';
+  static renderTabs(tabs, menuItem, extension, menuPerms, allMenus, tabsId, isExpanded) {
+    const tabsPerms = menuPerms.tabs || {};
+    const tabsToggleChecked = tabsPerms === '*';
+    
+    // Si "Todos los menús" está marcado O "Todas las tabs" está marcado, marcar todas las tabs
+    const shouldCheckAllTabs = allMenus || tabsToggleChecked;
 
     return `
-      <div class="permission-tabs-header">
-        <span>📑 Tabs</span>
-        <label class="permission-checkbox-xs">
-          <input type="checkbox"
-                 class="tabs-toggle-all"
-                 data-extension="${extension.name}"
-                 data-menu="${menuItem.id}"
-                 ${allTabs ? 'checked' : ''}>
-          <span>Todas</span>
-        </label>
-      </div>
-      <div class="permission-tabs-list">
-        ${tabs.map(tab => {
-          const isChecked = allTabs || tabsPerms[tab.id] === true;
-          return `
-            <label class="permission-tab-item">
-              <input type="checkbox"
-                     class="tab-checkbox"
-                     data-extension="${extension.name}"
-                     data-menu="${menuItem.id}"
-                     data-tab="${tab.id}"
-                     ${isChecked ? 'checked' : ''}
-                     ${allTabs ? 'disabled' : ''}>
-              <span>${tab.title}</span>
-            </label>
-          `;
-        }).join('')}
+      <div class="permission-tabs ${isExpanded ? 'open' : ''}" id="${tabsId}">
+        <div class="permission-tabs-header">
+          <span>🗂️ Tabs</span>
+          <label class="permission-checkbox-sm">
+            <input type="checkbox"
+                   class="tabs-toggle-all"
+                   data-extension="${extension.name}"
+                   data-menu="${menuItem.id}"
+                   ${shouldCheckAllTabs ? 'checked' : ''}>
+            <span>Todas</span>
+          </label>
+        </div>
+        <div class="permission-tab-items">
+          ${tabs.map(tab => {
+            const isTabChecked = shouldCheckAllTabs || tabsPerms[tab.id] === true;
+            return `
+              <label class="permission-tab-item">
+                <input type="checkbox"
+                       class="tab-checkbox"
+                       data-extension="${extension.name}"
+                       data-menu="${menuItem.id}"
+                       data-tab="${tab.id}"
+                       ${isTabChecked ? 'checked' : ''}
+                       ${tabsToggleChecked ? 'disabled' : ''}>
+                <span>${tab.title}</span>
+              </label>
+            `;
+          }).join('')}
+        </div>
       </div>
     `;
   }
@@ -319,7 +339,6 @@ class permissions {
           cb.checked = e.target.checked;
         });
 
-        // También deshabilitar todos los tab checkboxes
         const tabCheckboxes = container.querySelectorAll(`.tab-checkbox[data-extension="${extension}"]`);
         tabCheckboxes.forEach(cb => {
           cb.disabled = e.target.checked;
@@ -372,7 +391,39 @@ class permissions {
 
     // Toggle individual tab
     container.querySelectorAll('.tab-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', () => {
+      checkbox.addEventListener('change', (e) => {
+        const extension = e.target.dataset.extension;
+        const menu = e.target.dataset.menu;
+
+        // Actualizar estado del checkbox del menú padre
+        const menuCheckbox = container.querySelector(
+          `.menu-checkbox[data-extension="${extension}"][data-menu="${menu}"]`
+        );
+
+        if (menuCheckbox && !menuCheckbox.disabled) {
+          // Verificar si hay al menos un tab seleccionado
+          const tabCheckboxes = container.querySelectorAll(
+            `.tab-checkbox[data-extension="${extension}"][data-menu="${menu}"]`
+          );
+          const hasAnyTabChecked = Array.from(tabCheckboxes).some(cb => cb.checked);
+
+          // Si hay tabs seleccionados, marcar el menú
+          menuCheckbox.checked = hasAnyTabChecked;
+
+          // Actualizar visibilidad del contenedor de tabs
+          const tabsContainer = menuCheckbox.closest('.permission-item-wrapper')?.querySelector('.permission-tabs');
+          if (tabsContainer) {
+            const collapseBtn = menuCheckbox.closest('.permission-item-wrapper')?.querySelector('.btn-collapse-sm');
+            if (hasAnyTabChecked) {
+              tabsContainer.classList.add('open');
+              if (collapseBtn) collapseBtn.textContent = '▼';
+            } else {
+              tabsContainer.classList.remove('open');
+              if (collapseBtn) collapseBtn.textContent = '▶';
+            }
+          }
+        }
+
         this.updateConfig(selectorId);
       });
     });
@@ -388,8 +439,10 @@ class permissions {
     const instance = this.instances.get(selectorId);
     if (!instance) return;
 
-    const newConfig = { ...instance.config };
-    newConfig.permissions = { extensions: {} };
+    const newPermissions = {
+      permissions: { extensions: {} },
+      preferences: instance.permissionsData?.preferences || { theme: 'light', language: 'es', notifications: true }
+    };
 
     // Procesar cada extension
     instance.extensionsData.forEach(extension => {
@@ -401,15 +454,63 @@ class permissions {
       };
 
       if (pluginCheckbox.checked && extension.hasMenu) {
-        // Verificar si "Todos los menús" está marcado
         const allMenusCheckbox = container.querySelector(
           `.section-toggle-all[data-extension="${extension.name}"][data-section="menus"]`
         );
 
         if (allMenusCheckbox?.checked) {
-          extensionData.menus = '*';
+          // Cuando "Todos" está marcado, necesitamos revisar si hay tabs individuales
+          extensionData.menus = {};
+          let allSimple = true; // Para detectar si todos son simples (sin configuración de tabs)
+
+          extension.menu?.items.forEach(menuItem => {
+            const tabsToggleAll = container.querySelector(
+              `.tabs-toggle-all[data-extension="${extension.name}"][data-menu="${menuItem.id}"]`
+            );
+
+            if (tabsToggleAll) {
+              // Tiene tabs - verificar estado
+              const tabCheckboxes = container.querySelectorAll(
+                `.tab-checkbox[data-extension="${extension.name}"][data-menu="${menuItem.id}"]`
+              );
+              const totalTabs = tabCheckboxes.length;
+              const checkedTabs = Array.from(tabCheckboxes).filter(cb => cb.checked).length;
+
+              if (checkedTabs === 0) {
+                // No hay tabs seleccionados, no incluir este menú
+                return;
+              } else if (checkedTabs === totalTabs || tabsToggleAll.checked) {
+                // Todas las tabs seleccionadas
+                extensionData.menus[menuItem.id] = { enabled: true, tabs: '*' };
+              } else {
+                // Tabs individuales
+                const tabsData = {};
+                tabCheckboxes.forEach(tabCheckbox => {
+                  if (tabCheckbox.checked) {
+                    tabsData[tabCheckbox.dataset.tab] = true;
+                  }
+                });
+                extensionData.menus[menuItem.id] = {
+                  enabled: true,
+                  tabs: tabsData
+                };
+                allSimple = false;
+              }
+            } else {
+              // No tiene tabs, solo el menú
+              extensionData.menus[menuItem.id] = true;
+            }
+          });
+
+          // Si todos los menús tienen tabs: '*' o son true, simplificar a menus: '*'
+          const canSimplify = Object.values(extensionData.menus).every(menuValue => {
+            return menuValue === true || (menuValue?.tabs === '*');
+          });
+
+          if (canSimplify && allSimple) {
+            extensionData.menus = '*';
+          }
         } else {
-          // Procesar cada menú individualmente
           extensionData.menus = {};
 
           extension.menu?.items.forEach(menuItem => {
@@ -417,8 +518,10 @@ class permissions {
               `.menu-checkbox[data-extension="${extension.name}"][data-menu="${menuItem.id}"]`
             );
 
-            if (menuCheckbox?.checked) {
-              // Verificar si tiene tabs
+            // Procesar si el menú está checked O si tiene tabs (incluso si está disabled)
+            const shouldProcess = menuCheckbox?.checked || menuCheckbox?.disabled;
+
+            if (shouldProcess) {
               const tabsToggleAll = container.querySelector(
                 `.tabs-toggle-all[data-extension="${extension.name}"][data-menu="${menuItem.id}"]`
               );
@@ -426,49 +529,53 @@ class permissions {
               if (tabsToggleAll) {
                 // Tiene tabs
                 if (tabsToggleAll.checked) {
-                  // Todas las tabs
                   extensionData.menus[menuItem.id] = { enabled: true, tabs: '*' };
                 } else {
-                  // Tabs individuales
+                  // Verificar tabs individuales
                   const tabsData = {};
                   container.querySelectorAll(
                     `.tab-checkbox[data-extension="${extension.name}"][data-menu="${menuItem.id}"]`
                   ).forEach(tabCheckbox => {
-                    if (tabCheckbox.checked) {
+                    if (tabCheckbox.checked && !tabCheckbox.disabled) {
                       tabsData[tabCheckbox.dataset.tab] = true;
                     }
                   });
 
-                  extensionData.menus[menuItem.id] = {
-                    enabled: true,
-                    tabs: Object.keys(tabsData).length > 0 ? tabsData : {}
-                  };
+                  // Solo guardar si hay tabs seleccionados
+                  if (Object.keys(tabsData).length > 0) {
+                    extensionData.menus[menuItem.id] = {
+                      enabled: true,
+                      tabs: tabsData
+                    };
+                  }
                 }
               } else {
                 // No tiene tabs, solo el menú
-                extensionData.menus[menuItem.id] = true;
+                if (menuCheckbox.checked) {
+                  extensionData.menus[menuItem.id] = true;
+                }
               }
             }
           });
         }
       }
 
-      newConfig.permissions.extensions[extension.name] = extensionData;
+      newPermissions.permissions.extensions[extension.name] = extensionData;
     });
 
     // Actualizar hidden input
     const hiddenInput = document.getElementById(`${selectorId}-data`);
     if (hiddenInput) {
-      hiddenInput.value = JSON.stringify(newConfig);
+      hiddenInput.value = JSON.stringify(newPermissions);
     }
 
-    // Actualizar preview en la tab "📊 JSON Preview"
+    // Actualizar preview
     const preview = document.getElementById('config-preview');
     if (preview) {
-      preview.textContent = JSON.stringify(newConfig, null, 2);
+      preview.textContent = JSON.stringify(newPermissions, null, 2);
     }
 
-    instance.config = newConfig;
+    instance.permissionsData = newPermissions;
   }
 
   /**
@@ -493,13 +600,11 @@ class permissions {
     const container = document.getElementById(selectorId);
     if (!container) return;
 
-    // Extension toggles
     container.querySelectorAll('.extension-toggle').forEach(cb => {
       cb.checked = checked;
       cb.dispatchEvent(new Event('change'));
     });
 
-    // Section toggles
     container.querySelectorAll('.section-toggle-all').forEach(cb => {
       cb.checked = checked;
       cb.dispatchEvent(new Event('change'));

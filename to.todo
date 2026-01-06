@@ -1,6 +1,10 @@
+Hacer:
+- subir toda la informacion de los productos
+- hacer las pruebas en tiempo real ya con el servidor
+- subir los webhook a hosting de forma real
+- crear la opcion de clonar producto hacia otro usuario
+- dejar todo listo para empezar con dannes y  sus productos
 PROBLEMA:
-✔ @CRITICAL lo que pasa es que si no existe una conversacion esta siguiente la secuencia @done(03-01-2026 10:15)
-en una conversion normal, y debe parar todo el flujo en realidad
 
 Backend (Aplicacion):
 ✔ agregar nuevos arhcivos en los handlers para el manejo de las consultas de graficas @done(01-01-2026 21:47)
@@ -8,26 +12,32 @@ Backend (Aplicacion):
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
   ☐ grafica de productos vendidos
   ☐ grafica de ingresos por producto
-  ☐ grafica de ingresos totales
   ☐ graficas de chats vs ventas
-  ☐ graficas de conversiones
   ☐ chat por dias | horas
   ☐ ventas por dias | horas
-☐ en las graficas en los handler se repite el metodo de rando de fehcas
-hay que ver si se puede hacer un metodo comun para esto
-✔ los endpoint defaker solo deben estar disponibles en entorno de desarrollo (CREO QUE HAY  CREAR @done(02-01-2026 09:20)
-UN MIDDLEWARE PARA ESTO)
 
 ☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
 
+FRONTEND:
+☐ botws ALGO PASA al dar permiso no aparecen los submenus de INfoproducts algo asi revisa ese tema
+☐ algo pasa quue no se refreca los cambios del formulario ni porque le cambie de version
+☐ Agrupar con group los campos de bienvenida y seguimiento porque puede de 4 filas hacerla 2 filas
+sospecho que tiene algo que ver con el cache, debes revisar si form o view tiene un cache que no tiene
+que ver con la version o algo asi pero los cambios de json no se reflejan
+{
+  "name": "personality",
+  "label": "i18n:botws.bot.field.personality",
+  "type": "textarea",
+  "validation": "max:550",
+  "placeholder": "i18n:botws.bot.field.personality.placeholder",
+  "rows": 8
+},
 Mas adelant:
 ☐ Ahora cuando guardas los datos de anuncios debe ser por timezone de la cuenta publicitaria
 con esto se evita que los datos no cuadren por el tema de las zonas horarias
 entonces al momento de guardar los activos de producto debe tambien guardar la timezone
+☐ Plantillas que se ejecutan a un triger, es decir si dice
+'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
 Produccion:
 ☐ cuando envian un emoji validar el webhook y el de reation porque actualmente estan cambiando las validaciones
 para reaction no debe hacer nada, y para emoji lo que esta haciendo reaction ahorita
-
-Version de pago:
-☐ Plantillas que se ejecutan a un triger, es decir si dice
-'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'

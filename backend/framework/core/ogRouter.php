@@ -115,6 +115,7 @@ class ogRouter {
 
   // Ejecutar handler con middleware
   private function exec($routeObj, $params = []) {
+
     // Si es un objeto ogRoute, ejecutar middleware
     if ($routeObj instanceof ogRoute) {
       foreach ($routeObj->getMiddleware() as $mw) {

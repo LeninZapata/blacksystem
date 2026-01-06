@@ -6,13 +6,15 @@ class WebhookController {
   function whatsapp() {
     try {
       $rawData = ogRequest::data();
-      ogLog::info('whatsapp - Webhook recibido', [], $this->logMeta);
+      ogLog::info('whatsapp - Webhook recibido', $rawData, $this->logMeta);
+      ogLog::debug('webhookController::whatsapp - data RAW', $rawData, $this->logMeta);
 
       // Cargar servicio ogChatApi bajo demanda
       $chatapi = ogApp()->service('chatApi');
       $result = $chatapi->detectAndNormalize($rawData);
 
       if (!$result) {
+        ogLog::debug('webhookController::whatsapp - Provider no detectado', $result, $this->logMeta);
         ogResponse::json(['success' => false, 'error' => 'Provider no detectado'], 400);
       } ogLog::info('whatsapp - Provider detectado', ['provider' => $result['provider']], $this->logMeta);
 
@@ -119,7 +121,7 @@ class WebhookController {
   function telegram() {
     try {
       $rawData = ogRequest::data();
-      
+
       // Cargar servicio ogChatApi bajo demanda
       $chatapi = ogApp()->ogService('ogChatApi');
       $result = $chatapi->detectAndNormalize($rawData);

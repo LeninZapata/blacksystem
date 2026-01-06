@@ -35,9 +35,9 @@
       "name": "personality",
       "label": "i18n:botws.bot.field.personality",
       "type": "textarea",
-      "validation": "max:200",
+      "validation": "max:550",
       "placeholder": "i18n:botws.bot.field.personality.placeholder",
-      "rows": 4
+      "rows": 8
     },
     {
       "type": "grouper",

@@ -38,7 +38,7 @@ class ogChatApiService {
     foreach (self::$config as $index => $apiConfig) {
       try {
         $provider = self::getProviderInstance($apiConfig);
-        $response = $provider->sendMessage($to, $message, $media);
+        $response = $provider->sendMessage($to, ogApp()->helper('str')::decodeMessagePatterns($message), $media);
 
         if ($response['success']) {
           $response['used_fallback'] = $index > 0;

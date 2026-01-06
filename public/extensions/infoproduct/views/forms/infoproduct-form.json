@@ -38,7 +38,7 @@
       "name": "description",
       "label": "i18n:infoproduct.products.field.description",
       "type": "textarea",
-      "validation": "max:500|required",
+      "validation": "max:2500|required",
       "placeholder": "i18n:infoproduct.products.field.description.placeholder",
       "hint": "i18n:infoproduct.products.field.description.hint",
       "rows": 4
@@ -55,10 +55,10 @@
       "name": "config.prompt",
       "label": "i18n:infoproduct.products.field.prompt",
       "type": "textarea",
-      "validation": "max:250",
+      "validation": "max:550",
       "placeholder": "i18n:infoproduct.products.field.prompt.placeholder",
       "hint": "i18n:infoproduct.products.field.prompt.hint",
-      "rows": 3
+      "rows": 8
     },
     {
       "name": "config.messages",
@@ -82,7 +82,7 @@
                   "name": "message",
                   "label": "i18n:infoproduct.products.field.welcome_messages.message",
                   "type": "textarea",
-                  "validation": "max:500",
+                  "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.welcome_messages.message.placeholder",
                   "rows": 3
                 },
@@ -138,7 +138,7 @@
                   "name": "message",
                   "label": "i18n:infoproduct.products.field.welcome_messages_upsell.message",
                   "type": "textarea",
-                  "validation": "max:500",
+                  "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.message.placeholder",
                   "rows": 3
                 },
@@ -209,7 +209,7 @@
                   "name": "message",
                   "label": "i18n:infoproduct.products.field.tracking_messages.message",
                   "type": "textarea",
-                  "validation": "max:500",
+                  "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages.message.placeholder",
                   "rows": 3
                 },
@@ -338,7 +338,7 @@
                   "name": "message",
                   "label": "i18n:infoproduct.products.field.tracking_messages_upsell.message",
                   "type": "textarea",
-                  "validation": "max:500",
+                  "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.message.placeholder",
                   "rows": 3
                 },
@@ -536,7 +536,7 @@
                   "name": "message",
                   "label": "i18n:infoproduct.products.field.templates.message",
                   "type": "textarea",
-                  "validation": "max:400",
+                  "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.templates.message.placeholder",
                   "rows": 3
                 },

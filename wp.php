@@ -2,12 +2,12 @@
 /**
  * Plugin Name: Blacksystem
  * Plugin URI: https://Blacksystem.com
- * Plugin ID: factory-saas
+ * Plugin ID: blacksystem
  * Description: API REST para  Blacksystem - Framework híbrido standalone/WordPress
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Factory Team
  * Author URI: https://Blacksystem.com
- * Text Domain: factory-saas
+ * Text Domain: blacksystem
  * Domain Path: /languages
  * Requires at least: 5.0
  * Requires PHP: 8.1
