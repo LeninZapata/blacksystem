@@ -84,7 +84,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       ogLog::throwError("handleReWelcome - Mensajes de bienvenida no encontrados", ['product_id' => $product['id']], $this->logMeta);
     }
 
-    $chatapi = ogApp()->service('chatapi');
+    $chatapi = ogApp()->service('chatApi');
 
     $messagesSent = 0;
     foreach ($messages as $index => $msg) {

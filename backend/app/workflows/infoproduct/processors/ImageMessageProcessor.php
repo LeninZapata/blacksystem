@@ -69,7 +69,7 @@ class ImageMessageProcessor implements MessageProcessorInterface {
   }
 
   private function sendWaitMessage($to) {
-    $chatapi = ogApp()->service('chatapi');
+    $chatapi = ogApp()->service('chatApi');
     $message = "Listo ✅\nUn momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste)\n\n🕐 Si tardo en responder, no te preocupes.\nEstoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊💡";
     $chatapi::send($to, $message);
   }

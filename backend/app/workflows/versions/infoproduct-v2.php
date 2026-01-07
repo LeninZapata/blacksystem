@@ -99,12 +99,13 @@ class InfoproductV2Handler {
     ogLog::info("handle - Mensaje clasificado", [ 'type' => $messageType, 'person number' => $person['number'] ?? 'N/A' ], $this->logMeta);
 
     $hasConversation = ConversationValidator::quickCheck( $person['number'], $bot['id'], $this->maxConversationDays );
-    $context['chat'] = $hasConversation['chat'];
+    // $context['chat'] = $hasConversation['chat'];
     ogLog::info("handle - Conversación activa verificada", [ 'has_conversation' => $hasConversation ], $this->logMeta);
 
     // PRIORIDAD 1: Detectar welcome SIEMPRE (incluso con conversación activa)
     ogLog::info("handle - Detectando welcome", [], $this->logMeta);
     $welcomeCheck = WelcomeValidator::detect($bot, $message, $context);
+    ogLog::info("handle - Resultado de welcome detection", [ 'welcome_check' => $welcomeCheck ], $this->logMeta);
 
     if ( ($welcomeCheck['is_welcome'] && !$hasConversation['exists']) || ($welcomeCheck['is_welcome_diff_product'] && $hasConversation['exists']) ) {
       ogLog::info("handle - Welcome detectado ➜ Ejecutar welcome", [ 'product_id' => $welcomeCheck['product_id'], 'has_active_conversation' => $hasConversation ], $this->logMeta);

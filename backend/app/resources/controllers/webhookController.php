@@ -6,8 +6,7 @@ class WebhookController {
   function whatsapp() {
     try {
       $rawData = ogRequest::data();
-      ogLog::info('whatsapp - Webhook recibido', $rawData, $this->logMeta);
-      ogLog::debug('webhookController::whatsapp - data RAW', $rawData, $this->logMeta);
+      ogLog::info('whatsapp - Webhook recibido', [], $this->logMeta);
 
       // Cargar servicio ogChatApi bajo demanda
       $chatapi = ogApp()->service('chatApi');
@@ -123,17 +122,17 @@ class WebhookController {
       $rawData = ogRequest::data();
 
       // Cargar servicio ogChatApi bajo demanda
-      $chatapi = ogApp()->ogService('ogChatApi');
-      $result = $chatapi->detectAndNormalize($rawData);
+      // $chatapi = ogApp()->ogService('ogChatApi');
+      // $result = $chatapi->detectAndNormalize($rawData);
 
-      if (!$result) {
+      /*if (!$result) {
         ogResponse::json(['success' => false, 'error' => 'Provider no detectado'], 400);
-      }
+      }*/
 
-      $standard = $result['standard'];
+      /*$standard = $result['standard'];
       $sender = $standard['sender'];
       $message = $standard['message'];
-      $context = $standard['context'];
+      $context = $standard['context'];*/
 
       // TODO: Implementar lógica similar a whatsapp
 

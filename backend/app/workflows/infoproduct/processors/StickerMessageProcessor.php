@@ -42,7 +42,7 @@ class StickerMessageProcessor implements MessageProcessorInterface {
 
   private function sendStickerRejectionMessage($to) {
     $message = "😅 No me carga el sticker, ¿me podrías ayudar escribiendo el mensaje por favor?";
-    $chatapi = ogApp()->service('chatapi');
+    $chatapi = ogApp()->service('chatApi');
     $chatapi::send($to, $message);
   }
 
