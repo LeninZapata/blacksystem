@@ -17,7 +17,13 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
     ogLog::debug("execute - Prompt construido", $prompt, $this->logMeta);
 
+    // Mostrar "escribiendo..." por 3 segundos antes de llamar IA
+    $this->sendTypingIndicator($person['number'], 3, true);
+
+    // Llamar IA después del composing
+    $aiStartTime = microtime(true);
     $aiResponse = $this->callAI($prompt, $bot);
+    $aiDuration = microtime(true) - $aiStartTime;
 
     if (!$aiResponse['success']) {
       ogLog::error("execute - Error en llamada a IA", [ 'error' => $aiResponse['error'] ?? 'unknown' ], $this->logMeta);
@@ -27,7 +33,12 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
         'error' => $aiResponse['error'] ?? 'AI call failed'
       ];
     }
-    ogLog::info("execute - Respuesta de IA recibida", [ 'response_length' => strlen($aiResponse['response']), 'response_preview' => substr($aiResponse['response'], 0, 200) . '...' ], $this->logMeta);
+    
+    ogLog::info("execute - Respuesta de IA recibida", [ 
+      'response_length' => strlen($aiResponse['response']), 
+      'response_preview' => substr($aiResponse['response'], 0, 200) . '...',
+      'ai_duration' => round($aiDuration, 2) . 's'
+    ], $this->logMeta);
 
     $parsedResponse = $this->parseResponse($aiResponse['response']);
 
@@ -42,7 +53,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
 
     ogLog::info("execute - Respuesta parseada correctamente", [ 'message_length' => strlen($parsedResponse['message'] ?? ''), 'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150), 'has_metadata' => isset($parsedResponse['metadata']), 'action' => $parsedResponse['metadata']['action'] ?? 'none' ], $this->logMeta);
 
-    $this->sendMessages($parsedResponse, $context);
+    // Enviar mensaje inmediatamente
+    $this->sendMessageDirect($parsedResponse, $context);
     $this->saveBotMessages($parsedResponse, $context);
     ogLog::info("execute - Completado exitosamente", [], $this->logMeta);
     return [
@@ -110,6 +122,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     }
   }
 
+  // Llamar IA mientras muestra "composing" periódicamente
+
   private function parseResponse($response) {
     $decoded = json_decode($response, true);
 
@@ -120,7 +134,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     return $decoded;
   }
 
-  private function sendMessages($parsedResponse, $context) {
+  // Enviar mensaje sin delay (ya mostramos "escribiendo" antes)
+  private function sendMessageDirect($parsedResponse, $context) {
     $person = $context['person'];
     $message = $parsedResponse['message'] ?? '';
     $sourceUrl = $parsedResponse['source_url'] ?? '';
@@ -128,6 +143,44 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     if (!empty($message)) {
       $chatapi = ogApp()->service('chatApi');
       $chatapi::send($person['number'], $message, $sourceUrl);
+    }
+  }
+
+  // Mantener el método antiguo por compatibilidad
+  private function sendMessages($parsedResponse, $context) {
+    $this->sendMessageDirect($parsedResponse, $context);
+  }
+
+  // Enviar indicador de "escribiendo" por un tiempo fijo
+  private function sendTypingIndicator($to, $delay, $block = true) {
+    try {
+      $chatapi = ogApp()->service('chatApi');
+      
+      if (!$block) {
+        // Modo no bloqueante: solo envía una vez
+        $chatapi::sendPresence($to, 'composing', $delay * 1000);
+        return;
+      }
+      
+      // Modo bloqueante: envía y espera
+      $iterations = ceil($delay / 3);
+
+      for ($i = 0; $i < $iterations; $i++) {
+        $remaining = $delay - ($i * 3);
+        $duration = min($remaining, 3);
+        $durationMs = $duration * 1000;
+
+        try {
+          $chatapi::sendPresence($to, 'composing', $durationMs);
+        } catch (Exception $e) {
+          sleep($duration);
+          continue;
+        }
+      }
+    } catch (Exception $e) {
+      ogLog::debug("sendTypingIndicator - Error", [
+        'error' => $e->getMessage()
+      ], $this->logMeta);
     }
   }
 

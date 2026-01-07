@@ -344,6 +344,7 @@ class evolutionNormalizer {
     if (isset($message['videoMessage'])) return 'video';
     if (isset($message['documentMessage'])) return 'document';
     if (isset($message['stickerMessage'])) return 'sticker';
+    if (isset($message['lottieStickerMessage'])) return 'sticker';
     if (isset($message['locationMessage'])) return 'location';
     if (isset($message['contactMessage']) || isset($message['contactsArrayMessage'])) return 'contact';
     if (isset($message['extendedTextMessage']) || isset($message['conversation'])) return 'text';

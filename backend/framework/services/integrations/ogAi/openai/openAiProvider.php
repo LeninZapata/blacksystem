@@ -42,18 +42,94 @@ class openAiProvider extends baseAIProvider {
 
   public function transcribeAudio($audioUrl): array {
     try {
-      $audioContent = file_get_contents($audioUrl);
-      if ($audioContent === false) throw new Exception(__('services.ai.transcription_failed') . ': No se pudo descargar el audio');
+      // Detectar si es data URI o URL HTTP
+      $audioContent = null;
+      $mimeType = 'audio/ogg';
+      $extension = 'ogg';
 
+      if (strpos($audioUrl, 'data:audio') === 0) {
+        // Es un data URI en base64
+        $this->log('Audio recibido como data URI, decodificando...');
+
+        // Extraer mime type y base64
+        if (preg_match('/^data:(audio\/[a-zA-Z0-9+.-]+);base64,(.+)$/', $audioUrl, $matches)) {
+          $mimeType = $matches[1];
+          $base64Data = $matches[2];
+          $audioContent = base64_decode($base64Data);
+
+          // Determinar extensión desde mime type
+          $extension = match($mimeType) {
+            'audio/ogg' => 'ogg',
+            'audio/mpeg', 'audio/mp3' => 'mp3',
+            'audio/wav' => 'wav',
+            'audio/m4a', 'audio/mp4' => 'm4a',
+            'audio/webm' => 'webm',
+            default => 'ogg'
+          };
+
+          $this->log('Audio decodificado', [
+            'mime_type' => $mimeType,
+            'extension' => $extension,
+            'size' => strlen($audioContent)
+          ]);
+        } else {
+          throw new Exception(__('services.ai.transcription_failed') . ': Formato data URI inválido');
+        }
+      } else {
+        // Es una URL HTTP normal
+        $this->log('Audio recibido como URL, descargando...', ['url' => $audioUrl]);
+
+        $audioContent = file_get_contents($audioUrl);
+        if ($audioContent === false) {
+          throw new Exception(__('services.ai.transcription_failed') . ': No se pudo descargar el audio');
+        }
+
+        // Detectar extensión desde URL
+        $parsedUrl = parse_url($audioUrl);
+        $path = $parsedUrl['path'] ?? '';
+        $detectedExt = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if ($detectedExt) {
+          $extension = $detectedExt;
+          $mimeType = match($extension) {
+            'ogg' => 'audio/ogg',
+            'mp3' => 'audio/mpeg',
+            'wav' => 'audio/wav',
+            'm4a' => 'audio/m4a',
+            'webm' => 'audio/webm',
+            default => 'audio/ogg'
+          };
+        }
+
+        $this->log('Audio descargado', [
+          'extension' => $extension,
+          'mime_type' => $mimeType,
+          'size' => strlen($audioContent)
+        ]);
+      }
+
+      if (empty($audioContent)) {
+        throw new Exception(__('services.ai.transcription_failed') . ': Audio vacío');
+      }
+
+      // Construir multipart/form-data
       $boundary = 'boundary' . uniqid();
+      $filename = "audio.{$extension}";
+
       $body = "--{$boundary}\r\n";
-      $body .= "Content-Disposition: form-data; name=\"file\"; filename=\"audio.ogg\"\r\n";
-      $body .= "Content-Type: audio/ogg\r\n\r\n";
+      $body .= "Content-Disposition: form-data; name=\"file\"; filename=\"{$filename}\"\r\n";
+      $body .= "Content-Type: {$mimeType}\r\n\r\n";
       $body .= $audioContent . "\r\n";
       $body .= "--{$boundary}\r\n";
       $body .= "Content-Disposition: form-data; name=\"model\"\r\n\r\n";
       $body .= "whisper-1\r\n";
       $body .= "--{$boundary}--\r\n";
+
+      $this->log('Enviando audio a OpenAI Whisper', [
+        'filename' => $filename,
+        'mime_type' => $mimeType,
+        'body_size' => strlen($body)
+      ]);
 
       $response = ogApp()->helper('http')::post($this->baseUrl . '/audio/transcriptions', $body, [
         'headers' => [
@@ -64,12 +140,36 @@ class openAiProvider extends baseAIProvider {
         'raw' => true
       ]);
 
-      if (!$response['success']) throw new Exception(__('services.ai.http_error') . ' (HTTP ' . ($response['httpCode'] ?? '500') . ')');
+      if (!$response['success']) {
+        $errorDetails = [
+          'http_code' => $response['httpCode'] ?? 'unknown',
+          'response_data' => $response['data'] ?? null,
+          'error' => $response['error'] ?? 'unknown'
+        ];
+
+        $this->log('Error en respuesta de OpenAI', $errorDetails);
+
+        throw new Exception(
+          __('services.ai.http_error') .
+          ' (HTTP ' . ($response['httpCode'] ?? '500') . '): ' .
+          ($response['error'] ?? 'Unknown error')
+        );
+      }
 
       $data = $response['data'];
       $text = $data['text'] ?? '';
 
-      return ['success' => true, 'provider' => $this->getProviderName(), 'text' => trim($text), 'model' => 'whisper-1'];
+      $this->log('Transcripción exitosa', [
+        'text_length' => strlen($text),
+        'text_preview' => substr($text, 0, 100)
+      ]);
+
+      return [
+        'success' => true,
+        'provider' => $this->getProviderName(),
+        'text' => trim($text),
+        'model' => 'whisper-1'
+      ];
 
     } catch (Exception $e) {
       $this->log('Error transcribiendo audio', ['error' => $e->getMessage()]);

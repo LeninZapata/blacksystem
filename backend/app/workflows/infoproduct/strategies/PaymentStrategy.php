@@ -103,9 +103,16 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     ogLog::info("handleImageWithoutSale - Invocando IA", [ 'number' => $person['number'] ], $this->logMeta);
 
-    // Construir texto para la IA con descripción de la imagen
+    // Construir texto para la IA con descripción de la imagen + caption
     $resume = $imageAnalysis['metadata']['description']['resume'] ?? 'Imagen recibida';
-    $aiText = "[image]: {$resume}";
+    $caption = $imageAnalysis['metadata']['caption'] ?? '';
+    
+    // COMBINAR: descripción de la imagen + texto del caption
+    if (!empty($caption)) {
+      $aiText = "[image: descripción = '{$resume}', caption del usuario = '{$caption}']";
+    } else {
+      $aiText = "[image]: {$resume}";
+    }
 
     // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
     ogApp()->loadHandler('chat');
@@ -116,8 +123,18 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     ogLog::info("handleImageWithoutSale - Prompt construido", $prompt, $this->logMeta);
 
-    // Llamar a la IA
+    // Mostrar "escribiendo..." por 3 segundos antes de llamar IA
+    $chatapi = ogApp()->service('chatApi');
+    try {
+      $chatapi::sendPresence($person['number'], 'composing', 3000);
+    } catch (Exception $e) {
+      sleep(3);
+    }
+
+    // Llamar IA después del composing
+    $aiStartTime = microtime(true);
     $aiResponse = $this->callAI($prompt, $bot);
+    $aiDuration = microtime(true) - $aiStartTime;
 
     if (!$aiResponse['success']) {
       ogLog::error("handleImageWithoutSale - Error en IA: {$aiResponse['error']}", ['number' => $person['number']], $this->logMeta);
@@ -128,7 +145,11 @@ class PaymentStrategy implements ConversationStrategyInterface {
     }
 
     // LOG DE RESPUESTA DE LA IA
-    ogLog::info("handleImageWithoutSale - Respuesta de IA recibida", [ 'response_length' => strlen($aiResponse['response']), 'response_preview' => substr($aiResponse['response'], 0, 200) . '...' ], $this->logMeta);
+    ogLog::info("handleImageWithoutSale - Respuesta de IA recibida", [ 
+      'response_length' => strlen($aiResponse['response']), 
+      'response_preview' => substr($aiResponse['response'], 0, 200) . '...',
+      'ai_duration' => round($aiDuration, 2) . 's'
+    ], $this->logMeta);
 
     // Parsear respuesta
     $parsedResponse = $this->parseResponse($aiResponse['response']);
@@ -169,9 +190,16 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $chatData = $context['chat_data'];
     ogLog::info("handleDuplicateReceipt - Invocando IA", [ 'number' => $person['number'] ], $this->logMeta);
 
-    // Construir texto para la IA
+    // Construir texto para la IA con descripción del recibo + caption
     $resume = $imageAnalysis['metadata']['description']['resume'] ?? 'Recibo de pago';
-    $aiText = "[image]: {$resume}";
+    $caption = $imageAnalysis['metadata']['caption'] ?? '';
+    
+    // COMBINAR: descripción de la imagen + texto del caption
+    if (!empty($caption)) {
+      $aiText = "[image: descripción = '{$resume}', caption del usuario = '{$caption}']";
+    } else {
+      $aiText = "[image]: {$resume}";
+    }
 
     // Recargar chat actualizado (ya tiene el mensaje de la imagen guardado)
     ogApp()->loadHandler('chat');
@@ -182,8 +210,18 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     ogLog::info("handleDuplicateReceipt - Prompt construido", [], $this->logMeta);
 
-    // Llamar a la IA
+    // Mostrar "escribiendo..." por 3 segundos antes de llamar IA
+    $chatapi = ogApp()->service('chatApi');
+    try {
+      $chatapi::sendPresence($person['number'], 'composing', 3000);
+    } catch (Exception $e) {
+      sleep(3);
+    }
+
+    // Llamar IA después del composing
+    $aiStartTime = microtime(true);
     $aiResponse = $this->callAI($prompt, $bot);
+    $aiDuration = microtime(true) - $aiStartTime;
 
     if (!$aiResponse['success']) {
       ogLog::error("handleDuplicateReceipt - Error en IA", [ 'error' => $aiResponse['error'] ?? 'unknown' ], $this->logMeta);
@@ -195,7 +233,11 @@ class PaymentStrategy implements ConversationStrategyInterface {
     }
 
     // LOG DE RESPUESTA DE LA IA
-    ogLog::info("handleDuplicateReceipt - Respuesta de IA recibida", [ 'response_length' => strlen($aiResponse['response']), 'response_preview' => substr($aiResponse['response'], 0, 200) . '...' ], $this->logMeta );
+    ogLog::info("handleDuplicateReceipt - Respuesta de IA recibida", [ 
+      'response_length' => strlen($aiResponse['response']), 
+      'response_preview' => substr($aiResponse['response'], 0, 200) . '...',
+      'ai_duration' => round($aiDuration, 2) . 's'
+    ], $this->logMeta );
 
     // Parsear respuesta
     $parsedResponse = $this->parseResponse($aiResponse['response']);
@@ -509,6 +551,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
     }
   }
 
+  // Llamar IA mientras muestra "composing" periódicamente
+
   private function parseResponse($response) {
     $decoded = json_decode($response, true);
 
@@ -519,6 +563,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     return $decoded;
   }
 
+  // Enviar mensaje directo (ya mostramos "escribiendo" antes)
   private function sendMessages($parsedResponse, $context) {
     $person = $context['person'];
     $message = $parsedResponse['message'] ?? '';

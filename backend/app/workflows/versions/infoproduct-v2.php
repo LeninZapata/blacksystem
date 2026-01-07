@@ -57,7 +57,7 @@ class InfoproductV2Handler {
   }
 
   public function handle($webhook) {
-    ogLog::info("handle - Inicio", [],  $this->logMeta);
+    ogLog::info("handle - Inicio", $webhook,  $this->logMeta);exit;
     $standard = $webhook['standard'] ?? [];
     $bot = $standard['sender'] ?? [];
     $person = $standard['person'] ?? [];
@@ -177,6 +177,18 @@ class InfoproductV2Handler {
       ], ['module' => 'infoproduct_v2']);
 
       $this->processStickerMessages([$message], $bot, $person, $chatData);
+      return;
+    }
+
+    // VALIDACIÓN: Ignorar reactions
+    $isReaction = strtoupper($messageType) === 'REACTION';
+
+    if ($isReaction) {
+      ogLog::info("continueConversation - Reaction detectada, ignorando", [
+        'number' => $person['number']
+      ], ['module' => 'infoproduct_v2']);
+
+      $this->processReactionMessages([$message], $bot, $person, $chatData);
       return;
     }
 
@@ -340,6 +352,29 @@ class InfoproductV2Handler {
     }
 
     ogLog::info("processStickerMessages - Sticker rechazado exitosamente", [], ['module' => 'infoproduct_v2']);
+  }
+
+  private function processReactionMessages($messages, $bot, $person, $chatData) {
+    ogLog::info("processReactionMessages - INICIO", [], ['module' => 'infoproduct_v2']);
+
+    require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
+    require_once $this->appPath . '/workflows/infoproduct/processors/ReactionMessageProcessor.php';
+
+    $processor = new ReactionMessageProcessor();
+    $result = $processor->process($messages, [
+      'bot' => $bot,
+      'person' => $person,
+      'chat_data' => $chatData
+    ]);
+
+    if (!$result['success']) {
+      ogLog::error("Reaction processing failed", [
+        'error' => $result['error'] ?? 'Unknown'
+      ], ['module' => 'infoproduct_v2']);
+      return;
+    }
+
+    ogLog::info("processReactionMessages - Reaction ignorada exitosamente", [], ['module' => 'infoproduct_v2']);
   }
 
   private function processTextMessages($messages, $bot, $person, $chatData) {

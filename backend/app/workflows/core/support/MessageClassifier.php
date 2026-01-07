@@ -3,6 +3,7 @@
 class MessageClassifier {
 
   static function classify($message) {
+    ogLog::info("Classifying message: ", $message);
     $type = strtoupper($message['type'] ?? 'TEXT');
 
     $validTypes = ['TEXT', 'IMAGE', 'AUDIO', 'VIDEO', 'DOCUMENT', 'STICKER', 'LOCATION', 'CONTACT', 'REACTION'];

@@ -1,12 +1,9 @@
-Hacer:
-- subir toda la informacion de los productos
-- hacer las pruebas en tiempo real ya con el servidor
-- subir los webhook a hosting de forma real
-- crear la opcion de clonar producto hacia otro usuario
-- dejar todo listo para empezar con dannes y  sus productos
-PROBLEMA:
-
 Backend (Aplicacion):
+✔ cuando el bot entra en modo responder debe enviar el Escribiendo... cada 3 segundos como lo hacia el sistema anterior @done(07-01-2026 17:36)
+✔ valida emoji, sticker, reaction @done(07-01-2026 18:10)
+☐ validar si es un presense abortar la respuesta
+☐ seguimiento si el texto esta vacio no lo esta guardando, entonces debe validar que sitiene una media entonces si guarde
+ademas verifica que si el audio lo envia ya que no tiene texto
 ✔ agregar nuevos arhcivos en los handlers para el manejo de las consultas de graficas @done(01-01-2026 21:47)
 ✔ Faker debe ser refactorizado actualmente tiene 500 lineas y nada que ver @done(01-01-2026 21:47)
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
@@ -19,7 +16,8 @@ Backend (Aplicacion):
 ☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
 
 FRONTEND:
-☐ botws ALGO PASA al dar permiso no aparecen los submenus de INfoproducts algo asi revisa ese tema
+☐ me falta instruccion en el seguimiento de upsell
+✔ botws ALGO PASA al dar permiso no aparecen los submenus de INfoproducts algo asi revisa ese tema @done(07-01-2026 16:36)
 ☐ algo pasa quue no se refreca los cambios del formulario ni porque le cambie de version
 ☐ Agrupar con group los campos de bienvenida y seguimiento porque puede de 4 filas hacerla 2 filas
 sospecho que tiene algo que ver con el cache, debes revisar si form o view tiene un cache que no tiene

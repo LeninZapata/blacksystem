@@ -53,6 +53,7 @@ class ogAiService {
         try {
           $provider = $this->createProvider($serviceConfig);
           $result = $provider->transcribeAudio($audioUrl);
+          ogLog::info("transcribeAudio - resultado de la transcripcion", $result, self::$logMeta);
           if ($result['success']) return $result;
 
         } catch (Exception $e) {

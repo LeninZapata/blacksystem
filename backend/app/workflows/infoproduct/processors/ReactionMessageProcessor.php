@@ -1,48 +1,50 @@
 <?php
 
-class StickerMessageProcessor implements MessageProcessorInterface {
+class ReactionMessageProcessor implements MessageProcessorInterface {
 
   public function process(array $messages, array $context): array {
     $bot = $context['bot'];
     $person = $context['person'];
     $chatData = $context['chat_data'] ?? null;
-    $stickerMessage = null;
+    $reactionMessage = null;
 
-    // Buscar mensaje de tipo sticker
+    // Buscar mensaje de tipo reaction
     foreach ($messages as $msg) {
       $type = strtoupper($msg['type'] ?? 'TEXT');
 
-      if ($type === 'STICKER') {
-        $stickerMessage = $msg;
+      if ($type === 'REACTION') {
+        $reactionMessage = $msg;
         break;
       }
     }
 
-    if (!$stickerMessage) {
+    if (!$reactionMessage) {
       return [
         'success' => false,
-        'error' => 'No sticker found in messages'
+        'error' => 'No reaction found in messages'
       ];
     }
 
     // Solo guardar mensaje del usuario (sin responder)
-    $this->saveUserStickerMessage($stickerMessage, $context);
+    $this->saveUserReactionMessage($reactionMessage, $context);
 
-    // NO enviar respuesta - simplemente ignorar el sticker
+    // NO enviar respuesta - simplemente ignorar la reaction
 
     return [
       'success' => true,
-      'sticker_ignored' => true,
+      'reaction_ignored' => true,
       'no_response' => true
     ];
   }
 
-  private function saveUserStickerMessage($stickerMessage, $context) {
+  private function saveUserReactionMessage($reactionMessage, $context) {
     $bot = $context['bot'];
     $person = $context['person'];
     $chatData = $context['chat_data'];
 
-    $messageText = "[Sticker enviado]";
+    // Extraer emoji de la reaction si está disponible
+    $reactionText = $reactionMessage['text'] ?? '';
+    $messageText = empty($reactionText) ? "[Reacción enviada]" : "[Reacción: {$reactionText}]";
 
     ogApp()->loadHandler('chat');
     ChatHandler::register(
@@ -52,9 +54,9 @@ class StickerMessageProcessor implements MessageProcessorInterface {
       $person['number'],
       $messageText,
       'P',
-      'sticker',
+      'reaction',
       [
-        'sticker_url' => $stickerMessage['media_url'] ?? null,
+        'reaction_text' => $reactionText,
         'ignored' => true
       ],
       $chatData['current_sale']['sale_id'] ?? null
@@ -66,9 +68,9 @@ class StickerMessageProcessor implements MessageProcessorInterface {
       'client_id' => $chatData['client_id'],
       'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $messageText,
-      'format' => 'sticker',
+      'format' => 'reaction',
       'metadata' => [
-        'sticker_url' => $stickerMessage['media_url'] ?? null,
+        'reaction_text' => $reactionText,
         'ignored' => true
       ]
     ], 'P');
