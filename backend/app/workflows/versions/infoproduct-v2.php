@@ -57,7 +57,18 @@ class InfoproductV2Handler {
   }
 
   public function handle($webhook) {
-    ogLog::info("handle - Inicio", $webhook,  $this->logMeta);exit;
+    ogLog::info("handle - Inicio", [],  $this->logMeta);
+
+    // FILTRO: Ignorar eventos de tipo "presence"
+    $event = $webhook['normalized']['body']['event'] ?? null;
+
+    if ($event === 'presence.update' || stripos($event, 'presence') !== false) {
+      ogLog::info("handle - Evento presence detectado, ignorando", [
+        'event' => $event
+      ], $this->logMeta);
+      return; // Terminar procesamiento
+    }
+
     $standard = $webhook['standard'] ?? [];
     $bot = $standard['sender'] ?? [];
     $person = $standard['person'] ?? [];
@@ -99,8 +110,9 @@ class InfoproductV2Handler {
     ogLog::info("handle - Mensaje clasificado", [ 'type' => $messageType, 'person number' => $person['number'] ?? 'N/A' ], $this->logMeta);
 
     $hasConversation = ConversationValidator::quickCheck( $person['number'], $bot['id'], $this->maxConversationDays );
+
     // $context['chat'] = $hasConversation['chat'];
-    ogLog::info("handle - Conversación activa verificada", [ 'has_conversation' => $hasConversation ], $this->logMeta);
+    ogLog::info("handle - Conversación activa verificada", [ 'has_conversation' => $hasConversation['exists'] ?? false, 'messages_count' => isset($hasConversation['chat']['messages']) ? count($hasConversation['chat']['messages']) : null ], $this->logMeta);
 
     // PRIORIDAD 1: Detectar welcome SIEMPRE (incluso con conversación activa)
     ogLog::info("handle - Detectando welcome", [], $this->logMeta);

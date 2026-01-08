@@ -1,8 +1,8 @@
 Backend (Aplicacion):
 ✔ cuando el bot entra en modo responder debe enviar el Escribiendo... cada 3 segundos como lo hacia el sistema anterior @done(07-01-2026 17:36)
 ✔ valida emoji, sticker, reaction @done(07-01-2026 18:10)
-☐ validar si es un presense abortar la respuesta
-☐ seguimiento si el texto esta vacio no lo esta guardando, entonces debe validar que sitiene una media entonces si guarde
+✔ validar si es un presense abortar la respuesta @done(07-01-2026 18:25)
+✔ seguimiento si el texto esta vacio no lo esta guardando, entonces debe validar que sitiene una media entonces si guarde @done(07-01-2026 21:41)
 ademas verifica que si el audio lo envia ya que no tiene texto
 ✔ agregar nuevos arhcivos en los handlers para el manejo de las consultas de graficas @done(01-01-2026 21:47)
 ✔ Faker debe ser refactorizado actualmente tiene 500 lineas y nada que ver @done(01-01-2026 21:47)

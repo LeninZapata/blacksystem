@@ -120,8 +120,15 @@ class FollowupHandler {
         'tc' => time()
       ];
 
-      if ( empty( $fullMessage ) ) {
-        ogLog::warning("registerFromSale - Followup sin texto, omitido", [ 'tracking_id' => $fup['tracking_id'], 'index' => $count ], self::$logMeta);
+      // Validar: debe tener texto O media (source_url)
+      $hasText = !empty($fullMessage);
+      $hasMedia = !empty($fup['url']);
+
+      if (!$hasText && !$hasMedia) {
+        ogLog::warning("registerFromSale - Followup sin texto ni media, omitido", [
+          'tracking_id' => $fup['tracking_id'],
+          'index' => $count
+        ], self::$logMeta);
         continue;
       }
 

@@ -285,7 +285,7 @@ class ogFramework {
 
     // 1. Buscar en framework/handlers/{subPath}og{Name}Handler.php
     $fwClassName = "og" . ucfirst($fileName) . "Handler";
-    $fwFile = OG_FRAMEWORK_PATH . "/handlers/{$subPath}og" . ucfirst($fileName) . "Handler.php";
+    $fwFile = OG_FRAMEWORK_PATH . "/resources/handlers/{$subPath}og" . ucfirst($fileName) . "Handler.php";
     if (file_exists($fwFile)) {
       require_once $fwFile;
       if (!class_exists($fwClassName)) {

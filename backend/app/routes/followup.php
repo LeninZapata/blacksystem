@@ -80,20 +80,31 @@ $router->group('/api/followup', function($router) {
         ogLog::info("CRON Followup - Procesando followup normal", [ 'followup_id' => $fup['id'], 'number' => $fup['number'], 'tracking_id' => $fup['name'] ?? 'N/A' ], $logMeta);
 
         // Configurar ogChatApi con el bot específico
+        ogLog::info("CRON Followup - Configurando Chat API para el bot", $botData, $logMeta);
         $chatapi::setConfig($botData);
 
-        // Enviar mensaje
-        $sourceUrl = $fup['source_url'] === null ? '' : $fup['source_url'];
-        $result = $chatapi::send($fup['number'], $fup['text'], $sourceUrl);
+        // Preparar texto y source_url
+        $messageText = $fup['text'] ?? '';
+        $sourceUrl = $fup['source_url'] ?? '';
+
+        // Enviar mensaje (puede ser solo texto, solo media, o ambos)
+        $result = $chatapi::send($fup['number'], $messageText, $sourceUrl);
 
         if ($result['success']) {
           // Marcar como procesado
           ogApp()->handler('followup')::markProcessed($fup['id']);
 
-          // Preparar mensaje corto (primeros 20 caracteres)
-          $shortMessage = mb_strlen($fup['text']) > 20 
-            ? mb_substr($fup['text'], 0, 20) . '...' 
-            : $fup['text'];
+          // Preparar mensaje corto para el registro
+          if (!empty($messageText)) {
+            $shortMessage = mb_strlen($messageText) > 20
+              ? mb_substr($messageText, 0, 20) . '...'
+              : $messageText;
+          } else if (!empty($sourceUrl)) {
+            // Si solo tiene media, usar descripción
+            $shortMessage = '[Media enviado]';
+          } else {
+            $shortMessage = '[Followup enviado]';
+          }
 
           // Preparar metadata completo
           $metadata = [

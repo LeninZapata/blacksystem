@@ -28,7 +28,25 @@ class evolutionProvider extends baseChatApiProvider {
       $payload['text'] = $message;
     } elseif ($mediaType === 'audio') {
       // Audio de WhatsApp
-      $payload['audioMessage'] = ['audio' => $url];
+
+      // Extraer información del archivo de audio
+      $parsedUrl = parse_url($url, PHP_URL_PATH);
+      $extension = pathinfo($parsedUrl, PATHINFO_EXTENSION);
+      $originalName = pathinfo($parsedUrl, PATHINFO_FILENAME);
+
+      // Generar filename: {nombre-archivo}-timestamp.{extension}
+      $filename = ($originalName ?: 'audio') . '-' . time() . '.' . ($extension ?: 'ogg');
+
+      // Obtener mimetype del audio
+      $mimetype = $this->getMimeType($extension ?: 'ogg');
+
+      // Payload para audio
+      //$payload['audioMessage'] = ['audio' => $url];
+      $payload['mediatype'] = $mediaType;
+      $payload['media'] = $url ?: '';
+      $payload['audio'] = $url ?: '';
+      $payload['filename'] = $filename;
+      $payload['mimetype'] = $mimetype;
     } else {
       // Media (image, video, document)
       // Extraer información del archivo
