@@ -89,6 +89,14 @@ class ProductController extends ogController {
   function list() {
     $query = ogDb::table(self::$table);
 
+    // Filtrar por user_id autenticado
+    ogLog::info('ProductController::list - Variable GLOBAL desde product', $GLOBALS, $this->logMeta);
+    if (isset($GLOBALS['auth_user_id'])) {
+      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
+    } else {
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
+
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
       $query = $query->where($key, $value);
@@ -138,6 +146,49 @@ class ProductController extends ogController {
       ], ['module' => 'product']);
 
       ogResponse::serverError(__('product.delete.error'), OG_IS_DEV ? $e->getMessage() : null);
+    }
+  }
+
+  // Clonar producto con nuevo user_id y bot_id
+  function clone($id) {
+    $userId = ogRequest::query('user_id');
+    $botId = ogRequest::query('bot_id');
+
+    if (!$userId || !$botId) {
+      ogResponse::json(['success' => false, 'error' => 'user_id y bot_id son obligatorios'], 400);
+    }
+
+    $original = ogDb::table(self::$table)->find($id);
+    if (!$original) ogResponse::notFound(__('product.not_found'));
+
+    $cloneData = [
+      'user_id' => $userId,
+      'bot_id' => $botId,
+      'name' => $original['name'] . ' (Copia)',
+      'description' => $original['description'],
+      'config' => $original['config'],
+      'context' => $original['context'],
+      'price' => $original['price'],
+      'status' => $original['status'] ?? 1,
+      'dc' => date('Y-m-d H:i:s'),
+      'ta' => time()
+    ];
+
+    try {
+      $newId = ogDb::table(self::$table)->insert($cloneData);
+
+      if ($newId && isset($cloneData['context'])) {
+        $cloneData['id'] = $newId;
+        ogApp()->loadHandler('product');
+        ProductHandler::handleByContext($cloneData, 'create');
+      }
+
+      ogLog::success('clone - Producto clonado', ['original_id' => $id, 'new_id' => $newId, 'user_id' => $userId, 'bot_id' => $botId], $this->logMeta);
+      ogResponse::success(['id' => $newId], __('product.clone.success'));
+
+    } catch (Exception $e) {
+      ogLog::error('clone - Error al clonar producto', ['message' => $e->getMessage()], $this->logMeta);
+      ogResponse::serverError(__('product.clone.error'), OG_IS_DEV ? $e->getMessage() : null);
     }
   }
 }

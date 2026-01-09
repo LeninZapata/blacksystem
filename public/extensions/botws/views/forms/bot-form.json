@@ -5,22 +5,22 @@
   "fields": [
     {
       "name": "name",
-      "label": "i18n:botws.bot.field.name",
+      "label": "i18n:botws.bot.form.field.name",
       "type": "text",
       "validation": "required|min:3|max:50",
-      "placeholder": "i18n:botws.bot.field.name.placeholder"
+      "placeholder": "i18n:botws.bot.form.field.name.placeholder"
     },
     {
       "name": "number",
-      "label": "i18n:botws.bot.field.number",
+      "label": "i18n:botws.bot.form.field.number",
       "type": "text",
       "validation": "required|numeric|min:8|max:20",
-      "placeholder": "i18n:botws.bot.field.number.placeholder",
-      "hint": "i18n:botws.bot.field.number.hint"
+      "placeholder": "i18n:botws.bot.form.field.number.placeholder",
+      "hint": "i18n:botws.bot.form.field.number.hint"
     },
     {
       "name": "country_code",
-      "label": "i18n:botws.bot.field.country_code",
+      "label": "i18n:botws.bot.form.field.country_code",
       "type": "select",
       "required": true,
       "validation": "required",
@@ -33,10 +33,10 @@
     },
     {
       "name": "personality",
-      "label": "i18n:botws.bot.field.personality",
+      "label": "i18n:botws.bot.form.field.personality",
       "type": "textarea",
       "validation": "max:550",
-      "placeholder": "i18n:botws.bot.field.personality.placeholder",
+      "placeholder": "i18n:botws.bot.form.field.personality.placeholder",
       "rows": 8
     },
     {
@@ -44,13 +44,12 @@
       "mode": "linear",
       "collapsible": false,
       "groups": [
-        
         {
           "title": "🔌 Integraciones",
           "fields": [
             {
               "name": "config.workflow_id",
-              "label": "i18n:botws.bot.field.workflow",
+              "label": "i18n:botws.bot.form.field.workflow",
               "type": "select",
               "required": true,
               "validation": "required",
@@ -63,7 +62,7 @@
             },
             {
               "name": "config.apis.agent",
-              "label": "i18n:botws.bot.field.api_agent",
+              "label": "i18n:botws.bot.form.field.api_agent",
               "type": "repeatable",
               "buttonPosition": "top",
               "initialItems": 1,
@@ -72,7 +71,7 @@
               "fields": [
                 {
                   "name": "credential_id",
-                  "label": "i18n:botws.bot.field.credential_agent",
+                  "label": "i18n:botws.bot.form.field.credential_agent",
                   "type": "select",
                   "required": true,
                   "validation": "required",
@@ -85,22 +84,22 @@
                 },
                 {
                   "name": "task",
-                  "label": "i18n:botws.bot.field.task",
+                  "label": "i18n:botws.bot.form.field.task",
                   "type": "select",
                   "required": true,
                   "validation": "required",
                   "options": [
                     {"value": "", "label": "i18n:core.form.select.placeholder"},
-                    {"value": "conversation", "label": "i18n:botws.bot.task.conversation"},
-                    {"value": "image", "label": "i18n:botws.bot.task.image"},
-                    {"value": "audio", "label": "i18n:botws.bot.task.audio"}
+                    {"value": "conversation", "label": "i18n:botws.bot.form.field.task.conversation"},
+                    {"value": "image", "label": "i18n:botws.bot.form.field.task.image"},
+                    {"value": "audio", "label": "i18n:botws.bot.form.field.task.audio"}
                   ]
                 }
               ]
             },
             {
               "name": "config.apis.chat",
-              "label": "i18n:botws.bot.field.api_chat",
+              "label": "i18n:botws.bot.form.field.api_chat",
               "type": "repeatable",
               "buttonPosition": "top",
               "initialItems": 1,
@@ -109,7 +108,7 @@
               "fields": [
                 {
                   "name": "credential_id",
-                  "label": "i18n:botws.bot.field.credential_chat",
+                  "label": "i18n:botws.bot.form.field.credential_chat",
                   "type": "select",
                   "required": true,
                   "validation": "required",
@@ -129,26 +128,26 @@
           "fields": [
             {
               "name": "type",
-              "label": "i18n:botws.bot.field.type",
+              "label": "i18n:botws.bot.form.field.type",
               "type": "select",
               "required": true,
               "validation": "required",
               "options": [
                 {"value": "", "label": "i18n:core.form.select.placeholder"},
-                {"value": "I", "label": "i18n:botws.bot.type.infoproduct"},
-                {"value": "E", "label": "i18n:botws.bot.type.ecom"}
+                {"value": "I", "label": "i18n:botws.bot.form.field.type.infoproduct"},
+                {"value": "E", "label": "i18n:botws.bot.form.field.type.ecom"}
               ]
             },
             {
               "name": "mode",
-              "label": "i18n:botws.bot.field.mode",
+              "label": "i18n:botws.bot.form.field.mode",
               "type": "select",
               "required": true,
               "validation": "required",
               "options": [
                 {"value": "", "label": "i18n:core.form.select.placeholder"},
-                {"value": "R", "label": "i18n:botws.bot.mode.receipt"},
-                {"value": "C", "label": "i18n:botws.bot.mode.checkout"}
+                {"value": "R", "label": "i18n:botws.bot.form.field.mode.receipt"},
+                {"value": "C", "label": "i18n:botws.bot.form.field.mode.checkout"}
               ]
             }
           ]

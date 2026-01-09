@@ -14,7 +14,7 @@ class adMetricsHandler {
     $dateTo = $params['date_to'] ?? ogRequest::query('date_to', $today);
 
     try {
-      $service = ogApp()->service('adMetrics');
+      $service = ogApp()->service('AdMetrics');
       return $service->getProductMetrics($productId, $dateFrom, $dateTo);
     } catch (Exception $e) {
       ogLog::error('getByProduct - Error', [
@@ -503,9 +503,15 @@ class adMetricsHandler {
 
   // Obtener métricas de gastos por día (combina daily + hourly del día actual)
   static function getAdSpendByDay($params) {
+    // Obtener user_id autenticado
+    if (!isset($GLOBALS['auth_user_id'])) {
+      return ['success' => false, 'error' => __('auth.unauthorized')];
+    }
+    $userId = $GLOBALS['auth_user_id'];
+
     $range = $params['range'] ?? 'last_7_days';
     $dates = ogApp()->helper('date')::getDateRange($range);
-    
+
     if (!$dates) {
       return ['success' => false, 'error' => 'Rango inválido'];
     }
@@ -525,7 +531,7 @@ class adMetricsHandler {
 
       if (strtotime($dates['start']) <= strtotime($historicEnd)) {
         $sqlHistoric = "
-          SELECT 
+          SELECT
             d.metric_date as date,
             SUM(d.spend) as spend,
             SUM(d.impressions) as impressions,
@@ -538,17 +544,17 @@ class adMetricsHandler {
             COUNT(DISTINCT s.id) as real_purchases,
             COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
           FROM ad_metrics_daily d
-          LEFT JOIN sales s ON DATE(s.payment_date) = d.metric_date 
-            AND s.context = 'whatsapp' 
+          LEFT JOIN sales s ON DATE(s.payment_date) = d.metric_date
+            AND s.context = 'whatsapp'
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
-          WHERE d.metric_date >= ? AND d.metric_date <= ?
+          WHERE d.user_id = ? AND d.metric_date >= ? AND d.metric_date <= ?
           GROUP BY d.metric_date
           ORDER BY d.metric_date ASC
         ";
 
-        $historicData = ogDb::raw($sqlHistoric, [$dates['start'], $historicEnd]);
-        
+        $historicData = ogDb::raw($sqlHistoric, [$userId, $dates['start'], $historicEnd]);
+
         foreach ($historicData as $row) {
           $results[$row['date']] = [
             'date' => $row['date'],
@@ -573,7 +579,7 @@ class adMetricsHandler {
       // PASO 2: Obtener datos de hoy (ad_metrics_hourly con is_latest = 1)
       if ($needsToday) {
         $sqlToday = "
-          SELECT 
+          SELECT
             h.query_date as date,
             SUM(h.spend) as spend,
             SUM(h.impressions) as impressions,
@@ -586,16 +592,17 @@ class adMetricsHandler {
             COUNT(DISTINCT s.id) as real_purchases,
             COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
           FROM ad_metrics_hourly h
-          LEFT JOIN sales s ON DATE(s.payment_date) = h.query_date 
-            AND s.context = 'whatsapp' 
+          LEFT JOIN sales s ON DATE(s.payment_date) = h.query_date
+            AND s.context = 'whatsapp'
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
-          WHERE h.query_date = ?
+          WHERE h.user_id = ?
+            AND h.query_date = ?
             AND h.is_latest = 1
           GROUP BY h.query_date
         ";
 
-        $todayData = ogDb::raw($sqlToday, [$today]);
+        $todayData = ogDb::raw($sqlToday, [$userId, $today]);
 
         if (!empty($todayData)) {
           $row = $todayData[0];
@@ -624,7 +631,7 @@ class adMetricsHandler {
         $row['cpm'] = $row['impressions'] > 0 ? ($row['spend'] / $row['impressions']) * 1000 : 0;
         $row['cpc'] = $row['clicks'] > 0 ? $row['spend'] / $row['clicks'] : 0;
         $row['ctr'] = $row['impressions'] > 0 ? ($row['clicks'] / $row['impressions']) * 100 : 0;
-        
+
         // ROAS = (Ingresos / Gasto) - usando ventas reales
         $row['roas'] = $row['spend'] > 0 ? ($row['real_purchase_value'] / $row['spend']) : 0;
 
@@ -710,7 +717,7 @@ class adMetricsHandler {
   static function getAdSpendByProduct($params) {
     $range = $params['range'] ?? 'last_7_days';
     $dates = ogApp()->helper('date')::getDateRange($range);
-    
+
     if (!$dates) {
       return ['success' => false, 'error' => 'Rango inválido'];
     }
@@ -720,7 +727,7 @@ class adMetricsHandler {
     try {
       // Obtener datos históricos agrupados por producto
       $sqlHistoric = "
-        SELECT 
+        SELECT
           d.product_id,
           p.name as product_name,
           SUM(d.spend) as spend,
@@ -740,7 +747,7 @@ class adMetricsHandler {
 
       // Obtener datos de hoy
       $sqlToday = "
-        SELECT 
+        SELECT
           h.product_id,
           p.name as product_name,
           SUM(h.spend) as spend,
@@ -778,7 +785,7 @@ class adMetricsHandler {
       // Agregar datos de hoy
       foreach ($todayData as $row) {
         $productId = $row['product_id'];
-        
+
         if (!isset($productMap[$productId])) {
           $productMap[$productId] = [
             'product_id' => $productId,

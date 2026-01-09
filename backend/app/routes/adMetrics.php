@@ -7,7 +7,7 @@ $router->group('/api/adMetrics', function($router) {
   // GET /api/adMetrics/product/{product_id}?date_from=2024-01-01&date_to=2024-01-31
   $router->get('/product/{product_id}', function($productId) {
     ogResponse::json(
-      ogApp()->handler('adMetrics')::getByProduct(['product_id' => $productId])
+      ogApp()->handler('AdMetrics')::getByProduct(['product_id' => $productId])
     );
   })->middleware(['auth', 'throttle:100,1']);
 
@@ -15,7 +15,7 @@ $router->group('/api/adMetrics', function($router) {
   // GET /api/adMetrics/assets?assets=[...]&date_from=2024-01-01&date_to=2024-01-31
   $router->get('/assets', function() {
     ogResponse::json(
-      ogApp()->handler('adMetrics')::getByAssets([])
+      ogApp()->handler('AdMetrics')::getByAssets([])
     );
   })->middleware(['auth', 'throttle:100,1']);
 
@@ -23,7 +23,7 @@ $router->group('/api/adMetrics', function($router) {
   // GET /api/adMetrics/test?date_from=2024-01-01&date_to=2024-01-31
   $router->get('/test', function() {
     ogResponse::json(
-      ogApp()->handler('adMetrics')::getTestMetrics([])
+      ogApp()->handler('AdMetrics')::getTestMetrics([])
     );
   })->middleware(['throttle:100,1']);
 
@@ -31,7 +31,7 @@ $router->group('/api/adMetrics', function($router) {
   // GET /api/adMetrics/save-all
   $router->get('/save-all', function() {
     ogResponse::json(
-      ogApp()->handler('adMetrics')::saveAllMetrics([])
+      ogApp()->handler('AdMetrics')::saveAllMetrics([])
     );
   })->middleware(['throttle:10,1']);
 
@@ -39,7 +39,7 @@ $router->group('/api/adMetrics', function($router) {
   // GET /api/adMetrics/save-daily
   $router->get('/save-daily', function() {
     ogResponse::json(
-      ogApp()->handler('adMetrics')::saveDailyMetrics([])
+      ogApp()->handler('AdMetrics')::saveDailyMetrics([])
     );
   })->middleware(['throttle:10,1']);
 
@@ -47,15 +47,15 @@ $router->group('/api/adMetrics', function($router) {
   $router->get('/spend-by-day', function() {
     $range = ogRequest::query('range', 'last_7_days');
     ogResponse::json(
-      ogApp()->handler('adMetrics')::getAdSpendByDay(['range' => $range])
+      ogApp()->handler('AdMetrics')::getAdSpendByDay(['range' => $range])
     );
-  })->middleware(['throttle:100,1']);
+  })->middleware(['throttle:100,1','auth']);
 
   // Gastos publicitarios por producto - GET /api/adMetrics/spend-by-product?range=last_7_days
   $router->get('/spend-by-product', function() {
     $range = ogRequest::query('range', 'last_7_days');
     ogResponse::json(
-      ogApp()->handler('adMetrics')::getAdSpendByProduct(['range' => $range])
+      ogApp()->handler('AdMetrics')::getAdSpendByProduct(['range' => $range])
     );
   })->middleware(['auth', 'throttle:100,1']);
 

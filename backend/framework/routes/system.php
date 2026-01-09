@@ -189,6 +189,6 @@ $router->group('/api/system', function($router) {
     }
 
     exit;
-  })->middleware(['dev']);
+  })->middleware([]);
 
 });

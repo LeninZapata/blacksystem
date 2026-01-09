@@ -343,6 +343,12 @@
                   "rows": 3
                 },
                 {
+                  "name": "instruction",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.instruction",
+                  "type": "text",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.instruction.placeholder"
+                },
+                {
                   "name": "type",
                   "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type",
                   "type": "select",
@@ -461,6 +467,14 @@
                   "source": "/api/product",
                   "sourceValue": "id",
                   "sourceLabel": "name"
+                },
+                {
+                  "name": "price",
+                  "label": "i18n:infoproduct.products.field.upsell_products.price",
+                  "type": "text",
+                  "required": true,
+                  "validation": "required|decimal|min:0",
+                  "placeholder": "i18n:infoproduct.products.field.upsell_products.price.placeholder"
                 },
                 {
                   "type": "html",

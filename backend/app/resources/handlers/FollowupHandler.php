@@ -93,7 +93,9 @@ class FollowupHandler {
     $botTz = new DateTimeZone($botTimezone);
 
     foreach ($followups as $fup) {
-      $futureDate = self::calculateFutureDate($fup, $botTimezone);
+      $result = self::calculateFutureDate($fup, $botTimezone);
+      $futureDate = $result['future_date'];
+      $dateInBotTz = $result['date_in_bot_tz'];
 
       // Limitar mensaje a 20 caracteres
       $fullMessage = $fup['message'] ?? '';
@@ -135,16 +137,8 @@ class FollowupHandler {
       ogDb::table(self::$table)->insert($data);
       $count++;
 
-      // Actualizar lastCalculatedDate en timezone del bot
-      $isImmediateType = in_array($fup['time_type'] ?? 'minuto', ['minuto', 'hora']);
-      if ($isImmediateType) {
-        self::$lastCalculatedDate = $futureDate;
-      } else {
-        $ecuadorTz = new DateTimeZone('America/Guayaquil');
-        $dt = new DateTime($futureDate, $ecuadorTz);
-        $dt->setTimezone($botTz);
-        self::$lastCalculatedDate = $dt->format('Y-m-d H:i:s');
-      }
+      // Actualizar lastCalculatedDate con la fecha en timezone del bot
+      self::$lastCalculatedDate = $dateInBotTz;
     }
 
     return ['success' => true, 'count' => $count];
@@ -184,20 +178,33 @@ class FollowupHandler {
       case 'esta_noche':
         $defaultHour = $timeHour !== '00:00' ? $timeHour : '20:00';
         list($hour, $minute) = explode(':', $defaultHour);
+
+        // Guardar la fecha/hora anterior antes de modificar
+        $previousDate = clone $baseDate;
+
+        // Establecer la hora de "esta noche" en el día actual de $baseDate
         $baseDate->setTime((int)$hour, (int)$minute, 0);
-        $now = new DateTime('now', $botTz);
-        if ($baseDate <= $now) {
+
+        // Si la hora ya pasó respecto a la fecha anterior, mover al siguiente día
+        if ($baseDate <= $previousDate) {
           $baseDate->modify('+1 day');
         }
         break;
 
       case 'fin_semana':
+        $previousDate = clone $baseDate;
         $baseDate->modify('next sunday');
         list($hour, $minute) = explode(':', $timeHour);
         $baseDate->setTime((int)$hour, (int)$minute, 0);
+
+        // Si el domingo calculado es anterior a la fecha previa, avanzar una semana más
+        if ($baseDate <= $previousDate) {
+          $baseDate->modify('+7 days');
+        }
         break;
 
       case 'quincena_actual':
+        $previousDate = clone $baseDate;
         $currentDay = (int)$baseDate->format('d');
         if ($currentDay <= 15) {
           $baseDate->setDate((int)$baseDate->format('Y'), (int)$baseDate->format('m'), 15);
@@ -206,13 +213,30 @@ class FollowupHandler {
         }
         list($hour, $minute) = explode(':', $timeHour);
         $baseDate->setTime((int)$hour, (int)$minute, 0);
+
+        // Si la fecha calculada es anterior a la previa, mover a la siguiente quincena
+        if ($baseDate <= $previousDate) {
+          if ($currentDay <= 15) {
+            $baseDate->modify('last day of this month');
+          } else {
+            $baseDate->modify('first day of next month');
+            $baseDate->setDate((int)$baseDate->format('Y'), (int)$baseDate->format('m'), 15);
+          }
+          $baseDate->setTime((int)$hour, (int)$minute, 0);
+        }
         break;
 
       case 'inicio_mes_proximo':
+        $previousDate = clone $baseDate;
         $baseDate->modify('first day of next month');
         $baseDate->modify('+1 day');
         list($hour, $minute) = explode(':', $timeHour);
         $baseDate->setTime((int)$hour, (int)$minute, 0);
+
+        // Si la fecha calculada es anterior a la previa, mover al mes siguiente
+        if ($baseDate <= $previousDate) {
+          $baseDate->modify('+1 month');
+        }
         break;
 
       default:
@@ -220,6 +244,7 @@ class FollowupHandler {
     }
 
     // Aplicar restricciones de horario (en timezone del bot)
+    $dateBeforeRestrictions = clone $baseDate;
     $baseDate = self::applyTimeRestrictions($baseDate);
 
     // Aplicar variación aleatoria si NO es tipo inmediato (en timezone del bot)
@@ -228,13 +253,23 @@ class FollowupHandler {
       $baseDate = self::applyRandomMinutesVariation($baseDate);
     }
 
-    // Convertir a hora Ecuador solo si es dia futuro
+    // Guardar la fecha en botTz ANTES de convertir a Ecuador
+    $dateInBotTz = $baseDate->format('Y-m-d H:i:s');
+
+    // Determinar si debe convertirse a Ecuador
+    // Para minuto/hora: solo convertir si se movió al día siguiente por restricciones
     $isImmediateType = in_array($timeType, ['minuto', 'hora']);
-    if (!$isImmediateType) {
+    $movedToNextDay = $baseDate->format('Y-m-d') > $dateBeforeRestrictions->format('Y-m-d');
+
+    if (!$isImmediateType || $movedToNextDay) {
       $baseDate->setTimezone($ecuadorTz);
     }
 
-    return $baseDate->format('Y-m-d H:i:s');
+    // Retornar array con ambas fechas
+    return [
+      'future_date' => $baseDate->format('Y-m-d H:i:s'),
+      'date_in_bot_tz' => $dateInBotTz
+    ];
   }
 
   // Aplicar restricciones de horario permitido

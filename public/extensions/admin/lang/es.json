@@ -1,20 +1,38 @@
 {
-  "admin.user.column.id": "ID",
-  "admin.user.column.username": "Nombre de Usuario",
-  "admin.user.column.email": "Correo Electrónico",
-  "admin.user.column.role": "Rol",
-  "admin.user.column.created": "Fecha de Creación",
-  "admin.user.action.edit": "Editar Usuario",
-  "admin.user.action.delete": "Eliminar Usuario",
-  "admin.user.action.permissions": "Gestionar Permisos",
-  "admin.user.error.passwords_not_match": "Las contraseñas no coinciden",
-  "admin.user.error.password_required": "La contraseña es obligatoria al crear un usuario",
-  "admin.user.error.cannot_delete_admin": "No se puede eliminar un usuario administrador",
-  "admin.user.success.created": "Usuario creado",
-  "admin.user.success.updated": "Usuario actualizado",
-  "admin.title.users": "Gestión de Usuarios",
-  "admin.description.users": "Administra los usuarios del sistema",
-  "admin.refresh.success" : "Lista de usuarios actualizada",
-  "admin.user.success.deleted": "Usuario eliminado correctamente",
-  "admin.user.error.delete_failed": "Error al eliminar usuario"
+  "admin": {
+    "title": {
+      "users": "Gestión de Usuarios"
+    },
+    "description": {
+      "users": "Administra los usuarios del sistema"
+    },
+    "user": {
+      "column": {
+        "id": "ID",
+        "username": "Nombre de Usuario",
+        "email": "Correo Electrónico",
+        "role": "Rol",
+        "created": "Fecha de Creación"
+      },
+      "action": {
+        "edit": "Editar Usuario",
+        "delete": "Eliminar Usuario",
+        "permissions": "Gestionar Permisos"
+      },
+      "success": {
+        "created": "Usuario creado",
+        "updated": "Usuario actualizado",
+        "deleted": "Usuario eliminado correctamente"
+      },
+      "error": {
+        "passwords_not_match": "Las contraseñas no coinciden",
+        "password_required": "La contraseña es obligatoria al crear un usuario",
+        "cannot_delete_admin": "No se puede eliminar un usuario administrador",
+        "delete_failed": "Error al eliminar usuario"
+      }
+    },
+    "refresh": {
+      "success": "Lista de usuarios actualizada"
+    }
+  }
 }

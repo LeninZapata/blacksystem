@@ -2,6 +2,7 @@
 class BotController extends ogController {
   // Nombre de la tabla asociada a este controlador
   protected static $table = DB_TABLES['bots'];
+  private $logMeta = ['module' => 'BotController', 'layer' => 'app/resources'];
 
   function __construct() {
     parent::__construct('bot');
@@ -122,6 +123,14 @@ class BotController extends ogController {
 
   function list() {
     $query = ogDb::table(self::$table);
+
+    // Filtrar por user_id autenticado
+    ogLog::info('ProductController::list - Variable GLOBAL desde bot', $GLOBALS, $this->logMeta);
+    if (isset($GLOBALS['auth_user_id'])) {
+      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
+    } else {
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
 
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;

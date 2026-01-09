@@ -135,76 +135,74 @@ class ogI18n {
     return path.split('.').reduce((current, key) => current?.[key], obj);
   }
 
+
   static t(key, params = {}) {
     const lang = this.currentLang;
-    const [prefix, ...rest] = key.split('.');
-
     let translation = null;
 
-    // 1. Buscar en extensiones primero
-    if (this.exntesionTranslations.has(prefix)) {
-      const extensionLangs = this.exntesionTranslations.get(prefix);
-      const extensionData = extensionLangs.get(lang);
-
-      if (extensionData) {
-        // Intentar dot notation primero (formato anidado)
-        translation = this.getNestedProperty(extensionData, key);
-
-        // Fallback a formato plano
-        if (!translation) {
-          translation = extensionData[key];
-        }
+    // 1. Buscar en traducciones core primero
+    const coreData = this.translations.get(lang);
+    if (coreData) {
+      translation = this.getNestedProperty(coreData, key);
+      if (!translation) {
+        translation = coreData[key];
       }
     }
 
-    // 2. Buscar en traducciones core
+    // 2. Si no se encuentra en core, buscar en extensiones
     if (!translation) {
-      const coreData = this.translations.get(lang);
+      const [prefix, ...rest] = key.split('.');
+      if (this.exntesionTranslations.has(prefix)) {
+        const extensionLangs = this.exntesionTranslations.get(prefix);
+        const extensionData = extensionLangs.get(lang);
 
-      if (coreData) {
-        // Intentar dot notation primero (formato anidado)
-        translation = this.getNestedProperty(coreData, key);
-
-        // Fallback a formato plano
-        if (!translation) {
-          translation = coreData[key];
+        if (extensionData) {
+          translation = this.getNestedProperty(extensionData, key);
+          if (!translation) {
+            translation = extensionData[key];
+          }
         }
-      }
-
-      // Log solo si no se encuentra y no es una key especial
-      if (!translation && !key.startsWith('i18n:')) {
-        ogLogger?.warn('core:i18n', `❌ Key no encontrada: "${key}" (idioma: ${lang})`);
       }
     }
 
     // 3. Fallback al idioma por defecto
     if (!translation && lang !== this.defaultLang) {
       const defaultData = this.translations.get(this.defaultLang);
-
       if (defaultData) {
-        // Intentar dot notation
         translation = this.getNestedProperty(defaultData, key);
-
-        // Fallback a formato plano
         if (!translation) {
           translation = defaultData[key];
         }
       }
     }
 
-    // 4. Si aún no hay traducción, retornar la key
+    // 4. Si translation es un objeto, intentar buscar .label automáticamente
+    if (translation && typeof translation === 'object') {
+      if (translation.label) {
+        translation = translation.label;
+      } else if (translation.placeholder) {
+        translation = translation.placeholder;
+      } else {
+        ogLogger?.error('core:i18n', `La key "${key}" retornó un objeto sin label/placeholder:`, translation);
+        return key;
+      }
+    }
+
+    // 5. Si aún no hay traducción, retornar la key
     if (!translation) {
-      ogLogger?.warn('core:i18n', `Key no encontrada: ${key}`);
+      if (!key.startsWith('i18n:')) {
+        ogLogger?.warn('core:i18n', `Key no encontrada: ${key}`);
+      }
       return key;
     }
 
-    // 4.5. Validar que translation sea un string
+    // 6. Validar que translation sea un string
     if (typeof translation !== 'string') {
-      ogLogger?.error('core:i18n', `La key "${key}" retornó un objeto en lugar de string:`, translation);
+      ogLogger?.error('core:i18n', `La key "${key}" no es un string válido:`, translation);
       return key;
     }
 
-    // 5. Reemplazar parámetros {param}
+    // 7. Reemplazar parámetros {param}
     return translation.replace(/\{(\w+)\}/g, (match, param) => {
       return params[param] !== undefined ? params[param] : match;
     });
@@ -314,9 +312,28 @@ class ogI18n {
     localStorage.setItem(`${slug}_lang`, lang);
   }
 
+
   static clearCache() {
     this.translations.clear();
     this.exntesionTranslations.clear();
+    
+    // Limpiar también localStorage
+    const config = this.getConfig();
+    const slug = config.slug || 'app';
+    const keysToRemove = [];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith(`cache_${slug}_i18n_`) || key.startsWith(`i18n_`))) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    ogLogger?.info('core:i18n', `🗑️ Cache limpiado: ${keysToRemove.length} items eliminados`);
+    
+    return keysToRemove.length;
   }
 
   static processString(str) {

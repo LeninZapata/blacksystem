@@ -93,7 +93,8 @@ class UpsellHandler {
       'instruction' => json_encode([
         'root_sale_id' => $rootSaleId,
         'root_product_id' => $rootProductId,
-        'last_sale_id' => $saleId
+        'last_sale_id' => $saleId,
+        'price_upsell' => $upsellToExecute['price'] ?? null
       ]),
       'text' => 'Trigger de upsell',
       'source_url' => null,
@@ -227,6 +228,7 @@ class UpsellHandler {
       'product_id' => $upsellProductId,
       'context' => [
         'type' => 'upsell',
+        'price' => $metadata['price_upsell'] ?? $productData['price'] ?? 0,
         'source' => 'system',
         'is_fb_ads' => false
       ],
@@ -259,7 +261,7 @@ class UpsellHandler {
         'sale_id' => $newSaleId,
         'product_id' => $upsellProductId,
         'product_name' => $productData['name'],
-        'price' => $productData['price'] ?? '0.00',
+        'price' => $metadata['price_upsell'] ?? $productData['price'] ?? 0,
         'description' => $productData['description'] ?? '',
         'instructions' => $productData['config']['prompt'] ?? '',
         'origin' => 'upsell',
@@ -280,7 +282,7 @@ class UpsellHandler {
         'sale_id' => $newSaleId,
         'product_id' => $upsellProductId,
         'product_name' => $productData['name'],
-        'price' => $productData['price'] ?? '0.00',
+        'price' => $metadata['price_upsell'] ?? $productData['price'] ?? 0,
         'description' => $productData['description'] ?? '',
         'instructions' => $productData['config']['prompt'] ?? '',
         'origin' => 'upsell',

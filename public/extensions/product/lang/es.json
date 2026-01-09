@@ -1,26 +1,56 @@
 {
-  "product.list.title": "📦 Listado de Productos",
-  "product.list.header.title": "📦 Gestión de Productos Digitales",
-  "product.list.header.description": "Administra tus infoproductos y su contexto",
-  "product.column.id": "ID",
-  "product.column.name": "Nombre",
-  "product.column.created": "Fecha de Creación",
-  "product.form.title": "Formulario de Producto",
-  "product.form.description": "Completa la información del producto",
-  "product.field.name": "Nombre",
-  "product.field.name.placeholder": "Ej: Curso de Marketing Digital",
-  "product.field.description": "Descripción (contexto)",
-  "product.field.description.placeholder": "Describe el producto y su contexto para uso interno...",
-  "product.ogModal.new.title": "📦 Nuevo Producto",
-  "product.ogModal.edit.title": "✏️ Editar Producto",
-  "product.confirm.delete": "¿Eliminar este producto?",
-  "product.success.created": "Producto creado correctamente",
-  "product.success.updated": "Producto actualizado correctamente",
-  "product.success.deleted": "Producto eliminado correctamente",
-  "product.error.create_failed": "Error al crear producto",
-  "product.error.update_failed": "Error al actualizar producto",
-  "product.error.delete_failed": "Error al eliminar producto",
-  "product.error.load_failed": "Error al cargar producto",
-  "product.error.user_not_found": "No se pudo obtener el usuario actual",
-  "product.refresh.success": "Lista actualizada"
+  "product": {
+    "list": {
+      "title": "📦 Listado de Productos",
+      "header": {
+        "title": "📦 Gestión de Productos Digitales",
+        "description": "Administra tus infoproductos y su contexto"
+      }
+    },
+    "column": {
+      "id": "ID",
+      "name": "Nombre",
+      "created": "Fecha de Creación"
+    },
+    "form": {
+      "title": "Formulario de Producto",
+      "description": "Completa la información del producto",
+      "field": {
+        "name": {
+          "label": "Nombre",
+          "placeholder": "Ej: Curso de Marketing Digital"
+        },
+        "description": {
+          "label": "Descripción (contexto)",
+          "placeholder": "Describe el producto y su contexto para uso interno..."
+        }
+      }
+    },
+    "modal": {
+      "new": {
+        "title": "📦 Nuevo Producto"
+      },
+      "edit": {
+        "title": "✏️ Editar Producto"
+      }
+    },
+    "confirm": {
+      "delete": "¿Eliminar este producto?"
+    },
+    "success": {
+      "created": "Producto creado correctamente",
+      "updated": "Producto actualizado correctamente",
+      "deleted": "Producto eliminado correctamente"
+    },
+    "error": {
+      "create_failed": "Error al crear producto",
+      "update_failed": "Error al actualizar producto",
+      "delete_failed": "Error al eliminar producto",
+      "load_failed": "Error al cargar producto",
+      "user_not_found": "No se pudo obtener el usuario actual"
+    },
+    "refresh": {
+      "success": "Lista actualizada"
+    }
+  }
 }

@@ -1,47 +1,99 @@
 {
-  "botws.listado.title": "💬 Listado de Bots",
-  "botws.listado.header.title": "💬 Listado de Bots de WhatsApp",
-  "botws.listado.header.description": "Administra los bots de WhatsApp del sistema",
-  "botws.bot.column.id": "ID",
-  "botws.bot.column.name": "Nombre del Bot",
-  "botws.bot.column.personality": "Personalidad (prompt especifico corto)",
-  "botws.bot.column.created": "Fecha de Creación",
-  "botws.bot.form.title": "Formulario de Bot",
-  "botws.bot.form.description": "Completa los datos del bot de WhatsApp",
-  "botws.bot.field.name": "Nombre del Bot",
-  "botws.bot.field.name.placeholder": "Ej: Bot de Soporte",
-  "botws.bot.field.number": "Número de Bot",
-  "botws.bot.field.number.placeholder": "Ingresa el número sin código de país (Ej: 999123456)",
-  "botws.bot.field.number.hint": "Debe contener el código de área del país",
-  "botws.bot.field.country_code": "Código de País",
-  "botws.bot.field.personality": "Personalidad",
-  "botws.bot.field.personality.placeholder": "Describe la personalidad del bot (opcional)",
-  "botws.bot.field.type": "Tipo de Bot",
-  "botws.bot.field.mode": "Método de Pago",
-  "botws.bot.field.workflow": "Flujo de Trabajo",
-  "botws.bot.field.api_agent": "API de Agente IA",
-  "botws.bot.field.api_chat": "API de Chat",
-  "botws.bot.field.credential_agent": "Credencial de IA",
-  "botws.bot.field.credential_chat": "API de Chat",
-  "botws.bot.field.task": "Tarea",
-  "botws.bot.task.conversation": "Conversación",
-  "botws.bot.task.image": "Análisis de imagen",
-  "botws.bot.task.audio": "Análisis de audio",
-  "botws.bot.type.infoproduct": "Infoproducto",
-  "botws.bot.type.ecom": "Ecommerce",
-  "botws.bot.mode.receipt": "Recibo",
-  "botws.bot.mode.checkout": "Checkout",
-  "botws.ogModal.new.title": "🤖 Nuevo Bot",
-  "botws.ogModal.edit.title": "✏️ Editar Bot",
-  "botws.confirm.delete": "¿Eliminar bot {name}?",
-  "botws.bot.success.created": "Bot creado correctamente",
-  "botws.bot.success.updated": "Bot actualizado correctamente",
-  "botws.bot.success.deleted": "Bot eliminado correctamente",
-  "botws.bot.error.create_failed": "Error al crear el bot",
-  "botws.bot.error.update_failed": "Error al actualizar el bot",
-  "botws.bot.error.delete_failed": "Error al eliminar el bot",
-  "botws.bot.error.load_failed": "Error al cargar el bot",
-  "botws.bot.error.agent_required": "Debe agregar al menos 1 credencial de Agente IA",
-  "botws.bot.error.chat_required": "Debe agregar al menos 1 credencial de Chat",
-  "botws.refresh.success": "Lista de bots actualizada"
+  "botws": {
+    "listado": {
+      "title": "💬 Listado de Bots",
+      "header": {
+        "title": "💬 Listado de Bots de WhatsApp",
+        "description": "Administra los bots de WhatsApp del sistema"
+      }
+    },
+    "bot": {
+      "column": {
+        "id": "ID",
+        "name": "Nombre del Bot",
+        "personality": "Personalidad (prompt especifico corto)",
+        "created": "Fecha de Creación"
+      },
+      "form": {
+        "title": "Formulario de Bot",
+        "description": "Completa los datos del bot de WhatsApp",
+        "field": {
+          "name": {
+            "label": "Nombre del Bot",
+            "placeholder": "Ej: Bot de Soporte"
+          },
+          "number": {
+            "label": "Número de Bot",
+            "placeholder": "Ingresa el número sin código de país (Ej: 999123456)",
+            "hint": "Debe contener el código de área del país"
+          },
+          "country_code": {
+            "label": "Código de País"
+          },
+          "personality": {
+            "label": "Personalidad",
+            "placeholder": "Describe la personalidad del bot (opcional)"
+          },
+          "type": {
+            "label": "Tipo de Bot",
+            "infoproduct": "Infoproducto",
+            "ecom": "Ecommerce"
+          },
+          "mode": {
+            "label": "Método de Pago",
+            "receipt": "Recibo",
+            "checkout": "Checkout"
+          },
+          "workflow": {
+            "label": "Flujo de Trabajo"
+          },
+          "api_agent": {
+            "label": "API de Agente IA"
+          },
+          "api_chat": {
+            "label": "API de Chat"
+          },
+          "credential_agent": {
+            "label": "Credencial de IA"
+          },
+          "credential_chat": {
+            "label": "API de Chat"
+          },
+          "task": {
+            "label": "Tarea",
+            "conversation": "Conversación",
+            "image": "Análisis de imagen",
+            "audio": "Análisis de audio"
+          }
+        }
+      },
+      "success": {
+        "created": "Bot creado correctamente",
+        "updated": "Bot actualizado correctamente",
+        "deleted": "Bot eliminado correctamente"
+      },
+      "error": {
+        "create_failed": "Error al crear el bot",
+        "update_failed": "Error al actualizar el bot",
+        "delete_failed": "Error al eliminar el bot",
+        "load_failed": "Error al cargar el bot",
+        "agent_required": "Debe agregar al menos 1 credencial de Agente IA",
+        "chat_required": "Debe agregar al menos 1 credencial de Chat"
+      }
+    },
+    "modal": {
+      "new": {
+        "title": "🤖 Nuevo Bot"
+      },
+      "edit": {
+        "title": "✏️ Editar Bot"
+      }
+    },
+    "confirm": {
+      "delete": "¿Eliminar bot {name}?"
+    },
+    "refresh": {
+      "success": "Lista de bots actualizada"
+    }
+  }
 }

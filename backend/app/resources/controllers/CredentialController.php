@@ -86,6 +86,13 @@ class CredentialController extends ogController {
   function list() {
     $query = ogDb::table(self::$table);
 
+    // Filtrar por user_id autenticado
+    if (isset($GLOBALS['auth_user_id'])) {
+      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
+    } else {
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
+
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
       $query = $query->where($key, $value);

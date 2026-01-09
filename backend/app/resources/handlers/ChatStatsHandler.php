@@ -3,6 +3,12 @@ class ChatStatsHandler {
   
   // Actividad de mensajes (total, chats nuevos, seguimientos)
   static function getMessagesActivity($params) {
+    // Obtener user_id autenticado
+    if (!isset($GLOBALS['auth_user_id'])) {
+      return ['success' => false, 'error' => __('auth.unauthorized')];
+    }
+    $userId = $GLOBALS['auth_user_id'];
+
     $range = $params['range'] ?? 'last_7_days';
     $dates = ogApp()->helper('date')::getDateRange($range);
     
@@ -16,13 +22,14 @@ class ChatStatsHandler {
         DATE(dc) as date,
         COUNT(DISTINCT client_id) as new_chats
       FROM " . DB_TABLES['chats'] . "
-      WHERE dc >= ? AND dc <= ?
+      WHERE user_id = ?
+        AND dc >= ? AND dc <= ?
         AND status = 1
       GROUP BY DATE(dc)
       ORDER BY date ASC
     ";
 
-    $chatsData = ogDb::raw($sqlChats, [$dates['start'], $dates['end'] . ' 23:59:59' ]);
+    $chatsData = ogDb::raw($sqlChats, [$userId, $dates['start'], $dates['end'] . ' 23:59:59' ]);
 
     // Query: Seguimientos programados por día
     $sqlFollowups = "
@@ -30,13 +37,14 @@ class ChatStatsHandler {
         DATE(future_date) as date,
         COUNT(*) as followups_scheduled
       FROM " . DB_TABLES['followups'] . "
-      WHERE future_date >= ? AND future_date <= ?
+      WHERE user_id = ?
+        AND future_date >= ? AND future_date <= ?
         AND status = 1
       GROUP BY DATE(future_date)
       ORDER BY date ASC
     ";
 
-    $followupsData = ogDb::raw($sqlFollowups, [$dates['start'], $dates['end'] . ' 23:59:59' ]);
+    $followupsData = ogDb::raw($sqlFollowups, [$userId, $dates['start'], $dates['end'] . ' 23:59:59' ]);
 
     // Combinar resultados
     $statsMap = [];

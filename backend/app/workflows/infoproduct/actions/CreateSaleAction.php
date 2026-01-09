@@ -12,10 +12,10 @@ class CreateSaleAction {
     $from = $person['number'];
     $name = $person['name'];
     $device = $person['platform'] ?? null;
-    
+
     // OBTENER USER_ID DEL BOT
     $userId = $bot['user_id'] ?? null;
-    
+
     if (!$userId) {
       ogLog::error("CreateSaleAction - user_id no encontrado en bot", [ 'bot_id' => $bot['id'] ?? null ], self::$logMeta);
     }
@@ -78,7 +78,7 @@ class CreateSaleAction {
       'bot_type' => $botType,
       'bot_mode' => $botMode,
       'client_id' => $clientId,
-      'amount' => $product['price'] ?? 0,
+      'amount' => $context['price'] ?? $product['price'] ?? 0,
       'process_status' => 'initiated',
       'source_app' => $context['source_app'] ?? null,
       'source_url' => $context['ad_data']['source_url'] ?? null,

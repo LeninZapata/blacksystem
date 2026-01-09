@@ -3,48 +3,56 @@ class SaleStatsHandler {
 
   // Ventas confirmadas ($ y conversión %)
   static function getSalesRevenueAndConversion($params) {
+    // Obtener user_id autenticado
+    if (!isset($GLOBALS['auth_user_id'])) {
+      return ['success' => false, 'error' => __('auth.unauthorized')];
+    }
+    $userId = $GLOBALS['auth_user_id'];
+
     $range = $params['range'] ?? 'last_7_days';
     $dates = ogApp()->helper('date')::getDateRange($range);
-    
+
     if (!$dates) {
       return ['success' => false, 'error' => 'Rango inválido'];
     }
 
     // Query: Monto total por día (ventas confirmadas)
     $sqlRevenue = "
-      SELECT 
+      SELECT
         DATE(payment_date) as date,
         SUM(billed_amount) as revenue,
         COUNT(*) as sales_count
       FROM " . DB_TABLES['sales'] . "
-      WHERE payment_date >= ? AND payment_date <= ?
+      WHERE user_id = ?
+        AND payment_date >= ? AND payment_date <= ?
         AND process_status = 'sale_confirmed'
         AND status = 1
       GROUP BY DATE(payment_date)
       ORDER BY date ASC
     ";
 
-    $revenueData = ogDb::raw($sqlRevenue, [$dates['start'], $dates['end']]);
+    $revenueData = ogDb::raw($sqlRevenue, [$userId, $dates['start'], $dates['end']]);
 
     // Query: Conversión % por día
     $sqlConversion = "
-      SELECT 
+      SELECT
         DATE(dc) as date,
         COUNT(*) as total_sales,
         SUM(CASE WHEN process_status = 'sale_confirmed' THEN 1 ELSE 0 END) as confirmed_sales,
         ROUND((SUM(CASE WHEN process_status = 'sale_confirmed' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 2) as conversion_rate
       FROM " . DB_TABLES['sales'] . "
-      WHERE dc >= ? AND dc <= ?
+      WHERE user_id = ?
+        AND dc >= ? AND dc <= ?
         AND status = 1
       GROUP BY DATE(dc)
       ORDER BY date ASC
     ";
 
-    $conversionData = ogDb::raw($sqlConversion, [$dates['start'], $dates['end']]);
+    $conversionData = ogDb::raw($sqlConversion, [$userId, $dates['start'], $dates['end']]);
 
     // Combinar resultados
     $statsMap = [];
-    
+
     // Inicializar con revenue
     foreach ($revenueData as $row) {
       $statsMap[$row['date']] = [
@@ -58,7 +66,7 @@ class SaleStatsHandler {
     // Agregar conversión
     foreach ($conversionData as $row) {
       $date = $row['date'];
-      
+
       if (!isset($statsMap[$date])) {
         $statsMap[$date] = [
           'date' => $date,
@@ -67,7 +75,7 @@ class SaleStatsHandler {
           'conversion_rate' => 0
         ];
       }
-      
+
       $statsMap[$date]['conversion_rate'] = (float)$row['conversion_rate'];
       $statsMap[$date]['total_sales'] = (int)$row['total_sales'];
       $statsMap[$date]['confirmed_sales'] = (int)$row['confirmed_sales'];
@@ -90,9 +98,15 @@ class SaleStatsHandler {
 
   // Ventas directas vs remarketing (barras apiladas)
   static function getSalesDirectVsRemarketing($params) {
+    // Obtener user_id autenticado
+    if (!isset($GLOBALS['auth_user_id'])) {
+      return ['success' => false, 'error' => __('auth.unauthorized')];
+    }
+    $userId = $GLOBALS['auth_user_id'];
+
     $range = $params['range'] ?? 'last_7_days';
     $dates = ogApp()->helper('date')::getDateRange($range);
-    
+
     if (!$dates) {
       return ['success' => false, 'error' => 'Rango inválido'];
     }
@@ -106,6 +120,7 @@ class SaleStatsHandler {
       "COUNT(CASE WHEN tracking_funnel_id IS NULL THEN 1 END) as direct_count",
       "COUNT(CASE WHEN tracking_funnel_id IS NOT NULL THEN 1 END) as remarketing_count"
       ])
+    ->where('user_id', $userId)
     ->where('payment_date', '>=', $dates['start'])
     ->where('payment_date', '<=', $dates['end'] . ' 23:59:59')
     ->where('process_status', 'sale_confirmed')
@@ -117,23 +132,24 @@ class SaleStatsHandler {
 
     // Query: Total ventas por día (para conversión)
     $sqlTotal = "
-      SELECT 
+      SELECT
         DATE(dc) as date,
         COUNT(*) as total_sales,
         SUM(CASE WHEN process_status = 'sale_confirmed' THEN 1 ELSE 0 END) as confirmed_sales,
         ROUND((SUM(CASE WHEN process_status = 'sale_confirmed' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 2) as conversion_rate
       FROM " . DB_TABLES['sales'] . "
-      WHERE dc >= ? AND dc <= ?
+      WHERE user_id = ?
+        AND dc >= ? AND dc <= ?
         AND status = 1
       GROUP BY DATE(dc)
       ORDER BY date ASC
     ";
 
-    $totalData = ogDb::raw($sqlTotal, [$dates['start'], $dates['end']]);
+    $totalData = ogDb::raw($sqlTotal, [$userId, $dates['start'], $dates['end']]);
 
     // Combinar resultados
     $statsMap = [];
-    
+
     // Inicializar con datos confirmados
     foreach ($confirmedData as $row) {
       $statsMap[$row['date']] = [
@@ -150,7 +166,7 @@ class SaleStatsHandler {
     // Agregar datos de conversión
     foreach ($totalData as $row) {
       $date = $row['date'];
-      
+
       if (!isset($statsMap[$date])) {
         $statsMap[$date] = [
           'date' => $date,
@@ -162,7 +178,7 @@ class SaleStatsHandler {
           'conversion_rate' => 0
         ];
       }
-      
+
       $statsMap[$date]['total_sales'] = (int)$row['total_sales'];
       $statsMap[$date]['conversion_rate'] = (float)$row['conversion_rate'];
     }

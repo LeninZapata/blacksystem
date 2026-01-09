@@ -78,6 +78,6 @@ $router->group('/api/sale', function($router) {
   $router->get('/stats/direct-vs-remarketing', function() {
     $range = ogRequest::query('range', 'last_7_days');
     ogResponse::json( ogApp()->handler('saleStats')::getSalesDirectVsRemarketing(['range' => $range]) );
-  })->middleware(['throttle:100,1']);
+  })->middleware(['throttle:100,1','auth']);
 
 });
