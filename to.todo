@@ -10,6 +10,8 @@ Backend (Aplicacion):
 ☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
 hacer que se ejecute al otro dia en la mañana
 FRONTEND:
+☐ porque se muestran los widgets a dannes cuando solo tiene permiso de graficas, no se porque se muestra
+en el dashboard
 ☐ algo pasa quue no se refreca los cambios del formulario ni porque le cambie de version
 ☐ Agrupar con group los campos de bienvenida y seguimiento porque puede de 4 filas hacerla 2 filas
 sospecho que tiene algo que ver con el cache, debes revisar si form o view tiene un cache que no tiene

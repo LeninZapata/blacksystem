@@ -34,9 +34,10 @@ class ProductChartAdSpend {
       const safeTotals = {
         spend: totals.spend || 0,
         real_purchases: totals.real_purchases || 0,
+        real_purchase_value: totals.real_purchase_value || 0,
         roas: totals.roas || 0,
         link_clicks: totals.link_clicks || 0,
-        results: totals.results || 0  // Cambiado de conversions a results
+        results: totals.results || 0
       };
 
       html += this.getStatsHTML(safeTotals);
@@ -69,7 +70,7 @@ class ProductChartAdSpend {
         </div>
         <div class="stat-box">
           <div class="stat-value">0x</div>
-          <div class="stat-label">ROAS</div>
+          <div class="stat-label">ROAS (sin datos)</div>
         </div>
         <div class="stat-box">
           <div class="stat-value">0</div>
@@ -87,6 +88,14 @@ class ProductChartAdSpend {
   }
 
   static getStatsHTML(totals) {
+    // Calcular pérdida/ganancia
+    const profit = totals.real_purchase_value - totals.spend;
+    const profitPercent = totals.spend > 0 ? (profit / totals.spend) * 100 : 0;
+    const isProfit = profitPercent >= 0;
+    const profitLabel = isProfit 
+      ? `${Math.abs(profitPercent).toFixed(0)}% ganancia` 
+      : `${Math.abs(profitPercent).toFixed(0)}% pérdida`;
+    
     return `
       <div class="chart-stats">
         <div class="stat-box">
@@ -99,7 +108,7 @@ class ProductChartAdSpend {
         </div>
         <div class="stat-box">
           <div class="stat-value">${totals.roas.toFixed(2)}x</div>
-          <div class="stat-label">ROAS</div>
+          <div class="stat-label">ROAS (${profitLabel})</div>
         </div>
         <div class="stat-box">
           <div class="stat-value">${totals.link_clicks.toLocaleString()}</div>

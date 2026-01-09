@@ -545,6 +545,7 @@ class adMetricsHandler {
             COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
           FROM ad_metrics_daily d
           LEFT JOIN sales s ON DATE(s.payment_date) = d.metric_date
+            AND s.product_id = d.product_id
             AND s.context = 'whatsapp'
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
@@ -593,6 +594,7 @@ class adMetricsHandler {
             COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
           FROM ad_metrics_hourly h
           LEFT JOIN sales s ON DATE(s.payment_date) = h.query_date
+            AND s.product_id = h.product_id
             AND s.context = 'whatsapp'
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1

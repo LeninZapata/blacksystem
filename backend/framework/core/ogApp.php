@@ -111,8 +111,6 @@ class ogFramework {
     // 2. Buscar en app sin prefijo og
     $appClassName = ucfirst($fileName) . "Service";
     $appFile = $this->pluginPath . "/services/{$subPath}" . $appClassName . ".php";
-    ogLog::info("service - Trying to load service from app: {$appFile}", ['name' => $name], $this->logMeta);
-    ogLog::info("service - Checking if service file exists: " . (file_exists($appFile) ? 'yes' : 'no'), ['name' => $name], $this->logMeta);
     if (file_exists($appFile)) {
       require_once $appFile;
       if (!class_exists($appClassName)) {
