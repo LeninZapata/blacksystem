@@ -54,25 +54,48 @@ $router->group('/api/followup', function($router) {
         if (!empty($fup['special']) && $fup['special'] === 'upsell') {
           ogLog::info("CRON Followup - Followup especial detectado: UPSELL", [ 'followup_id' => $fup['id'], 'product_id' => $fup['product_id'], 'number' => $fup['number'] ], $logMeta);
 
+          // VALIDACIÓN 1: Verificar si ya existe venta upsell para este followup
+          $existingUpsell = ogDb::table(DB_TABLES['sales'])
+            ->where('client_id', $fup['client_id'])
+            ->where('parent_sale_id', $fup['sale_id'])
+            ->where('origin', 'upsell')
+            ->where('bot_id', $fup['bot_id'])
+            ->where('status', 1)
+            ->first();
+
+          if ($existingUpsell) {
+            ogLog::warning("CRON Followup - Upsell duplicado detectado, marcando followup como procesado", [
+              'followup_id' => $fup['id'],
+              'existing_sale_id' => $existingUpsell['id'],
+              'number' => $fup['number']
+            ], $logMeta);
+
+            // Marcar followup como procesado para evitar loop
+            ogApp()->handler('followup')::markProcessed($fup['id']);
+            $failed++;
+            sleep(rand(2, 4));
+            continue;
+          }
+
           // Configurar ogChatApi con el bot específico
           $chatapi::setConfig($botData);
 
           // Ejecutar proceso de upsell
           $upsellResult = UpsellHandler::executeUpsell($fup, $botData);
 
+          // CRÍTICO: Marcar followup como procesado SIEMPRE para evitar loop infinito
+          ogApp()->handler('followup')::markProcessed($fup['id']);
+
           if ($upsellResult['success']) {
             ogLog::info("CRON Followup - Upsell ejecutado exitosamente", [ 'followup_id' => $fup['id'], 'new_sale_id' => $upsellResult['new_sale_id'], 'upsell_product_id' => $upsellResult['upsell_product_id'] ], $logMeta);
-
-            // Marcar followup especial como procesado
-            ogApp()->handler('followup')::markProcessed($fup['id']);
             $upsellsExecuted++;
             $sent++;
           } else {
-            ogLog::error("CRON Followup - Error ejecutando upsell", [ 'followup_id' => $fup['id'], 'error' => $upsellResult['error'] ?? 'unknown' ], $logMeta);
+            ogLog::error("CRON Followup - Error ejecutando upsell (followup marcado como procesado para evitar loop)", [ 'followup_id' => $fup['id'], 'error' => $upsellResult['error'] ?? 'unknown' ], $logMeta);
             $failed++;
           }
 
-          sleep(2);
+          sleep(rand(2, 4));
           continue;
         }
 
@@ -80,7 +103,7 @@ $router->group('/api/followup', function($router) {
         ogLog::info("CRON Followup - Procesando followup normal", [ 'followup_id' => $fup['id'], 'number' => $fup['number'], 'tracking_id' => $fup['name'] ?? 'N/A' ], $logMeta);
 
         // Configurar ogChatApi con el bot específico
-        ogLog::info("CRON Followup - Configurando Chat API para el bot", $botData, $logMeta);
+        // ogLog::info("CRON Followup - Configurando Chat API para el bot", $botData, $logMeta);
         $chatapi::setConfig($botData);
 
         // Preparar texto y source_url
@@ -152,7 +175,7 @@ $router->group('/api/followup', function($router) {
           $failed++;
         }
 
-        sleep(2);
+        sleep(rand(2, 4));
 
       } catch (Exception $e) {
         ogLog::error("CRON Followup - Error procesando followup", [ 'followup_id' => $fup['id'], 'error' => $e->getMessage() ], $logMeta);

@@ -530,7 +530,8 @@ class adMetricsHandler {
       $historicEnd = $needsToday ? $yesterday : date('Y-m-d', strtotime($dates['end']));
 
       if (strtotime($dates['start']) <= strtotime($historicEnd)) {
-        $sqlHistoric = "
+        // Query 1: Métricas históricas de ads
+        $sqlHistoricAds = "
           SELECT
             d.metric_date as date,
             SUM(d.spend) as spend,
@@ -540,25 +541,48 @@ class adMetricsHandler {
             SUM(d.conversions) as conversions,
             SUM(d.results) as results,
             SUM(d.purchase) as ad_purchases,
-            SUM(d.purchase_value) as ad_purchase_value,
-            COUNT(DISTINCT s.id) as real_purchases,
-            COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
+            SUM(d.purchase_value) as ad_purchase_value
           FROM ad_metrics_daily d
-          LEFT JOIN sales s ON DATE(s.payment_date) = d.metric_date
-            AND s.product_id = d.product_id
-            AND s.context = 'whatsapp'
-            AND s.process_status = 'sale_confirmed'
-            AND s.status = 1
           WHERE d.user_id = ? AND d.metric_date >= ? AND d.metric_date <= ?
           GROUP BY d.metric_date
           ORDER BY d.metric_date ASC
         ";
 
-        $historicData = ogDb::raw($sqlHistoric, [$userId, $dates['start'], $historicEnd]);
+        $historicAdsData = ogDb::raw($sqlHistoricAds, [$userId, $dates['start'], $historicEnd]);
 
-        foreach ($historicData as $row) {
-          $results[$row['date']] = [
-            'date' => $row['date'],
+        // Query 2: Ventas reales por día en el período histórico
+        $sqlHistoricSales = "
+          SELECT
+            DATE(s.payment_date) as date,
+            COUNT(DISTINCT s.id) as real_purchases,
+            COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
+          FROM sales s
+          WHERE s.user_id = ?
+            AND DATE(s.payment_date) >= ?
+            AND DATE(s.payment_date) <= ?
+            AND s.context = 'whatsapp'
+            AND s.process_status = 'sale_confirmed'
+            AND s.status = 1
+          GROUP BY DATE(s.payment_date)
+        ";
+
+        $historicSalesData = ogDb::raw($sqlHistoricSales, [$userId, $dates['start'], $historicEnd]);
+
+        // Crear un mapa de ventas por fecha
+        $salesMap = [];
+        foreach ($historicSalesData as $saleRow) {
+          $salesMap[$saleRow['date']] = [
+            'real_purchases' => (int)$saleRow['real_purchases'],
+            'real_purchase_value' => (float)$saleRow['real_purchase_value']
+          ];
+        }
+
+        foreach ($historicAdsData as $row) {
+          $date = $row['date'];
+          $salesData = $salesMap[$date] ?? ['real_purchases' => 0, 'real_purchase_value' => 0];
+
+          $results[$date] = [
+            'date' => $date,
             'spend' => (float)$row['spend'],
             'impressions' => (int)$row['impressions'],
             'clicks' => (int)$row['clicks'],
@@ -567,8 +591,8 @@ class adMetricsHandler {
             'results' => (int)$row['results'],
             'ad_purchases' => (int)$row['ad_purchases'],
             'ad_purchase_value' => (float)$row['ad_purchase_value'],
-            'real_purchases' => (int)$row['real_purchases'],
-            'real_purchase_value' => (float)$row['real_purchase_value'],
+            'real_purchases' => $salesData['real_purchases'],
+            'real_purchase_value' => $salesData['real_purchase_value'],
             'cpm' => 0,
             'cpc' => 0,
             'ctr' => 0,
@@ -579,7 +603,8 @@ class adMetricsHandler {
 
       // PASO 2: Obtener datos de hoy (ad_metrics_hourly con is_latest = 1)
       if ($needsToday) {
-        $sqlToday = "
+        // Query 1: Métricas de ads
+        $sqlTodayAds = "
           SELECT
             h.query_date as date,
             SUM(h.spend) as spend,
@@ -589,37 +614,47 @@ class adMetricsHandler {
             SUM(h.conversions) as conversions,
             SUM(h.results) as results,
             SUM(h.purchase) as ad_purchases,
-            SUM(h.purchase_value) as ad_purchase_value,
-            COUNT(DISTINCT s.id) as real_purchases,
-            COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
+            SUM(h.purchase_value) as ad_purchase_value
           FROM ad_metrics_hourly h
-          LEFT JOIN sales s ON DATE(s.payment_date) = h.query_date
-            AND s.product_id = h.product_id
-            AND s.context = 'whatsapp'
-            AND s.process_status = 'sale_confirmed'
-            AND s.status = 1
           WHERE h.user_id = ?
             AND h.query_date = ?
             AND h.is_latest = 1
           GROUP BY h.query_date
         ";
 
-        $todayData = ogDb::raw($sqlToday, [$userId, $today]);
+        $todayAdsData = ogDb::raw($sqlTodayAds, [$userId, $today]);
 
-        if (!empty($todayData)) {
-          $row = $todayData[0];
+        // Query 2: Ventas reales del día
+        $sqlTodaySales = "
+          SELECT
+            COUNT(DISTINCT s.id) as real_purchases,
+            COALESCE(SUM(s.billed_amount), 0) as real_purchase_value
+          FROM sales s
+          WHERE s.user_id = ?
+            AND DATE(s.payment_date) = ?
+            AND s.context = 'whatsapp'
+            AND s.process_status = 'sale_confirmed'
+            AND s.status = 1
+        ";
+
+        $todaySalesData = ogDb::raw($sqlTodaySales, [$userId, $today]);
+
+        if (!empty($todayAdsData)) {
+          $adsRow = $todayAdsData[0];
+          $salesRow = !empty($todaySalesData) ? $todaySalesData[0] : ['real_purchases' => 0, 'real_purchase_value' => 0];
+
           $results[$today] = [
             'date' => $today,
-            'spend' => (float)$row['spend'],
-            'impressions' => (int)$row['impressions'],
-            'clicks' => (int)$row['clicks'],
-            'link_clicks' => (int)$row['link_clicks'],
-            'conversions' => (int)$row['conversions'],
-            'results' => (int)$row['results'],
-            'ad_purchases' => (int)$row['ad_purchases'],
-            'ad_purchase_value' => (float)$row['ad_purchase_value'],
-            'real_purchases' => (int)$row['real_purchases'],
-            'real_purchase_value' => (float)$row['real_purchase_value'],
+            'spend' => (float)$adsRow['spend'],
+            'impressions' => (int)$adsRow['impressions'],
+            'clicks' => (int)$adsRow['clicks'],
+            'link_clicks' => (int)$adsRow['link_clicks'],
+            'conversions' => (int)$adsRow['conversions'],
+            'results' => (int)$adsRow['results'],
+            'ad_purchases' => (int)$adsRow['ad_purchases'],
+            'ad_purchase_value' => (float)$adsRow['ad_purchase_value'],
+            'real_purchases' => (int)$salesRow['real_purchases'],
+            'real_purchase_value' => (float)$salesRow['real_purchase_value'],
             'cpm' => 0,
             'cpc' => 0,
             'ctr' => 0,

@@ -197,8 +197,6 @@ class UpsellHandler {
   // Ejecutar upsell (cuando el CRON detecta followup con special='upsell')
   static function executeUpsell($followup, $botData) {
 
-    require_once ogApp()->getPath() . '/workflows/infoproduct/actions/CreateSaleAction.php';
-
     $upsellProductId = $followup['product_id'];
     $clientId = $followup['client_id'];
     $botId = $followup['bot_id'];
@@ -220,6 +218,57 @@ class UpsellHandler {
 
     ogLog::info("executeUpsell - Producto upsell cargado", [ 'product_id' => $upsellProductId, 'product_name' => $productData['name'] ?? 'N/A' ], self::$logMeta);
 
+    // ===========================================
+    // PASO 1: ENVIAR MENSAJES DE WELCOME PRIMERO
+    // ===========================================
+    $welcomeMessages = ProductHandler::getMessagesFile('welcome_upsell', $upsellProductId);
+    $chatapi = ogApp()->service('chatApi');
+    $messageSentSuccessfully = false;
+
+    if (!empty($welcomeMessages)) {
+      ogLog::info("executeUpsell - Enviando welcome upsell", [ 'product_id' => $upsellProductId, 'total_messages' => count($welcomeMessages) ], self::$logMeta);
+
+      foreach ($welcomeMessages as $index => $msg) {
+        $delay = isset($msg['delay']) ? (int)$msg['delay'] : 3;
+        $text = $msg['message'] ?? '';
+        $url = !empty($msg['url']) && $msg['type'] != 'text' ? $msg['url'] : '';
+
+        if ($index > 0 && $delay > 0) {
+          sleep($delay);
+        }
+
+        // Enviar mensaje y verificar resultado
+        $sendResult = $chatapi::send($number, $text, $url);
+        
+        if (!$sendResult['success']) {
+          ogLog::error("executeUpsell - Error enviando mensaje welcome upsell", [
+            'followup_id' => $followup['id'],
+            'message_index' => $index,
+            'error' => $sendResult['error'] ?? 'unknown'
+          ], self::$logMeta);
+          
+          // Si falla el envío, retornar error SIN crear venta
+          return ['success' => false, 'error' => 'failed_to_send_welcome_message'];
+        }
+        
+        $messageSentSuccessfully = true;
+      }
+    } else {
+      ogLog::warning("executeUpsell - No hay mensajes de welcome upsell para enviar", [ 'product_id' => $upsellProductId ], self::$logMeta);
+      // Si no hay mensajes, consideramos que no se puede proceder
+      return ['success' => false, 'error' => 'no_welcome_messages_configured'];
+    }
+
+    // ===========================================
+    // PASO 2: SI EL ENVÍO FUE EXITOSO, CREAR VENTA
+    // ===========================================
+    if (!$messageSentSuccessfully) {
+      ogLog::error("executeUpsell - No se envió ningún mensaje exitosamente", ['followup_id' => $followup['id']], self::$logMeta);
+      return ['success' => false, 'error' => 'no_message_sent'];
+    }
+
+    require_once ogApp()->getPath() . '/workflows/infoproduct/actions/CreateSaleAction.php';
+
     // Crear nueva venta (origen='upsell', parent_sale_id = root)
     $newSaleData = [
       'bot' => $botData,
@@ -238,7 +287,7 @@ class UpsellHandler {
     $saleResult = CreateSaleAction::create($newSaleData);
 
     if (!$saleResult['success']) {
-      ogLog::error("executeUpsell - Error creando venta upsell", [ 'product_id' => $upsellProductId, 'error' => $saleResult['error'] ?? 'unknown' ], self::$logMeta);
+      ogLog::error("executeUpsell - Error creando venta upsell (mensaje ya fue enviado)", [ 'product_id' => $upsellProductId, 'error' => $saleResult['error'] ?? 'unknown' ], self::$logMeta);
       return ['success' => false, 'error' => 'failed_to_create_upsell_sale'];
     }
 
@@ -246,7 +295,9 @@ class UpsellHandler {
     $newClientId = $saleResult['client_id'];
     ogLog::info("executeUpsell - Venta upsell creada exitosamente", [ 'new_sale_id' => $newSaleId, 'parent_sale_id' => $rootSaleId, 'product_id' => $upsellProductId ], self::$logMeta);
 
-    // Registrar mensaje de sistema: Nueva venta iniciada
+    // ===========================================
+    // PASO 3: REGISTRAR EN CHAT
+    // ===========================================
     ogApp()->loadHandler('chat');
     ChatHandler::register(
       $botId,
@@ -294,30 +345,9 @@ class UpsellHandler {
     ChatHandler::getChat($number, $botId, true, true);
     ogLog::info("executeUpsell - Chat reconstruido con nueva venta upsell", [ 'number' => $number, 'new_sale_id' => $newSaleId ], self::$logMeta);
 
-    // Enviar welcome del upsell (desde welcome_upsell_{product_id}.json)
-    $welcomeMessages = ProductHandler::getMessagesFile('welcome_upsell', $upsellProductId);
-    $chatapi = ogApp()->service('chatApi');
-
-    if (!empty($welcomeMessages)) {
-      ogLog::info("executeUpsell - Enviando welcome upsell", [ 'product_id' => $upsellProductId, 'total_messages' => count($welcomeMessages) ], self::$logMeta);
-
-      foreach ($welcomeMessages as $index => $msg) {
-        $delay = isset($msg['delay']) ? (int)$msg['delay'] : 3;
-        $text = $msg['message'] ?? '';
-        $url = !empty($msg['url']) && $msg['type'] != 'text' ? $msg['url'] : '';
-
-        if ($index > 0 && $delay > 0) {
-          sleep($delay);
-        }
-
-        // Solo enviar mensaje (no registrar en DB/JSON)
-        $chatapi::send($number, $text, $url);
-      }
-    }else{
-      ogLog::info("executeUpsell - No hay mensajes de welcome upsell para enviar", [ 'product_id' => $upsellProductId ], self::$logMeta);
-    }
-
-    // Registrar followups del upsell (desde follow_upsell_{product_id}.json)
+    // ===========================================
+    // PASO 4: REGISTRAR FOLLOWUPS DEL UPSELL
+    // ===========================================
     $followupMessages = ProductHandler::getMessagesFile('follow_upsell', $upsellProductId);
 
     if (!empty($followupMessages)) {
@@ -338,7 +368,7 @@ class UpsellHandler {
       );
     }
 
-    ogLog::info("executeUpsell -  Upsell ejecutado completamente", [ 'new_sale_id' => $newSaleId, 'upsell_product_id' => $upsellProductId, 'root_sale_id' => $rootSaleId ], self::$logMeta);
+    ogLog::info("executeUpsell - Upsell ejecutado completamente", [ 'new_sale_id' => $newSaleId, 'upsell_product_id' => $upsellProductId, 'root_sale_id' => $rootSaleId ], self::$logMeta);
 
     return [
       'success' => true,
