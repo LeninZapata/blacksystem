@@ -11,7 +11,7 @@
   }
 
   var ogFramework = window.ogFramework || {
-    version: '1.0.1',
+    version: '1.0.2',
     _initialized: false,
     _scriptsLoaded: false,
     _pendingInits: [],

@@ -1346,11 +1346,11 @@ class ogForm {
     const processAllFields = (fields) => {
       if (!fields) return;
 
+      // Primero llenar campos simples (rápido)
       fields.forEach(field => {
         if (field.type === 'repeatable') {
-          if (!skipRepeatables) {
-            this.fillRepeatable(formEl, field, data, '');
-          }
+          // Postponer repetables
+          return;
         } else if (field.type === 'group' && field.fields) {
           processAllFields(field.fields);
         } else if (field.type === 'grouper' && field.groups) {
@@ -1358,7 +1358,19 @@ class ogForm {
             if (group.fields) processAllFields(group.fields);
           });
         } else if (field.name) {
-          const value = data[field.name];
+          // Buscar valor por name directo o con dot notation
+          let value = data[field.name];
+          
+          // Si no se encuentra, intentar con dot notation
+          if (value === undefined) {
+            const dotNotationKey = Object.keys(data).find(key => 
+              key.endsWith('.' + field.name) || key === field.name
+            );
+            if (dotNotationKey) {
+              value = data[dotNotationKey];
+            }
+          }
+
           if (value !== undefined && value !== null) {
             const input = formEl.querySelector(`[name="${field.name}"]`);
             if (input) {
@@ -1367,6 +1379,31 @@ class ogForm {
           }
         }
       });
+
+      // Luego llenar repetables (asíncrono)
+      if (!skipRepeatables) {
+        fields.forEach(field => {
+          if (field.type === 'repeatable') {
+            // Buscar datos del repeatable con dot notation
+            let repeatableData = data[field.name];
+            
+            if (!repeatableData) {
+              const dotNotationKey = Object.keys(data).find(key => 
+                key.endsWith('.' + field.name) || key === field.name
+              );
+              if (dotNotationKey) {
+                repeatableData = data[dotNotationKey];
+              }
+            }
+
+            if (repeatableData) {
+              // Crear un objeto temporal con el nombre correcto para fillRepeatable
+              const tempData = { [field.name]: repeatableData };
+              this.fillRepeatable(formEl, field, tempData, '');
+            }
+          }
+        });
+      }
     };
 
     // Primera pasada: llenar todo (o solo selects si skipRepeatables=true)
