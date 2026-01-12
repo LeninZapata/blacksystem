@@ -237,21 +237,21 @@ class ogConditions {
     });
   }
 
-  // Método auxiliar para pausar evaluaciones durante llenado masivo
+  // Pausar evaluaciones durante llenado masivo
   static pauseEvaluations() {
     this.isFillingForm = true;
   }
 
-  // Método auxiliar para reanudar y ejecutar evaluación final
+  // Reanudar y ejecutar evaluación final
   static resumeEvaluations(formId) {
     this.isFillingForm = false;
 
-    // Ejecutar evaluación final después de un pequeño delay
-    setTimeout(() => {
+    // Usar requestAnimationFrame para asegurar que el DOM está listo
+    requestAnimationFrame(() => {
       if (formId) {
         this.evaluate(formId);
       }
-    }, 200);
+    });
   }
 
   static evaluateRepeatable(formEl, targetFieldPath, rule) {

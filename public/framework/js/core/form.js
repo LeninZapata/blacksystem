@@ -1406,11 +1406,11 @@ class ogForm {
     ogLogger?.info('core:form', `📋 Llenando ${fullPath}: ${items.length} items`);
 
     // Pausar evaluaciones de condiciones durante el llenado masivo
-    if (conditions && items.length >= 1) {
-      conditions?.pauseEvaluations();
+    if (conditions) {
+      conditions.pauseEvaluations();
     }
 
-    // Encontrar botón "Agregar" (puede tener path completo o simple)
+    // Encontrar botón "Agregar"
     let addButton = container.querySelector(`.repeatable-add[data-path="${fullPath}"]`);
     if (!addButton) {
       addButton = container.querySelector(`.repeatable-add[data-path="${fieldName}"]`);
@@ -1418,6 +1418,7 @@ class ogForm {
 
     if (!addButton) {
       ogLogger?.error('core:form', `Botón "Agregar" no encontrado para: ${fullPath}`);
+      if (conditions) conditions.resumeEvaluations();
       return;
     }
 
@@ -1429,39 +1430,40 @@ class ogForm {
 
     if (!itemsContainer) {
       ogLogger?.error('core:form', `Contenedor no encontrado para: ${fullPath}`);
+      if (conditions) conditions.resumeEvaluations();
       return;
     }
 
     // Limpiar items existentes
     itemsContainer.innerHTML = '';
 
-    // Agregar items uno por uno
+    const formEl = container.closest('form');
+    let pendingOps = items.length;
+
+    // Callback para controlar cuando termina todo
+    const checkComplete = () => {
+      pendingOps--;
+      if (pendingOps === 0 && conditions) {
+        requestAnimationFrame(() => {
+          conditions.resumeEvaluations(formEl?.id);
+        });
+      }
+    };
+
+    // Agregar items sin delays
     items.forEach((itemData, index) => {
-      setTimeout(() => {
-        // Click en "Agregar"
-        addButton.click();
-
-        // Esperar y llenar
-        setTimeout(() => {
-          const isLastItem = (index === items.length - 1);
-          this.fillRepeatableItem(itemsContainer, fieldName, index, itemData, field.fields, fullPath, isLastItem);
-        }, 100);
-
-      }, index * 300); // 300ms entre cada item
+      addButton.click();
+      
+      requestAnimationFrame(() => {
+        this.fillRepeatableItem(itemsContainer, fieldName, index, itemData, field.fields, fullPath);
+        checkComplete();
+      });
     });
   }
 
   // Llenar un item específico del repeatable (RECURSIVO)
+  // Nota: isLastItem se mantiene por compatibilidad pero ya no se usa
   static fillRepeatableItem(container, fieldName, index, itemData, fieldSchema, parentPath, isLastItem = false) {
-    const conditions = ogModule('conditions');
-    // Reanudar evaluaciones si es el último item
-    if (isLastItem && conditions) {
-      const formEl = container.closest('form');
-      setTimeout(() => {
-        conditions?.resumeEvaluations(formEl?.id);
-      }, 200);
-    }
-
     // Obtener el item recién agregado
     const items = container.querySelectorAll('.repeatable-item');
     const currentItem = items[items.length - 1];
@@ -1471,18 +1473,16 @@ class ogForm {
       return;
     }
 
-    // ✅ Obtener el índice REAL del DOM (no del array)
+    // Obtener el índice REAL del DOM
     const domIndex = parseInt(currentItem.dataset.index || index);
 
-    // Calcular path del item usando el índice del DOM
+    // Calcular path del item
     const itemPath = parentPath ? `${parentPath}[${domIndex}]` : `${fieldName}[${domIndex}]`;
 
     // Iterar sobre cada campo del schema
     fieldSchema.forEach(subField => {
       if (subField.type === 'repeatable') {
-        // ✅ RECURSIÓN: Llenar repeatable anidado
-
-        // Llamar recursivamente pasando el item actual como contenedor
+        // RECURSIÓN: Llenar repeatable anidado
         this.fillRepeatable(currentItem, subField, itemData, itemPath);
 
       } else {
@@ -1493,7 +1493,7 @@ class ogForm {
           return;
         }
 
-        // Selector con path completo: proyectos[0].nombre_proyecto
+        // Selector con path completo
         const inputName = `${itemPath}.${subField.name}`;
         const input = currentItem.querySelector(`[name="${inputName}"]`);
 

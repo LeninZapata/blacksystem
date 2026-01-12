@@ -125,7 +125,7 @@ class BotController extends ogController {
     $query = ogDb::table(self::$table);
 
     // Filtrar por user_id autenticado
-    ogLog::info('ProductController::list - Variable GLOBAL desde bot', $GLOBALS, $this->logMeta);
+    // ogLog::info('ProductController::list - Variable GLOBAL desde bot', $GLOBALS, $this->logMeta);
     if (isset($GLOBALS['auth_user_id'])) {
       $query = $query->where('user_id', $GLOBALS['auth_user_id']);
     } else {
