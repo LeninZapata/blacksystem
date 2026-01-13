@@ -1475,27 +1475,35 @@ class ogForm {
     itemsContainer.innerHTML = '';
 
     const formEl = container.closest('form');
-    let pendingOps = items.length;
+    let completedItems = 0;
+    const totalItems = items.length;
 
-    // Callback para controlar cuando termina todo
-    const checkComplete = () => {
-      pendingOps--;
-      if (pendingOps === 0 && conditions) {
-        requestAnimationFrame(() => {
-          conditions.resumeEvaluations(formEl?.id);
-        });
+    // Función para procesar cada item con un pequeño delay para selects
+    const processItem = (index) => {
+      if (index >= totalItems) {
+        // Todos los items procesados
+        if (conditions) {
+          requestAnimationFrame(() => {
+            conditions.resumeEvaluations(formEl?.id);
+          });
+        }
+        return;
       }
+
+      const itemData = items[index];
+      addButton.click();
+
+      // Usar setTimeout mínimo para dar tiempo a que el select se inicialice
+      setTimeout(() => {
+        this.fillRepeatableItem(itemsContainer, fieldName, index, itemData, field.fields, fullPath);
+        
+        // Procesar siguiente item
+        processItem(index + 1);
+      }, 50); // 50ms es suficiente para que el select se inicialice
     };
 
-    // Agregar items sin delays
-    items.forEach((itemData, index) => {
-      addButton.click();
-      
-      requestAnimationFrame(() => {
-        this.fillRepeatableItem(itemsContainer, fieldName, index, itemData, field.fields, fullPath);
-        checkComplete();
-      });
-    });
+    // Iniciar procesamiento
+    processItem(0);
   }
 
   // Llenar un item específico del repeatable (RECURSIVO)
@@ -1535,21 +1543,40 @@ class ogForm {
         const input = currentItem.querySelector(`[name="${inputName}"]`);
 
         if (input) {
-          this.setInputValue(input, value, true);
-        } else {
-          ogLogger?.warn('core:form', `Campo no encontrado: ${inputName}`);
+          // Si es un select con source, esperar a que cargue
+          if (input.tagName === 'SELECT' && input.dataset.source) {
+            // Marcar que necesita ser llenado después de cargar
+            input.dataset.pendingValue = JSON.stringify(value);
+            
+            // Si el select ya está cargado (cache), llenar inmediatamente
+            if (input.options.length > 1) {
+              this.setInputValue(input, value, true);
+            } else {
+              // Esperar a que el select se cargue
+              const waitForLoad = (e) => {
+                if (e.target === input || e.detail?.selectId === input.id) {
+                  const pendingValue = input.dataset.pendingValue;
+                  if (pendingValue) {
+                    try {
+                      const val = JSON.parse(pendingValue);
+                      this.setInputValue(input, val, true);
+                      delete input.dataset.pendingValue;
+                    } catch (err) {
+                      this.setInputValue(input, pendingValue, true);
+                    }
+                  }
+                  input.removeEventListener('select:afterLoad', waitForLoad);
+                }
+              };
+              input.addEventListener('select:afterLoad', waitForLoad);
+            }
+          } else {
+            // Campo normal (no select o select sin source)
+            this.setInputValue(input, value, true);
+          }
         }
       }
     });
-
-    // Si es el último item, re-ejecutar fill para seleccionar valores en los selects
-    if (isLastItem) {
-      const formEl = container.closest('form');
-      if (formEl?.dataset.formData) {
-        const originalData = JSON.parse(formEl.dataset.formData);
-        this.fill(formEl.id, originalData, null, true); // skipRepeatables=true
-      }
-    }
   }
 
   // Llenar solo los selects de un item repeatable (sin recrear)
