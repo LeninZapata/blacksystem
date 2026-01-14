@@ -16,7 +16,7 @@
  *
  * 2. Cache con configuracion personalizada (sesiones):
  *    ogCache::setConfig([
- *      'dir' => STORAGE_PATH . '/sessions',
+ *      'dir' => ogApp()->getPath('sessions'),
  *      'ext' => 'json',
  *      'format' => '{expires}_{var1}_{hash}'
  *    ]);
@@ -59,7 +59,7 @@ class ogCache {
    *
    * Ejemplo para sesiones:
    * ogCache::setConfig([
-   *   'dir' => STORAGE_PATH . '/sessions',
+   *   'dir' => ogApp()->getPath('sessions'),
    *   'ext' => 'json',
    *   'format' => '{expires}_{var1}_{hash}'
    * ], 'session');
@@ -446,6 +446,7 @@ class ogCache {
    */
   static function memorySet($key, $value) {
     self::$memory[$key] = $value;
+    return $value;
   }
 
   /**
@@ -504,7 +505,7 @@ class ogCache {
  * // ============ CACHE PERSONALIZADO (sesiones) ============
  * // Configurar para sesiones
  * ogCache::setConfig([
- *   'dir' => STORAGE_PATH . '/sessions',
+ *   'dir' => ogApp()->getPath('sessions'),
  *   'ext' => 'json',
  *   'format' => '{expires}_{var1}_{hash}'
  * ], 'session');

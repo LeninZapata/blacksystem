@@ -33,13 +33,13 @@ class ogAuthMiddleware {
 
     // Limpieza oportunista
     $cleaned = $this->cleanupExpiredSessions(10);
-    
+
     if ($cleaned > 0) {
       ogLog::info('authMiddleware - Limpieza oportunista ejecutada', [ 'cleaned' => $cleaned, 'user_id' => $session['user_id'] ], $this->logMeta);
     }
 
-    $GLOBALS['auth_user_id'] = $session['user_id'];
-    $GLOBALS['auth_user'] = $session['user'];
+    $GLOBALS['auth_user_id'] = ogCache::memorySet('auth_user_id', $session['user_id']);
+    $GLOBALS['auth_user'] = ogCache::memorySet('auth_user', $session['user']);
 
     return true;
   }
@@ -88,7 +88,7 @@ class ogAuthMiddleware {
 
     foreach ($files as $file) {
       $data = json_decode(file_get_contents($file), true);
-      
+
       // FIX: Extraer el 'value' del wrapper de ogCache
       $session = $data['value'] ?? $data;
 
@@ -108,7 +108,7 @@ class ogAuthMiddleware {
 
     foreach ($files as $file) {
       $data = json_decode(file_get_contents($file), true);
-      
+
       // FIX: Extraer el 'value' del wrapper de ogCache
       $session = $data['value'] ?? $data;
 
@@ -170,7 +170,7 @@ class ogAuthMiddleware {
     $required = defined('PHP_MIN_VERSION') ? PHP_MIN_VERSION : '8.1.0';
 
     $cache = ogApp()->helper('cache');
-    
+
     $isValid = $cache::remember('global_php_version_valid', function() use ($required) {
       return version_compare(PHP_VERSION, $required, '>=');
     });

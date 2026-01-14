@@ -1,9 +1,13 @@
 <?php
 class ProductController extends ogController {
-  protected static $table = DB_TABLES['products'];
+  protected static $table;
   private $logMeta = ['module' => 'ProductControlleroduct', 'layer' => 'app/resources'];
 
   function __construct() {
+    // Obtener tabla desde memoria cache
+    $tables = ogCache::memoryGet('db_tables', []);
+    self::$table = $tables['products'] ?? 'products';
+
     parent::__construct('product');
   }
 

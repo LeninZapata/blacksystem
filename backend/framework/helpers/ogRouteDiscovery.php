@@ -27,7 +27,7 @@ class ogRouteDiscovery {
   // Obtener rutas desde archivos JSON
   private static function getResourceRoutes() {
     $routes = [];
-    
+
     // Buscar en framework primero, luego en app
     $resourceDirs = [
       OG_FRAMEWORK_PATH . '/resources/schemas',
@@ -65,10 +65,19 @@ class ogRouteDiscovery {
             continue;
           }
 
+          // Obtener ejemplo si existe en la config
+          $example = null;
+          if (isset($routeConfig['example'])) {
+            $example = is_string($routeConfig['example'])
+              ? $routeConfig['example']
+              : json_encode($routeConfig['example'], JSON_UNESCAPED_UNICODE);
+          }
+
           $routes[] = [
             'method' => $method,
             'path' => $path,
             'description' => $description,
+            'example' => $example,
             'middleware' => self::resolveMiddlewareForResourceRoute($resourceName, $key),
             'source' => "resource:{$resourceName}",
             'type' => 'crud'
@@ -82,26 +91,8 @@ class ogRouteDiscovery {
   // Obtener rutas manuales de routes/
   private static function getManualRoutes() {
     $routes = [];
-    $apisDir = ogApp()->getPath() . '/routes';
 
-    if (!is_dir($apisDir)) return $routes;
-
-    foreach (scandir($apisDir) as $file) {
-      if ($file === '.' || $file === '..' || !str_ends_with($file, '.php')) continue;
-
-      $module = str_replace('.php', '', $file);
-      $filePath = $apisDir . '/' . $file;
-
-      // Parsear el archivo PHP para extraer rutas
-      $content = file_get_contents($filePath);
-      $GLOBALS['__routeDiscovery_content'] = $content;
-      $parsedRoutes = self::parsePhpRoutes($content, $module);
-
-      $routes = array_merge($routes, $parsedRoutes);
-      return $routes;
-    }
-
-    // Buscar en framework primero, luego en app
+    // Buscar en framework y app
     $apisDirs = [
       OG_FRAMEWORK_PATH . '/routes',
       ogApp()->getPath() . '/routes'
@@ -161,10 +152,14 @@ class ogRouteDiscovery {
         // Extraer descripción del comentario antes de la ruta
         $description = self::extractDescriptionFromGroup($groupContent, $relativePath);
 
+        // Extraer ejemplo del comentario @example
+        $example = self::extractExample($groupContent, $relativePath);
+
         $routes[] = [
           'method' => $method,
           'path' => $fullPath,
           'description' => $description,
+          'example' => $example,
           'middleware' => self::resolveMiddlewareForManualRoute($module, $method, $fullPath),
           'source' => "manual:{$module}",
           'type' => 'manual'
@@ -200,10 +195,14 @@ class ogRouteDiscovery {
 
       $description = self::extractDescription($content, $path);
 
+      // Extraer ejemplo del comentario @example
+      $example = self::extractExample($content, $path);
+
       $routes[] = [
         'method' => $method,
         'path' => $path,
         'description' => $description,
+        'example' => $example,
         'middleware' => self::resolveMiddlewareForManualRoute($module, $method, $path),
         'source' => "manual:{$module}",
         'type' => 'manual'
@@ -248,7 +247,7 @@ class ogRouteDiscovery {
     // Buscar comentario // antes de la ruta (solo la línea inmediata anterior)
     $escapedPath = preg_quote($path, '/');
     $pattern = '/\/\/\s*([^\n]+)\s*\n\s*\$router->[a-z]+\([^\)]*?' . $escapedPath . '/i';
-    
+
     if (preg_match($pattern, $content, $match)) {
       $description = trim($match[1]);
       // Limpiar emojis y caracteres especiales del inicio
@@ -257,7 +256,7 @@ class ogRouteDiscovery {
       $description = preg_replace('/^(GET|POST|PUT|DELETE|PATCH)\s+\/\S+\s*-?\s*/i', '', $description);
       return trim($description);
     }
-    
+
     return '';
   }
 
@@ -266,7 +265,7 @@ class ogRouteDiscovery {
     $escapedPath = preg_quote($path, '/');
     // Buscar el comentario inmediatamente antes de la ruta (solo la última línea de comentario)
     $pattern = '/\/\/\s*([^\n]+)\s*\n\s*\$router->[a-z]+\([^\)]*?' . $escapedPath . '/i';
-    
+
     if (preg_match($pattern, $groupContent, $match)) {
       $description = trim($match[1]);
       // Limpiar emojis y caracteres especiales del inicio
@@ -275,7 +274,7 @@ class ogRouteDiscovery {
       $description = preg_replace('/^(GET|POST|PUT|DELETE|PATCH)\s+\/\S+\s*-?\s*/i', '', $description);
       return trim($description);
     }
-    
+
     return '';
   }
 
@@ -641,4 +640,35 @@ class ogRouteDiscovery {
         $result = json_decode($json, true);
         return is_array($result) ? $result : [];
       }
+
+  // Extraer ejemplo del comentario @example
+  private static function extractExample($content, $path) {
+    $escapedPath = preg_quote($path, '/');
+
+    // Buscar la posición del router con este path
+    $pattern = '/\$router->(get|post|put|delete)\s*\(\s*[\[\'\"]' . $escapedPath . '[\]\'\"]?/';
+
+    if (!preg_match($pattern, $content, $match, PREG_OFFSET_CAPTURE)) {
+      return null;
+    }
+
+    $routerPos = $match[0][1];
+
+    // Buscar hacia atrás desde la posición del router (máximo 500 caracteres antes)
+    $searchStart = max(0, $routerPos - 500);
+    $beforeRouter = substr($content, $searchStart, $routerPos - $searchStart);
+
+    // Buscar @example en el texto antes del router
+    // Patrón 1: // @example {...}
+    if (preg_match('/\/\/\s*@example\s+(\{[^\n]+\})\s*$/m', $beforeRouter, $exampleMatch)) {
+      return trim($exampleMatch[1]);
+    }
+
+    // Patrón 2: /* @example ... */
+    if (preg_match('/\/\*\s*@example\s+(.*?)\*\//s', $beforeRouter, $exampleMatch)) {
+      return trim($exampleMatch[1]);
+    }
+
+    return null;
+  }
 }

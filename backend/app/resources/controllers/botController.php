@@ -1,10 +1,13 @@
 <?php
 class BotController extends ogController {
   // Nombre de la tabla asociada a este controlador
-  protected static $table = DB_TABLES['bots'];
+  protected static $table;
   private $logMeta = ['module' => 'BotController', 'layer' => 'app/resources'];
 
   function __construct() {
+    // Obtener tabla desde memoria cache
+    $tables = ogCache::memoryGet('db_tables', []);
+    self::$table = $tables['bots'] ?? 'bots';
     parent::__construct('bot');
   }
 

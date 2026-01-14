@@ -1,7 +1,16 @@
 <?php
 class BotHandler {
-  protected static $table = DB_TABLES['bots'];
+  protected static $table;
   private static $logMeta = ['module' => 'BotHandler', 'layer' => 'app/resources'];
+
+  // Obtener tabla desde memoria cache (lazy loading)
+  private static function getTable() {
+    if (!self::$table) {
+      $tables = ogCache::memoryGet('db_tables', []);
+      self::$table = $tables['bots'] ?? 'bots';
+    }
+    return self::$table;
+  }
 
   // Guardar archivos de contexto del bot
   // Genera: data/{numero}.json y workflow_{numero}.json
@@ -58,7 +67,7 @@ class BotHandler {
   // Generar archivo workflow_{numero}.json
   static function generateWorkflowFile($botNumber, $botData = null, $action = 'create') {
     if (!$botData) {
-      $botData = ogDb::table(self::$table)->where('number', $botNumber)->first();
+      $botData = ogDb::table(self::getTable())->where('number', $botNumber)->first();
       if (!$botData) {
         ogLog::error("generateWorkflowFile - Bot no encontrado: {$botNumber}", null,  self::$logMeta);
         return false;
@@ -91,7 +100,7 @@ class BotHandler {
   static function generateDataFile($botNumber, $botData = null, $action = 'create') {
 
     if (!$botData) {
-      $botData = ogDb::table(self::$table)->where('number', $botNumber)->first();
+      $botData = ogDb::table(self::getTable())->where('number', $botNumber)->first();
       if (!$botData) {
         ogLog::error("generateDataFile - Bot no encontrado: {$botNumber}", null, self::$logMeta);
         return false;

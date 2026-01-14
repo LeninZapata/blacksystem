@@ -1,9 +1,13 @@
 <?php
 class ProductAdAssetController extends ogController {
-  protected static $table = DB_TABLES['product_ad_assets'];
+  protected static $table;
   private $logMeta = ['module' => 'ProductAdAssetController', 'layer' => 'app/resources'];
 
   function __construct() {
+    // Obtener tabla desde memoria cache
+    $tables = ogCache::memoryGet('db_tables', []);
+    self::$table = $tables['product_ad_assets'] ?? 'product_ad_assets';
+
     parent::__construct('productAdAsset');
   }
 

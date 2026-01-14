@@ -2,11 +2,26 @@
 // DB - Query Builder minimalista
 class ogDb {
   protected static $instance = null;
+  protected static $config = [];
+
+  // Configurar conexión
+  static function setConfig($config) {
+    self::$config = $config;
+    self::$instance = null; // Reset instance para reconectar
+  }
 
   // Inicializar
   protected static function init() {
     if (!self::$instance) {
-      self::$instance = new ogDbBuilder(DB_HOST, DB_NAME, DB_USER, DB_PASS);
+      if (empty(self::$config)) {
+        throw new Exception('Database config not set. Call ogDb::setConfig() first.');
+      }
+      self::$instance = new ogDbBuilder(
+        self::$config['host'],
+        self::$config['name'],
+        self::$config['user'],
+        self::$config['pass']
+      );
     }
     return self::$instance;
   }

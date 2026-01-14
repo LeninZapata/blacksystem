@@ -1,0 +1,500 @@
+.form-container {
+  padding: 1rem;
+}
+
+.form-desc {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.form-checkbox input {
+  width: auto;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-toolbar,
+.form-statusbar {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.form-toolbar {
+  margin-bottom: 1.5rem;
+}
+
+.form-statusbar {
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.form-container {
+  padding: 1rem;
+}
+
+.form-desc {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.form-checkbox input {
+  width: auto;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-toolbar,
+.form-statusbar {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.form-toolbar {
+  margin-bottom: 1.5rem;
+}
+
+.form-statusbar {
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+/* ✅ NUEVO: Estilos para repetibles */
+.form-repeatable {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+}
+
+.repeatable-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.repeatable-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.repeatable-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.repeatable-description {
+  margin: 0;
+  padding: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.5;
+  font-weight: normal;
+}
+
+
+.repeatable-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.repeatable-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+}
+
+.repeatable-content {
+  flex: 1;
+}
+
+.repeatable-remove {
+  align-self: flex-start;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+}
+
+/* Estilos para repetibles anidados */
+.repeatable-item .form-repeatable {
+  margin-left: 1rem;
+  margin-top: 1rem;
+  border-left: 3px solid #3498db;
+  background: #f0f8ff;
+}
+
+.repeatable-item .repeatable-item .form-repeatable {
+  border-left-color: #e67e22;
+  background: #fff5ee;
+}
+
+.repeatable-item .repeatable-item .repeatable-item .form-repeatable {
+  border-left-color: #27ae60;
+  background: #f0fff4;
+}
+
+/* Títulos de repetibles anidados más pequeños */
+.repeatable-item .repeatable-header h4 {
+  font-size: 1rem;
+}
+
+.repeatable-item .repeatable-item .repeatable-header h4 {
+  font-size: 0.9rem;
+}
+
+/* ===================================
+   Acordeón en Repetables (Minimalista)
+   ================================= */
+
+/* Items con header (acordeón o simple) */
+.repeatable-item.repeatable-item-accordion,
+.repeatable-item.repeatable-item-with-header {
+  border: 1px solid #ddd;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* Header del item con acordeón */
+.repeatable-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.repeatable-item-header.clickable {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.repeatable-item-header.clickable:hover {
+  background: #e9ecef;
+}
+
+.repeatable-item-title {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+/* Acciones del header (toggle + botón eliminar) */
+.repeatable-item-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.repeatable-toggle {
+  color: #6c757d;
+  font-size: 0.875rem;
+  transition: transform 0.2s;
+}
+
+/* Body del acordeón */
+.repeatable-item-body {
+  padding: 1rem;
+}
+
+/* Content para header simple */
+.repeatable-item.repeatable-item-with-header .repeatable-content {
+  padding: 1rem;
+}
+
+/* Item colapsado */
+.repeatable-item.collapsed .repeatable-item-header {
+  border-radius: 0.375rem;
+  border-bottom: none;
+}
+
+/* Evitar que el botón eliminar dispare el toggle */
+.repeatable-item-header-actions .repeatable-remove {
+  pointer-events: auto;
+}
+
+.repeatable-item-header.clickable .repeatable-remove {
+  pointer-events: auto;
+}
+
+/* ===================================
+   Drag and Drop (Minimalista)
+   ================================= */
+
+.repeatable-drag-handle {
+  cursor: move;
+  color: #6c757d;
+  font-size: 1.1rem;
+  padding: 0.25rem 0.5rem;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s;
+  letter-spacing: -2px;
+}
+
+.repeatable-drag-handle:hover {
+  color: #495057;
+}
+
+.repeatable-item.dragging {
+  opacity: 0.3;
+}
+
+/* Asegurar que los items con header tengan position relative */
+.repeatable-item.repeatable-item-accordion,
+.repeatable-item.repeatable-item-with-header {
+  position: relative;
+}
+
+/* ===================================
+   Grupos de Campos (Field Groups)
+   ================================= */
+
+/* Contenedor base de grupos */
+.form-group-cols {
+  display: grid;
+  margin-bottom: 1rem;
+}
+
+/* Grid de 2 columnas */
+.form-group-cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Grid de 3 columnas */
+.form-group-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Grid de 4 columnas */
+.form-group-cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Espaciado entre campos */
+.form-group-gap-small {
+  gap: 0.5rem;
+}
+
+.form-group-gap-normal {
+  gap: 1rem;
+}
+
+.form-group-gap-large {
+  gap: 1.5rem;
+}
+
+/* Los campos dentro del grupo no necesitan margin-bottom */
+.form-group-cols > .form-group {
+  margin-bottom: 0;
+}
+
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.form-error {
+  display: none;
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-error:not(:empty) {
+  display: block;
+}
+
+/* ===================================
+   Responsive
+   ================================= */
+
+/* Tablets (< 1024px) */
+@media (max-width: 1024px) {
+  /* 4 columnas → 2 columnas */
+  .form-group-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* 3 columnas → 2 columnas */
+  .form-group-cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .repeatable-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .repeatable-header .btn {
+    width: 100%;
+  }
+
+}
+
+/* Móviles (< 768px) */
+@media (max-width: 768px) {
+  /* Todas las columnas → 1 columna */
+  .form-group-cols-2,
+  .form-group-cols-3,
+  .form-group-cols-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  /* En móvil, mantener spacing normal */
+  .form-group-cols > .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-group-cols > .form-group:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* Móviles pequeños (< 480px) */
+@media (max-width: 480px) {
+  .form-group-gap-large {
+    gap: 1rem;
+  }
+  
+  .form-group-gap-normal {
+    gap: 0.75rem;
+  }
+}
+/* Asterisco de campos requeridos */
+.form-required {
+  color: #e74c3c;
+  margin-left: 2px;
+  font-weight: bold;
+}
+
+/* Compatibilidad con estilo inline anterior */
+.form-group label span[style*="color: #e74c3c"] {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+/* ===================================
+   Validación - Estilos de Error Focus
+   ================================= */
+
+.form-group.has-error input:focus,
+.form-group.has-error select:focus,
+.form-group.has-error textarea:focus {
+  outline: none;
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}

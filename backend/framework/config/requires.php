@@ -1,21 +1,6 @@
 <?php
-// Cargar helpers necesarios del framework
-
-// Cargar ogApp primero (Singleton principal)
-require_once OG_FRAMEWORK_PATH . '/core/ogApp.php';
-
-// Helpers críticos que se usan en TODAS las requests
-require_once OG_FRAMEWORK_PATH . '/helpers/ogLang.php';
-require_once OG_FRAMEWORK_PATH . '/helpers/ogLog.php';
-require_once OG_FRAMEWORK_PATH . '/helpers/ogResponse.php';
-require_once OG_FRAMEWORK_PATH . '/helpers/ogRequest.php';
-require_once OG_FRAMEWORK_PATH . '/helpers/ogDb.php';
-
-// Core classes necesarias para routing
-require_once OG_FRAMEWORK_PATH . '/core/ogController.php';
-
-// Configuración de debug
-require_once OG_FRAMEWORK_PATH . '/config/debug.php';
-
-// Cargar clase ogApplication
-require_once OG_FRAMEWORK_PATH . '/core/ogApplication.php';
+// Cargar helpers y core del framework
+$helpers = ['lang', 'log', 'response', 'request', 'db', 'cache'];
+$cores = ['app', 'controller', 'application'];
+foreach ($helpers as $helper) require_once OG_FRAMEWORK_PATH . '/helpers/og' . ucfirst($helper) . '.php';
+foreach ($cores as $core) require_once OG_FRAMEWORK_PATH . '/core/og' . ucfirst($core) . '.php';

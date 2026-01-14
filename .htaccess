@@ -1,39 +1,52 @@
-# ============================================
-# .htaccess - Configuración Principal
-# Separación Frontend/Backend
-# ============================================
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /blacksystem/blacksystem/
 
-# Configuraciones básicas
+  # ============================================
+  # 1. API - Apuntar a wp.php
+  # ============================================
+  RewriteRule ^api/(.*)$ wp.php [QSA,L]
+
+  # ============================================
+  # 2. ADMIN - Simple y directo
+  # ============================================
+
+  # /admin sin slash → /admin/
+  RewriteRule ^admin$ admin/ [R=301,L]
+
+  # /admin/ → servir /admin/app/index.html
+  RewriteRule ^admin/$ admin/app/index.html [L]
+
+  # Cualquier otra ruta /admin/* → dejar pasar (archivos estáticos)
+  # NO hacer nada, Apache servirá el archivo si existe
+
+  # ============================================
+  # 3. PUBLIC
+  # ============================================
+
+  # Raíz → public/index.html
+  RewriteRule ^$ public/index.html [L]
+
+  # Todo lo demás que NO sea /admin/ ni /api/ → public/index.html
+  RewriteCond %{REQUEST_URI} !^/blacksystem/blacksystem/admin/
+  RewriteCond %{REQUEST_URI} !^/blacksystem/blacksystem/api/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ public/index.html [L]
+
+</IfModule>
+
+# Prevenir acceso directo a archivos sensibles
+<FilesMatch "^(funcs\.php|bootstrap\.php|\.env|composer\.json|composer\.lock)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Permitir acceso a wp.php (necesario para el API)
+<Files "wp.php">
+  Order Allow,Deny
+  Allow from all
+</Files>
+
+# Prevenir listado de directorios
 Options -Indexes
-DirectoryIndex public/index.html
-
-# Habilitar mod_rewrite
-RewriteEngine On
-
-# ============================================
-# RUTAS API - Máxima prioridad
-# ============================================
-# Capturar TODAS las rutas que empiecen con /api/
-# Apuntar a wp-file.php (igual que WordPress)
-RewriteRule ^api/(.*)$ wp.php [QSA,L]
-
-# ============================================
-# ARCHIVOS ESTÁTICOS EXISTENTES
-# ============================================
-# Si el archivo existe físicamente, servirlo directamente
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^ - [L]
-
-# Si el directorio existe físicamente, servirlo directamente
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Permitir acceso a archivos compartidos
-RewriteRule ^shared/(.*)$ shared/$1 [L]
-
-# ============================================
-# FRONTEND - Redirigir a public/
-# ============================================
-# Todo lo demás va a public/
-RewriteCond %{REQUEST_URI} !^/backend/
-RewriteRule ^(.*)$ public/$1 [L]

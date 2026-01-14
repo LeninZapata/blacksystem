@@ -5,10 +5,11 @@ class ogFramework {
   private $pluginName;
   private $pluginPath;
   private $isWordPress;
+  private $prefix;
   private $logMeta = ['module' => 'ogFramework', 'layer' => 'core/framework'];
   public $loaded = [];
 
-  private function __construct($pluginName = 'default', $pluginPath = null, $isWordPress = false) {
+  private function __construct($pluginName = 'default', $pluginPath = null, $isWP = false, $prefix = null) {
     $this->pluginName = $pluginName;
 
     if (!$pluginPath) {
@@ -16,69 +17,113 @@ class ogFramework {
     }
 
     $this->pluginPath = $pluginPath;
-    $this->isWordPress = $isWordPress;
+    $this->isWordPress = $isWP;
+    $this->prefix = $prefix;
   }
 
-  static function instance($pluginName = 'default', $pluginPath = null, $isWordPress = false) {
+  static function instance($pluginName = 'default', $pluginPath = null, $isWP = false, $prefix = null) {
     if (!isset(self::$instances[$pluginName])) {
-      self::$instances[$pluginName] = new self($pluginName, $pluginPath, $isWordPress);
+      self::$instances[$pluginName] = new self($pluginName, $pluginPath, $isWP, $prefix);
     }
     return self::$instances[$pluginName];
+  }
+
+  /**
+   * Método central de búsqueda de archivos
+   */
+  private function findResource($name, $type, $suffix = '', $subFolder = '') {
+    $parts = explode('/', $name);
+    $fileName = array_pop($parts);
+    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
+
+    // Determinar orden de búsqueda según WordPress
+    $searchOrder = $this->isWordPress && $this->prefix
+      ? ['prefix', 'none', 'og']
+      : ['none', 'prefix', 'og'];
+
+    // Capas de búsqueda (rutas limpias sin ..)
+    $middlePath = dirname(OG_FRAMEWORK_PATH) . '/middle';
+
+    $layers = [
+      'app' => $this->pluginPath . ($subFolder ? "/resources/{$subFolder}/" : "/{$type}s/"),
+      'middle' => $middlePath . ($subFolder ? "/resources/{$subFolder}/" : "/{$type}s/"),
+      'framework' => OG_FRAMEWORK_PATH . ($subFolder ? "/resources/{$subFolder}/" : "/{$type}s/")
+    ];
+
+    foreach ($layers as $layer => $basePath) {
+      foreach ($searchOrder as $prefixType) {
+        // Framework solo usa prefijo "og"
+        if ($layer === 'framework' && $prefixType !== 'og') continue;
+
+        // Construir nombre de clase
+        $className = $this->buildClassName($fileName, $suffix, $prefixType);
+
+        // Si buildClassName retorna null (prefijo vacío), saltar
+        if ($className === null) continue;
+
+        $file = $basePath . $subPath . $className . '.php';
+
+        if (file_exists($file)) {
+          return ['file' => $file, 'class' => $className];
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Construir nombre de clase según tipo de prefijo
+   */
+  private function buildClassName($name, $suffix, $prefixType) {
+    $baseName = ucfirst($name);
+
+    switch ($prefixType) {
+      case 'prefix':
+        // Si no hay prefijo configurado, retornar null para saltar
+        if (!$this->prefix) return null;
+        return $this->prefix . $baseName . $suffix;
+
+      case 'og':
+        return 'og' . $baseName . $suffix;
+
+      case 'none':
+      default:
+        return $baseName . $suffix;
+    }
   }
 
   // Cargar helper bajo demanda (con referencia)
   function helper($name) {
     $key = "helper_{$name}";
-
     if (isset($this->loaded[$key])) {
       return $this->loaded[$key];
     }
 
-    // Extraer ruta y nombre del archivo
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    $helperFile = OG_FRAMEWORK_PATH . "/helpers/{$subPath}og" . ucfirst($fileName) . ".php";
-    if (!file_exists($helperFile)) {
-      $helperFile = $this->pluginPath . "/helpers/{$subPath}og" . ucfirst($fileName) . ".php";
-    }
-
-    if (!file_exists($helperFile)) {
+    $result = $this->findResource($name, 'helper');
+    if (!$result) {
       throw new Exception("Helper not found: {$name}");
     }
 
-    require_once $helperFile;
-    $className = "og" . ucfirst($fileName);
-
-    if (!class_exists($className)) {
-      throw new Exception("Helper class not found: {$className}");
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Helper class not found: {$result['class']}");
     }
 
-    $this->loaded[$key] = new $className();
+    $this->loaded[$key] = new $result['class']();
     return $this->loaded[$key];
   }
 
   // Cargar helper bajo demanda (sin instanciar)
   function loadHelper($name) {
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    $helperFile = OG_FRAMEWORK_PATH . "/helpers/{$subPath}og" . ucfirst($fileName) . ".php";
-    if (!file_exists($helperFile)) {
-      $helperFile = $this->pluginPath . "/helpers/{$subPath}og" . ucfirst($fileName) . ".php";
-    }
-
-    if (!file_exists($helperFile)) {
+    $result = $this->findResource($name, 'helper');
+    if (!$result) {
       throw new Exception("Helper not found: {$name}");
     }
 
-    require_once $helperFile;
-    $className = "og" . ucfirst($fileName);
-
-    if (!class_exists($className)) {
-      throw new Exception("Helper class not found: {$className}");
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Helper class not found: {$result['class']}");
     }
 
     return true;
@@ -87,77 +132,114 @@ class ogFramework {
   // Cargar service bajo demanda (con referencia)
   function service($name) {
     $key = "service_{$name}";
-
     if (isset($this->loaded[$key])) {
       return $this->loaded[$key];
     }
 
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    // 1. Buscar en framework con prefijo og
-    $fwClassName = "og" . ucfirst($fileName) . "Service";
-    $fwFile = OG_FRAMEWORK_PATH . "/services/{$subPath}og" . ucfirst($fileName) . "Service.php";
-    if (file_exists($fwFile)) {
-      require_once $fwFile;
-      if (!class_exists($fwClassName)) {
-        throw new Exception("Service class not found: {$fwClassName}");
-      }
-      $this->loaded[$key] = new $fwClassName();
-      return $this->loaded[$key];
+    $result = $this->findResource($name, 'service', 'Service');
+    if (!$result) {
+      throw new Exception("Service not found: {$name}");
     }
 
-    // 2. Buscar en app sin prefijo og
-    $appClassName = ucfirst($fileName) . "Service";
-    $appFile = $this->pluginPath . "/services/{$subPath}" . $appClassName . ".php";
-    if (file_exists($appFile)) {
-      require_once $appFile;
-      if (!class_exists($appClassName)) {
-        throw new Exception("Service class not found: {$appClassName}");
-      }
-      $this->loaded[$key] = new $appClassName();
-      return $this->loaded[$key];
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Service class not found: {$result['class']}");
     }
 
-    throw new Exception("Service not found: {$name}");
+    $this->loaded[$key] = new $result['class']();
+    return $this->loaded[$key];
   }
 
   // Cargar service bajo demanda (sin instanciar)
   function loadService($name) {
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    // 1. Buscar en framework con prefijo og
-    $fwClassName = "og" . ucfirst($fileName) . "Service";
-    $fwFile = OG_FRAMEWORK_PATH . "/services/{$subPath}og" . ucfirst($fileName) . "Service.php";
-    if (file_exists($fwFile)) {
-      require_once $fwFile;
-      if (!class_exists($fwClassName)) {
-        throw new Exception("Service class not found: {$fwClassName}");
-      }
-      return true;
+    $result = $this->findResource($name, 'service', 'Service');
+    if (!$result) {
+      throw new Exception("Service not found: {$name}");
     }
 
-    // 2. Buscar en app sin prefijo og
-    $appClassName = ucfirst($fileName) . "Service";
-    $appFile = $this->pluginPath . "/services/{$subPath}" . $appClassName . ".php";
-    if (file_exists($appFile)) {
-      require_once $appFile;
-      if (!class_exists($appClassName)) {
-        throw new Exception("Service class not found: {$appClassName}");
-      }
-      return true;
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Service class not found: {$result['class']}");
     }
 
-    throw new Exception("Service not found: {$name}");
+    return true;
+  }
+
+  // Cargar controller bajo demanda (con referencia)
+  function controller($name) {
+    $key = "controller_{$name}";
+    if (isset($this->loaded[$key])) {
+      return $this->loaded[$key];
+    }
+
+    $result = $this->findResource($name, 'controller', 'Controller', 'controllers');
+    if (!$result) {
+      throw new Exception("Controller not found: {$name}");
+    }
+
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Controller class not found: {$result['class']}");
+    }
+
+    $this->loaded[$key] = new $result['class']();
+    return $this->loaded[$key];
+  }
+
+  // Cargar controller bajo demanda (sin instanciar)
+  function loadController($name) {
+    $result = $this->findResource($name, 'controller', 'Controller', 'controllers');
+    if (!$result) {
+      throw new Exception("Controller not found: {$name}");
+    }
+
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Controller class not found: {$result['class']}");
+    }
+
+    return true;
+  }
+
+  // Cargar handler bajo demanda (con referencia)
+  function handler($name) {
+    $key = "handler_{$name}";
+    if (isset($this->loaded[$key])) {
+      return $this->loaded[$key];
+    }
+
+    $result = $this->findResource($name, 'handler', 'Handler', 'handlers');
+    if (!$result) {
+      throw new Exception("Handler not found: {$name}");
+    }
+
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Handler class not found: {$result['class']}");
+    }
+
+    $this->loaded[$key] = new $result['class']();
+    return $this->loaded[$key];
+  }
+
+  // Cargar handler bajo demanda (sin instanciar)
+  function loadHandler($name) {
+    $result = $this->findResource($name, 'handler', 'Handler', 'handlers');
+    if (!$result) {
+      throw new Exception("Handler not found: {$name}");
+    }
+
+    require_once $result['file'];
+    if (!class_exists($result['class'])) {
+      throw new Exception("Handler class not found: {$result['class']}");
+    }
+
+    return true;
   }
 
   // Cargar core class bajo demanda (con referencia)
   function core($name) {
     $key = "core_{$name}";
-
     if (isset($this->loaded[$key])) {
       return $this->loaded[$key];
     }
@@ -170,15 +252,15 @@ class ogFramework {
     $fileName = array_pop($parts);
     $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
 
-    $coreFile = OG_FRAMEWORK_PATH . "/core/{$subPath}og" . ucfirst($fileName) . ".php";
+    // Core SIEMPRE con prefijo "og" en framework
+    $className = "og" . ucfirst($fileName);
+    $coreFile = OG_FRAMEWORK_PATH . "/core/{$subPath}{$className}.php";
 
     if (!file_exists($coreFile)) {
       throw new Exception("Core class not found: {$name}");
     }
 
     require_once $coreFile;
-    $className = "og" . ucfirst($fileName);
-
     if (!class_exists($className)) {
       throw new Exception("Core class not found: {$className}");
     }
@@ -193,15 +275,14 @@ class ogFramework {
     $fileName = array_pop($parts);
     $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
 
-    $coreFile = OG_FRAMEWORK_PATH . "/core/{$subPath}og" . ucfirst($fileName) . ".php";
+    $className = "og" . ucfirst($fileName);
+    $coreFile = OG_FRAMEWORK_PATH . "/core/{$subPath}{$className}.php";
 
     if (!file_exists($coreFile)) {
       throw new Exception("Core class not found: {$name}");
     }
 
     require_once $coreFile;
-    $className = "og" . ucfirst($fileName);
-
     if (!class_exists($className)) {
       throw new Exception("Core class not found: {$className}");
     }
@@ -209,150 +290,28 @@ class ogFramework {
     return true;
   }
 
-  // Cargar controller bajo demanda (con referencia)
-  function controller($name) {
-    $key = "controller_{$name}";
-    if (isset($this->loaded[$key])) {
-      return $this->loaded[$key];
-    }
-
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    // 1. Buscar en framework/controllers/{subPath}og{Name}Controller.php
-    $fwClassName = "og" . ucfirst($fileName) . "Controller";
-    $fwFile = OG_FRAMEWORK_PATH . "/resources/controllers/{$subPath}og" . ucfirst($fileName) . "Controller.php";
-    if (file_exists($fwFile)) {
-      require_once $fwFile;
-      if (!class_exists($fwClassName)) {
-        throw new Exception("Controller class not found: {$fwClassName}");
-      }
-      $this->loaded[$key] = new $fwClassName();
-      return $this->loaded[$key];
-    }
-
-    // 2. Buscar en app/resources/controllers/{subPath}{Name}Controller.php
-    $appClassName = ucfirst($fileName) . "Controller";
-    $appFile = $this->pluginPath . "/resources/controllers/{$subPath}" . $appClassName . ".php";
-    if (file_exists($appFile)) {
-      require_once $appFile;
-      if (!class_exists($appClassName)) {
-        throw new Exception("Controller class not found: {$appClassName}");
-      }
-      $this->loaded[$key] = new $appClassName();
-      return $this->loaded[$key];
-    }
-
-    throw new Exception("Controller not found: {$name}");
-  }
-
-  // Cargar controller bajo demanda (sin instanciar)
-  function loadController($name) {
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    $uname = ucfirst($fileName) . "Controller";
-    $controllerFile = OG_FRAMEWORK_PATH . "/resources/controllers/{$subPath}{$uname}.php";
-    if (!file_exists($controllerFile)) {
-      $controllerFile = $this->pluginPath . "/resources/controllers/{$subPath}{$uname}.php";
-    }
-
-    if (!file_exists($controllerFile)) {
-      throw new Exception("Controller not found: {$name}");
-    }
-
-    require_once $controllerFile;
-
-    if (!class_exists($uname)) {
-      throw new Exception("Controller class not found: {$name}");
-    }
-
-    return true;
-  }
-
-  // Cargar handler bajo demanda (con referencia)
-  function handler($name) {
-    $key = "handler_{$name}";
-    if (isset($this->loaded[$key])) {
-      return $this->loaded[$key];
-    }
-
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    // 1. Buscar en framework/handlers/{subPath}og{Name}Handler.php
-    $fwClassName = "og" . ucfirst($fileName) . "Handler";
-    $fwFile = OG_FRAMEWORK_PATH . "/resources/handlers/{$subPath}og" . ucfirst($fileName) . "Handler.php";
-    if (file_exists($fwFile)) {
-      require_once $fwFile;
-      if (!class_exists($fwClassName)) {
-        ogLog::throwError("handler - Handler class not found: {$fwClassName}", [$name], $this->logMeta);
-      }
-      $this->loaded[$key] = new $fwClassName();
-      return $this->loaded[$key];
-    }
-
-    // 2. Buscar en app/resources/handlers/{subPath}{Name}Handler.php
-    $appClassName = ucfirst($fileName) . "Handler";
-    $appFile = $this->pluginPath . "/resources/handlers/{$subPath}" . $appClassName . ".php";
-    if (file_exists($appFile)) {
-      require_once $appFile;
-      if (!class_exists($appClassName)) {
-        ogLog::throwError("handler - Handler class not found: {$appClassName}", [$name], $this->logMeta);
-      }
-      $this->loaded[$key] = new $appClassName();
-      return $this->loaded[$key];
-    }
-
-    ogLog::throwError("handler - Handler not found in app: {$name}", [$name], $this->logMeta);
-  }
-
-  // Cargar handler bajo demanda (sin instanciar)
-  function loadHandler($name) {
-    $parts = explode('/', $name);
-    $fileName = array_pop($parts);
-    $subPath = !empty($parts) ? implode('/', $parts) . '/' : '';
-
-    $uname = ucfirst($fileName) . "Handler";
-    $handlerFile = OG_FRAMEWORK_PATH . "/resources/handlers/{$subPath}{$uname}.php";
-    if (!file_exists($handlerFile)) {
-      $handlerFile = $this->pluginPath . "/resources/handlers/{$subPath}{$uname}.php";
-    }
-
-    if (!file_exists($handlerFile)) {
-      ogLog::throwError("loadHandler - Handler not found in app: {$name}", ['name' => $name, 'name to search' => $uname], $this->logMeta);
-    }
-
-    require_once $handlerFile;
-
-    if (!class_exists($uname)) {
-      ogLog::throwError("loadHandler - Handler class not found: {$name}", ['name' => $name, 'name to search' => $uname], $this->logMeta);
-    }
-
-    return true;
-  }
-
   // Cargar middleware bajo demanda (sin instanciar)
   function loadMiddleware($name) {
-    $mwFile = OG_FRAMEWORK_PATH . "/middleware/{$name}.php";
-    if (!file_exists($mwFile)) {
-      $mwFile = $this->pluginPath . "/middleware/{$name}.php";
+    // Middleware no usa sistema de prefijos, busca directo
+    $middlePath = dirname(OG_FRAMEWORK_PATH) . '/middle';
+
+    $layers = [
+      $this->pluginPath . "/middleware/{$name}.php",
+      $middlePath . "/middleware/{$name}.php",
+      OG_FRAMEWORK_PATH . "/middleware/{$name}.php"
+    ];
+
+    foreach ($layers as $mwFile) {
+      if (file_exists($mwFile)) {
+        require_once $mwFile;
+        if (!class_exists($name)) {
+          throw new Exception("Middleware class not found: {$name}");
+        }
+        return true;
+      }
     }
 
-    if (!file_exists($mwFile)) {
-      throw new Exception("Middleware not found: {$name}");
-    }
-
-    require_once $mwFile;
-
-    if (!class_exists($name)) {
-      throw new Exception("Middleware class not found: {$name}");
-    }
-
-    return true;
+    throw new Exception("Middleware not found: {$name}");
   }
 
   // Acceso rápido a DB
@@ -383,6 +342,24 @@ class ogFramework {
   }
 
   function getPath($subPath = '') {
+    // Rutas predefinidas
+    $routes = [
+      'base' => dirname(dirname($this->pluginPath)),
+      'backend' => dirname($this->pluginPath),
+      'app' => $this->pluginPath,
+      'storage' => $this->pluginPath . '/storage',
+      'logs' => $this->pluginPath . '/storage/logs',
+      'cache' => $this->pluginPath . '/storage/cache',
+      'sessions' => $this->pluginPath . '/storage/sessions',
+      'shared' => dirname(dirname($this->pluginPath)) . '/shared',
+    ];
+
+    // Si subPath es una ruta predefinida, devolverla
+    if (isset($routes[$subPath])) {
+      return $routes[$subPath];
+    }
+
+    // Si no, concatenar con pluginPath
     return $this->pluginPath . ($subPath ? '/' . ltrim($subPath, '/') : '');
   }
 
@@ -392,6 +369,10 @@ class ogFramework {
 
   function isWordPress() {
     return $this->isWordPress;
+  }
+
+  function getPrefix() {
+    return $this->prefix;
   }
 
   function isLoaded($type, $name) {
@@ -431,6 +412,6 @@ class ogFramework {
 }
 
 // Alias global para acceso más corto
-function ogApp($pluginName = 'default', $pluginPath = null, $isWordPress = false) {
-  return ogFramework::instance($pluginName, $pluginPath, $isWordPress);
+function ogApp($pluginName = 'default', $pluginPath = null, $isWP = false, $prefix = null) {
+  return ogFramework::instance($pluginName, $pluginPath, $isWP, $prefix);
 }

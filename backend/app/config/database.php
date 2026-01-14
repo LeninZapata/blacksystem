@@ -1,5 +1,5 @@
 <?php
-$is_localhost = ogSystem::isLocalhost();
+$is_localhost = ogIsLocalhost();
 // Configuración de base de datos del proyecto
 return [
   'host' => $is_localhost ? 'localhost' : 'localhost',

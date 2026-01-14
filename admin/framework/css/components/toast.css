@@ -1,0 +1,172 @@
+/* toast.css - Con prefijo og- y wrapper .onlygrow-active */
+.onlygrow-active {
+  /* Variables de toast (solo dentro del scope) */
+  --og-toast-success: #10b981;
+  --og-toast-error: #ef4444;
+  --og-toast-warning: #f59e0b;
+  --og-toast-info: #3b82f6;
+
+  /* Contenedor principal */
+  .og-toast-container {
+    position: fixed;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+
+    /* Posiciones */
+    &.og-toast-top-right {
+      top: 1rem;
+      right: 1rem;
+    }
+
+    &.og-toast-top-center {
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    &.og-toast-top-left {
+      top: 1rem;
+      left: 1rem;
+    }
+
+    &.og-toast-bottom-right {
+      bottom: 1rem;
+      right: 1rem;
+    }
+
+    &.og-toast-bottom-center {
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    &.og-toast-bottom-left {
+      bottom: 1rem;
+      left: 1rem;
+    }
+  }
+
+  /* Toast individual */
+  .og-toast {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 300px;
+    max-width: 500px;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+
+    /* Estados */
+    &.og-toast-show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Tipos */
+    &.og-toast-success {
+      border-left: 4px solid var(--og-toast-success);
+
+      .og-toast-icon {
+        color: var(--og-toast-success);
+        background: #d1fae5;
+      }
+    }
+
+    &.og-toast-error {
+      border-left: 4px solid var(--og-toast-error);
+
+      .og-toast-icon {
+        color: var(--og-toast-error);
+        background: #fee2e2;
+      }
+    }
+
+    &.og-toast-warning {
+      border-left: 4px solid var(--og-toast-warning);
+
+      .og-toast-icon {
+        color: var(--og-toast-warning);
+        background: #fef3c7;
+      }
+    }
+
+    &.og-toast-info {
+      border-left: 4px solid var(--og-toast-info);
+
+      .og-toast-icon {
+        color: var(--og-toast-info);
+        background: #dbeafe;
+      }
+    }
+  }
+
+  /* Elementos internos */
+  .og-toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  .og-toast-message {
+    flex: 1;
+    color: #374151;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .og-toast-close {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    flex-shrink: 0;
+
+    &:hover {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+  }
+
+  /* Animaciones específicas por posición */
+  .og-toast-container.og-toast-top-center .og-toast,
+  .og-toast-container.og-toast-bottom-center .og-toast {
+    transform: translateY(-100%);
+
+    &.og-toast-show {
+      transform: translateY(0);
+    }
+  }
+
+  .og-toast-container.og-toast-top-left .og-toast,
+  .og-toast-container.og-toast-bottom-left .og-toast {
+    transform: translateX(-100%);
+
+    &.og-toast-show {
+      transform: translateX(0);
+    }
+  }
+}

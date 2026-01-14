@@ -1,0 +1,207 @@
+/* modal.css - CON KEYFRAMES DEFINIDAS */
+.onlygrow-active {
+  /* Variables específicas para modal */
+  --og-modal-bg: #f8f9fa;
+  --og-modal-border: #e9ecef;
+  --og-modal-text: #495057;
+  --og-modal-shadow: rgba(0, 0, 0, 0.3);
+  
+  /* Sistema de efectos */
+  --og-modal-animation-effect: slide-up;
+  --og-modal-animation-duration: 0.3s;
+  --og-modal-animation-timing: ease;
+
+  /* KEYFRAMES DEFINIDAS FUERA DE .onlygrow-active */
+  /* (o dentro, pero asegurando que estén definidas) */
+
+  /* Overlay base */
+  .og-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: og-modal-overlay-fadeIn var(--og-modal-animation-duration) var(--og-modal-animation-timing) forwards;
+  }
+
+  /* Contenedor principal */
+  .og-modal-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px var(--og-modal-shadow);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    
+    /* Animación aplicada por data-effect */
+    opacity: 0;
+    animation-timing-function: var(--og-modal-animation-timing);
+    animation-duration: var(--og-modal-animation-duration);
+    animation-fill-mode: forwards;
+  }
+
+  /* Efectos basados en data-effect */
+  .og-modal-overlay[data-effect="slide-up"] .og-modal-container {
+    animation-name: og-modal-slide-up-in;
+  }
+  
+  .og-modal-overlay[data-effect="fade-scale"] .og-modal-container {
+    animation-name: og-modal-fade-scale-in;
+  }
+  
+  .og-modal-overlay[data-effect="slide-right"] .og-modal-container {
+    animation-name: og-modal-slide-right-in;
+  }
+
+  /* Header */
+  .og-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--og-modal-border);
+    background: var(--og-modal-bg);
+    border-radius: 8px 8px 0 0;
+  }
+
+  .og-modal-header h3 {
+    margin: 0;
+    color: var(--og-modal-text);
+    font-size: 1.25rem;
+  }
+
+  /* Botón cerrar */
+  .og-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .og-modal-close:hover {
+    background: var(--og-modal-border);
+    color: var(--og-modal-text);
+  }
+
+  /* Contenido */
+  .og-modal-content {
+    padding: 12px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Footer */
+  .og-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--og-modal-border);
+    background: var(--og-modal-bg);
+    border-radius: 0 0 8px 8px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* Loading state */
+  .og-modal-loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-style: italic;
+  }
+}
+
+/* ============================================
+   KEYFRAMES DEFINIDAS FUERA DEL SCOPE
+   (asegura que estén disponibles globalmente)
+   ============================================ */
+
+@keyframes og-modal-overlay-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes og-modal-slide-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes og-modal-fade-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes og-modal-slide-right-in {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Animaciones de salida */
+@keyframes og-modal-overlay-fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes og-modal-slide-up-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+}
+
+@keyframes og-modal-fade-scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes og-modal-slide-right-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}

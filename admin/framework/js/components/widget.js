@@ -1,0 +1,180 @@
+class ogWidget {
+  static grids = new Map();
+  static draggedWidget = null;
+
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
+  }
+
+  static getComponent(componentName) {
+    // Usar ogComponent para obtener el componente
+    return ogComponent(componentName);
+  }
+
+  static async render(config, container) {
+    if (!container || typeof container.appendChild !== 'function') {
+      ogLogger.error('com:widget', 'Container no válido');
+      return;
+    }
+
+    if (!config || !config.widgets) {
+      ogLogger.error('com:widget', 'Config no válido o sin widgets');
+      return;
+    }
+
+    const appConfig = this.getConfig();
+    const version = appConfig.version || '1.0.0';
+    const gridId = `og-widget-grid-${version.replace(/\./g, '-')}`;
+
+    this.grids.set(gridId, config);
+    const cols = config.columns || 2;
+
+    const grid = document.createElement('div');
+    // CAMBIAR: .widget-grid → .og-widget-grid
+    grid.className = 'og-widget-grid';
+    grid.id = gridId;
+    grid.dataset.cols = cols;
+
+    container.innerHTML = '';
+    container.appendChild(grid);
+
+    for (const widgetConfig of config.widgets || []) {
+      await this.addWidget(grid, widgetConfig);
+    }
+
+    this.bindDragEvents(grid);
+  }
+
+  static async addWidget(grid, config) {
+    if (!grid) return;
+
+    const appConfig = this.getConfig();
+    const version = appConfig.version || '1.0.0';
+    const widgetId = `og-widget-${version.replace(/\./g, '-')}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // CAMBIAR: .widget-item → .og-widget-item
+    const widget = document.createElement('div');
+    widget.className = 'og-widget-item';
+    widget.id = widgetId;
+    widget.draggable = true;
+    widget.dataset.order = config.order || 999;
+
+    // CAMBIAR: .widget-body → .og-widget-body
+    const widgetBody = document.createElement('div');
+    widgetBody.className = 'og-widget-body';
+    widgetBody.setAttribute('data-widget-id', widgetId);
+    // CAMBIAR: .widget-loading → .og-widget-loading
+    widgetBody.innerHTML = `<div class="og-widget-loading">${__('com.widget.loading')}</div>`;
+
+    // CAMBIAR: .widget-header → .og-widget-header
+    // CAMBIAR: .widget-drag → .og-widget-drag
+    const widgetHeader = document.createElement('div');
+    widgetHeader.className = 'og-widget-header';
+    widgetHeader.innerHTML = `
+      <h4>${config.title || __('com.widget.title')}</h4>
+      <span class="og-widget-drag">⋮⋮</span>
+    `;
+
+    widget.appendChild(widgetHeader);
+    widget.appendChild(widgetBody);
+
+    grid.appendChild(widget);
+
+    await this.loadWidgetContent(widgetBody, config);
+  }
+
+  static async loadWidgetContent(body, config) {
+    const view = ogModule('view');
+    const form = ogModule('form');
+
+    if (!body) {
+      ogLogger.error('com:widget', `Body no válido`);
+      return;
+    }
+
+    try {
+      if (config.component) {
+        const compConfig = config.config || {};
+        const placeholder = document.createElement('div');
+        placeholder.className = 'dynamic-component';
+        body.innerHTML = '';
+        body.appendChild(placeholder);
+
+        const component = this.getComponent(config.component);
+
+        if (component && typeof component.render === 'function') {
+          await component.render(compConfig, placeholder);
+        } else {
+          ogLogger.error('com:widget', `Componente ${config.component} no encontrado`);
+        }
+      } else if (config.view) {
+        await view.loadView(config.view, body);
+      } else if (config.form) {
+        await form.load(config.form, body);
+      } else if (config.html) {
+        body.innerHTML = config.html;
+      } else if (config.content) {
+        body.innerHTML = this.renderContent(config.content);
+      }
+    } catch (error) {
+      ogLogger.error('com:widget', `Error cargando widget:`, error);
+      // CAMBIAR: .widget-error → .og-widget-error
+      body.innerHTML = `<div class="og-widget-error">${__('com.widget.error_loading')}</div>`;
+    }
+  }
+
+  static renderContent(content) {
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      return content.map(item => {
+        if (typeof item === 'string') return item;
+        if (item.type === 'html') return item.content || '';
+        return '';
+      }).join('');
+    }
+    return '';
+  }
+
+  static bindDragEvents(grid) {
+    if (!grid) return;
+
+    // CAMBIAR: .widget-item → .og-widget-item
+    const widgets = grid.querySelectorAll('.og-widget-item');
+    if (!widgets || widgets.length === 0) return;
+
+    widgets.forEach(w => {
+      w.addEventListener('dragstart', (e) => {
+        this.draggedWidget = w;
+        w.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      w.addEventListener('dragend', () => {
+        w.classList.remove('dragging');
+        this.draggedWidget = null;
+      });
+
+      w.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!this.draggedWidget || this.draggedWidget === w) return;
+
+        const rect = w.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+
+        if (e.clientY < midY) {
+          w.parentNode.insertBefore(this.draggedWidget, w);
+        } else {
+          w.parentNode.insertBefore(this.draggedWidget, w.nextSibling);
+        }
+      });
+    });
+  }
+}
+
+// Exponer GLOBALMENTE como ogWidget
+window.ogWidget = ogWidget;
+
+// Registrar en ogFramework (preferido)
+if (typeof window.ogFramework !== 'undefined') {
+  window.ogFramework.components.widget = ogWidget;
+}

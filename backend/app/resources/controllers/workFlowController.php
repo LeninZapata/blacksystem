@@ -1,9 +1,13 @@
 <?php
 class WorkFlowController extends ogController {
   // Nombre de la tabla asociada a este controlador
-  protected static $table = DB_TABLES['work_flows'];
+  protected static $table;
 
   function __construct() {
+    // Obtener tabla desde memoria cache
+    $tables = ogCache::memoryGet('db_tables', []);
+    self::$table = $tables['work_flows'] ?? 'work_flows';
+
     parent::__construct('workFlow');
   }
 
@@ -63,6 +67,7 @@ class WorkFlowController extends ogController {
   }
 
   function list() {
+    ogLog::debug('WorkFlowController.list - Iniciando listado de work_flows', self::$table, ['module' => 'WorkFlowController', 'layer' => 'app/resources']);
     $query = ogDb::table(self::$table);
 
     foreach ($_GET as $key => $value) {

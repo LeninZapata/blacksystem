@@ -1,114 +1,47 @@
 <?php
 /**
- * Plugin Name: Blacksystem
- * Plugin URI: https://Blacksystem.com
+ * Plugin Name: Backsystem
+ * Plugin URI: https://factorysaas.com
  * Plugin ID: blacksystem
- * Description: API REST para  Blacksystem - Framework híbrido standalone/WordPress
- * Version: 1.0.1
- * Author: Factory Team
- * Author URI: https://Blacksystem.com
- * Text Domain: blacksystem
- * Domain Path: /languages
- * Requires at least: 5.0
+ * Plugin prefix: bs
+ * Description: Sistema de ventas automatizado.
+ * Version: 0.1
+ * Author: Lenin Zapata
+ * Author URI: https://blacksystem.site
+ * Requires at least: 6.5
  * Requires PHP: 8.1
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
-// ========================================
-// FUNCIÓN GET_FILE_DATA (compatible standalone/WordPress)
-// ========================================
+// Detectar entorno
+$isWP = defined('ABSPATH') && function_exists('add_action');
 
-if (!function_exists('get_file_data')) {
-  /**
-   * Obtener datos del header del archivo (compatibilidad standalone)
-   *
-   * @param string $file Ruta del archivo
-   * @param array $headers Headers a extraer
-   * @return array Datos extraídos
-   */
-  function get_file_data($file, $headers = []) {
-    $fileData = [];
+// Definir paths según entorno
+$thePluginPath = $isWP ? plugin_dir_path(__FILE__) : __DIR__;
+$thePluginUrl  = $isWP ? plugin_dir_url(__FILE__) : '';
 
-    if (!file_exists($file)) {
-      return array_fill_keys($headers, '');
-    }
+// Definir ABSPATH si no está definido (para wp and standalone)
+if (!defined('ABSPATH')) {  define('ABSPATH', $thePluginPath . '/');  }
 
-    // Leer primeras 8KB del archivo
-    $fp = fopen($file, 'r');
-    $fileContent = fread($fp, 8192);
-    fclose($fp);
+// Cargar funciones auxiliares de nivel 1
+require_once __DIR__ . '/funcs.php';
 
-    // Mapeo de headers comunes
-    $headerMap = [
-      'Plugin Name' => 'Name',
-      'Plugin URI' => 'PluginURI',
-      'Description' => 'Description',
-      'Version' => 'Version',
-      'Author' => 'Author',
-      'Author URI' => 'AuthorURI',
-      'Text Domain' => 'TextDomain',
-      'Domain Path' => 'DomainPath',
-      'Requires at least' => 'RequiresWP',
-      'Requires PHP' => 'RequiresPHP',
-      'License' => 'License',
-      'License URI' => 'LicenseURI',
-      'Plugin ID' => 'PluginID'
-    ];
+// Obtener datos del plugin
+$pluginData = get_file_data(__FILE__, [  'Plugin Name', 'Version', 'Text Domain',  'Description', 'Author', 'Requires PHP',  'Plugin ID', 'Plugin prefix']);
 
-    // Extraer cada header
-    foreach ($headers as $header) {
-      $key = $headerMap[$header] ?? $header;
-
-      // Buscar patrón: Header: Value
-      $pattern = '/^[ \t\/*#@]*' . preg_quote($header, '/') . ':(.*)$/mi';
-
-      if (preg_match($pattern, $fileContent, $match)) {
-        $fileData[$key] = trim(preg_replace('/\s*(?:\*\/|\?>).*/', '', $match[1]));
-      } else {
-        $fileData[$key] = '';
-      }
-    }
-
-    return $fileData;
-  }
+// Si es una petición API en modo standalone, cargar bootstrap y terminar
+if (!$isWP && isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+  // Cargar bootstrap (maneja todo incluyendo api.php)
+  require_once $thePluginPath . '/backend/bootstrap.php';
+  exit; // Importante: detener ejecución después de procesar API
 }
 
-// ========================================
-// OBTENER DATOS DEL PLUGIN
-// ========================================
+// Si es WordPress, registrar hooks normalmente
+if ($isWP) {
+  // Cargar bootstrap para WordPress
+  require_once $thePluginPath . '/backend/bootstrap.php';
 
-$pluginData = get_file_data(__FILE__, [
-  'Plugin Name',
-  'Version',
-  'Text Domain',
-  'Description',
-  'Author',
-  'Requires PHP',
-  'Plugin ID'
-]);
-
-// Variables disponibles
-/*$pluginName = $pluginData['Name'];           // 'Factory SaaS API'
-$pluginVersion = $pluginData['Version'];     // '1.0.0'
-$pluginSlug = $pluginData['TextDomain'];     // 'factory-saas'
-$pluginDescription = $pluginData['Description'];
-$pluginAuthor = $pluginData['Author'];
-$pluginRequiresPHP = $pluginData['RequiresPHP'];*/
-$pluginID = $pluginData['PluginID'];         // 'factory-saas'
-
-// ========================================
-// WORDPRESS CHECK
-// ========================================
-
-if (!defined('ABSPATH')) {
-  // Standalone mode
-  define('ABSPATH', __DIR__ . '/');
+  // Aquí irían tus hooks de WordPress si los necesitas
+  // add_action('init', function() { ... });
 }
-
-// ========================================
-// CARGAR BOOTSTRAP
-// ========================================
-
-// Cargar bootstrap (maneja todo)
-require_once __DIR__ . '/backend/bootstrap.php';

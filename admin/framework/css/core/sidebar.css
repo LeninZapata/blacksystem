@@ -1,0 +1,193 @@
+/* og-sidebar.css - Sidebar con prefijo og- para WordPress */
+/* ¡IMPORTANTE! Toda la sidebar está dentro de .onlygrow-active */
+
+.onlygrow-active .og-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.5rem 0;
+}
+
+/* ==========================================================================
+   SIDEBAR HEADER
+   ========================================================================== */
+
+.onlygrow-active .og-sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* ==========================================================================
+   SIDEBAR FOOTER
+   ========================================================================== */
+
+.onlygrow-active .og-sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================================================
+   MENÚ PRINCIPAL
+   ========================================================================== */
+
+/* Item de menú */
+.onlygrow-active .og-menu-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid #34495e;
+  transition: all 0.15s ease;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  
+  &:hover {
+    background: #34495e;
+  }
+  
+  &.active {
+    background: rgba(52, 152, 219, 0.2);
+    border-left: 3px solid #3498db;
+    padding-left: calc(1rem - 3px);
+  }
+  
+  &.og-has-submenu::after {
+    content: '▸';
+    margin-left: auto;
+    transition: transform 0.2s;
+  }
+  
+  &.open::after {
+    transform: rotate(90deg);
+  }
+  
+  &.open + .og-submenu {
+    display: block;
+  }
+}
+
+/* Icono de menú */
+.onlygrow-active .og-menu-icon {
+  font-size: 1.1rem;
+  width: 24px;
+  text-align: center;
+}
+
+/* Título de menú */
+.onlygrow-active .og-menu-title {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+/* Flecha de submenú */
+.onlygrow-active .og-menu-arrow {
+  margin-left: auto;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   SUBMENÚ
+   ========================================================================== */
+
+.onlygrow-active .og-submenu {
+  display: none;
+  background: #34495e;
+  
+  .og-menu-item {
+    padding: 0.6rem 1rem 0.6rem 2rem;
+    border-bottom: 1px solid #2c3e50;
+    
+    &:hover {
+      background: #3c5a78;
+    }
+    
+    &.active {
+      background: rgba(52, 152, 219, 0.15);
+      border-left: 3px solid #3498db;
+      padding-left: calc(2rem - 3px);
+    }
+  }
+}
+
+/* ==========================================================================
+   USUARIO Y LOGOUT
+   ========================================================================== */
+
+.onlygrow-active .sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.onlygrow-active .sidebar-logout {
+  width: 100%;
+  padding: 0.75rem;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  
+  &:hover {
+    background: #c0392b;
+  }
+}
+
+/* ==========================================================================
+   NIVELES DE MENÚ (para indentación)
+   ========================================================================== */
+
+.onlygrow-active .og-menu-item.level-1 { padding-left: 2rem; }
+.onlygrow-active .og-menu-item.level-2 { padding-left: 3rem; }
+.onlygrow-active .og-menu-item.level-3 { padding-left: 4rem; }
+
+/* ==========================================================================
+   ESTADOS RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .onlygrow-active .og-sidebar {
+    padding-top: 60px; /* Para compensar el header en mobile */
+  }
+}
+
+/* ==========================================================================
+   ANIMACIONES
+   ========================================================================== */
+
+@keyframes og-menu-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.onlygrow-active .og-menu-item {
+  animation: og-menu-slide-in 0.2s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Retrasar animación para items consecutivos */
+.onlygrow-active .og-menu-item:nth-child(1) { animation-delay: 0.05s; }
+.onlygrow-active .og-menu-item:nth-child(2) { animation-delay: 0.1s; }
+.onlygrow-active .og-menu-item:nth-child(3) { animation-delay: 0.15s; }
+.onlygrow-active .og-menu-item:nth-child(4) { animation-delay: 0.2s; }
+.onlygrow-active .og-menu-item:nth-child(5) { animation-delay: 0.25s; }
+.onlygrow-active .og-menu-item:nth-child(6) { animation-delay: 0.3s; }

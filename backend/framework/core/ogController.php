@@ -6,15 +6,18 @@ if (!trait_exists('ogValidatesUnique')) {
 }
 
 class ogController {
-  use ogValidatesUnique;  // Usar el trait para validaciones
+  use ogValidatesUnique;
 
   private $config, $table, $resource;
 
   function __construct($resourceName) {
-    // Buscar schema: framework → app
-    $configFile = OG_FRAMEWORK_PATH . "/resources/schemas/{$resourceName}.json";
+    // Buscar schema: app → middle → framework
+    $configFile = ogApp()->getPath() . "/resources/schemas/{$resourceName}.json";
     if (!file_exists($configFile)) {
-      $configFile = ogApp()->getPath() . "/resources/schemas/{$resourceName}.json";
+      $configFile = OG_FRAMEWORK_PATH . "/../middle/resources/schemas/{$resourceName}.json";
+    }
+    if (!file_exists($configFile)) {
+      $configFile = OG_FRAMEWORK_PATH . "/resources/schemas/{$resourceName}.json";
     }
 
     if (!file_exists($configFile)) {
@@ -25,13 +28,18 @@ class ogController {
     $this->table = $this->config['table'];
     $this->resource = $resourceName;
 
-    // Cargar handlers personalizados si existen: framework → app
-    $handlerFile = OG_FRAMEWORK_PATH . "/resources/handlers/og{$resourceName}Handler.php";
+    // Cargar handlers personalizados si existen: app → middle → framework
+    $handlerFile = ogApp()->getPath() . "/resources/handlers/{$resourceName}Handler.php";
     if (file_exists($handlerFile)) {
       require_once $handlerFile;
     } else {
-      $handlerFile = ogApp()->getPath() . "/resources/handlers/og{$resourceName}Handler.php";
-      if (file_exists($handlerFile)) require_once $handlerFile;
+      $handlerFile = OG_FRAMEWORK_PATH . "/../middle/resources/handlers/{$resourceName}Handler.php";
+      if (file_exists($handlerFile)) {
+        require_once $handlerFile;
+      } else {
+        $handlerFile = OG_FRAMEWORK_PATH . "/resources/handlers/og{$resourceName}Handler.php";
+        if (file_exists($handlerFile)) require_once $handlerFile;
+      }
     }
   }
 

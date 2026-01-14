@@ -1,8 +1,17 @@
 <?php
 class WorkflowHandler {
   // Nombre de la tabla de bots asociada a este handler
-  protected static $tableBots = DB_TABLES['bots'];
+  protected static $tableBots;
   private static $logMeta = ['module' => 'WorkflowHandler', 'layer' => 'app/resources'];
+
+  // Obtener tabla desde memoria cache (lazy loading)
+  private static function getTable() {
+    if (!self::$tableBots) {
+      $tables = ogCache::memoryGet('db_tables', []);
+      self::$tableBots = $tables['bots'] ?? 'bots';
+    }
+    return self::$tableBots;
+  }
 
   // Actualiza archivos workflow de todos los bots que usan este workflow
   static function updateBotsContext($workflowId) {
@@ -12,7 +21,7 @@ class WorkflowHandler {
     }
 
     // Buscar todos los bots que usan este workflow
-    $bots = ogDb::table(self::$tableBots)
+    $bots = ogDb::table(self::getTable())
       ->where('config', 'LIKE', '%"workflow_id":"' . $workflowId . '"%')
       ->get();
 

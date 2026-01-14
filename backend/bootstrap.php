@@ -1,57 +1,26 @@
 <?php
-/**
- * BOOTSTRAP.PHP - Inicialización compartida
- * Funciona tanto standalone como en WordPress
- */
+// Inicialización compartida
 
-// ========================================
-// DETECTAR ENTORNO
-// ========================================
-$isWordPress = defined('ABSPATH') && function_exists('add_action');
+// Validar versión de PHP requerida (antes de cargar cualquier cosa)
+$phpValid = ogValidatePhpVersion($pluginData['RequiresPHP'] ?? '8.1', $isWP);
 
-// ========================================
-// DEFINIR PATHS
-// ========================================
-
-// Definir path base según entorno
-if ($isWordPress) {
-  if (!defined('FACTORY_PLUGIN_PATH')) {
-    define('FACTORY_PLUGIN_PATH', plugin_dir_path(__FILE__));
-  }
-  define('FACTORY_BASE_PATH', FACTORY_PLUGIN_PATH);
-} else {
-  if (!defined('FACTORY_BASE_PATH')) {
-    define('FACTORY_BASE_PATH', dirname(__DIR__)); // Desde /backend/bootstrap.php
-  }
+// Si falla en WordPress, no continuar carga
+if (!$phpValid && $isWP) {
+  return;
 }
 
-define('FACTORY_BACKEND_PATH', FACTORY_BASE_PATH . '/backend');
-define('FACTORY_APP_PATH', FACTORY_BACKEND_PATH . '/app');
-$pluginName = $isWordPress ? $pluginID : 'default';
-$appPath = FACTORY_APP_PATH;
+$pluginName    = $isWP ? $pluginData['PluginID'] : 'default';
+$appPath       = $thePluginPath . '/backend/app';
 
-// ========================================
-// CARGAR FRAMEWORK
-// ========================================
-
-// Cargar init.php (carga framework si no existe)
-require_once FACTORY_APP_PATH . '/config/init.php';
-
-// ========================================
-// REGISTRAR INSTANCIA
-// ========================================
+// Load framework
+require_once $appPath . '/config/init.php';
 
 // Registrar instancia de la aplicación
-ogApp($pluginName, $appPath, $isWordPress);
+ogApp($pluginName, $appPath, $isWP);
 
 // Las rutas de app se cargan DESPUÉS de crear ogApplication
-// Ver backend/api.php
-
-// ========================================
 // HOOKS WORDPRESS (solo si está en WordPress)
-// ========================================
-
-if ($isWordPress) {
+if ($isWP) {
 
   // Registrar rewrite rules
   /*function factory_saas_rewrite_rules() {
@@ -95,16 +64,11 @@ if ($isWordPress) {
   });*/
 
 } else {
-  // ========================================
   // STANDALONE: Ejecutar api.php directamente
-  // ========================================
-
   // Si estamos en standalone (llamado desde wp-file.php vía .htaccess)
   // y la URL es /api/*, ejecutar api.php
-
-
   if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
-    require_once FACTORY_BACKEND_PATH . '/api.php';
+    require_once $thePluginPath . '/backend/api.php';
     exit;
   }
 }

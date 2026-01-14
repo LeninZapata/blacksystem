@@ -1,0 +1,171 @@
+{
+  "id": "user-form",
+  "title": "Gestión de Usuario",
+  "description": "Crear o editar usuario del sistema",
+  "fields": [
+    {
+      "type": "grouper",
+      "mode": "tabs",
+      "activeIndex": 0,
+      "groups": [
+        {
+          "title": "👤 Datos Básicos",
+          "fields": [
+            {
+              "name": "username",
+              "label": "Nombre de Usuario",
+              "type": "text",
+              "transform": ["lowercase", "alphanumeric"],
+              "validation": "required|alpha_num|min:3|max:50",
+              "placeholder": "usuario123",
+              "focus": true
+            },
+            {
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "email",
+                  "label": "Correo Electrónico",
+                  "type": "email",
+                  "transform": ["lowercase", "trim"],
+                  "validation": "required|email",
+                  "placeholder": "usuario@ejemplo.com"
+                },
+                {
+                  "name": "role",
+                  "label": "Rol",
+                  "type": "select",
+                  "validation": "required",
+                  "options": [
+                    { "value": "admin", "label": "👑 Administrador" },
+                    { "value": "editor", "label": "✏️ Editor" },
+                    { "value": "viewer", "label": "👁️ Visualizador" },
+                    { "value": "user", "label": "👤 Usuario" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "password",
+                  "label": "Contraseña",
+                  "type": "password",
+                  "validation": "min:8",
+                  "placeholder": "Mínimo 8 caracteres"
+                },
+                {
+                  "name": "password_confirm",
+                  "label": "Confirmar Contraseña",
+                  "type": "password",
+                  "validation": "min:8",
+                  "placeholder": "Repite la contraseña"
+                }
+              ]
+            },
+            {
+              "type": "html",
+              "content": "<div style='background: #fef3c7; padding: 0.75rem; border-radius: 4px; margin: 1rem 0; border-left: 3px solid #f59e0b; font-size: 0.875rem;'><strong>💡 Nota:</strong> Si está editando un usuario y deja la contraseña vacía, no se modificará.</div>"
+            }
+          ]
+        },
+        {
+          "title": "🔐 Permisos",
+          "fields": [
+            {
+              "type": "html",
+              "content": "<div style='background: #e0f2fe; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; border-left: 3px solid #0284c7; font-size: 0.875rem;'><strong>🎯 Gestión de Permisos</strong><br>Seleccione a qué plugins, menús y vistas tendrá acceso este usuario. La configuración se guardará en formato JSON.</div>"
+            },
+            {
+              "type": "html",
+              "role": "admin",
+              "content": "<div id='permissions-container' style='min-height: 200px;'></div>"
+            },
+            {
+              "type": "html",
+              "content": "<div style='background: #f3f4f6; padding: 0.75rem; border-radius: 4px; margin-top: 1rem; font-size: 0.8rem; color: #6b7280;'><strong>ℹ️ Cómo funciona:</strong><ul style='margin: 0.5rem 0 0; padding-left: 1.5rem;'><li>✅ <strong>Plugin habilitado:</strong> Usuario ve el plugin en el menú</li><li>📋 <strong>Menús específicos:</strong> Solo ve los menús seleccionados</li><li>👁️ <strong>Vistas:</strong> Solo puede acceder a las vistas permitidas</li><li>⭐ <strong>Todos:</strong> Acceso completo a todo el plugin</li></ul></div>"
+            }
+          ]
+        },
+        {
+          "title": "⚙️ Preferencias",
+          "fields": [
+            {
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "fields": [
+                {
+                  "name": "preferences_theme",
+                  "label": "Tema",
+                  "type": "select",
+                  "options": [
+                    { "value": "light", "label": "☀️ Claro" },
+                    { "value": "dark", "label": "🌙 Oscuro" },
+                    { "value": "auto", "label": "🔄 Automático" }
+                  ]
+                },
+                {
+                  "name": "preferences_language",
+                  "label": "Idioma",
+                  "type": "select",
+                  "options": [
+                    { "value": "es", "label": "🇪🇸 Español" },
+                    { "value": "en", "label": "🇺🇸 English" },
+                    { "value": "pt", "label": "🇧🇷 Português" }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "preferences_notifications",
+              "label": "Habilitar notificaciones del sistema",
+              "type": "checkbox"
+            },
+            {
+              "type": "html",
+              "content": "<div style='background: #dcfce7; padding: 0.75rem; border-radius: 4px; margin-top: 1rem; border-left: 3px solid #16a34a; font-size: 0.875rem;'><strong>💾 Almacenamiento:</strong> Todas estas preferencias se guardan en el campo <code>config</code> como JSON string.</div>"
+            }
+          ]
+        },
+        {
+          "title": "📊 JSON Preview",
+          "fields": [
+            {
+              "type": "html",
+              "content": "<div style='background: #f9fafb; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;'><strong>🔍 Vista Previa del JSON</strong><br><small style='color: #6b7280;'>Este es el contenido que se guardará en el campo <code>config</code></small></div>"
+            },
+            {
+              "type": "html",
+              "content": "<pre id='config-preview' style='background: #1f2937; color: #f3f4f6; padding: 1rem; border-radius: 4px; font-size: 0.8rem; overflow-x: auto; max-height: 400px;'>{}</pre>"
+            },
+            {
+              "type": "html",
+              "content": "<div style='background: #f9fafb; padding: 0.75rem; border-radius: 4px; margin-top: 1rem; font-size: 0.8rem; color: #6b7280;'><strong>ℹ️ Nota:</strong> El preview JSON se actualiza automáticamente al guardar el usuario.</div>"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit:admin.save",
+      "_onclick": "event.preventDefault(); admin.save(this.closest('form').id);"
+    },
+    {
+      "type": "button",
+      "label": "❌ Cancelar",
+      "style": "secondary",
+      "_action": "call:ogComponent(\"modal\")?.closeAll",
+      "onclick": "ogComponent('modal').closeAll();"
+    }
+  ]
+}

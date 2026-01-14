@@ -50,6 +50,7 @@ $router->group('/api/country', function($router) {
     ogApp()->helper('response')::success($data);
   });
 
+  // @example {"datetime": "2025-01-12 10:00:00", "from": "EC", "to": "ES"}
   $router->post('/convert', function() {
     $data = ogApp()->helper('request')::data();
 

@@ -1,0 +1,181 @@
+/* og-layout.css - Layout principal con prefijo og- para WordPress */
+/* ¡CRÍTICO! Estas clases son la estructura base de la aplicación */
+
+/* ==========================================================================
+   LAYOUT BASE (Desktop)
+   ========================================================================== */
+
+/* Contenedor principal - SOLO dentro de .onlygrow-active */
+.onlygrow-active {
+  .og-layout {
+    display: grid;
+    grid-template-areas:
+      "sidebar header"
+      "sidebar content";
+    grid-template-columns: var(--og-sidebar-width, 250px) 1fr;
+    grid-template-rows: var(--og-header-height, 60px) 1fr;
+    height: 100vh;
+    background: #f5f5f5;
+  }
+}
+
+/* Header */
+.onlygrow-active .og-header {
+  grid-area: header;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+/* Sidebar */
+.onlygrow-active .og-sidebar {
+  grid-area: sidebar;
+  background: #2c3e50;
+  color: white;
+  overflow-y: auto;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Content */
+.onlygrow-active .og-content {
+  grid-area: content;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: #fff;
+}
+
+/* Footer */
+.onlygrow-active .og-footer {
+  margin-top: auto;
+  background: #ecf0f1;
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  color: #7f8c8d;
+  font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   RESPONSIVE (Tablet & Mobile)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .onlygrow-active {
+    .og-layout {
+      grid-template-areas:
+        "header"
+        "content";
+      grid-template-columns: 1fr;
+      grid-template-rows: var(--og-header-height, 60px) 1fr;
+    }
+
+    .og-sidebar {
+      position: fixed;
+      left: -100%;
+      top: 0;
+      height: 100vh;
+      width: var(--og-sidebar-width, 250px);
+      z-index: var(--og-z-sidebar, 1000);
+      transition: left 0.3s ease;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+
+      &.open {
+        left: 0;
+      }
+    }
+  }
+
+  .onlygrow-active .og-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: var(--og-z-overlay, 900);
+
+    &.active {
+      display: block;
+    }
+  }
+
+  .onlygrow-active .og-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #2c3e50;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+    }
+  }
+}
+
+/* ==========================================================================
+   VARIABLES CSS (Dentro del wrapper)
+   ========================================================================== */
+
+.onlygrow-active {
+  --og-sidebar-width: 250px;
+  --og-header-height: 60px;
+  --og-z-sidebar: 1000;
+  --og-z-overlay: 900;
+  --og-z-header: 800;
+}
+
+/* ==========================================================================
+   COMPONENTES INTERNOS DEL LAYOUT
+   ========================================================================== */
+
+/* View container dentro del content */
+.onlygrow-active .og-content .view-container {
+  flex: 1;
+  min-height: 0;
+}
+
+.onlygrow-active .og-content .welcome-message {
+  text-align: center;
+  padding: 3rem;
+  color: #7f8c8d;
+  font-size: 1.1rem;
+}
+
+/* ==========================================================================
+   ESTADOS ESPECIALES
+   ========================================================================== */
+
+/* Layout en modo auth (sin sidebar) */
+.onlygrow-active .og-layout.auth-mode {
+  grid-template-areas:
+    "header"
+    "content";
+  grid-template-columns: 1fr;
+  grid-template-rows: var(--og-header-height, 60px) 1fr;
+
+  .og-sidebar {
+    display: none;
+  }
+}
+
+/* Layout compacto (sidebar más pequeña) */
+.onlygrow-active .og-layout.compact {
+  --og-sidebar-width: 200px;
+
+  .og-sidebar {
+    padding: 0.5rem;
+  }
+}

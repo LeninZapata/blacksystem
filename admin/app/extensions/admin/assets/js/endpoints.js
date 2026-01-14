@@ -1,0 +1,371 @@
+class endpoints {
+  static initialized = false;
+  static endpointsData = null;
+
+  static getConfig() {
+    return window.ogFramework?.activeConfig || window.appConfig || {};
+  }
+
+  static async init() {
+    ogLogger.info('ext:admin:endpoint', '🚀 endpoints.init() ejecutado automáticamente por view.js');
+
+    if (this.initialized) {
+      ogLogger.info('ext:admin:endpoint', '⚠️ endpoints ya estaba inicializado, reiniciando...');
+    }
+
+    const container = document.getElementById('endpoints-container');
+
+    if (!container) {
+      ogLogger.warn('ext:admin:endpoint', '⚠️ Container endpoints-container no encontrado');
+      return;
+    }
+
+    ogLogger.info('ext:admin:endpoint', '✅ Container encontrado, cargando endpoints...');
+    await this.loadEndpoints(container);
+    this.initialized = true;
+  }
+
+  static async loadEndpoints(container) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 3rem; color: #64748b;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+        <div>Cargando endpoints...</div>
+      </div>
+    `;
+
+    try {
+      const cacheKey = 'endpoints_routes_list';
+      const cacheTTL = 60 * 60 * 1000;
+
+      let data = ogCache.get(cacheKey);
+
+      if (data) {
+        ogLogger.info('ext:admin:endpoint', '✅ Endpoints obtenidos desde caché');
+        this.endpointsData = data;
+      } else {
+        ogLogger.info('ext:admin:endpoint', '📡 Cargando endpoints desde API...');
+        const response = await ogApi.get('/api/system/routes');
+
+        if (!response.success) {
+          throw new Error(response.error || 'Error al cargar endpoints');
+        }
+
+        this.endpointsData = response.data;
+        ogCache.set(cacheKey, response.data, cacheTTL);
+        ogLogger.info('ext:admin:endpoint', '✅ Endpoints guardados en caché por 1 hora');
+      }
+
+      const savedViewMode = localStorage.getItem('endpoints_view_mode') || 'method';
+      this.renderEndpoints(container, savedViewMode);
+
+    } catch (error) {
+      ogLogger.error('ext:admin:endpoint', '❌ Error cargando endpoints:', error);
+      container.innerHTML = `
+        <div style="background: #fee; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #c00;">
+          <h4 style="margin: 0 0 0.5rem; color: #c00;">❌ Error al cargar endpoints</h4>
+          <p style="margin: 0; color: #666;">${error.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  static renderEndpoints(container, viewMode = 'method') {
+    if (!this.endpointsData) {
+      container.innerHTML = '<p>No hay datos disponibles</p>';
+      return;
+    }
+
+    const { routes, stats } = this.endpointsData;
+    const grouped = viewMode === 'resource'
+      ? this.groupByResource(routes)
+      : this.groupByMethod(routes);
+
+    const html = `
+      <div style="margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb;">
+        <div style="display: flex; gap: 0.5rem;">
+          <button
+            onclick="endpoints.changeView('method')"
+            style="padding: 0.75rem 1.5rem; border: none; background: ${viewMode === 'method' ? '#3b82f6' : 'transparent'}; color: ${viewMode === 'method' ? 'white' : '#64748b'}; border-bottom: 3px solid ${viewMode === 'method' ? '#3b82f6' : 'transparent'}; cursor: pointer; font-weight: 600;"
+          >
+            📊 Por Método HTTP
+          </button>
+          <button
+            onclick="endpoints.changeView('resource')"
+            style="padding: 0.75rem 1.5rem; border: none; background: ${viewMode === 'resource' ? '#3b82f6' : 'transparent'}; color: ${viewMode === 'resource' ? 'white' : '#64748b'}; border-bottom: 3px solid ${viewMode === 'resource' ? '#3b82f6' : 'transparent'}; cursor: pointer; font-weight: 600;"
+          >
+            📁 Por Recurso
+          </button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #0284c7;">
+          <div style="font-size: 2rem; font-weight: bold; color: #0369a1;">${stats.total}</div>
+          <div style="color: #64748b; font-size: 0.9rem;">Total Endpoints</div>
+        </div>
+        <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; border-left: 4px solid #16a34a;">
+          <div style="font-size: 2rem; font-weight: bold; color: #15803d;">${stats.by_method.GET || 0}</div>
+          <div style="color: #64748b; font-size: 0.9rem;">GET</div>
+        </div>
+        <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b;">
+          <div style="font-size: 2rem; font-weight: bold; color: #d97706;">${stats.by_method.POST || 0}</div>
+          <div style="color: #64748b; font-size: 0.9rem;">POST</div>
+        </div>
+        <div style="background: #fee2e2; padding: 1rem; border-radius: 8px; border-left: 4px solid #dc2626;">
+          <div style="font-size: 2rem; font-weight: bold; color: #b91c1c;">${stats.by_method.DELETE || 0}</div>
+          <div style="color: #64748b; font-size: 0.9rem;">DELETE</div>
+        </div>
+        <div style="background: #e0e7ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #6366f1;">
+          <div style="font-size: 2rem; font-weight: bold; color: #4f46e5;">${stats.by_method.PUT || 0}</div>
+          <div style="color: #64748b; font-size: 0.9rem;">PUT</div>
+        </div>
+      </div>
+
+      <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        ${Object.keys(grouped).map(groupKey => `
+          <div style="border-bottom: 1px solid #e5e7eb;">
+            <h3 style="margin: 0; padding: 1rem; background: ${viewMode === 'method' ? this.getMethodColor(groupKey) : '#6366f1'}; color: white;">
+              ${viewMode === 'method' ? groupKey : groupKey.toUpperCase()} (${grouped[groupKey].length})
+            </h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead style="background: #f9fafb;">
+                <tr>
+                  ${viewMode === 'resource' ? '<th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; width: 80px;">Método</th>' : ''}
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151;">Path</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151;">Description</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151;">Middleware</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; width: 120px;">Example</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151;">Source</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: #374151; width: 60px;">Copiar</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${grouped[groupKey].map(route => `
+                  <tr style="border-top: 1px solid #e5e7eb;">
+                    ${viewMode === 'resource' ? `
+                      <td style="padding: 0.75rem;">
+                        <span style="background: ${this.getMethodColor(route.method)}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                          ${route.method}
+                        </span>
+                      </td>
+                    ` : ''}
+                    <td style="padding: 0.75rem; font-family: monospace; font-size: 0.85rem; color: #1f2937;">
+                      ${route.path}
+                    </td>
+                    <td style="padding: 0.75rem; color: #6b7280; font-size: 0.9rem;">
+                      ${route.description || '-'}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                      ${route.middleware.length > 0
+                        ? route.middleware.map(m => `<span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-right: 0.25rem;">${m}</span>`).join('')
+                        : '<span style="color: #9ca3af;">-</span>'
+                      }
+                    </td>
+                    <td style="padding: 0.75rem;">
+                      ${route.example
+                        ? `<button
+                            onclick='endpoints.copyExample(${JSON.stringify(route.example).replace(/'/g, "&#39;")})'
+                            style="background: #10b981; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;"
+                            title="Copiar body ejemplo"
+                          >
+                            📄 Body
+                          </button>`
+                        : '<span style="color: #9ca3af;">-</span>'
+                      }
+                    </td>
+                    <td style="padding: 0.75rem;">
+                      <span style="background: #f3f4f6; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                        ${route.source}
+                      </span>
+                    </td>
+                    <td style="padding: 0.75rem; text-align: center;">
+                      <button
+                        onclick="endpoints.copyToClipboard('${route.path}')"
+                        style="background: #3b82f6; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;"
+                        title="Copiar ruta"
+                      >
+                        📋
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    container.innerHTML = html;
+    ogLogger.info('ext:admin:endpoint', '✅ Endpoints renderizados');
+  }
+
+  static groupByMethod(routes) {
+    const grouped = {};
+
+    routes.forEach(route => {
+      if (!grouped[route.method]) {
+        grouped[route.method] = [];
+      }
+      grouped[route.method].push(route);
+    });
+
+    const order = ['GET', 'POST', 'PUT', 'DELETE'];
+    const sorted = {};
+    order.forEach(method => {
+      if (grouped[method]) {
+        sorted[method] = grouped[method];
+      }
+    });
+
+    return sorted;
+  }
+
+  static groupByResource(routes) {
+    const grouped = {};
+
+    routes.forEach(route => {
+      const pathParts = route.path.split('/').filter(p => p);
+
+      let resource = 'otros';
+      if (pathParts.length >= 2 && pathParts[0] === 'api') {
+        resource = pathParts[1];
+      } else if (pathParts.length >= 1) {
+        resource = pathParts[0];
+      }
+
+      if (!grouped[resource]) {
+        grouped[resource] = [];
+      }
+      grouped[resource].push(route);
+    });
+
+    const sorted = {};
+    Object.keys(grouped).sort().forEach(key => {
+      sorted[key] = grouped[key];
+    });
+
+    return sorted;
+  }
+
+  static changeView(mode) {
+    ogLogger.info('ext:admin:endpoint', `🔄 Cambiando vista a: ${mode}`);
+    const container = document.getElementById('endpoints-container');
+    if (!container) {
+      ogLogger.warn('ext:admin:endpoint', '⚠️ Container endpoints-container no encontrado');
+      return;
+    }
+    localStorage.setItem('endpoints_view_mode', mode);
+    this.renderEndpoints(container, mode);
+  }
+
+  static getMethodColor(method) {
+    const colors = {
+      'GET': '#16a34a',
+      'POST': '#f59e0b',
+      'PUT': '#6366f1',
+      'DELETE': '#dc2626'
+    };
+    return colors[method] || '#64748b';
+  }
+
+  static async forceReload() {
+    ogLogger.info('ext:admin:endpoint', '🔄 Forzando recarga sin caché...');
+    const container = document.getElementById('endpoints-container');
+    if (!container) {
+      ogLogger.warn('ext:admin:endpoint', '⚠️ Container endpoints-container no encontrado');
+      return;
+    }
+    ogCache.delete('endpoints_routes_list');
+    ogLogger.info('ext:admin:endpoint', '✅ Caché eliminado');
+    await this.loadEndpoints(container);
+  }
+
+  static copyExample(example) {
+    // Formatear el JSON si es string, sino convertir a JSON
+    let formatted;
+    try {
+      const parsed = typeof example === 'string' ? JSON.parse(example) : example;
+      formatted = JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      formatted = example;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(formatted)
+        .then(() => {
+          ogLogger.info('ext:admin:endpoint', '✅ Ejemplo copiado');
+          this.showCopyNotification('Ejemplo copiado');
+        })
+        .catch(err => {
+          ogLogger.error('ext:admin:endpoint', '❌ Error al copiar:', err);
+          this.fallbackCopyToClipboard(formatted);
+        });
+    } else {
+      this.fallbackCopyToClipboard(formatted);
+    }
+  }
+
+  static copyToClipboard(path) {
+    const config = this.getConfig();
+    const apiBaseUrl = config.publicUrl || window.location.origin + '/';
+    const fullUrl = apiBaseUrl + path.replace(/^\//, '');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(fullUrl)
+        .then(() => {
+          ogLogger.info('ext:admin:endpoint', '✅ URL copiada:', fullUrl);
+          this.showCopyNotification();
+        })
+        .catch(err => {
+          ogLogger.error('ext:admin:endpoint', '❌ Error al copiar:', err);
+          this.fallbackCopyToClipboard(fullUrl);
+        });
+    } else {
+      this.fallbackCopyToClipboard(fullUrl);
+    }
+  }
+
+  static fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
+      ogLogger.info('ext:admin:endpoint', '✅ Copiado (fallback)');
+      this.showCopyNotification();
+    } catch (err) {
+      ogLogger.error('ext:admin:endpoint','❌ Error al copiar (fallback):', err);
+    }
+
+    document.body.removeChild(textArea);
+  }
+
+  static showCopyNotification(message = '✅ Copiado al portapapeles') {
+    const notification = document.createElement('div');
+    notification.innerHTML = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 10000;
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 2000);
+  }
+}
+
+window.endpoints = endpoints;

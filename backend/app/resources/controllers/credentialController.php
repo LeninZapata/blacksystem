@@ -1,9 +1,12 @@
 <?php
 class CredentialController extends ogController {
   // Nombre de la tabla asociada a este controlador
-  protected static $table = DB_TABLES['credentials'];
+  protected static $table;
 
   function __construct() {
+    // Obtener tabla desde memoria cache
+    $tables = ogCache::memoryGet('db_tables', []);
+    self::$table = $tables['credentials'] ?? 'credentials';
     parent::__construct('credential');
   }
 

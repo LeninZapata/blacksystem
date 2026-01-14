@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema</title>
+  <link rel="stylesheet" href="framework/css/main.css" />
+</head>
+<body class="onlygrow-active">
+<div id="app"></div>
+
+<script>
+  let version = '0.1';
+
+  // Detectar si estamos en /admin/ o en root
+  var pathname = window.location.pathname;
+  var isAdmin = pathname.includes('/admin');
+
+  console.log('=== DEBUG RUTAS ===');
+  console.log('1. pathname original:', pathname);
+  console.log('2. isAdmin:', isAdmin);
+
+  // Normalizar pathname
+  if (pathname.endsWith('/index.html')) {
+    pathname = pathname.replace('/index.html', '/');
+    console.log('3. pathname sin index.html:', pathname);
+  }
+
+  // Si estamos en admin, asegurar que termine en /admin/
+  if (isAdmin && !pathname.endsWith('/admin/')) {
+    pathname = pathname.split('/admin')[0] + '/admin/';
+    console.log('4. pathname normalizado para admin:', pathname);
+  }
+
+  if (!pathname.endsWith('/')) {
+    pathname += '/';
+    console.log('5. pathname con slash final:', pathname);
+  }
+
+  console.log('6. pathname FINAL:', pathname);
+
+  var ogIsDev = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local|192\.168\.|10\.)/.test(window.location.hostname) ||
+              ['3000', '5173', '8080'].includes(window.location.port);
+
+  // Configuración
+  var appConfig_factory_saas = {
+    slug: 'backsystem',
+    version: ogIsDev ? `dev-${Date.now()}` : version,
+    environment: ogIsDev ? 'development' : 'production',
+    isDevelopment: ogIsDev,
+
+    // Sin ../ porque ya estamos en /admin/
+    baseUrl: pathname,
+    frameworkUrl: pathname + 'framework/',
+    publicUrl: window.location.origin + pathname,
+    frameworkPath: 'framework',
+    extensionsPath: pathname + 'app/extensions/',
+    apiBaseUrl: pathname.replace(/\/admin\/?$/, '/'),
+
+    container: '#app',
+    // ✅ CAMBIO AQUÍ: Usar notación middle: para vistas en /middle/views/
+    defaultView: 'middle:dashboard/dashboard',
+
+    i18n: {
+      enabled: true,
+      defaultLang: 'es',
+      availableLangs: ['es', 'en']
+    },
+
+    auth: {
+      enabled: true,
+      loginView: 'auth/login',
+      redirectAfterLogin: 'dashboard/dashboard',
+      sessionCheckInterval: 1 * 60 * 1000,
+      api: {
+        login: '/api/auth/login',
+        logout: '/api/auth/logout',
+        me: '/api/auth/profile'
+      }
+    },
+
+    routes: {
+      coreViews: 'framework/js/views',
+      extensionViews: 'extensions/{extensionName}/views'
+    },
+
+    cache: {
+      views: !ogIsDev,
+      forms: !ogIsDev
+    }
+  };
+
+  console.log('7. baseUrl:', appConfig_factory_saas.baseUrl);
+  console.log('8. frameworkUrl:', appConfig_factory_saas.frameworkUrl);
+  console.log('9. publicUrl:', appConfig_factory_saas.publicUrl);
+
+  (function() {
+    const script = document.createElement('script');
+    const ogFrameworkPath = 'framework/og-framework.js?v=' + appConfig_factory_saas.version;
+
+    console.log('10. Intentando cargar og-framework.js desde:', ogFrameworkPath);
+
+    script.src = ogFrameworkPath;
+    script.onload = async function() {
+      console.log('✅ og-framework.js cargado exitosamente');
+      if (window.ogFramework) {
+        await ogFramework.register('backsystem', appConfig_factory_saas);
+      }
+    };
+    script.onerror = function() {
+      console.error('❌ Error cargando ogFramework');
+      console.error('Ruta intentada:', script.src);
+      console.error('pathname:', pathname);
+      console.error('baseUrl:', appConfig_factory_saas.baseUrl);
+
+      document.getElementById('app').innerHTML = `
+        <div style="padding: 20px; color: #dc3545; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; margin: 20px;">
+          <h2>Error de Carga</h2>
+          <p>No se pudo cargar el framework. Por favor, recarga la página.</p>
+          <p style="font-size: 12px; color: #666;">Ruta: ${script.src}</p>
+          <button onclick="location.reload()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+            Recargar
+          </button>
+        </div>
+      `;
+    };
+    document.head.appendChild(script);
+  })();
+</script>
+</body>
+</html>

@@ -4,10 +4,13 @@ class ogResource {
   private $config, $table;
 
   function __construct($resourceName) {
-    // Buscar schema: framework → app
-    $configFile = OG_FRAMEWORK_PATH . "/resources/schemas/{$resourceName}.json";
+    // Buscar schema: app → middle → framework
+    $configFile = ogApp()->getPath() . "/resources/schemas/{$resourceName}.json";
     if (!file_exists($configFile)) {
-      $configFile = ogApp()->getPath() . "/resources/schemas/{$resourceName}.json";
+      $configFile = OG_FRAMEWORK_PATH . "/../middle/resources/schemas/{$resourceName}.json";
+    }
+    if (!file_exists($configFile)) {
+      $configFile = OG_FRAMEWORK_PATH . "/resources/schemas/{$resourceName}.json";
     }
 
     if (!file_exists($configFile)) {

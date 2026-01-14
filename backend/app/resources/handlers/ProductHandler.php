@@ -1,9 +1,18 @@
 <?php
 class ProductHandler {
 
-  protected static $table = DB_TABLES['products'];
+  protected static $table;
   protected static $tableBots = DB_TABLES['bots'];
   private static $logMeta = ['module' => 'CRUD/ProductHandler', 'layer' => 'app/resources'];
+
+  // Obtener tabla desde memoria cache (lazy loading)
+  private static function getTable() {
+    if (!self::$table) {
+      $tables = ogCache::memoryGet('db_tables', []);
+      self::$table = $tables['users'] ?? 'users';
+    }
+    return self::$table;
+  }
 
   // Handler principal por contexto
   static function handleByContext($productData, $action = 'create', $oldBotId = null) {
@@ -26,13 +35,13 @@ class ProductHandler {
       // Si cambió el bot (solo en update)
       if ($action === 'update' && $oldBotId && $oldBotId !== $currentBotId) {
         // Regenerar activators del bot antiguo (sin este producto)
-        $oldBot = ogDb::table(self::$tableBots)->find($oldBotId);
+        $oldBot = ogDb::table(self::getTable())->find($oldBotId);
         if ($oldBot) {
           self::generateActivatorsFile($oldBot['number'], $oldBotId, 'update');
         }
 
         // Regenerar activators del bot nuevo (con este producto)
-        $newBot = ogDb::table(self::$tableBots)->find($currentBotId);
+        $newBot = ogDb::table(self::getTable())->find($currentBotId);
         if ($newBot) {
           self::generateActivatorsFile($newBot['number'], $currentBotId, 'update');
         }
@@ -119,7 +128,7 @@ class ProductHandler {
 
     // 6. Regenerar activators del bot (si se proporciona botId)
     if ($botId) {
-      $bot = ogDb::table(self::$tableBots)->find($botId);
+      $bot = ogDb::table(self::getTable())->find($botId);
       if ($bot) {
         self::generateActivatorsFile($bot['number'], $botId, 'update');
       }
@@ -139,7 +148,7 @@ class ProductHandler {
     if (!$botNumber && !$botId) return null;
 
     if (!$botNumber) {
-      $bot = ogDb::table(self::$tableBots)->find($botId);
+      $bot = ogDb::table(self::getTable())->find($botId);
       if (!$bot) return null;
       $botNumber = $bot['number'];
     }
@@ -286,14 +295,14 @@ class ProductHandler {
     if (!$botId && !$botNumber) return false;
 
     if (!$botNumber) {
-      $bot = ogDb::table(self::$tableBots)->find($botId);
+      $bot = ogDb::table(self::getTable())->find($botId);
       if (!$bot || !isset($bot['number'])) {
         ogLog::error('generateActivatorsFile - Bot no encontrado', ['bot_id' => $botId], self::$logMeta);
         return false;
       }
       $botNumber = $bot['number'];
     } else if (!$botId) {
-      $bot = ogDb::table(self::$tableBots)->where('number', $botNumber)->first();
+      $bot = ogDb::table(self::getTable())->where('number', $botNumber)->first();
       if (!$bot) {
         ogLog::error('generateActivatorsFile - Bot no encontrado', ['bot_number' => $botNumber], self::$logMeta);
         return false;
