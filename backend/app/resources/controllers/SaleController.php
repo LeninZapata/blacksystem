@@ -1,8 +1,6 @@
 <?php
 class SaleController extends ogController {
 
-  private static $table = DB_TABLES['sales'];
-
   function __construct() {
     parent::__construct('sale');
   }
@@ -24,7 +22,7 @@ class SaleController extends ogController {
     $data['is_downsell'] = $data['is_downsell'] ?? 0;
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('sales')->insert($data);
       ogResponse::success(['id' => $id], __('sale.create.success'), 201);
     } catch (Exception $e) {
       ogResponse::serverError(__('sale.create.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -32,7 +30,7 @@ class SaleController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('sales')->find($id);
     if (!$exists) ogResponse::notFound(__('sale.not_found'));
 
     $data = ogRequest::data();
@@ -40,7 +38,7 @@ class SaleController extends ogController {
     $data['tu'] = time();
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('sales')->where('id', $id)->update($data);
       ogResponse::success(['affected' => $affected], __('sale.update.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('sale.update.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -48,13 +46,13 @@ class SaleController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('sales')->find($id);
     if (!$data) ogResponse::notFound(__('sale.not_found'));
     ogResponse::success($data);
   }
 
   function list() {
-    $query = ogDb::table(self::$table);
+    $query = ogDb::t('sales');
 
     // Filtros
     foreach ($_GET as $key => $value) {
@@ -78,11 +76,11 @@ class SaleController extends ogController {
   }
 
   function delete($id) {
-    $item = ogDb::table(self::$table)->find($id);
+    $item = ogDb::t('sales')->find($id);
     if (!$item) ogResponse::notFound(__('sale.not_found'));
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('sales')->where('id', $id)->delete();
       ogResponse::success(['affected' => $affected], __('sale.delete.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('sale.delete.error'), OG_IS_DEV ? $e->getMessage() : null);

@@ -1,6 +1,5 @@
 <?php
 class ClientController extends ogController {
-  private static $table = DB_TABLES['clients'];
 
   function __construct() {
     parent::__construct('client');
@@ -18,7 +17,7 @@ class ClientController extends ogController {
     }
 
     // Verificar si el número ya existe
-    $exists = ogDb::table(self::$table)->where('number', $data['number'])->first();
+    $exists = ogDb::t('clients')->where('number', $data['number'])->first();
     if ($exists) {
       ogResponse::json(['success' => false, 'error' => __('client.number_exists')], 200);
     }
@@ -30,7 +29,7 @@ class ClientController extends ogController {
     $data['amount_spent'] = $data['amount_spent'] ?? 0.00;
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('clients')->insert($data);
       ogResponse::success(['id' => $id], __('client.create.success'), 201);
     } catch (Exception $e) {
       ogResponse::serverError(__('client.create.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -38,14 +37,14 @@ class ClientController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('clients')->find($id);
     if (!$exists) ogResponse::notFound(__('client.not_found'));
 
     $data = ogRequest::data();
 
     // No permitir actualizar número si ya existe en otro cliente
     if (isset($data['number'])) {
-      $duplicate = ogDb::table(self::$table)
+      $duplicate = ogDb::t('clients')
         ->where('number', $data['number'])
         ->where('id', '!=', $id)
         ->first();
@@ -59,7 +58,7 @@ class ClientController extends ogController {
     $data['tu'] = time();
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('clients')->where('id', $id)->update($data);
       ogResponse::success(['affected' => $affected], __('client.update.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('client.update.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -67,13 +66,13 @@ class ClientController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('clients')->find($id);
     if (!$data) ogResponse::notFound(__('client.not_found'));
     ogResponse::success($data);
   }
 
   function list() {
-    $query = ogDb::table(self::$table);
+    $query = ogDb::t('clients');
 
     // Filtrar por user_id autenticado
     if (isset($GLOBALS['auth_user_id'])) {
@@ -104,11 +103,11 @@ class ClientController extends ogController {
   }
 
   function delete($id) {
-    $item = ogDb::table(self::$table)->find($id);
-    if (!$item) ogResponse::notFound(__('client.not_found'));
+    $client = ogDb::t('clients')->find($id);
+    if (!$client) ogResponse::notFound(__('client.not_found'));
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('clients')->where('id', $id)->delete();
       ogResponse::success(['affected' => $affected], __('client.delete.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('client.delete.error'), OG_IS_DEV ? $e->getMessage() : null);

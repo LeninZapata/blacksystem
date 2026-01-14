@@ -1,13 +1,7 @@
 <?php
 class WorkFlowController extends ogController {
-  // Nombre de la tabla asociada a este controlador
-  protected static $table;
 
   function __construct() {
-    // Obtener tabla desde memoria cache
-    $tables = ogCache::memoryGet('db_tables', []);
-    self::$table = $tables['work_flows'] ?? 'work_flows';
-
     parent::__construct('workFlow');
   }
 
@@ -30,7 +24,7 @@ class WorkFlowController extends ogController {
     $data['tc'] = time();
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('work_flows')->insert($data);
       ogResponse::success(['id' => $id], __('workFlow.create.success'), 201);
     } catch (Exception $e) {
       ogResponse::serverError(__('workFlow.create.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -38,7 +32,7 @@ class WorkFlowController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('work_flows')->find($id);
     if (!$exists) ogResponse::notFound(__('workFlow.not_found'));
 
     $data = ogRequest::data();
@@ -47,7 +41,7 @@ class WorkFlowController extends ogController {
     $data['tu'] = time();
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('work_flows')->where('id', $id)->update($data);
 
       // Actualizar archivos JSON de todos los bots que usan este workflow
       //WorkflowHandler::updateBotsContext($id);
@@ -60,15 +54,15 @@ class WorkFlowController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('work_flows')->find($id);
     if (!$data) ogResponse::notFound(__('workFlow.not_found'));
 
     ogResponse::success($data);
   }
 
   function list() {
-    ogLog::debug('WorkFlowController.list - Iniciando listado de work_flows', self::$table, ['module' => 'WorkFlowController', 'layer' => 'app/resources']);
-    $query = ogDb::table(self::$table);
+    ogLog::debug('WorkFlowController.list - Iniciando listado de work_flows', ['table' => 'work_flows'], ['module' => 'WorkFlowController', 'layer' => 'app/resources']);
+    $query = ogDb::t('work_flows');
 
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
@@ -89,11 +83,11 @@ class WorkFlowController extends ogController {
   }
 
   function delete($id) {
-    $item = ogDb::table(self::$table)->find($id);
+    $item = ogDb::t('work_flows')->find($id);
     if (!$item) ogResponse::notFound(__('workFlow.not_found'));
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('work_flows')->where('id', $id)->delete();
       ogResponse::success(['affected' => $affected], __('workFlow.delete.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('workFlow.delete.error'), OG_IS_DEV ? $e->getMessage() : null);

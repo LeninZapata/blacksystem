@@ -1,13 +1,8 @@
 <?php
 class ProductController extends ogController {
-  protected static $table;
   private $logMeta = ['module' => 'ProductControlleroduct', 'layer' => 'app/resources'];
 
   function __construct() {
-    // Obtener tabla desde memoria cache
-    $tables = ogCache::memoryGet('db_tables', []);
-    self::$table = $tables['products'] ?? 'products';
-
     parent::__construct('product');
   }
 
@@ -32,7 +27,7 @@ class ProductController extends ogController {
     }
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('products')->insert($data);
 
       if (isset($data['context'])) {
         $data['id'] = $id;
@@ -50,7 +45,7 @@ class ProductController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('products')->find($id);
     if (!$exists) ogResponse::notFound(__('product.not_found'));
 
     $data = ogRequest::data();
@@ -68,7 +63,7 @@ class ProductController extends ogController {
     }
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('products')->where('id', $id)->update($data);
       ogLog::info('update - Producto actualizado', [ 'id' => $id, 'bot_changed' => $botChanged, 'old_bot_id' => $oldBotId, 'new_bot_id' => $newBotId ],  $this->logMeta);
 
       if ($affected > 0 && isset($data['context'])) {
@@ -84,17 +79,16 @@ class ProductController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('products')->find($id);
     if (!$data) ogResponse::notFound(__('product.not_found'));
 
     ogResponse::success($data);
   }
 
   function list() {
-    $query = ogDb::table(self::$table);
+    $query = ogDb::t('products');
 
     // Filtrar por user_id autenticado
-    ogLog::info('ProductController::list - Variable GLOBAL desde product', $GLOBALS, $this->logMeta);
     if (isset($GLOBALS['auth_user_id'])) {
       $query = $query->where('user_id', $GLOBALS['auth_user_id']);
     } else {
@@ -120,7 +114,7 @@ class ProductController extends ogController {
   }
 
   function delete($id) {
-    $item = ogDb::table(self::$table)->find($id);
+    $item = ogDb::t('products')->find($id);
     if (!$item) ogResponse::notFound(__('product.not_found'));
 
     $botId = $item['bot_id'] ?? null;
@@ -136,7 +130,7 @@ class ProductController extends ogController {
       }
 
       // Eliminar registro de BD
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('products')->where('id', $id)->delete();
 
       ogResponse::success([
         'affected' => $affected,
@@ -162,7 +156,7 @@ class ProductController extends ogController {
       ogResponse::json(['success' => false, 'error' => 'user_id y bot_id son obligatorios'], 400);
     }
 
-    $original = ogDb::table(self::$table)->find($id);
+    $original = ogDb::t('products')->find($id);
     if (!$original) ogResponse::notFound(__('product.not_found'));
 
     $cloneData = [
@@ -179,7 +173,7 @@ class ProductController extends ogController {
     ];
 
     try {
-      $newId = ogDb::table(self::$table)->insert($cloneData);
+      $newId = ogDb::t('products')->insert($cloneData);
 
       if ($newId && isset($cloneData['context'])) {
         $cloneData['id'] = $newId;
