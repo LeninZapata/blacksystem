@@ -18,10 +18,40 @@ class InfoproductV2Handler {
 
   private $logMeta = ['module' => 'InfoproductV2Handler', 'layer' => 'app/workflows'];
 
+  // ========================================
+  // ✅ CONFIGURACIÓN DE PROVIDERS
+  // ========================================
+
+  /**
+   * Provider forzado para testing
+   *
+   * Opciones:
+   * - null: Modo AUTOMÁTICO (calcula según horas desde conversation_started)
+   * - 'evolutionapi': Forzar uso de Evolution API
+   * - 'whatsapp-cloud-api': Forzar uso de WhatsApp Cloud API (Facebook)
+   *
+   * EJEMPLOS:
+   * - Testing Evolution: private $forcedProvider = 'evolutionapi';
+   * - Testing Facebook: private $forcedProvider = 'whatsapp-cloud-api';
+   * - Producción: private $forcedProvider = null;
+   */
+  private $forcedProvider = 'evolutionapi'; // DEBUG: cambiar aqui para produccion
+
+  /**
+   * Límite de horas para usar WhatsApp Cloud API (Facebook)
+   * Solo aplica si $forcedProvider = null
+   */
+  private const HOURS_LIMIT_FACEBOOK = 72;
+  private const PROVIDER_FACEBOOK = 'whatsapp-cloud-api';
+  private const PROVIDER_EVOLUTION = 'evolutionapi';
+
+  // ========================================
+  // Variables existentes
+  // ========================================
   private $actionDispatcher;
   private $maxConversationDays = 2;
   private $bufferDelay = OG_IS_DEV ? 3 : 7;
-  private $appPath;  // Path dinámico del plugin
+  private $appPath;
 
   // Prompts personalizados
   private $prompt_recibo = 'recibo.txt';
@@ -36,14 +66,10 @@ class InfoproductV2Handler {
   public function __construct() {
     ogLog::info("__construct - Inicio", [], $this->logMeta);
 
-    // Guardar path del plugin como propiedad
     $this->appPath = ogApp()->getPath();
     $this->actionDispatcher = new ActionDispatcher();
 
-    // Cargar FollowupHandler bajo demanda
     ogApp()->loadHandler('followup');
-
-    // Configurar horarios y variación para followups
     FollowupHandler::setAllowedHours($this->followupStartHour, $this->followupEndHour);
     FollowupHandler::setMinutesVariation($this->followupMinutesBefore, $this->followupMinutesAfter);
     $this->registerActionHandlers();
@@ -63,10 +89,8 @@ class InfoproductV2Handler {
     $event = $webhook['normalized']['body']['event'] ?? null;
 
     if ($event === 'presence.update' || stripos($event, 'presence') !== false) {
-      ogLog::info("handle - Evento presence detectado, ignorando", [
-        'event' => $event
-      ], $this->logMeta);
-      return; // Terminar procesamiento
+      ogLog::info("handle - Evento presence detectado, ignorando", [ 'event' => $event ], $this->logMeta);
+      return;
     }
 
     $standard = $webhook['standard'] ?? [];
@@ -76,11 +100,19 @@ class InfoproductV2Handler {
     $context = $standard['context'] ?? [];
     $botNumber = $bot['number'] ?? null;
 
+    // ✅ 1. DETECTAR ORIGEN DEL WEBHOOK
+    $webhookSource = $standard['webhook']['source'] ?? 'evolution';
+
+    ogLog::info("handle - Webhook recibido", [
+      'webhook_source' => $webhookSource,
+      'number' => $person['number'] ?? 'N/A',
+      'message_type' => $message['type'] ?? 'unknown'
+    ], $this->logMeta);
+
     if (!$botNumber) {
       ogLog::throwError("handle - Bot number missing in webhook", $bot ?? null, $this->logMeta);
     }
 
-    // Cargar BotHandler bajo demanda
     ogApp()->loadHandler('bot');
     $botData = BotHandler::getDataFile($botNumber);
 
@@ -101,7 +133,6 @@ class InfoproductV2Handler {
       ogLog::warning("handle - Bot sin user_id", [ 'bot_id' => $bot['id'] ?? 'N/A', 'bot_number' => $botNumber ], $this->logMeta);
     }
 
-    // Agregar prompts personalizados al array $bot
     $bot['prompt_recibo'] = $this->prompt_recibo;
     $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
     ogLog::info("handle - Bot data cargado", [ 'bot_id' => $bot['id'] ?? 'N/A' ], $this->logMeta );
@@ -110,24 +141,59 @@ class InfoproductV2Handler {
     ogLog::info("handle - Mensaje clasificado", [ 'type' => $messageType, 'person number' => $person['number'] ?? 'N/A' ], $this->logMeta);
 
     $hasConversation = ConversationValidator::quickCheck( $person['number'], $bot['id'], $this->maxConversationDays );
-
-    // $context['chat'] = $hasConversation['chat'];
     ogLog::info("handle - Conversación activa verificada", [ 'has_conversation' => $hasConversation['exists'] ?? false, 'messages_count' => isset($hasConversation['chat']['messages']) ? count($hasConversation['chat']['messages']) : null ], $this->logMeta);
 
-    // PRIORIDAD 1: Detectar welcome SIEMPRE (incluso con conversación activa)
+    // ✅ 2. DETECTAR WELCOME
     ogLog::info("handle - Detectando welcome", [], $this->logMeta);
     $welcomeCheck = WelcomeValidator::detect($bot, $message, $context);
     ogLog::info("handle - Resultado de welcome detection", [ 'welcome_check' => $welcomeCheck ], $this->logMeta);
 
     if ( ($welcomeCheck['is_welcome'] && !$hasConversation['exists']) || ($welcomeCheck['is_welcome_diff_product'] && $hasConversation['exists']) ) {
-      ogLog::info("handle - Welcome detectado ➜ Ejecutar welcome", [ 'product_id' => $welcomeCheck['product_id'], 'has_active_conversation' => $hasConversation ], $this->logMeta);
+      // ✅ 3. CONFIGURAR PROVIDER PARA WELCOME
+      $selectedProvider = $this->forcedProvider ?? self::PROVIDER_FACEBOOK;
+
+      ogLog::info("handle - Welcome detectado", [
+        'product_id' => $welcomeCheck['product_id'],
+        'selected_provider' => $selectedProvider,
+        'has_active_conversation' => $hasConversation['exists']
+      ], $this->logMeta);
+
+      // Verificar si debe procesarse según webhook source
+      if (!$this->shouldProcessWebhook($webhookSource, $selectedProvider)) {
+        ogLog::info("handle - Welcome descartado (webhook incorrecto)", [
+          'webhook_source' => $webhookSource,
+          'selected_provider' => $selectedProvider
+        ], $this->logMeta);
+        return;
+      }
+
+      // Configurar provider ANTES de ejecutar welcome
+      $this->configureChatProvider($bot, $selectedProvider);
+
       $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
       return;
     }
 
-    // PRIORIDAD 2: Continuar conversación (si no es welcome)
+    // ✅ 4. CONTINUAR CONVERSACIÓN (con selección dinámica de provider)
     if ( $hasConversation['exists'] ?? false ) {
-      ogLog::info("handle - No es welcome ➜ Continuar conversación", [], $this->logMeta);
+      $chat = $hasConversation['chat'];
+
+      // Determinar provider correcto según tiempo
+      $correctProvider = $this->selectChatProvider($chat, $bot);
+
+      // Verificar si debe procesarse este webhook
+      if (!$this->shouldProcessWebhook($webhookSource, $correctProvider)) {
+        return; // Descartar webhook duplicado
+      }
+
+      // Configurar servicio con el provider correcto
+      $this->configureChatProvider($bot, $correctProvider);
+
+      ogLog::info("handle - No es welcome ➜ Continuar conversación", [
+        'provider' => $correctProvider,
+        'webhook_source' => $webhookSource
+      ], $this->logMeta);
+
       $this->continueConversation($bot, $person, $message, $messageType);
       return;
     }
@@ -196,7 +262,7 @@ class InfoproductV2Handler {
     $isReaction = strtoupper($messageType) === 'REACTION';
 
     if ($isReaction) {
-      ogLog::info("continueConversation - Reaction detectada, ignorando", [
+      ogLog::info("continueConversation - Reaction detectada, rechazando", [
         'number' => $person['number']
       ], ['module' => 'infoproduct_v2']);
 
@@ -204,34 +270,33 @@ class InfoproductV2Handler {
       return;
     }
 
-    // Para texto/audio: usar buffer normal (3 segundos)
-    ogLog::info("continueConversation - Mensaje de texto/audio, usando buffer", [
-      'type' => $messageType,
-      'delay' => $this->bufferDelay
-    ], ['module' => 'infoproduct_v2']);
+    // BUFFER: Acumular mensajes antes de procesar
+    $requiresBuffering = MessageClassifier::requiresBuffering($messageType);
 
-    // Usar MessageBuffer para procesar mensajes con delay
-    $buffer = new MessageBuffer($this->bufferDelay);
-    $result = $buffer->process($person['number'], $bot['id'], $message);
+    if (!$requiresBuffering) {
+      ogLog::info("continueConversation - Mensaje no requiere buffering, procesando directamente", [
+        'message_type' => $messageType,
+        'number' => $person['number']
+      ], ['module' => 'infoproduct_v2']);
 
-    if (!$result) {
-      ogLog::info("continueConversation - Buffer activo, esperando más mensajes", [], ['module' => 'infoproduct_v2']);
+      $this->processTextMessages([$message], $bot, $person, $chatData);
       return;
     }
 
-    $messages = $result['messages'];
-    $hasImage = MessageClassifier::hasImageInMessages($messages);
+    $buffer = new MessageBuffer($this->bufferDelay);
+    $buffer->cleanOld();
+    $result = $buffer->process($person['number'], $bot['id'], $message);
+
+    if ($result === null) {
+      ogLog::info("continueConversation - Mensaje agregado a buffer, esperando más", [], ['module' => 'infoproduct_v2']);
+      return;
+    }
 
     ogLog::info("continueConversation - Buffer completado, procesando mensajes", [
-      'has_image' => $hasImage,
-      'message_count' => count($messages)
+      'total_messages' => $result['count']
     ], ['module' => 'infoproduct_v2']);
 
-    if ($hasImage) {
-      $this->processImageMessages($messages, $bot, $person, $chatData);
-    } else {
-      $this->processTextMessages($messages, $bot, $person, $chatData);
-    }
+    $this->processTextMessages($result['messages'], $bot, $person, $chatData);
   }
 
   private function processImageMessages($messages, $bot, $person, $chatData) {
@@ -432,5 +497,98 @@ class InfoproductV2Handler {
     $strategy = new WelcomeStrategy();
     $strategy->execute([ 'bot' => $bot, 'person' => $person, 'message' => $message, 'context' => $context, 'product_id' => $welcomeCheck['product_id'] ]);
     ogLog::info("executeWelcome - FIN", [], $this->logMeta);
+  }
+
+  // ========================================
+  // ✅ MÉTODOS DE SELECCIÓN DE PROVIDER
+  // ========================================
+
+  /**
+   * Seleccionar provider de ChatAPI según configuración y tiempo
+   */
+  private function selectChatProvider($chat, $bot) {
+    // Si hay provider forzado, usarlo directamente
+    if ($this->forcedProvider !== null) {
+      ogLog::info("selectChatProvider - Provider forzado", [
+        'forced_provider' => $this->forcedProvider
+      ], $this->logMeta);
+      return $this->forcedProvider;
+    }
+
+    // Si no hay chat, usar Facebook (conversación nueva)
+    if (!$chat) {
+      ogLog::info("selectChatProvider - Sin chat (nuevo) → Facebook", [], $this->logMeta);
+      return self::PROVIDER_FACEBOOK;
+    }
+
+    $conversationStarted = $chat['conversation_started'] ?? null;
+
+    if (!$conversationStarted) {
+      ogLog::warning("selectChatProvider - Chat sin conversation_started → Facebook por defecto", [
+        'chat' => $chat
+      ], $this->logMeta);
+      return self::PROVIDER_FACEBOOK;
+    }
+
+    // Calcular horas desde que inició la conversación
+    $startTime = strtotime($conversationStarted);
+    $currentTime = time();
+    $hoursPassed = ($currentTime - $startTime) / 3600;
+
+    ogLog::info("selectChatProvider - Calculando provider", [
+      'conversation_started' => $conversationStarted,
+      'hours_passed' => round($hoursPassed, 2),
+      'limit' => self::HOURS_LIMIT_FACEBOOK
+    ], $this->logMeta);
+
+    // Si pasaron más de X horas → Evolution
+    if ($hoursPassed > self::HOURS_LIMIT_FACEBOOK) {
+      ogLog::info("selectChatProvider - Más de " . round($hoursPassed, 2) . "h → Evolution", [], $this->logMeta);
+      return self::PROVIDER_EVOLUTION;
+    }
+
+    // Si está dentro de las X horas → Facebook
+    ogLog::info("selectChatProvider - Dentro de " . round($hoursPassed, 2) . "h → Facebook", [], $this->logMeta);
+    return self::PROVIDER_FACEBOOK;
+  }
+
+  /**
+   * Verificar si debe procesarse este webhook según el provider
+   */
+  private function shouldProcessWebhook($webhookSource, $correctProvider) {
+    $map = [
+      'facebook' => self::PROVIDER_FACEBOOK,
+      'evolution' => self::PROVIDER_EVOLUTION
+    ];
+
+    $shouldProcess = ($map[$webhookSource] ?? '') === $correctProvider;
+
+    if (!$shouldProcess) {
+      ogLog::info("shouldProcessWebhook - Webhook descartado", [
+        'webhook_source' => $webhookSource,
+        'correct_provider' => $correctProvider,
+        'reason' => 'provider_mismatch'
+      ], $this->logMeta);
+    }
+
+    return $shouldProcess;
+  }
+
+  /**
+   * Configurar el servicio de ChatAPI con el provider correcto
+   */
+  private function configureChatProvider($bot, $provider) {
+    $chatapi = ogApp()->service('chatApi');
+
+    // Configurar el servicio con el bot completo
+    $chatapi::setConfig($bot);
+
+    // Filtrar solo el provider específico
+    $chatapi::setProvider($provider);
+
+    ogLog::info("configureChatProvider - ChatAPI configurado", [
+      'provider' => $provider,
+      'bot_id' => $bot['id'] ?? null
+    ], $this->logMeta);
   }
 }

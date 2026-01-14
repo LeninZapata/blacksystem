@@ -4,31 +4,36 @@ class facebookProvider extends baseChatApiProvider {
   private $phoneNumberId;
   private $businessAccountId;
 
+  function __construct(array $config) {
+    $this->config = $config;
+    $this->apiKey = $config['access_token'] ?? $config['api_key'] ?? '';
+    $this->phoneNumberId = $config['phone_number_id'] ?? '';
+    $this->businessAccountId = $config['business_account_id'] ?? '';
+
+    // Facebook no usa instance ni baseUrl, pero se los asignamos vacíos para compatibilidad
+    $this->instance = '';
+    $this->baseUrl = '';
+
+    // Validar config específico de Facebook
+    $this->validateFacebookConfig();
+  }
+
   function getProviderName(): string {
     return 'whatsapp-cloud-api';
   }
 
-  protected function validateConfig(): bool {
-    if (!parent::validateConfig()) {
-      return false;
+  // Validación específica de Facebook (no sobrescribe validateConfig)
+  private function validateFacebookConfig(): void {
+    if (empty($this->apiKey)) {
+      ogLog::throwError("validateFacebookConfig - access_token requerido", [], ['module' => 'facebookProvider']);
     }
 
-    // Facebook requiere phone_number_id
-    if (empty($this->config['phone_number_id'])) {
-      ogLog::error("validateConfig - phone_number_id no configurado", [], ['module' => 'facebookProvider']);
-      return false;
+    if (empty($this->phoneNumberId)) {
+      ogLog::throwError("validateFacebookConfig - phone_number_id requerido", [], ['module' => 'facebookProvider']);
     }
-
-    $this->phoneNumberId = $this->config['phone_number_id'];
-    $this->businessAccountId = $this->config['business_account_id'] ?? null;
-
-    return true;
   }
 
   function sendMessage(string $number, string $message, string $url = ''): array {
-    if (!$this->validateConfig()) {
-      return $this->errorResponse(__('services.facebook.config.invalid'));
-    }
 
     $number = $this->formatNumber($number);
     $mediaType = $this->detectMediaType($url);
