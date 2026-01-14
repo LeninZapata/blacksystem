@@ -10,7 +10,9 @@ class WebhookController {
 
       // Cargar servicio ogChatApi bajo demanda
       $chatapi = ogApp()->service('chatApi');
+      ogLog::debug('webhookController::whatsapp - Detectando proveedor...', [], $this->logMeta);
       $result = $chatapi->detectAndNormalize($rawData);
+      ogLog::debug('webhookController::whatsapp - Resultado de detección', $result, $this->logMeta);
 
       if (!$result) {
         ogLog::debug('webhookController::whatsapp - Provider no detectado', $result, $this->logMeta);

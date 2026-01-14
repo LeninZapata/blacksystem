@@ -25,6 +25,7 @@ class ogFramework {
     if (!isset(self::$instances[$pluginName])) {
       self::$instances[$pluginName] = new self($pluginName, $pluginPath, $isWP, $prefix);
     }
+    ogLog::debug("ogFramework instance retrieved for plugin: {$pluginName}", [], self::$instances[$pluginName]->logMeta);
     return self::$instances[$pluginName];
   }
 
@@ -255,6 +256,7 @@ class ogFramework {
     // Core SIEMPRE con prefijo "og" en framework
     $className = "og" . ucfirst($fileName);
     $coreFile = OG_FRAMEWORK_PATH . "/core/{$subPath}{$className}.php";
+    ogLog::debug("Loading core class: {$className} from {$coreFile}", [], $this->logMeta);
 
     if (!file_exists($coreFile)) {
       throw new Exception("Core class not found: {$name}");
@@ -262,7 +264,7 @@ class ogFramework {
 
     require_once $coreFile;
     if (!class_exists($className)) {
-      throw new Exception("Core class not found: {$className}");
+      throw new Exception("Core class not found.: {$className}");
     }
 
     $this->loaded[$key] = new $className();
@@ -279,12 +281,12 @@ class ogFramework {
     $coreFile = OG_FRAMEWORK_PATH . "/core/{$subPath}{$className}.php";
 
     if (!file_exists($coreFile)) {
-      throw new Exception("Core class not found: {$name}");
+      throw new Exception("Core class not found..: {$name}");
     }
 
     require_once $coreFile;
     if (!class_exists($className)) {
-      throw new Exception("Core class not found: {$className}");
+      throw new Exception("Core class not found...: {$className}");
     }
 
     return true;

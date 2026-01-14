@@ -1,5 +1,5 @@
 <?php
-class ogAiService {
+class aiService {
 
   private static $logMeta = ['module' => 'ai', 'layer' => 'framework/services'];
 

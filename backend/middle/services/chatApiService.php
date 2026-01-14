@@ -1,5 +1,5 @@
 <?php
-class ogChatApiService {
+class chatApiService {
   private static $config = null;
   private static $botData = null;
   private static $provider = null;
