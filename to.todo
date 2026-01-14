@@ -15,7 +15,7 @@ hacer que se ejecute al otro dia en la mañana
 de conversacion caliente
 ☐ Antes de entregar el producto debe haber un precense de 3 segundos osea despues del mensaje de que va revisar el recibo
 por cierto ese mensaje tambien debe ir con presence antes de enviarlo.
-FRONTEND:
+FRONTEND: 
 ☐ Revisa que parece que solo te acumula 100 logs maximo, habria que aumentarlo a 500 o 1000
 De a poco revisa cuales son necesarios porque hay logs no necesarios la verdad.
 ☐ porque se muestran los widgets a dannes cuando solo tiene permiso de graficas, no se porque se muestra
