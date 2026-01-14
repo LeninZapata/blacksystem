@@ -13,6 +13,26 @@ class ogChatApiService {
     self::$providers = [];
   }
 
+  // Método para filtrar config por provider específico
+  static function setProvider(string $providerType) {
+    if (!self::$config) {
+      ogLog::warning('setProvider - No hay config cargada', ['provider_type' => $providerType], self::$logMeta);
+      return;
+    }
+
+    $filtered = array_filter(self::$config, function($api) use ($providerType) {
+      return ($api['config']['type_value'] ?? '') === $providerType;
+    });
+
+    self::$config = array_values($filtered);
+    self::$provider = $providerType;
+
+    ogLog::info('setProvider - Provider configurado', [
+      'provider' => $providerType,
+      'total_apis' => count(self::$config)
+    ], self::$logMeta);
+  }
+
   static function getProvider() {
     return self::$provider;
   }
@@ -26,7 +46,7 @@ class ogChatApiService {
     if (!$provider) return null;
 
     $normalized = $service::call('ogChatApi', $provider, 'Normalizer', 'normalize', $rawData);
-    $standard = $service::call('ogChatApi', $provider, 'Normalizer', 'standardize', $normalized);
+    $standard = $service::call('ogChatApi', $provider, 'standardize', $normalized);
 
     return ['provider' => $provider, 'normalized' => $normalized, 'standard' => $standard];
   }
@@ -111,9 +131,13 @@ class ogChatApiService {
     if (isset(self::$providers[$cacheKey])) return self::$providers[$cacheKey];
 
     $config = [
-      'api_key'  => $apiConfig['config']['credential_value'] ?? '',
+      'api_key'  => $apiConfig['config']['credential_value'] ?? $apiConfig['config']['access_token'] ?? '',
       'instance' => $apiConfig['config']['instance'] ?? '',
-      'base_url' => $apiConfig['config']['base_url'] ?? ''
+      'base_url' => $apiConfig['config']['base_url'] ?? '',
+      // Campos específicos de Facebook
+      'phone_number_id' => $apiConfig['config']['phone_number_id'] ?? '',
+      'business_account_id' => $apiConfig['config']['business_account_id'] ?? '',
+      'access_token' => $apiConfig['config']['access_token'] ?? ''
     ];
 
     // Cargar provider bajo demanda según el tipo
@@ -126,11 +150,15 @@ class ogChatApiService {
   private static function loadProvider(string $type, array $config) {
     $basePath = OG_FRAMEWORK_PATH . '/services/integrations/ogChatApi';
 
-    // Mapeo de tipos a providers
+    // ✅ Mapeo de tipos a providers (agregado Facebook)
     $providerMap = [
       'evolutionapi' => [
         'class' => 'evolutionProvider',
         'folder' => 'evolution'
+      ],
+      'whatsapp-cloud-api' => [
+        'class' => 'facebookProvider',
+        'folder' => 'facebook'
       ],
       'testing' => [
         'class' => 'testingProvider',

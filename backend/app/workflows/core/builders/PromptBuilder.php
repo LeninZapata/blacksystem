@@ -58,8 +58,6 @@ class PromptBuilder {
         $productPrice = $metadata['price'] ?? '0.00';
         $saleId = $metadata['sale_id'] ?? null;
 
-        //$templatesFile = BOTS_INFOPRODUCT_MESSAGES_PATH . '/template_' . $productId . '.json';
-        //$templatesFile = BOTS_INFOPRODUCT_PATH . '/' . $productId . '/messages/' . 'template_' . $productId . '.json';
         //$templates = file::getJson($templatesFile) ?? [];
         $templates = ogApp()->handler('product')::getTemplatesFile($productId);
 

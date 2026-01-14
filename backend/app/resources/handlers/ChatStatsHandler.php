@@ -21,7 +21,7 @@ class ChatStatsHandler {
       SELECT 
         DATE(dc) as date,
         COUNT(DISTINCT client_id) as new_chats
-      FROM " . DB_TABLES['chats'] . "
+      FROM " . ogDb::t('chats', true) . "
       WHERE user_id = ?
         AND dc >= ? AND dc <= ?
         AND status = 1
@@ -36,7 +36,7 @@ class ChatStatsHandler {
       SELECT 
         DATE(future_date) as date,
         COUNT(*) as followups_scheduled
-      FROM " . DB_TABLES['followups'] . "
+      FROM " . ogDb::t('followups', true) . "
       WHERE user_id = ?
         AND future_date >= ? AND future_date <= ?
         AND status = 1

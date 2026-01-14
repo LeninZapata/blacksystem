@@ -1,17 +1,6 @@
 <?php
 class CredentialHandler {
-  // Nombre de la tabla de bots asociada a este handler
-  protected static $tableBots;
   private static $logMeta = ['module' => 'CredentialHandler', 'layer' => 'app/resources'];
-
-  // Obtener tabla desde memoria cache (lazy loading)
-  private static function getTable() {
-    if (!self::$tableBots) {
-      $tables = ogCache::memoryGet('db_tables', []);
-      self::$tableBots = $tables['bots'] ?? 'bots';
-    }
-    return self::$tableBots;
-  }
 
   // Actualiza archivos JSON de todos los bots que usan esta credencial
   static function updateBotsContext($credentialId) {
@@ -21,7 +10,7 @@ class CredentialHandler {
     }
 
     // Buscar todos los bots que usan esta credencial en config.apis
-    $bots = ogDb::table(self::getTable())->get();
+    $bots = ogDb::t('bots')->get();
 
     if (empty($bots)) {
       ogLog::warn('updateBotsContext - No hay bots en el sistema', [ 'credential_id' => $credentialId ], self::$logMeta);

@@ -113,7 +113,7 @@ class SendWelcomeAction {
   private static function cancelPendingSaleFollowups($number, $botId, $newProductId) {
     try {
       // Buscar ventas pendientes del mismo número y bot (que NO sean del producto actual)
-      $pendingSales = ogDb::table(DB_TABLES['sales'])
+      $pendingSales = ogDb::t('sales')
         ->where('number', $number)
         ->where('bot_id', $botId)
         ->whereNotIn('process_status', ['sale_confirmed', 'cancelled', 'refunded'])

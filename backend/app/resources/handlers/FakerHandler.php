@@ -11,7 +11,7 @@ class FakerHandler {
   // Obtener admin user (cache en memoria)
   private static function getAdminUserId() {
     return ogApp()->helper('cache')::memoryRemember('faker_admin_user', function() {
-      $admin = ogDb::table('users')->where('role', 'admin')->orderBy('id', 'ASC')->first();
+      $admin = ogDb::t('users')->where('role', 'admin')->orderBy('id', 'ASC')->first();
       return $admin ? $admin['id'] : null;
     });
   }
@@ -75,13 +75,13 @@ class FakerHandler {
     }
 
     // Obtener clientes existentes del usuario
-    $clients = ogDb::table('clients')->where('user_id', $userId)->get();
+    $clients = ogDb::t('clients')->where('user_id', $userId)->get();
     if (empty($clients)) {
       return ['success' => false, 'error' => 'No hay clientes. Genera clientes primero.'];
     }
 
     // Obtener bots del usuario
-    $bots = ogDb::table('bots')->where('user_id', $userId)->where('status', 1)->get();
+    $bots = ogDb::t('bots')->where('user_id', $userId)->where('status', 1)->get();
     if (empty($bots)) {
       return ['success' => false, 'error' => 'No hay bots activos'];
     }
@@ -107,7 +107,7 @@ class FakerHandler {
         // Timestamp: mismo día del cliente + minutos aleatorios
         $timestamp = $clientTimestamp + ($i * rand(60, 300));
 
-        ogDb::table('chats')->insert([
+        ogDb::t('chats')->insert([
           'user_id' => $userId,
           'bot_id' => $bot['id'],
           'bot_number' => $bot['number'],
@@ -149,19 +149,19 @@ class FakerHandler {
     }
 
     // Obtener clientes existentes
-    $clients = ogDb::table('clients')->where('user_id', $userId)->get();
+    $clients = ogDb::t('clients')->where('user_id', $userId)->get();
     if (empty($clients)) {
       return ['success' => false, 'error' => 'No hay clientes. Genera clientes primero.'];
     }
 
     // Obtener bots
-    $bots = ogDb::table('bots')->where('user_id', $userId)->where('status', 1)->get();
+    $bots = ogDb::t('bots')->where('user_id', $userId)->where('status', 1)->get();
     if (empty($bots)) {
       return ['success' => false, 'error' => 'No hay bots activos'];
     }
 
     // Obtener productos
-    $products = ogDb::table('products')->where('user_id', $userId)->get();
+    $products = ogDb::t('products')->where('user_id', $userId)->get();
     if (empty($products)) {
       return ['success' => false, 'error' => 'No hay productos'];
     }
@@ -205,7 +205,7 @@ class FakerHandler {
         // tracking_funnel_id: 40% probabilidad de tener valor (remarketing)
         $trackingFunnelId = self::probability(40) ? 'FUNNEL_' . substr(md5(uniqid()), 0, 10) : null;
 
-        ogDb::table('sales')->insert([
+        ogDb::t('sales')->insert([
           'user_id' => $userId,
           'sale_type' => 'main',
           'origin' => $origins[array_rand($origins)],
@@ -273,11 +273,11 @@ class FakerHandler {
         $number = '593' . rand(900000000, 999999999);
 
         // Verificar si ya existe
-        if (ogDb::table('clients')->where('number', $number)->first()) continue;
+        if (ogDb::t('clients')->where('number', $number)->first()) continue;
 
         $timestamp = strtotime($date . ' ' . rand(8, 22) . ':' . rand(0, 59) . ':' . rand(0, 59));
 
-        ogDb::table('clients')->insert([
+        ogDb::t('clients')->insert([
           'user_id' => $userId,
           'number' => $number,
           'name' => $fullName,
@@ -314,15 +314,15 @@ class FakerHandler {
 
     switch ($type) {
       case 'clients':
-        $deleted = ogDb::table('clients')->where('user_id', $userId)->delete();
+        $deleted = ogDb::t('clients')->where('user_id', $userId)->delete();
         break;
 
       case 'chats':
-        $deleted = ogDb::table('chats')->where('user_id', $userId)->delete();
+        $deleted = ogDb::t('chats')->where('user_id', $userId)->delete();
         break;
 
       case 'sales':
-        $deleted = ogDb::table('sales')->where('user_id', $userId)->delete();
+        $deleted = ogDb::t('sales')->where('user_id', $userId)->delete();
         break;
 
       // Aquí se agregarán más casos: followups, etc.

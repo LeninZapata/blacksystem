@@ -1,16 +1,6 @@
 <?php
 class BotHandler {
-  protected static $table;
   private static $logMeta = ['module' => 'BotHandler', 'layer' => 'app/resources'];
-
-  // Obtener tabla desde memoria cache (lazy loading)
-  private static function getTable() {
-    if (!self::$table) {
-      $tables = ogCache::memoryGet('db_tables', []);
-      self::$table = $tables['bots'] ?? 'bots';
-    }
-    return self::$table;
-  }
 
   // Guardar archivos de contexto del bot
   // Genera: data/{numero}.json y workflow_{numero}.json
@@ -42,7 +32,7 @@ class BotHandler {
 
   // Obtener archivo workflow del bot
   static function getWorkflowFile($botNumber) {
-    $path = BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json';
+    $path = ogApp()->getPath('storage/json/bots/infoproduct/rapid') . '/workflow_' . $botNumber . '.json';
 
     // Cargar ogFile bajo demanda
     $file = ogApp()->helper('file');
@@ -54,7 +44,7 @@ class BotHandler {
 
   // Obtener archivo data del bot
   static function getDataFile($botNumber) {
-    $path = BOTS_DATA_PATH . '/' . $botNumber . '.json';
+    $path = ogApp()->getPath('storage/json/bots/data') . '/' . $botNumber . '.json';
 
     // Cargar ogFile bajo demanda
     $file = ogApp()->helper('file');
@@ -67,7 +57,7 @@ class BotHandler {
   // Generar archivo workflow_{numero}.json
   static function generateWorkflowFile($botNumber, $botData = null, $action = 'create') {
     if (!$botData) {
-      $botData = ogDb::table(self::getTable())->where('number', $botNumber)->first();
+      $botData = ogDb::t('bots')->where('number', $botNumber)->first();
       if (!$botData) {
         ogLog::error("generateWorkflowFile - Bot no encontrado: {$botNumber}", null,  self::$logMeta);
         return false;
@@ -82,13 +72,13 @@ class BotHandler {
     $workflowId = $config['workflow_id'] ?? null;
 
     if ($workflowId) {
-      $workflow = ogDb::table('work_flows')->find($workflowId);
+      $workflow = ogDb::t('work_flows')->find($workflowId);
       if ($workflow) {
         $filePath = $workflow['file_path'] ?? null;
       }
     }
 
-    $path = BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json';
+    $path = ogApp()->getPath('storage/json/bots/infoproduct/rapid') . '/workflow_' . $botNumber . '.json';
 
     // Cargar ogFile bajo demanda
     $file = ogApp()->helper('file');
@@ -100,7 +90,7 @@ class BotHandler {
   static function generateDataFile($botNumber, $botData = null, $action = 'create') {
 
     if (!$botData) {
-      $botData = ogDb::table(self::getTable())->where('number', $botNumber)->first();
+      $botData = ogDb::t('bots')->where('number', $botNumber)->first();
       if (!$botData) {
         ogLog::error("generateDataFile - Bot no encontrado: {$botNumber}", null, self::$logMeta);
         return false;
@@ -120,7 +110,7 @@ class BotHandler {
         $resolvedAi[$task] = [];
         if (is_array($credentialIds)) {
           foreach ($credentialIds as $credId) {
-            $credential = ogDb::table('credentials')->find($credId);
+            $credential = ogDb::t('credentials')->find($credId);
             if ($credential) {
               if (isset($credential['config']) && is_string($credential['config'])) {
                 $credential['config'] = json_decode($credential['config'], true);
@@ -138,7 +128,7 @@ class BotHandler {
     if (isset($data['config']['apis']['chat']) && is_array($data['config']['apis']['chat'])) {
       $resolvedChat = [];
       foreach ($data['config']['apis']['chat'] as $credId) {
-        $credential = ogDb::table('credentials')->find($credId);
+        $credential = ogDb::t('credentials')->find($credId);
         if ($credential) {
           if (isset($credential['config']) && is_string($credential['config'])) {
             $credential['config'] = json_decode($credential['config'], true);
@@ -150,7 +140,7 @@ class BotHandler {
       $data['config']['apis']['chat'] = $resolvedChat;
     }
 
-    $path = BOTS_DATA_PATH . '/' . $botNumber . '.json';
+    $path = ogApp()->getPath('storage/json/bots/data') . '/' . $botNumber . '.json';
 
     // Cargar ogFile bajo demanda
     $file = ogApp()->helper('file');
@@ -161,9 +151,9 @@ class BotHandler {
   // Eliminar archivos de contexto antiguos
   private static function deleteContextFiles($botNumber) {
     $files = [
-      BOTS_DATA_PATH . '/' . $botNumber . '.json',
-      BOTS_INFOPRODUCT_RAPID_PATH . '/workflow_' . $botNumber . '.json',
-      BOTS_INFOPRODUCT_RAPID_PATH . '/activators_' . $botNumber . '.json'
+      ogApp()->getPath('storage/json/bots/data') . '/' . $botNumber . '.json',
+      ogApp()->getPath('storage/json/bots/infoproduct/rapid') . '/workflow_' . $botNumber . '.json',
+      ogApp()->getPath('storage/json/bots/infoproduct/rapid') . '/activators_' . $botNumber . '.json'
     ];
 
     foreach ($files as $file) {

@@ -113,7 +113,7 @@ class adMetricsHandler {
       $dateNow = date('Y-m-d');
 
       // 1. Obtener todos los productos activos
-      $products = ogDb::table('products')
+      $products = ogDb::t('products')
         ->where('status', 1)
         ->get();
 
@@ -137,7 +137,7 @@ class adMetricsHandler {
         $userId = $product['user_id'];
 
         // Obtener activos activos del producto
-        $assets = ogDb::table('product_ad_assets')
+        $assets = ogDb::t('product_ad_assets')
           ->where('product_id', $productId)
           ->where('is_active', 1)
           ->get();
@@ -188,7 +188,7 @@ class adMetricsHandler {
             }
 
             // 4.1 Marcar registros anteriores como no-latest
-            ogDb::table('ad_metrics_hourly')
+            ogDb::t('ad_metrics_hourly')
               ->where('product_id', $productId)
               ->where('ad_asset_id', $assetId)
               ->update(['is_latest' => 0]);
@@ -229,7 +229,7 @@ class adMetricsHandler {
               'tc' => time()
             ];
 
-            ogDb::table('ad_metrics_hourly')->insert($insertData);
+            ogDb::t('ad_metrics_hourly')->insert($insertData);
             $assetsSaved++;
 
             ogLog::info('saveAllMetrics - Métrica guardada', [
@@ -246,7 +246,7 @@ class adMetricsHandler {
 
       // 5. Limpiar registros antiguos (>30 días)
       $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
-      $deleted = ogDb::table('ad_metrics_hourly')
+      $deleted = ogDb::t('ad_metrics_hourly')
         ->where('query_date', '<', $thirtyDaysAgo)
         ->delete();
 
@@ -300,7 +300,7 @@ class adMetricsHandler {
       ], $logMeta);
 
       // 1. Obtener todos los productos activos
-      $products = ogDb::table('products')
+      $products = ogDb::t('products')
         ->where('status', 1)
         ->get();
 
@@ -328,7 +328,7 @@ class adMetricsHandler {
 
         try {
           // Obtener activos activos del producto
-          $assets = ogDb::table('product_ad_assets')
+          $assets = ogDb::t('product_ad_assets')
             ->where('product_id', $productId)
             ->where('is_active', 1)
             ->get();
@@ -383,7 +383,7 @@ class adMetricsHandler {
               }
 
               // 4.1 VERIFICAR SI YA EXISTE este registro (idempotencia)
-              $existing = ogDb::table('ad_metrics_daily')
+              $existing = ogDb::t('ad_metrics_daily')
                 ->where('product_id', $productId)
                 ->where('ad_asset_id', $assetId)
                 ->where('metric_date', $yesterday)
@@ -433,7 +433,7 @@ class adMetricsHandler {
                 'tc' => time()
               ];
 
-              ogDb::table('ad_metrics_daily')->insert($insertData);
+              ogDb::t('ad_metrics_daily')->insert($insertData);
               $assetsSaved++;
 
               ogLog::success('saveDailyMetrics - Métrica diaria guardada', [

@@ -5,9 +5,9 @@
 $dbConfig = require __DIR__ . '/database.php';
 ogDb::setConfig($dbConfig);
 
-// Cargar tablas y guardar en memoria cache
+// Cargar tablas del sistema
 $tables = require __DIR__ . '/tables.php';
-ogCache::memorySet('db_tables', $tables);
+ogDb::setTables($tables);
 
 // Aquí puedes agregar más configuraciones específicas de la app
 // como servicios, integraciones, etc.

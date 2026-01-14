@@ -22,7 +22,7 @@ class SaleStatsHandler {
         DATE(payment_date) as date,
         SUM(billed_amount) as revenue,
         COUNT(*) as sales_count
-      FROM " . DB_TABLES['sales'] . "
+      FROM " . ogDb::t('sales', true) . "
       WHERE user_id = ?
         AND payment_date >= ? AND payment_date <= ?
         AND process_status = 'sale_confirmed'
@@ -40,7 +40,7 @@ class SaleStatsHandler {
         COUNT(*) as total_sales,
         SUM(CASE WHEN process_status = 'sale_confirmed' THEN 1 ELSE 0 END) as confirmed_sales,
         ROUND((SUM(CASE WHEN process_status = 'sale_confirmed' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 2) as conversion_rate
-      FROM " . DB_TABLES['sales'] . "
+      FROM " . ogDb::t('sales', true) . "
       WHERE user_id = ?
         AND dc >= ? AND dc <= ?
         AND status = 1
@@ -124,7 +124,7 @@ class SaleStatsHandler {
         COUNT(CASE WHEN tracking_funnel_id IS NULL AND process_status = 'sale_confirmed' THEN 1 END) as direct_count,
         COUNT(CASE WHEN tracking_funnel_id IS NOT NULL AND process_status = 'sale_confirmed' THEN 1 END) as remarketing_count,
         ROUND((SUM(CASE WHEN process_status = 'sale_confirmed' AND (origin != 'upsell' OR origin IS NULL) THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(CASE WHEN origin != 'upsell' OR origin IS NULL THEN 1 END), 0)), 2) as conversion_rate
-      FROM " . DB_TABLES['sales'] . "
+      FROM " . ogDb::t('sales', true) . "
       WHERE user_id = ?
         AND dc >= ? AND dc <= ?
         AND status = 1

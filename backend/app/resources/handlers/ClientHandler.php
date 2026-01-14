@@ -1,6 +1,5 @@
 <?php
 class ClientHandler {
-  private static $table = DB_TABLES['clients'];
   private static $logMeta = ['module' => 'ClientHandler', 'layer' => 'app/resources'];
 
   // Eliminar todos los datos del cliente en cascada
@@ -11,16 +10,16 @@ class ClientHandler {
 
     try {
 
-      $chats = ogDb::table('chats')->where('client_number', $number)->delete();
-      $followups = ogDb::table('followups')->where('number', $number)->delete();
-      $sales = ogDb::table('sales')->where('number', $number)->delete();
-      ogDb::table(self::$table)->where('number', $number)->delete();
+      $chats = ogDb::t('chats')->where('client_number', $number)->delete();
+      $followups = ogDb::t('followups')->where('number', $number)->delete();
+      $sales = ogDb::t('sales')->where('number', $number)->delete();
+      ogDb::t('clients')->where('number', $number)->delete();
 
       // Cargar ogFile bajo demanda
       $file = ogApp()->helper('file');
 
       // Eliminar todos los archivos chat del cliente
-      $deletedFiles = $file->deletePattern(CHATS_STORAGE_PATH . "/chat_{$number}_bot_*.json");
+      $deletedFiles = $file->deletePattern(ogApp()->getPath('storage/json/chats') . "/chat_{$number}_bot_*.json");
 
       return [
         'success' => true,
@@ -47,7 +46,7 @@ class ClientHandler {
     $number = $params['number'];
 
     // Buscar cliente por número
-    $client = ogDb::table(self::$table)->where('number', $number)->first();
+    $client = ogDb::t('clients')->where('number', $number)->first();
     if (!$client) {
       return ['success' => false, 'error' => __('client.not_found')];
     }
@@ -59,7 +58,7 @@ class ClientHandler {
   static function getByNumber($params) {
     $number = $params['number'];
 
-    $client = ogDb::table(self::$table)
+    $client = ogDb::t('clients')
       ->where('number', $number)
       ->first();
 
@@ -75,7 +74,7 @@ class ClientHandler {
   static function topClients($params) {
     $limit = ogRequest::query('limit', 10);
 
-    $clients = ogDb::table(self::$table)
+    $clients = ogDb::t('clients')
       ->select(['id', 'name', 'number', 'email', 'amount_spent', 'total_purchases'])
       ->orderBy('amount_spent', 'DESC')
       ->limit($limit)
@@ -90,7 +89,7 @@ class ClientHandler {
   static function registerOrUpdate($number, $name, $countryCode, $device = null, $userId = null) {
     try {
       // Buscar cliente existente
-      $existing = ogDb::table(self::$table)
+      $existing = ogDb::t('clients')
         ->where('number', $number)
         ->first();
 
@@ -103,7 +102,7 @@ class ClientHandler {
           'tu' => time()
         ];
 
-        ogDb::table(self::$table)
+        ogDb::t('clients')
           ->where('id', $existing['id'])
           ->update($updateData);
 
@@ -133,7 +132,7 @@ class ClientHandler {
         'tc' => time()
       ];
 
-      $clientId = ogDb::table(self::$table)->insert($clientData);
+      $clientId = ogDb::t('clients')->insert($clientData);
 
       ogLog::info("registerOrUpdate - Cliente creado", [
         'client_id' => $clientId,
@@ -162,7 +161,7 @@ class ClientHandler {
 
   // Incrementar total de compras y monto gastado
   static function incrementPurchase($clientId, $amount) {
-    $client = ogDb::table(self::$table)->find($clientId);
+    $client = ogDb::t('clients')->find($clientId);
 
     if (!$client) {
       return ['success' => false, 'error' => __('client.not_found')];
@@ -176,7 +175,7 @@ class ClientHandler {
     ];
 
     try {
-      ogDb::table(self::$table)->where('id', $clientId)->update($data);
+      ogDb::t('clients')->where('id', $clientId)->update($data);
 
       return [
         'success' => true,
@@ -198,7 +197,7 @@ class ClientHandler {
   static function getByEmail($params) {
     $email = $params['email'];
 
-    $client = ogDb::table(self::$table)
+    $client = ogDb::t('clients')
       ->where('email', $email)
       ->first();
 
@@ -212,11 +211,11 @@ class ClientHandler {
   // Obtener estadísticas de clientes
   static function getStats($params) {
     $stats = [
-      'total_clients' => ogDb::table(self::$table)->count(),
-      'active_clients' => ogDb::table(self::$table)->where('status', 1)->count(),
-      'inactive_clients' => ogDb::table(self::$table)->where('status', 0)->count(),
-      'total_purchases' => ogDb::table(self::$table)->sum('total_purchases'),
-      'total_revenue' => ogDb::table(self::$table)->sum('amount_spent')
+      'total_clients' => ogDb::t('clients')->count(),
+      'active_clients' => ogDb::t('clients')->where('status', 1)->count(),
+      'inactive_clients' => ogDb::t('clients')->where('status', 0)->count(),
+      'total_purchases' => ogDb::t('clients')->sum('total_purchases'),
+      'total_revenue' => ogDb::t('clients')->sum('amount_spent')
     ];
 
     return ['success' => true, 'data' => $stats];

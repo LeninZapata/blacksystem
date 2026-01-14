@@ -1949,11 +1949,22 @@ class ogForm {
         // Si el campo está oculto (por condiciones o cualquier otro motivo), no validar
         if (fieldContainer && (
           fieldContainer.classList.contains('wpfw-depend-on') ||
+          fieldContainer.classList.contains('og-hidden') ||
           fieldContainer.classList.contains('form-hidden') ||
           fieldContainer.style.display === 'none' ||
           window.getComputedStyle(fieldContainer).display === 'none'
         )) {
           return; // Saltar validación
+        }
+
+        // También verificar si el grouper padre está oculto
+        const parentGrouper = input.closest('.og-grouper');
+        if (parentGrouper && (
+          parentGrouper.classList.contains('og-hidden') ||
+          parentGrouper.style.display === 'none' ||
+          window.getComputedStyle(parentGrouper).display === 'none'
+        )) {
+          return; // Saltar validación si el grouper está oculto
         }
       }
 

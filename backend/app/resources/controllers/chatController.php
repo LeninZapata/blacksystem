@@ -1,9 +1,6 @@
 <?php
 class ChatController extends ogController {
 
-  // Nombre de la tabla asociada a este controlador
-  protected static $table = DB_TABLES['chats'];
-
   function __construct() {
     parent::__construct('chat');
   }
@@ -39,7 +36,7 @@ class ChatController extends ogController {
     $data['sale_id'] = $data['sale_id'] ?? 0;
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('chats')->insert($data);
       ogResponse::success(['id' => $id], __('chat.create.success'), 201);
     } catch (Exception $e) {
       ogResponse::serverError(__('chat.create.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -47,7 +44,7 @@ class ChatController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('chats')->find($id);
     if (!$exists) ogResponse::notFound(__('chat.not_found'));
 
     $data = ogRequest::data();
@@ -61,7 +58,7 @@ class ChatController extends ogController {
     $data['tu'] = time();
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('chats')->where('id', $id)->update($data);
       ogResponse::success(['affected' => $affected], __('chat.update.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('chat.update.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -69,7 +66,7 @@ class ChatController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('chats')->find($id);
     if (!$data) ogResponse::notFound(__('chat.not_found'));
 
     // Decodificar metadata si es string
@@ -81,7 +78,7 @@ class ChatController extends ogController {
   }
 
   function list() {
-    $query = ogDb::table(self::$table);
+    $query = ogDb::t('chats');
 
     // Filtros
     foreach ($_GET as $key => $value) {
@@ -112,11 +109,11 @@ class ChatController extends ogController {
   }
 
   function delete($id) {
-    $item = ogDb::table(self::$table)->find($id);
+    $item = ogDb::t('chats')->find($id);
     if (!$item) ogResponse::notFound(__('chat.not_found'));
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('chats')->where('id', $id)->delete();
       ogResponse::success(['affected' => $affected], __('chat.delete.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('chat.delete.error'), OG_IS_DEV ? $e->getMessage() : null);

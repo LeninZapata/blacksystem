@@ -305,7 +305,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $billedAmount = $paymentData['amount'] ?? 0;
 
     try {
-      ogDb::table('sales')
+      ogDb::t('sales')
         ->where('id', $saleId)
         ->update([
           'billed_amount' => $billedAmount,
@@ -331,7 +331,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
   }
 
   private function updateClient($clientId, $paymentData, $validation) {
-    $client = ogDb::table('clients')->find($clientId);
+    $client = ogDb::t('clients')->find($clientId);
 
     if (!$client) {
       ogLog::error("updateClient - Cliente no encontrado", [
@@ -369,7 +369,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // Ejecutar UPDATE en BD
     try {
-      ogDb::table('clients')->where('id', $clientId)->update($updates);
+      ogDb::t('clients')->where('id', $clientId)->update($updates);
       ogLog::info("updateClient - Cliente actualizado correctamente", [ 'client_id' => $clientId, 'name_updated' => isset($updates['name']), 'total_purchases' => $updates['total_purchases'], 'amount_spent' => $updates['amount_spent'] ], $this->logMeta);
       return true;
 
@@ -451,7 +451,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // Actualizar tracking_funnel_id en la venta
     try {
-      ogDb::table(DB_TABLES['sales'])
+      ogDb::t('sales')
         ->where('id', $saleId)
         ->update([
           'tracking_funnel_id' => $trackingId,

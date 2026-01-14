@@ -2,7 +2,6 @@
 
 class FollowupHandler {
 
-  private static $table = DB_TABLES['followups'];
   private static $lastCalculatedDate = null;
   private static $logMeta = ['module' => 'FollowupHandler', 'layer' => 'app/resources'];
 
@@ -45,7 +44,7 @@ class FollowupHandler {
     // Prioridad 3: Obtener desde la tabla bots (si se proporciona botId)
     if ($botId !== null) {
       try {
-        $bot = ogDb::table(DB_TABLES['bots'])
+        $bot = ogDb::t('bots')
           ->where('id', $botId)
           ->first();
 
@@ -134,7 +133,7 @@ class FollowupHandler {
         continue;
       }
 
-      ogDb::table(self::$table)->insert($data);
+      ogDb::t('followups')->insert($data);
       $count++;
 
       // Actualizar lastCalculatedDate con la fecha en timezone del bot
@@ -313,7 +312,7 @@ class FollowupHandler {
     $seenNumbers = []; // Para trackear números ya procesados
 
     // PASO 1: Obtener bots activos
-    $activeBots = ogDb::table(DB_TABLES['bots'])
+    $activeBots = ogDb::t('bots')
       ->where('status', 1)
       ->get();
 
@@ -337,7 +336,7 @@ class FollowupHandler {
       $botsConfig[$botId] = $botData;
 
       // Obtener followups pendientes de este bot
-      $followups = ogDb::table(self::$table)
+      $followups = ogDb::t('followups')
         ->where('bot_id', $botId)
         ->where('processed', 0)
         ->where('status', 1)
@@ -371,7 +370,7 @@ class FollowupHandler {
 
   // Marcar como procesado
   static function markProcessed($id) {
-    return ogDb::table(self::$table)
+    return ogDb::t('followups')
       ->where('id', $id)
       ->update([
         'processed' => 1,
@@ -382,7 +381,7 @@ class FollowupHandler {
 
   // Cancelar followups por venta
   static function cancelBySale($saleId) {
-    return ogDb::table(self::$table)
+    return ogDb::t('followups')
       ->where('sale_id', $saleId)
       ->where('processed', 0)
       ->update([
@@ -395,7 +394,7 @@ class FollowupHandler {
   // Obtener followup por ID
   static function getById($followupId) {
     try {
-      $followup = ogDb::table(self::$table)
+      $followup = ogDb::t('followups')
         ->where('id', $followupId)
         ->first();
 
@@ -414,7 +413,7 @@ class FollowupHandler {
   // Obtener followups por sale_id
   static function getBySale($saleId, $includeProcessed = false) {
     try {
-      $query = ogDb::table(self::$table)
+      $query = ogDb::t('followups')
         ->where('sale_id', $saleId);
 
       if (!$includeProcessed) {

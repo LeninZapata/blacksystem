@@ -1,13 +1,8 @@
 <?php
 class BotController extends ogController {
-  // Nombre de la tabla asociada a este controlador
-  protected static $table;
   private $logMeta = ['module' => 'BotController', 'layer' => 'app/resources'];
 
   function __construct() {
-    // Obtener tabla desde memoria cache
-    $tables = ogCache::memoryGet('db_tables', []);
-    self::$table = $tables['bots'] ?? 'bots';
     parent::__construct('bot');
   }
 
@@ -42,7 +37,7 @@ class BotController extends ogController {
     $data['ta'] = time();
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('bots')->insert($data);
       ogLog::info('BotController - Bot creado', ['id' => $id, 'name' => $data['name']], ['module' => 'bot']);
 
       if (isset($data['number'])) {
@@ -58,7 +53,7 @@ class BotController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('bots')->find($id);
     if (!$exists) ogResponse::notFound(__('bot.not_found'));
 
     $data = ogRequest::data();
@@ -90,7 +85,7 @@ class BotController extends ogController {
     $data['tu'] = time();
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('bots')->where('id', $id)->update($data);
       ogLog::info('BotController - Bot actualizado', [
         'id' => $id,
         'number_changed' => $numberChanged,
@@ -99,7 +94,7 @@ class BotController extends ogController {
       ], ['module' => 'bot']);
 
       if ($affected > 0) {
-        $botData = ogDb::table(self::$table)->find($id);
+        $botData = ogDb::t('bots')->find($id);
         if ($botData) {
           // Pasar oldNumber solo si cambió
           ogApp()->handler('bot')::saveContextFile($botData, 'update', $numberChanged ? $oldNumber : null);
@@ -114,7 +109,7 @@ class BotController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('bots')->find($id);
     if (!$data) ogResponse::notFound(__('bot.not_found'));
 
     if (isset($data['config']) && is_string($data['config'])) {
@@ -125,7 +120,7 @@ class BotController extends ogController {
   }
 
   function list() {
-    $query = ogDb::table(self::$table);
+    $query = ogDb::t('bots');
 
     // Filtrar por user_id autenticado
     // ogLog::info('ProductController::list - Variable GLOBAL desde bot', $GLOBALS, $this->logMeta);
@@ -163,11 +158,11 @@ class BotController extends ogController {
   }
 
   function delete($id) {
-    $bot = ogDb::table(self::$table)->find($id);
+    $bot = ogDb::t('bots')->find($id);
     if (!$bot) ogResponse::notFound(__('bot.not_found'));
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('bots')->where('id', $id)->delete();
       ogLog::info('BotController - Bot eliminado', ['id' => $id, 'name' => $bot['name']], ['module' => 'bot']);
       ogResponse::success(['affected' => $affected], __('bot.delete.success'));
     } catch (Exception $e) {

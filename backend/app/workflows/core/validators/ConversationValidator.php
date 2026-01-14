@@ -25,7 +25,7 @@ class ConversationValidator {
   }
 
   static function chatExists($number, $botId) {
-    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
+    $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
     return file_exists($chatFile);
   }
 }

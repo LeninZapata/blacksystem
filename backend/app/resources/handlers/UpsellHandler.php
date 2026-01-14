@@ -2,6 +2,7 @@
 
 class UpsellHandler {
   private static $logMeta = ['module' => 'UpsellHandler', 'layer' => 'app/handlers'];
+
   // Procesar upsell después de venta confirmada
   static function processAfterSale($saleData, $botTimezone) {
     $saleId = $saleData['sale_id'];
@@ -48,7 +49,7 @@ class UpsellHandler {
 
       // Verificar si ya se ejecutó este upsell en la CADENA del root
       // Buscar ventas que tengan parent_sale_id = rootSaleId
-      $existingSaleByParent = ogDb::table(DB_TABLES['sales'])
+      $existingSaleByParent = ogDb::t('sales')
         ->where('product_id', $upsellProductId)
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
@@ -56,7 +57,7 @@ class UpsellHandler {
         ->first();
 
       // O buscar si el rootSaleId mismo es de este producto
-      $existingSaleByRoot = ogDb::table(DB_TABLES['sales'])
+      $existingSaleByRoot = ogDb::t('sales')
         ->where('product_id', $upsellProductId)
         ->where('client_id', $clientId)
         ->where('bot_id', $botId)
@@ -106,7 +107,7 @@ class UpsellHandler {
       'tc' => time()
     ];
 
-    ogDb::table(DB_TABLES['followups'])->insert($followupData);
+    ogDb::t('followups')->insert($followupData);
 
     ogLog::info("processAfterSale - Followup especial de upsell registrado", [ 'root_sale_id' => $rootSaleId, 'root_product_id' => $rootProductId, 'upsell_product_id' => $upsellToExecute['product_id'], 'future_date' => $futureDate ], self::$logMeta);
 
@@ -129,7 +130,7 @@ class UpsellHandler {
 
     // Si es upsell, buscar la venta root
     $rootSaleId = self::getRootSaleId($saleId, $origin);
-    $rootSale = ogDb::table(DB_TABLES['sales'])->find($rootSaleId);
+    $rootSale = ogDb::t('sales')->find($rootSaleId);
 
     return $rootSale['product_id'] ?? $currentProductId;
   }
@@ -142,7 +143,7 @@ class UpsellHandler {
     }
 
     // Si es upsell, buscar recursivamente el parent hasta llegar al root
-    $currentSale = ogDb::table(DB_TABLES['sales'])->find($saleId);
+    $currentSale = ogDb::t('sales')->find($saleId);
     $parentSaleId = $currentSale['parent_sale_id'] ?? null;
 
     // Si no tiene parent, este es el root
@@ -155,7 +156,7 @@ class UpsellHandler {
     $depth = 0;
 
     while ($parentSaleId && $depth < $maxDepth) {
-      $parentSale = ogDb::table(DB_TABLES['sales'])->find($parentSaleId);
+      $parentSale = ogDb::t('sales')->find($parentSaleId);
 
       if (!$parentSale || !$parentSale['parent_sale_id']) {
         return $parentSaleId;

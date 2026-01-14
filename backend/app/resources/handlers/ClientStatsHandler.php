@@ -1,7 +1,6 @@
 <?php
 class ClientStatsHandler {
 
-
   // Clientes nuevos por día (prospectos con conversión)
   static function getNewClientsByDay($params) {
     // Obtener user_id autenticado
@@ -22,7 +21,7 @@ class ClientStatsHandler {
       SELECT
         DATE(dc) as date,
         COUNT(*) as new_clients
-      FROM " . DB_TABLES['clients'] . "
+      FROM " . ogDb::t('clients', true) . "
       WHERE user_id = ?
         AND dc >= ? AND dc <= ?
         AND status = 1
@@ -37,8 +36,8 @@ class ClientStatsHandler {
       SELECT
         DATE(c.dc) as date,
         COUNT(DISTINCT s.client_id) as converted_clients
-      FROM " . DB_TABLES['clients'] . " c
-      INNER JOIN " . DB_TABLES['sales'] . " s ON c.id = s.client_id
+      FROM " . ogDb::t('clients', true) . " c
+      INNER JOIN " . ogDb::t('sales', true) . " s ON c.id = s.client_id
       WHERE c.user_id = ?
         AND c.dc >= ? AND c.dc <= ?
         AND c.status = 1

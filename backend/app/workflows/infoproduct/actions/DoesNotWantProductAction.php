@@ -55,7 +55,7 @@ class DoesNotWantProductAction implements ActionHandler {
 
   private function updateSaleStatus($saleId) {
     try {
-      $affected = ogDb::table(DB_TABLES['sales'])
+      $affected = ogDb::t('sales')
         ->where('id', $saleId)
         ->update([
           'process_status' => 'cancelled',

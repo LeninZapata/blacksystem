@@ -1,13 +1,8 @@
 <?php
 class ProductAdAssetController extends ogController {
-  protected static $table;
   private $logMeta = ['module' => 'ProductAdAssetController', 'layer' => 'app/resources'];
 
   function __construct() {
-    // Obtener tabla desde memoria cache
-    $tables = ogCache::memoryGet('db_tables', []);
-    self::$table = $tables['product_ad_assets'] ?? 'product_ad_assets';
-
     parent::__construct('productAdAsset');
   }
 
@@ -28,7 +23,7 @@ class ProductAdAssetController extends ogController {
     $data['tc'] = time();
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('product_ad_assets')->insert($data);
       if ($id) {
         ogLog::success('create - Asset publicitario creado', ['id' => $id], $this->logMeta);
         ogResponse::success(['id' => $id], 'Asset publicitario creado correctamente');
@@ -40,7 +35,7 @@ class ProductAdAssetController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('product_ad_assets')->find($id);
     if (!$exists) ogResponse::notFound('Asset publicitario no encontrado');
 
     $data = ogRequest::data();
@@ -48,7 +43,7 @@ class ProductAdAssetController extends ogController {
     $data['tu'] = time();
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('product_ad_assets')->where('id', $id)->update($data);
       ogLog::info('update - Asset publicitario actualizado', ['id' => $id], $this->logMeta);
       ogResponse::success(['affected' => $affected], 'Asset publicitario actualizado correctamente');
     } catch (Exception $e) {
@@ -58,13 +53,13 @@ class ProductAdAssetController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('product_ad_assets')->find($id);
     if (!$data) ogResponse::notFound('Asset publicitario no encontrado');
     ogResponse::success($data);
   }
 
   function list() {
-    $query = ogDb::table(self::$table);
+    $query = ogDb::t('product_ad_assets');
 
     // Filtrar por user_id autenticado
     if (isset($GLOBALS['auth_user_id'])) {
@@ -91,11 +86,11 @@ class ProductAdAssetController extends ogController {
   }
 
   function delete($id) {
-    $item = ogDb::table(self::$table)->find($id);
+    $item = ogDb::t('product_ad_assets')->find($id);
     if (!$item) ogResponse::notFound('Asset publicitario no encontrado');
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('product_ad_assets')->where('id', $id)->delete();
       ogLog::info('delete - Asset publicitario eliminado', ['id' => $id], $this->logMeta);
       ogResponse::success(['affected' => $affected], 'Asset publicitario eliminado correctamente');
     } catch (Exception $e) {

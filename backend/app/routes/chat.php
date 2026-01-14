@@ -55,7 +55,7 @@ $router->group('/api/chat', function($router) {
   $router->delete('/delete/{number}/{bot_id}', function($number, $bot_id) {
     if (empty($number) || empty($bot_id)) ogResponse::error('Parámetros requeridos: number, bot_id', 400);
 
-    $chatFile = CHATS_INFOPRODUCT_PATH . '/chat_' . $number . '_bot_' . $bot_id . '.json';
+    $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $bot_id . '.json';
     if (!file_exists($chatFile)) ogResponse::error('Chat JSON no encontrado', 404);
 
     if (unlink($chatFile)) {
@@ -84,6 +84,135 @@ $router->group('/api/chat', function($router) {
       'completed_sales' => $chatData['summary']['completed_sales'] ?? 0,
       'purchased_products' => $chatData['summary']['purchased_products'] ?? []
     ]);
+  })->middleware($devMiddleware);
+
+  // Limpieza automática de chats antiguos (JSON)
+  $router->get('/cleanup/old-chats', function() {
+    $logMeta = ['module' => 'routes/chat', 'layer' => 'backend/app'];
+    try {
+      $daysOld = ogRequest::query('days', 14); // Por defecto 2 semanas
+      $limit = ogRequest::query('limit', 100); // Máximo 100 chats por ejecución
+      $dryRun = ogRequest::query('dry_run', false); // Simulación sin eliminar
+
+      ogLog::info("chat/cleanup - INICIO", [
+        'days_old' => $daysOld,
+        'limit' => $limit,
+        'dry_run' => $dryRun
+      ], $logMeta);
+
+      // Calcular fecha límite
+      $cutoffDate = date('Y-m-d H:i:s', strtotime("-{$daysOld} days"));
+
+      // Obtener chats antiguos agrupados por client_number y bot_id
+      $oldChats = ogDb::t('chats')
+        ->select('client_number', 'bot_id', 'MAX(dc) as last_message')
+        ->where('dc', '<', $cutoffDate)
+        ->groupBy(['client_number', 'bot_id'])
+        ->limit($limit)
+        ->get();
+
+      if (empty($oldChats)) {
+        ogLog::info("chat/cleanup - No hay chats antiguos para limpiar", [
+          'cutoff_date' => $cutoffDate
+        ], $logMeta);
+
+        ogResponse::success([
+          'deleted_count' => 0,
+          'cutoff_date' => $cutoffDate,
+          'days_old' => $daysOld,
+          'message' => 'No hay chats antiguos para limpiar'
+        ], 'No hay chats para limpiar');
+      }
+
+      $deletedFiles = [];
+      $failedFiles = [];
+      $skippedFiles = [];
+
+      foreach ($oldChats as $chat) {
+        $number = $chat['client_number'];
+        $botId = $chat['bot_id'];
+        $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
+
+        // Verificar que el archivo existe
+        if (!file_exists($chatFile)) {
+          $skippedFiles[] = [
+            'file' => basename($chatFile),
+            'reason' => 'no_existe'
+          ];
+          continue;
+        }
+
+        // Modo dry_run: solo listar sin eliminar
+        if ($dryRun) {
+          $deletedFiles[] = [
+            'file' => basename($chatFile),
+            'number' => $number,
+            'bot_id' => $botId,
+            'last_message' => $chat['last_message'],
+            'action' => 'would_delete'
+          ];
+          continue;
+        }
+
+        // Eliminar archivo
+        if (unlink($chatFile)) {
+          $deletedFiles[] = [
+            'file' => basename($chatFile),
+            'number' => $number,
+            'bot_id' => $botId,
+            'last_message' => $chat['last_message']
+          ];
+
+          ogLog::info("chat/cleanup - Archivo eliminado", [
+            'file' => basename($chatFile),
+            'number' => $number,
+            'bot_id' => $botId,
+            'last_message' => $chat['last_message']
+          ], $logMeta);
+        } else {
+          $failedFiles[] = [
+            'file' => basename($chatFile),
+            'number' => $number,
+            'bot_id' => $botId,
+            'reason' => 'error_eliminar'
+          ];
+
+          ogLog::error("chat/cleanup - Error al eliminar archivo", [
+            'file' => basename($chatFile),
+            'number' => $number,
+            'bot_id' => $botId
+          ], $logMeta);
+        }
+      }
+
+      $summary = [
+        'deleted_count' => count($deletedFiles),
+        'failed_count' => count($failedFiles),
+        'skipped_count' => count($skippedFiles),
+        'cutoff_date' => $cutoffDate,
+        'days_old' => $daysOld,
+        'limit' => $limit,
+        'dry_run' => $dryRun,
+        'deleted_files' => $deletedFiles,
+        'failed_files' => $failedFiles,
+        'skipped_files' => $skippedFiles
+      ];
+
+      ogLog::success("chat/cleanup - COMPLETADO", [
+        'deleted' => count($deletedFiles),
+        'failed' => count($failedFiles),
+        'skipped' => count($skippedFiles)
+      ], $logMeta);
+
+      ogResponse::success($summary, $dryRun ? 'Simulación completada' : 'Limpieza completada');
+
+    } catch (Exception $e) {
+      ogLog::error("chat/cleanup - Error: {$e->getMessage()}", [
+        'trace' => $e->getTraceAsString()
+      ], $logMeta);
+
+      ogResponse::serverError('Error al limpiar chats antiguos', OG_IS_DEV ? $e->getMessage() : null);
+    }
   })->middleware($devMiddleware);
 
   // ============================================
@@ -118,7 +247,7 @@ $router->group('/api/chat', function($router) {
     ogResponse::json(ogApp()->handler('chat')::deleteByClient(['client_id' => $client_id]));
   })->middleware('auth');
 
-   // Estadísticas por día - GET /api/chat/stats/by-day?range=last_7_days
+  // Estadísticas por día - GET /api/chat/stats/by-day?range=last_7_days
   $router->get('/stats/by-day', function() {
     $range = ogRequest::query('range', 'last_7_days');
     ogResponse::json(ogApp()->handler('chat')::getStatsByDay(['range' => $range]));
@@ -151,6 +280,7 @@ $router->group('/api/chat', function($router) {
 // - GET    /api/chat/show/{number}/{bot_id}
 // - DELETE /api/chat/delete/{number}/{bot_id}
 // - GET    /api/chat/validate/{number}/{bot_id}
+// - GET    /api/chat/cleanup/old-chats?days=14&limit=100&dry_run=false
 //
 // PERSONALIZADAS (siempre auth):
 // - GET    /api/chat/conversation/{bot_id}/{client_id}

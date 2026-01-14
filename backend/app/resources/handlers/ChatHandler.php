@@ -1,6 +1,5 @@
 <?php
 class ChatHandler {
-  protected static $table = DB_TABLES['chats'];
   private static $logMeta = ['module' => 'ChatHandler', 'layer' => 'app/resources'];
 
   // Variable estática para almacenar el user_id globalmente
@@ -26,7 +25,7 @@ class ChatHandler {
 
     // Prioridad 2: Obtener desde la tabla bots
     try {
-      $bot = ogDb::table(DB_TABLES['bots'])->where('id', $botId)->first();
+      $bot = ogDb::t('bots')->where('id', $botId)->first();
 
       if ($bot && isset($bot['user_id'])) {
         ogLog::info("ChatHandler - user_id obtenido desde bot", [ 'bot_id' => $botId, 'user_id' => $bot['user_id'] ], self::$logMeta);
@@ -65,7 +64,7 @@ class ChatHandler {
         'tc' => time()
       ];
 
-      $chatId = ogDb::table(self::$table)->insert($data);
+      $chatId = ogDb::t('chats')->insert($data);
 
       return $chatId;
 
@@ -93,7 +92,7 @@ class ChatHandler {
     // Resolver user_id automáticamente
     $userId = self::resolveUserId($botId);
 
-    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
+    $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
     $file = ogApp()->helper('file');
 
     $chat = $file->getJson($chatFile, function() use ($userId, $number, $botId, $clientId) {
@@ -173,7 +172,7 @@ class ChatHandler {
       ], self::$logMeta);
 
       // Obtener todos los mensajes de la BD
-      $messages = ogDb::table(self::$table)
+      $messages = ogDb::t('chats')
         ->where('client_number', $number)
         ->where('bot_id', $botId)
         ->where('status', 1)
@@ -301,7 +300,7 @@ class ChatHandler {
       $chat['summary']['total_messages'] = count($chat['messages']);
 
       // Guardar archivo reconstruido
-      $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
+      $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
       $file = ogApp()->helper('file');
       $file->saveJson($chatFile, $chat, 'chat', 'rebuild');
 
@@ -331,7 +330,7 @@ class ChatHandler {
       }
     }
 
-    $chatFile = CHATS_STORAGE_PATH . '/chat_' . $number . '_bot_' . $botId . '.json';
+    $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
     return ogApp()->helper('file')::getJson($chatFile, function() use ($number, $botId, $rebuildIfNeeded) {
       if ( $rebuildIfNeeded == false ) return null;
       $rebuiltChat = self::rebuildFromDB($number, $botId);

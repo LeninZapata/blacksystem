@@ -597,8 +597,8 @@ class ogConditions {
     let htmlWrapper = formEl.querySelector(`.form-html-wrapper[data-field-name="${fieldPath}"]`);
     if (htmlWrapper) return htmlWrapper;
 
-    // Buscar grouper por data-field-path
-    let grouper = formEl.querySelector(`.grouper[data-field-path="${fieldPath}"]`);
+    // Buscar grouper por data-field-path (clase correcta: .og-grouper)
+    let grouper = formEl.querySelector(`.og-grouper[data-field-path="${fieldPath}"]`);
     if (grouper) return grouper;
 
     // Para repetibles: buscar considerando índices [0], [1], etc

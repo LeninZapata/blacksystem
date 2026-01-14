@@ -35,7 +35,14 @@
         "credential_value_placeholder": "Ingresa tu API Key",
         "config": "Configuración (JSON)",
         "config_placeholder": "{\"api_key\": \"tu-clave-api\", \"endpoint\": \"https://api.ejemplo.com\"}",
-        "ad_type": "Plataforma Publicitaria"
+        "ad_type": "Plataforma Publicitaria",
+        "facebook_config": "Configuración de WhatsApp Cloud API (Facebook)",
+        "access_token": "Access Token",
+        "access_token_placeholder": "EAATmDFjG82UBQ...",
+        "phone_number_id": "Phone Number ID",
+        "phone_number_id_placeholder": "123456789012345",
+        "business_account_id": "WhatsApp Business Account ID",
+        "business_account_id_placeholder": "789012345678901"
       },
       "type": {
         "ai_agent": "AI Agent",
@@ -70,124 +77,6 @@
         "load_failed": "Error al cargar credencial",
         "user_not_found": "Usuario no identificado",
         "invalid_json": "El formato JSON no es válido"
-      },
-      "refresh": {
-        "success": "Lista actualizada"
-      }
-    },
-    "product_ad_assets": {
-      "listado": {
-        "title": "📊 Activos Publicitarios",
-        "header": {
-          "title": "📊 Gestión de Activos Publicitarios",
-          "description": "Vincula productos con IDs de activos publicitarios (Facebook, Google, TikTok)"
-        }
-      },
-      "column": {
-        "id": "ID",
-        "product_id": "ID Producto",
-        "ad_asset_name": "Nombre del Activo",
-        "ad_platform": "Plataforma",
-        "ad_asset_type": "Tipo",
-        "ad_asset_id": "ID del Activo",
-        "is_active": "Estado",
-        "created": "Fecha de Creación"
-      },
-      "form": {
-        "title": "Formulario de Activo Publicitario",
-        "description": "Vincula un producto con un activo publicitario"
-      },
-      "field": {
-        "product_id": "Producto",
-        "ad_platform": "Plataforma Publicitaria",
-        "ad_asset_type": "Tipo de Activo",
-        "ad_asset_id": "ID del Activo",
-        "ad_asset_id_placeholder": "Ej: 120232490086400388",
-        "ad_asset_name": "Nombre Descriptivo",
-        "ad_asset_name_placeholder": "Ej: [DANNES] - Estimulación Lenguaje",
-        "is_active": "Consultar métricas de este activo",
-        "notes": "Notas",
-        "notes_placeholder": "Información adicional sobre este activo"
-      },
-      "asset_type": {
-        "campaign": "Campaña",
-        "adset": "Conjunto de Anuncios",
-        "ad": "Anuncio"
-      },
-      "ogModal": {
-        "new": {
-          "title": "📊 Nuevo Activo Publicitario"
-        },
-        "edit": {
-          "title": "✏️ Editar Activo Publicitario"
-        }
-      },
-      "confirm": {
-        "delete": "¿Eliminar este activo publicitario?"
-      },
-      "success": {
-        "created": "Activo publicitario creado correctamente",
-        "updated": "Activo publicitario actualizado correctamente",
-        "deleted": "Activo publicitario eliminado correctamente"
-      },
-      "error": {
-        "create_failed": "Error al crear activo publicitario",
-        "update_failed": "Error al actualizar activo publicitario",
-        "delete_failed": "Error al eliminar activo publicitario",
-        "load_failed": "Error al cargar activo publicitario"
-      },
-      "refresh": {
-        "success": "Lista actualizada"
-      }
-    },
-    "workflow": {
-      "listado": {
-        "title": "⚡ Workflows",
-        "header": {
-          "title": "⚡ Gestión de Workflows",
-          "description": "Administra los flujos de trabajo del sistema"
-        }
-      },
-      "column": {
-        "id": "ID",
-        "name": "Nombre",
-        "description": "Descripción",
-        "created": "Fecha de Creación"
-      },
-      "form": {
-        "title": "Formulario de Workflow",
-        "description": "Completa los datos del workflow"
-      },
-      "field": {
-        "name": "Nombre",
-        "name_placeholder": "Ej: Flujo de ventas, Onboarding",
-        "description": "Descripción",
-        "description_placeholder": "Describe el propósito del workflow",
-        "file_path": "Ruta de archivo",
-        "file_path_placeholder": "Ej: /shared/workflows/ventas.json"
-      },
-      "ogModal": {
-        "new": {
-          "title": "⚡ Nuevo Workflow"
-        },
-        "edit": {
-          "title": "✏️ Editar Workflow"
-        }
-      },
-      "confirm": {
-        "delete": "¿Eliminar workflow?"
-      },
-      "success": {
-        "created": "Workflow creado correctamente",
-        "updated": "Workflow actualizado correctamente",
-        "deleted": "Workflow eliminado correctamente"
-      },
-      "error": {
-        "create_failed": "Error al crear workflow",
-        "update_failed": "Error al actualizar workflow",
-        "delete_failed": "Error al eliminar workflow",
-        "load_failed": "Error al cargar workflow",
-        "save_failed": "Error al guardar workflow"
       },
       "refresh": {
         "success": "Lista actualizada"

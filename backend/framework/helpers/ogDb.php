@@ -3,11 +3,24 @@
 class ogDb {
   protected static $instance = null;
   protected static $config = [];
+  protected static $tables = [];
 
   // Configurar conexión
   static function setConfig($config) {
     self::$config = $config;
     self::$instance = null; // Reset instance para reconectar
+  }
+
+  // Configurar tablas del sistema
+  static function setTables($tables) {
+    self::$tables = $tables;
+  }
+
+  // Obtener nombre de tabla (shortcut: t = table)
+  // Puede retornar el nombre o el query builder directamente
+  static function t($key, $returnName = false) {
+    $tableName = self::$tables[$key] ?? $key;
+    return $returnName ? $tableName : self::table($tableName);
   }
 
   // Inicializar
@@ -190,7 +203,16 @@ class ogDbBuilder {
 
   function groupBy(...$cols) {
     $i = clone $this;
-    $i->groups = array_merge($i->groups, $cols);
+    // Aplanar arrays anidados
+    $flattened = [];
+    foreach ($cols as $col) {
+      if (is_array($col)) {
+        $flattened = array_merge($flattened, $col);
+      } else {
+        $flattened[] = $col;
+      }
+    }
+    $i->groups = array_merge($i->groups, $flattened);
     return $i;
   }
 

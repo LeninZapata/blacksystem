@@ -1,4 +1,6 @@
 Backend (Aplicacion):
+✔ Hacer un limpieza semanal  de estos archivos para que no quede basura @done(14-01-2026 13:07)
+
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
   ☐ grafica de productos vendidos
   ☐ grafica de ingresos por producto
@@ -6,21 +8,20 @@ Backend (Aplicacion):
   ☐ chat por dias | horas
   ☐ ventas por dias | horas
 ☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
-☐ Hacer un limpieza semanal  de estos archivos para que no quede basura
 ☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
 hacer que se ejecute al otro dia en la mañana
 ☐ Hacer el bot flow mas natural, por defecto debe 3 segundos de retrazo para la bienvenida
 ☐ Luego hacer que si alguien escribe luego de 2 o 3 segundo recien lea el mensaje
-☐ Hacer que antes de cada envio de followup hacer como que esta escribiendo el bot por 2 o 3 segundos alli no importa porque esta fuera 
+☐ Hacer que antes de cada envio de followup hacer como que esta escribiendo el bot por 2 o 3 segundos alli no importa porque esta fuera
 de conversacion caliente
+
 ☐ Antes de entregar el producto debe haber un precense de 3 segundos osea despues del mensaje de que va revisar el recibo
 por cierto ese mensaje tambien debe ir con presence antes de enviarlo.
-FRONTEND: 
+FRONTEND:
 ☐ Revisa que parece que solo te acumula 100 logs maximo, habria que aumentarlo a 500 o 1000
 De a poco revisa cuales son necesarios porque hay logs no necesarios la verdad.
-☐ porque se muestran los widgets a dannes cuando solo tiene permiso de graficas, no se porque se muestra
-en el dashboard
 ☐ algo pasa quue no se refreca los cambios del formulario ni porque le cambie de version
+verficia la version o cache buster de los json de formulario
 ☐ Agrupar con group los campos de bienvenida y seguimiento porque puede de 4 filas hacerla 2 filas
 sospecho que tiene algo que ver con el cache, debes revisar si form o view tiene un cache que no tiene
 que ver con la version o algo asi pero los cambios de json no se reflejan
@@ -41,3 +42,9 @@ entonces al momento de guardar los activos de producto debe tambien guardar la t
 Produccion:
 ☐ cuando envian un emoji validar el webhook y el de reation porque actualmente estan cambiando las validaciones
 para reaction no debe hacer nada, y para emoji lo que esta haciendo reaction ahorita
+
+Agregar al sistema real:
+CRON jobs:
+https://blacksystem.site/api/cleanup/storage/logs (cada 36 horas)
+https://blacksystem.site/api/cleanup/storage/middleware (cada 36 horas)
+https://blacksystem.site/api/chat/cleanup/old-chats (cada 6 horas)

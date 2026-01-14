@@ -1,12 +1,7 @@
 <?php
 class CredentialController extends ogController {
-  // Nombre de la tabla asociada a este controlador
-  protected static $table;
 
   function __construct() {
-    // Obtener tabla desde memoria cache
-    $tables = ogCache::memoryGet('db_tables', []);
-    self::$table = $tables['credentials'] ?? 'credentials';
     parent::__construct('credential');
   }
 
@@ -35,7 +30,7 @@ class CredentialController extends ogController {
     $data['tc'] = time();
 
     try {
-      $id = ogDb::table(self::$table)->insert($data);
+      $id = ogDb::t('credentials')->insert($data);
       ogResponse::success(['id' => $id], __('credential.create.success'), 201);
     } catch (Exception $e) {
       ogResponse::serverError(__('credential.create.error'), OG_IS_DEV ? $e->getMessage() : null);
@@ -43,7 +38,7 @@ class CredentialController extends ogController {
   }
 
   function update($id) {
-    $exists = ogDb::table(self::$table)->find($id);
+    $exists = ogDb::t('credentials')->find($id);
     if (!$exists) ogResponse::notFound(__('credential.not_found'));
 
     $data = ogRequest::data();
@@ -56,7 +51,7 @@ class CredentialController extends ogController {
     $data['tu'] = time();
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->update($data);
+      $affected = ogDb::t('credentials')->where('id', $id)->update($data);
 
       // Actualizar archivos JSON de todos los bots que usan esta credencial
       $botsUpdated = ogApp()->handler('credential')::updateBotsContext($id);
@@ -76,7 +71,7 @@ class CredentialController extends ogController {
   }
 
   function show($id) {
-    $data = ogDb::table(self::$table)->find($id);
+    $data = ogDb::t('credentials')->find($id);
     if (!$data) ogResponse::notFound(__('credential.not_found'));
 
     if (isset($data['config']) && is_string($data['config'])) {
@@ -87,7 +82,7 @@ class CredentialController extends ogController {
   }
 
   function list() {
-    $query = ogDb::table(self::$table);
+    $query = ogDb::t('credentials');
 
     // Filtrar por user_id autenticado
     if (isset($GLOBALS['auth_user_id'])) {
@@ -121,11 +116,11 @@ class CredentialController extends ogController {
   }
 
   function delete($id) {
-    $item = ogDb::table(self::$table)->find($id);
+    $item = ogDb::t('credentials')->find($id);
     if (!$item) ogResponse::notFound(__('credential.not_found'));
 
     try {
-      $affected = ogDb::table(self::$table)->where('id', $id)->delete();
+      $affected = ogDb::t('credentials')->where('id', $id)->delete();
       ogResponse::success(['affected' => $affected], __('credential.delete.success'));
     } catch (Exception $e) {
       ogResponse::serverError(__('credential.delete.error'), OG_IS_DEV ? $e->getMessage() : null);

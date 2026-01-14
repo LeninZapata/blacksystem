@@ -10,6 +10,11 @@ class credential {
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
     ogModule('form').clearAllErrors(realId);
+    
+    // ✅ FIX: Reinicializar condiciones después de limpiar
+    setTimeout(() => {
+      ogModule('conditions')?.init(formId);
+    }, 100);
   }
 
   static async openEdit(formId, id) {
@@ -22,6 +27,11 @@ class credential {
     if (!data) return;
     
     this.fillForm(formId, data);
+    
+    // ✅ FIX: Reinicializar condiciones después de llenar el formulario
+    setTimeout(() => {
+      ogModule('conditions')?.init(formId);
+    }, 100);
   }
 
   static fillForm(formId, data) {
@@ -35,9 +45,20 @@ class credential {
           if (data.config.credential_value) fillData.api_token = data.config.credential_value;
         } else if (data.type === 'chat') {
           fillData.chat_api = data.config.type_value;
-          if (data.config.base_url) fillData.base_url = data.config.base_url;
-          if (data.config.instance) fillData.instance = data.config.instance;
-          if (data.config.credential_value) fillData.credential_value = data.config.credential_value;
+          
+          // Evolution API
+          if (data.config.type_value === 'evolutionapi') {
+            if (data.config.base_url) fillData.base_url = data.config.base_url;
+            if (data.config.instance) fillData.instance = data.config.instance;
+            if (data.config.credential_value) fillData.credential_value = data.config.credential_value;
+          }
+          
+          // WhatsApp Cloud API (Facebook)
+          if (data.config.type_value === 'whatsapp-cloud-api') {
+            if (data.config.access_token) fillData.access_token = data.config.access_token;
+            if (data.config.phone_number_id) fillData.phone_number_id = data.config.phone_number_id;
+            if (data.config.business_account_id) fillData.business_account_id = data.config.business_account_id;
+          }
         } else if (data.type === 'ad') {
           fillData.ad_type = data.config.type_value;
           if (data.config.credential_value) fillData.api_token = data.config.credential_value;
@@ -80,9 +101,22 @@ class credential {
       config.credential_value = formData.api_token || '';
     } else if (formData.type === 'chat') {
       config.type_value = formData.chat_api || '';
-      config.base_url = formData.base_url || '';
-      config.instance = formData.instance || '';
-      config.credential_value = formData.credential_value || '';
+      
+      // Evolution API
+      if (formData.chat_api === 'evolutionapi') {
+        config.base_url = formData.base_url || '';
+        config.instance = formData.instance || '';
+        config.credential_value = formData.credential_value || '';
+      }
+      
+      // WhatsApp Cloud API (Facebook)
+      if (formData.chat_api === 'whatsapp-cloud-api') {
+        config.access_token = formData.access_token || '';
+        config.phone_number_id = formData.phone_number_id || '';
+        config.business_account_id = formData.business_account_id || '';
+        // credential_value se deja vacío o igual al access_token
+        config.credential_value = formData.access_token || '';
+      }
     } else if (formData.type === 'ad') {
       config.type_value = formData.ad_type || '';
       config.credential_value = formData.api_token || '';

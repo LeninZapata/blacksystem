@@ -55,7 +55,7 @@ $router->group('/api/followup', function($router) {
           ogLog::info("CRON Followup - Followup especial detectado: UPSELL", [ 'followup_id' => $fup['id'], 'product_id' => $fup['product_id'], 'number' => $fup['number'] ], $logMeta);
 
           // VALIDACIÓN 1: Verificar si ya existe venta upsell para este followup
-          $existingUpsell = ogDb::table(DB_TABLES['sales'])
+          $existingUpsell = ogDb::t('sales')
             ->where('client_id', $fup['client_id'])
             ->where('parent_sale_id', $fup['sale_id'])
             ->where('origin', 'upsell')

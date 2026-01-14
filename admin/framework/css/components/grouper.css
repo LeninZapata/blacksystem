@@ -19,7 +19,8 @@
 }
 
 .og-grouper-section.non-collapsible {
-  border-left: 3px solid #667eea;
+  margin-bottom: 1rem;
+  border-radius: 15px;
 }
 
 /* Header de sección */
