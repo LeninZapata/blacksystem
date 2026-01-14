@@ -334,7 +334,9 @@ class ChatHandler {
     return ogApp()->helper('file')::getJson($chatFile, function() use ($number, $botId, $rebuildIfNeeded) {
       if ( $rebuildIfNeeded == false ) return null;
       $rebuiltChat = self::rebuildFromDB($number, $botId);
-      $rebuiltChat['sale_id'] = $rebuiltChat['current_sale']['sale_id'] ?? 0;
+      if( $rebuiltChat ){
+        $rebuiltChat['sale_id'] = $rebuiltChat['current_sale']['sale_id'] ?? 0;
+      }
       return $rebuiltChat;
     });
 

@@ -10,12 +10,9 @@ class WebhookController {
 
       // Cargar servicio ogChatApi bajo demanda
       $chatapi = ogApp()->service('chatApi');
-      ogLog::debug('webhookController::whatsapp - Detectando proveedor...', [], $this->logMeta);
       $result = $chatapi->detectAndNormalize($rawData);
-      ogLog::debug('webhookController::whatsapp - Resultado de detección', $result, $this->logMeta);
 
       if (!$result) {
-        ogLog::debug('webhookController::whatsapp - Provider no detectado', $result, $this->logMeta);
         ogResponse::json(['success' => false, 'error' => 'Provider no detectado'], 400);
       } ogLog::info('whatsapp - Provider detectado', ['provider' => $result['provider']], $this->logMeta);
 
@@ -71,11 +68,9 @@ class WebhookController {
 
       // Resolver handler dinámicamente
       $handler = $this->resolveHandler($workflowFile);
-
       // Ejecutar handler con webhook completo
       //ogLog::debug("whatsapp - Handler resuelto, se va ejecutar el metodo <code>handle</code> con los siguientes datos", [ 'provider' => $detectedProvider, 'normalized' => $normalized, 'standard' => $standard], $this->logMeta);
       $handler->handle([ 'provider' => $detectedProvider, 'normalized' => $normalized, 'standard' => $standard, 'raw' => $rawData ]);
-
       ogResponse::success([ 'message' => 'Webhook procesado', 'provider' => $detectedProvider, 'workflow' => $workflowFile ]);
 
     } catch (Exception $e) {
@@ -86,7 +81,7 @@ class WebhookController {
 
   // Resolver handler desde versions/
   private function resolveHandler($workflowFile) {
-    $workflowPath = APP_PATH . "/workflows/versions/{$workflowFile}";
+    $workflowPath = ogApp()->getPath() . "/workflows/versions/{$workflowFile}";
 
     if (!file_exists($workflowPath)) {
       ogLog::throwError("resolveHandler - Archivo workflow del bot no existe: {$workflowFile}", [], $this->logMeta);

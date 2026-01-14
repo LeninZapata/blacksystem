@@ -5,7 +5,13 @@ class ogResponse {
   // Respuesta JSON
   static function json($data, $code = 200) {
     if ($code !== 200) {
-      ogLog::error('Response Error', ['code' => $code, 'data' => $data], self::$logMeta);
+      // Limitar tamaño de datos logueados para evitar consumo excesivo de memoria
+      $logData = $data;
+      $dataJson = @json_encode($logData);
+      if ($dataJson === false || strlen($dataJson) > 5000) {
+        $logData = ['message' => 'Data too large to log', 'size' => $dataJson ? strlen($dataJson) : 'too large', 'preview' => is_string($dataJson) ? substr($dataJson, 0, 200) : 'N/A'];
+      }
+      ogLog::error('Response Error', ['code' => $code, 'data' => $logData], self::$logMeta);
     }
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');

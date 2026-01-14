@@ -74,7 +74,8 @@ class chatApiService {
 
   // Normalizar webhook según provider
   private static function normalize($provider, $rawData) {
-    $basePath = MIDDLE_PATH . '/services/integrations/chatApi';
+    $middlePath = ogApp()->helper('cache')::memoryGet('path_middle');
+    $basePath = "{$middlePath}/services/integrations/chatApi";
 
     switch ($provider) {
       case 'evolutionapi':
@@ -100,7 +101,8 @@ class chatApiService {
 
   // Estandarizar datos normalizados
   private static function standardize($provider, $normalized) {
-    $basePath = MIDDLE_PATH . '/services/integrations/chatApi';
+    $middlePath = ogApp()->helper('cache')::memoryGet('path_middle');
+    $basePath = "{$middlePath}/services/integrations/chatApi";
 
     switch ($provider) {
       case 'evolutionapi':
@@ -129,7 +131,7 @@ class chatApiService {
     foreach (self::$config as $index => $apiConfig) {
       try {
         $provider = self::getProviderInstance($apiConfig);
-        $response = $provider->sendMessage($to, ogApp()->helper('str')::decodeMessagePatterns($message), $media);
+        $response = $provider->sendMessage($to, ogApp()->helper('bsStr')::decodeMessagePatterns($message), $media);
 
         if ($response['success']) {
           $response['used_fallback'] = $index > 0;
@@ -219,7 +221,8 @@ class chatApiService {
   }
 
   private static function loadProvider(string $type, array $config) {
-    $basePath = MIDDLE_PATH . '/services/integrations/chatApi';
+    $middlePath = ogApp()->helper('cache')::memoryGet('path_middle');
+    $basePath = "{$middlePath}/services/integrations/chatApi";
 
     // ✅ Mapeo de tipos a providers (agregado Facebook)
     $providerMap = [

@@ -134,7 +134,7 @@ class SendWelcomeAction {
 
       foreach ($pendingSales as $sale) {
         $saleId = $sale['id'];
-        
+
         // Cancelar followups de esta venta (processed = 2)
         $affected = FollowupHandler::cancelBySale($saleId);
         $totalCancelled += $affected;

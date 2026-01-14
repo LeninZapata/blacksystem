@@ -15,8 +15,9 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     // Detectar si ya existe conversación previa (sin límite de días)
     $existingChat = $this->checkExistingConversation($person['number'], $bot['id']);
+    ogLog::info("checkExistingConversation - Buscando conversación previa", $existingChat, $this->logMeta);
 
-    if ($existingChat) {
+    if (! empty( $existingChat )) {
       // Ya tiene conversación previa
       ogLog::info("execute - Conversación previa detectada", null, $this->logMeta);
       $alreadyPurchased = $this->hasAlreadyPurchased($existingChat, $productId);
@@ -115,12 +116,12 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     // ChatHandler ahora resuelve user_id automáticamente
     $systemMessage = "Bienvenida repetida enviada: {$product['name']} (ya comprado anteriormente)";
-    $metadata = [ 
-      'action' => 're_welcome', 
-      'product_id' => $product['id'], 
-      'product_name' => $product['name'], 
-      'reason' => 'product_already_purchased', 
-      'messages_sent' => $messagesSent 
+    $metadata = [
+      'action' => 're_welcome',
+      'product_id' => $product['id'],
+      'product_name' => $product['name'],
+      'reason' => 'product_already_purchased',
+      'messages_sent' => $messagesSent
     ];
 
     ChatHandler::register(
@@ -162,12 +163,13 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
   private function handleNewProductWelcome($bot, $person, $product, $productId, $rawContext) {
     $dataSale = [ 'person' => $person, 'bot' => $bot, 'product' => $product, 'product_id' => $productId, 'context' => $rawContext ];
-    
+
     $appPath = ogApp()->getPath();
     require_once $appPath . '/workflows/infoproduct/actions/CreateSaleAction.php';
     require_once $appPath . '/workflows/infoproduct/actions/SendWelcomeAction.php';
 
     $welcomeResult = SendWelcomeAction::send($dataSale);
+    ogLog::info("Welcome result", $welcomeResult, $this->logMeta);
     if (!$welcomeResult['success']) {
       ogLog::error("handleNewProductWelcome - Error enviando bienvenida", [ 'product_id' => $productId, 'error' => $welcomeResult['error'] ?? 'Desconocido' ], $this->logMeta);
       return [ 'success' => false, 'error' => $welcomeResult['error'] ?? 'Error enviando bienvenida' ];

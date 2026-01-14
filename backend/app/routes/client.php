@@ -13,6 +13,11 @@ $router->group('/api/client', function($router) {
     ogResponse::json( ogApp()->handler('client')::deleteAllDataByNumber(['number' => $number]) );
   })->middleware(['throttle:100,1']);
 
+  // Obtener todos los datos del cliente por número - GET /api/client/number/{number}/all-data
+  $router->get('/number/{number}/all-data', function($number) {
+    ogResponse::json( ogApp()->handler('client')::getAllDataByNumber(['number' => $number]) );
+  })->middleware(['auth', 'throttle:100,1']);
+
   // Buscar cliente por número - GET /api/client/number/{number}
   $router->get('/number/{number}', function($number) {
     ogResponse::json( ogApp()->handler('client')::getByNumber(['number' => $number]) );

@@ -48,10 +48,87 @@ class ClientHandler {
     // Buscar cliente por número
     $client = ogDb::t('clients')->where('number', $number)->first();
     if (!$client) {
+      // Eliminar todos los archivos chat del cliente en caso haya reciduos
+      $exist =  ogApp()->helper('file')->deletePattern(ogApp()->getPath('storage/json/chats') . "/chat_{$number}_bot_*.json");
+      if( $exist ){
+        ogLog::info('deleteAllDataByNumber - Cliente no encontrado, pero se eliminaron archivos residuales', [ 'number' => $number, 'files_deleted' => $exist ], self::$logMeta );
+      }
+      $exist = ogDb::t('chats')->where('client_number', $number)->delete();
+      if( $exist ){
+        ogLog::info('deleteAllDataByNumber - Chats residual eliminado de BD', [ 'number' => $number ], self::$logMeta );
+      }
+      $exist = ogDb::t('followups')->where('number', $number)->delete();
+      if( $exist ){
+        ogLog::info('deleteAllDataByNumber - Followups residual eliminado de BD', [ 'number' => $number ], self::$logMeta );
+      }
       return ['success' => false, 'error' => __('client.not_found')];
     }
 
     return self::deleteAllData(['id' => $client['id'] , 'number' => $number ]);
+  }
+
+  // Obtener todos los datos del cliente por número (chats, followups, sales)
+  static function getAllDataByNumber($params) {
+    $number = $params['number'];
+
+    try {
+      // Buscar cliente
+      $client = ogDb::t('clients')->where('number', $number)->first();
+      if (!$client) {
+        // Limpiar archivos basura de chat si existen
+        $deletedFiles = ogApp()->helper('file')->deletePattern(ogApp()->getPath('storage/json/chats') . "/chat_{$number}_bot_*.json");
+        if ($deletedFiles) {
+          ogLog::info('getAllDataByNumber - Cliente no encontrado, archivos JSON eliminados', ['number' => $number, 'files_deleted' => $deletedFiles], self::$logMeta);
+        }
+        return ['success' => false, 'error' => __('client.not_found')];
+      }
+
+      // Obtener todos los datos relacionados
+      $chats = ogDb::t('chats')->where('client_number', $number)->get();
+      $followups = ogDb::t('followups')->where('number', $number)->get();
+      $sales = ogDb::t('sales')->where('number', $number)->get();
+
+      // Obtener archivos de chat
+      $chatFiles = [];
+      $chatPath = ogApp()->getPath('storage/json/chats');
+      $pattern = "chat_{$number}_bot_*.json";
+      $files = glob($chatPath . '/' . $pattern);
+
+      if ($files) {
+        foreach ($files as $file) {
+          $chatData = json_decode(file_get_contents($file), true);
+          if ($chatData) {
+            $chatFiles[] = [
+              'file' => basename($file),
+              'messages_count' => count($chatData['messages'] ?? [])
+            ];
+          }
+        }
+      }
+
+      return [
+        'success' => true,
+        'data' => [
+          'client' => $client,
+          'stats' => [
+            'total_sales' => count($sales),
+            'total_chats' => count($chats),
+            'total_followups' => count($followups),
+            'total_files' => count($chatFiles)
+          ],
+          'sales' => $sales,
+          'chats' => $chats,
+          'followups' => $followups,
+          'chat_files' => $chatFiles
+        ]
+      ];
+    } catch (Exception $e) {
+      return [
+        'success' => false,
+        'error' => __('client.get_all_data.error'),
+        'details' => OG_IS_DEV ? $e->getMessage() : null
+      ];
+    }
   }
 
   // Buscar cliente por número

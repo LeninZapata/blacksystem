@@ -1,18 +1,18 @@
 <?php
 
 // Cargar dependencias core (usando ogApp()->getPath() directamente aquí porque es antes de la clase)
-$_APP_PATH = ogApp()->getPath();
+$path = ogApp()->getPath();
 
-require_once $_APP_PATH . '/workflows/core/events/ActionDispatcher.php';
-require_once $_APP_PATH . '/workflows/core/events/ActionRegistry.php';
-require_once $_APP_PATH . '/workflows/core/events/ActionHandler.php';
-require_once $_APP_PATH . '/workflows/core/support/MessageClassifier.php';
-require_once $_APP_PATH . '/workflows/core/support/MessageBuffer.php';
-require_once $_APP_PATH . '/workflows/core/validators/ConversationValidator.php';
-require_once $_APP_PATH . '/workflows/core/validators/WelcomeValidator.php';
+require_once $path . '/workflows/core/events/ActionDispatcher.php';
+require_once $path . '/workflows/core/events/ActionRegistry.php';
+require_once $path . '/workflows/core/events/ActionHandler.php';
+require_once $path . '/workflows/core/support/MessageClassifier.php';
+require_once $path . '/workflows/core/support/MessageBuffer.php';
+require_once $path . '/workflows/core/validators/ConversationValidator.php';
+require_once $path . '/workflows/core/validators/WelcomeValidator.php';
 
 // Cargar action handlers
-require_once $_APP_PATH . '/workflows/infoproduct/actions/DoesNotWantProductAction.php';
+require_once $path . '/workflows/infoproduct/actions/DoesNotWantProductAction.php';
 
 class InfoproductV2Handler {
 

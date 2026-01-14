@@ -71,7 +71,7 @@ $router->group('/api/chat', function($router) {
     if (empty($number) || empty($bot_id)) ogResponse::error('Parámetros requeridos: number, bot_id', 400);
 
     $maxDays = ogRequest::query('max_days', 2);
-    require_once APP_PATH . '/workflows/core/validators/ConversationValidator.php';
+    require_once ogApp()->getPath() . '/workflows/core/validators/ConversationValidator.php';
 
     $hasConversation = ConversationValidator::quickCheck($number, $bot_id, $maxDays);
     $chatData = ConversationValidator::getChatData($number, $bot_id, false, false);

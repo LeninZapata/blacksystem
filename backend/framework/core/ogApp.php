@@ -24,8 +24,9 @@ class ogFramework {
   static function instance($pluginName = 'default', $pluginPath = null, $isWP = false, $prefix = null) {
     if (!isset(self::$instances[$pluginName])) {
       self::$instances[$pluginName] = new self($pluginName, $pluginPath, $isWP, $prefix);
+      // Log solo cuando se crea una nueva instancia, no en cada retrieval
+      ogLog::debug("ogFramework instance created for plugin: {$pluginName}", [], self::$instances[$pluginName]->logMeta);
     }
-    ogLog::debug("ogFramework instance retrieved for plugin: {$pluginName}", [], self::$instances[$pluginName]->logMeta);
     return self::$instances[$pluginName];
   }
 
@@ -52,10 +53,19 @@ class ogFramework {
     ];
 
     foreach ($layers as $layer => $basePath) {
-      foreach ($searchOrder as $prefixType) {
-        // Framework solo usa prefijo "og"
-        if ($layer === 'framework' && $prefixType !== 'og') continue;
+      // Definir orden de búsqueda específico según la capa
+      $layerSearchOrder = $searchOrder;
 
+      // Middle: siempre buscar primero sin prefijo, luego con 'og'
+      if ($layer === 'middle') {
+        $layerSearchOrder = ['none', 'og'];
+      }
+      // Framework: solo 'og'
+      elseif ($layer === 'framework') {
+        $layerSearchOrder = ['og'];
+      }
+
+      foreach ($layerSearchOrder as $prefixType) {
         // Construir nombre de clase
         $className = $this->buildClassName($fileName, $suffix, $prefixType);
 

@@ -291,7 +291,7 @@ class ProductHandler {
       }
       $botNumber = $bot['number'];
     } else if (!$botId) {
-      $bot = ogDb::t('products')->where('number', $botNumber)->first();
+      $bot = ogDb::t('bots')->where('number', $botNumber)->first();
       if (!$bot) {
         ogLog::error('generateActivatorsFile - Bot no encontrado', ['bot_number' => $botNumber], self::$logMeta);
         return false;

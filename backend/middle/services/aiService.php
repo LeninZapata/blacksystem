@@ -105,19 +105,22 @@ class aiService {
     $config = $serviceConfig['config'] ?? [];
     $slug = strtolower($config['type_value'] ?? '');
 
+    // Obtener path de middle desde memoria
+    $middlePath = ogApp()->helper('cache')::memoryGet('path_middle');
+
     // Mapeo de slugs a providers
     $providerMap = [
       'deepseek' => [
         'class' => 'deepSeekProvider',
-        'path' => MIDDLE_PATH . '/services/integrations/ai/deepseek/deepSeekProvider.php'
+        'path' => "{$middlePath}/services/integrations/ai/deepseek/deepSeekProvider.php"
       ],
       'openai' => [
         'class' => 'openAiProvider',
-        'path' => MIDDLE_PATH . '/services/integrations/ai/openai/openAiProvider.php'
+        'path' => "{$middlePath}/services/integrations/ai/openai/openAiProvider.php"
       ],
       'gpt' => [
         'class' => 'openAiProvider',
-        'path' => MIDDLE_PATH . '/services/integrations/ai/openai/openAiProvider.php'
+        'path' => "{$middlePath}/services/integrations/ai/openai/openAiProvider.php"
       ]
     ];
 
@@ -129,10 +132,13 @@ class aiService {
     $providerClass = $providerInfo['class'];
     $providerPath = $providerInfo['path'];
 
+    // Obtener path de middle desde memoria
+    $middlePath = ogApp()->helper('cache')::memoryGet('path_middle');
+
     // Validar y cargar archivos bajo demanda
     // Cargar interface
     if (!interface_exists('aiProviderInterface')) {
-      $interfacePath = MIDDLE_PATH . '/services/integrations/ai/aiProviderInterface.php';
+      $interfacePath = "{$middlePath}/services/integrations/ai/aiProviderInterface.php";
       if (!file_exists($interfacePath)) {
         ogLog::throwError('createProvider - Interface file not found: ' . $interfacePath, [], self::$logMeta);
       }
@@ -141,7 +147,7 @@ class aiService {
 
     // Cargar base
     if (!class_exists('baseAIProvider')) {
-      $basePath = MIDDLE_PATH . '/services/integrations/ai/baseAIProvider.php';
+      $basePath = "{$middlePath}/services/integrations/ai/baseAIProvider.php";
       if (!file_exists($basePath)) {
         ogLog::throwError('createProvider - Base class file not found: ' . $basePath, [], self::$logMeta);
       }

@@ -48,7 +48,7 @@ class DoesNotWantProductAction implements ActionHandler {
   }
 
   private function cancelFollowups($saleId) {
-    //require_once APP_PATH . '/resources/handlers/FollowupHandler.php';
+    //require_once ogApp()->getPath() . '/resources/handlers/FollowupHandler.php';
     ogApp()->loadHandler('followup');
     return FollowupHandler::cancelBySale($saleId);
   }

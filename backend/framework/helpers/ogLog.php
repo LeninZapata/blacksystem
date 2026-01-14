@@ -26,6 +26,7 @@ class ogLog {
 
   private static $isFatalError = false;
   private static $executionSequence = 0;
+  private static $isWriting = false; // Prevenir recursión
 
   static function setConfig($config) {
     self::$config = array_merge(self::$config, $config);
@@ -77,7 +78,33 @@ class ogLog {
    * Escribir log con microsegundos y secuencia
    */
   private static function write($level, $msg, $ctx = [], $meta = []) {
-    if (!self::$config['enabled']) return;
+    // Prevenir recursión infinita
+    if (self::$isWriting) return;
+    
+    // Verificar memoria disponible (si queda menos de 50MB, no loguear)
+    $memLimit = ini_get('memory_limit');
+    if ($memLimit !== '-1') {
+      $limit = self::parseMemoryLimit($memLimit);
+      $used = memory_get_usage(true);
+      if ($limit - $used < 52428800) { // 50MB
+        return; // No loguear si hay poca memoria
+      }
+    }
+    
+    self::$isWriting = true;
+    
+    if (!self::$config['enabled']) {
+      self::$isWriting = false;
+      return;
+    }
+
+    // Protección contra out of memory: limitar contexto desde el inicio
+    if (!empty($ctx)) {
+      $tempJson = @json_encode($ctx);
+      if ($tempJson === false || strlen($tempJson) > 5000) {
+        $ctx = ['_note' => 'Context too large, truncated', '_size' => is_array($ctx) ? count($ctx) : 'N/A'];
+      }
+    }
 
     $minLevel = self::$levels[self::$config['level']] ?? 0;
     $currentLevel = self::$levels[strtolower($level)] ?? 0;
@@ -132,7 +159,29 @@ class ogLog {
 
     // Combinar contexto + custom vars
     $fullContext = array_merge($ctx, $customVars);
-    $contextJson = !empty($fullContext) ? json_encode($fullContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '-';
+    
+    // Protección contra contextos muy grandes que causan out of memory
+    if (!empty($fullContext)) {
+      $contextJson = @json_encode($fullContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+      if ($contextJson === false || strlen($contextJson) > 10000) {
+        // Si falla o es muy grande, crear versión simplificada
+        $simplified = [];
+        foreach ($fullContext as $key => $value) {
+          if (is_array($value)) {
+            $simplified[$key] = '[Array: ' . count($value) . ' items]';
+          } elseif (is_object($value)) {
+            $simplified[$key] = '[Object: ' . get_class($value) . ']';
+          } elseif (is_string($value) && strlen($value) > 200) {
+            $simplified[$key] = substr($value, 0, 200) . '...[truncated]';
+          } else {
+            $simplified[$key] = $value;
+          }
+        }
+        $contextJson = json_encode($simplified, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+      }
+    } else {
+      $contextJson = '-';
+    }
 
     // Preparar datos para columnas
     $columnData = [
@@ -175,10 +224,26 @@ class ogLog {
 
     file_put_contents($logFile, $logLine, FILE_APPEND | LOCK_EX);
 
+    // Resetear flag de escritura
+    self::$isWriting = false;
+
     // Manejar errores fatales solo si viene de throwError
     if (strtoupper($level) === 'ERROR' && self::$isFatalError) {
       self::handleFatalError($level, $msg, $ctx, $meta);
     }
+  }
+
+  // Parsear memory_limit a bytes
+  private static function parseMemoryLimit($limit) {
+    $limit = trim($limit);
+    $last = strtolower($limit[strlen($limit)-1]);
+    $value = (int)$limit;
+    switch($last) {
+      case 'g': $value *= 1024;
+      case 'm': $value *= 1024;
+      case 'k': $value *= 1024;
+    }
+    return $value;
   }
 
   // Handler para errores fatales - vacío por ahora, listo para notificaciones

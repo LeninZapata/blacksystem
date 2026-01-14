@@ -17,6 +17,9 @@ return [
     'success' => 'Todos los datos del cliente fueron eliminados',
     'error' => 'Error al eliminar datos del cliente'
   ],
+  'get_all_data' => [
+    'error' => 'Error al obtener los datos del cliente'
+  ],
   'not_found' => 'Cliente no encontrado',
   'already_exists' => 'El cliente ya existe',
   'number_exists' => 'El número ya existe'
