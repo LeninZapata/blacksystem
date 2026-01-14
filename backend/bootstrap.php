@@ -18,6 +18,11 @@ require_once $appPath . '/config/init.php';
 // Registrar instancia de la aplicación
 ogApp($pluginName, $appPath, $isWP);
 
+// Guardar paths importantes en memoria volátil
+ogApp()->helper('cache')::memorySet('path_middle', $thePluginPath . '/backend/middle');
+ogApp()->helper('cache')::memorySet('path_framework', $thePluginPath . '/backend/framework');
+ogApp()->helper('cache')::memorySet('path_backend', $thePluginPath . '/backend');
+
 // Las rutas de app se cargan DESPUÉS de crear ogApplication
 // HOOKS WORDPRESS (solo si está en WordPress)
 if ($isWP) {

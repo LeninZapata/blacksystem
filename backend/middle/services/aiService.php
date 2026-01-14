@@ -109,15 +109,15 @@ class aiService {
     $providerMap = [
       'deepseek' => [
         'class' => 'deepSeekProvider',
-        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogAi/deepseek/deepSeekProvider.php'
+        'path' => MIDDLE_PATH . '/services/integrations/ai/deepseek/deepSeekProvider.php'
       ],
       'openai' => [
         'class' => 'openAiProvider',
-        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogAi/openai/openAiProvider.php'
+        'path' => MIDDLE_PATH . '/services/integrations/ai/openai/openAiProvider.php'
       ],
       'gpt' => [
         'class' => 'openAiProvider',
-        'path' => OG_FRAMEWORK_PATH . '/services/integrations/ogAi/openai/openAiProvider.php'
+        'path' => MIDDLE_PATH . '/services/integrations/ai/openai/openAiProvider.php'
       ]
     ];
 
@@ -132,7 +132,7 @@ class aiService {
     // Validar y cargar archivos bajo demanda
     // Cargar interface
     if (!interface_exists('aiProviderInterface')) {
-      $interfacePath = OG_FRAMEWORK_PATH . '/services/integrations/ogAi/aiProviderInterface.php';
+      $interfacePath = MIDDLE_PATH . '/services/integrations/ai/aiProviderInterface.php';
       if (!file_exists($interfacePath)) {
         ogLog::throwError('createProvider - Interface file not found: ' . $interfacePath, [], self::$logMeta);
       }
@@ -141,7 +141,7 @@ class aiService {
 
     // Cargar base
     if (!class_exists('baseAIProvider')) {
-      $basePath = OG_FRAMEWORK_PATH . '/services/integrations/ogAi/baseAIProvider.php';
+      $basePath = MIDDLE_PATH . '/services/integrations/ai/baseAIProvider.php';
       if (!file_exists($basePath)) {
         ogLog::throwError('createProvider - Base class file not found: ' . $basePath, [], self::$logMeta);
       }

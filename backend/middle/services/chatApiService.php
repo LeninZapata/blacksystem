@@ -39,16 +39,87 @@ class chatApiService {
 
   // Detectar provider desde webhook y normalizar
   static function detectAndNormalize($rawData) {
-    // Cargar ogService bajo demanda
-    $service = ogApp()->core('service');
+    // Extraer primer elemento si viene como array
+    $data = is_array($rawData) && isset($rawData[0]) ? $rawData[0] : $rawData;
 
-    $provider = $service::detect('ogChatApi', $rawData);
-    if (!$provider) return null;
+    // Detectar provider basado en estructura del webhook
+    $provider = null;
 
-    $normalized = $service::call('ogChatApi', $provider, 'Normalizer', 'normalize', $rawData);
-    $standard = $service::call('ogChatApi', $provider, 'standardize', $normalized);
+    // Evolution API
+    if (isset($data['body']['event']) && isset($data['body']['instance'])) {
+      $provider = 'evolutionapi';
+    }
+    // Facebook/WhatsApp Cloud API
+    elseif (isset($data['object']) && $data['object'] === 'whatsapp_business_account') {
+      $provider = 'whatsapp-cloud-api';
+    }
 
-    return ['provider' => $provider, 'normalized' => $normalized, 'standard' => $standard];
+    if (!$provider) {
+      ogLog::warning('detectAndNormalize - Provider no detectado', ['data_keys' => array_keys($data)], self::$logMeta);
+      return null;
+    }
+
+    ogLog::info('detectAndNormalize - Provider detectado', ['provider' => $provider], self::$logMeta);
+
+    // Normalizar según provider
+    $normalized = self::normalize($provider, $rawData);
+    $standard = self::standardize($provider, $normalized);
+
+    return [
+      'provider' => $provider,
+      'normalized' => $normalized,
+      'standard' => $standard
+    ];
+  }
+
+  // Normalizar webhook según provider
+  private static function normalize($provider, $rawData) {
+    $basePath = MIDDLE_PATH . '/services/integrations/chatApi';
+
+    switch ($provider) {
+      case 'evolutionapi':
+        $normalizerPath = "{$basePath}/evolution/evolutionNormalizer.php";
+        if (!file_exists($normalizerPath)) {
+          ogLog::throwError('Normalizer no encontrado: ' . $normalizerPath, [], self::$logMeta);
+        }
+        require_once $normalizerPath;
+        return evolutionNormalizer::normalize($rawData);
+
+      case 'whatsapp-cloud-api':
+        $normalizerPath = "{$basePath}/facebook/facebookNormalizer.php";
+        if (!file_exists($normalizerPath)) {
+          ogLog::throwError('Normalizer no encontrado: ' . $normalizerPath, [], self::$logMeta);
+        }
+        require_once $normalizerPath;
+        return facebookNormalizer::normalize($rawData);
+
+      default:
+        ogLog::throwError('Provider no soportado para normalización: ' . $provider, [], self::$logMeta);
+    }
+  }
+
+  // Estandarizar datos normalizados
+  private static function standardize($provider, $normalized) {
+    $basePath = MIDDLE_PATH . '/services/integrations/chatApi';
+
+    switch ($provider) {
+      case 'evolutionapi':
+        $normalizerPath = "{$basePath}/evolution/evolutionNormalizer.php";
+        if (!class_exists('evolutionNormalizer')) {
+          require_once $normalizerPath;
+        }
+        return evolutionNormalizer::standardize($normalized);
+
+      case 'whatsapp-cloud-api':
+        $normalizerPath = "{$basePath}/facebook/facebookNormalizer.php";
+        if (!class_exists('facebookNormalizer')) {
+          require_once $normalizerPath;
+        }
+        return facebookNormalizer::standardize($normalized);
+
+      default:
+        ogLog::throwError('Provider no soportado para estandarización: ' . $provider, [], self::$logMeta);
+    }
   }
 
   static function send(string $to, string $message, string $media = ''): array {
@@ -148,7 +219,7 @@ class chatApiService {
   }
 
   private static function loadProvider(string $type, array $config) {
-    $basePath = OG_FRAMEWORK_PATH . '/services/integrations/ogChatApi';
+    $basePath = MIDDLE_PATH . '/services/integrations/chatApi';
 
     // ✅ Mapeo de tipos a providers (agregado Facebook)
     $providerMap = [
