@@ -75,7 +75,12 @@ class AudioMessageProcessor implements MessageProcessorInterface {
   }
 
   private function sendWaitMessage($to) {
+
     $chatapi = ogApp()->service('chatApi');
+    // Enviar presence después del mensaje (1.5-2.2 segundos)
+    $randomDelayMs = rand(12, 17) * 100; // 1500-2200ms en pasos de 100ms
+    $chatapi::sendPresence($to, 'composing', $randomDelayMs);
+
     $message = "Un momento por favor ☺️ estoy escuchando tu audio... 🎧\n\n🕒 Si tardo en responder, no te preocupes, estoy procesando tu mensaje.";
     $chatapi::send($to, $message);
   }

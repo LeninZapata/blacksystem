@@ -31,32 +31,21 @@ class SendWelcomeAction {
     $clientId = null;
     $saleId = null;
 
-    // Calcular plan completo de delays aleatorios
-    $delayPlan = self::calculateDelayPlan($messages, $bot);
+    // Calcular plan simplificado
+    $delayPlan = self::calculateSimplePlan($messages, $bot);
+    
+    ogLog::info("send - Plan de delays calculado", $delayPlan, self::$logMeta);
 
-    ogLog::info("send - Plan de delays calculado", [
-      'total_messages' => $totalMessages,
-      'initial' => [
-        'configured' => self::getInitialDelay($bot),
-        'real' => $delayPlan['initial']['delay_seconds'],
-        'pulses' => $delayPlan['initial']['typing_pulses']
-      ],
-      'messages' => array_map(function($index) use ($messages, $delayPlan) {
-        return [
-          'message_index' => $index + 1,
-          'configured' => (int)($messages[$index]['delay'] ?? 0),
-          'real' => $delayPlan['messages'][$index]['delay_seconds'],
-          'pulses' => $delayPlan['messages'][$index]['typing_pulses']
-        ];
-      }, array_keys($delayPlan['messages']))
-    ], self::$logMeta);
+    // Sleep inicial crudo
+    sleep(1);
 
-    // Sleep inicial crudo (2s sin typing)
-    sleep(2);
-
-    // Delay inicial con typing
-    if ($delayPlan['initial']['delay_seconds'] > 0) {
-      self::executeTypingPlan($from, $delayPlan['initial'], $bot);
+    // Delay inicial
+    if ($delayPlan['initial']['ms'] > 0) {
+      ogLog::debug("send - Aplicando delay inicial", [
+        'delay_data' => $delayPlan['initial']
+      ], self::$logMeta);
+      
+      self::executeDelay($from, $delayPlan['initial'], $bot);
     }
 
     $chatapi = ogApp()->service('chatApi');
@@ -66,34 +55,39 @@ class SendWelcomeAction {
       $text = $msg['message'] ?? '';
       $url = !empty($msg['url']) && $msg['type'] != 'text' ? $msg['url'] : '';
 
-      // Aplicar delay ANTES de enviar este mensaje
-      $delayData = $delayPlan['messages'][$index];
-
-      if ($delayData['delay_seconds'] > 0) {
-
-        $delayStartTime = microtime(true);
-        self::executeTypingPlan($from, $delayData, $bot);
-        $delayActual = microtime(true) - $delayStartTime;
-
+      // Delay antes del mensaje
+      $msgDelay = $delayPlan['messages'][$index];
+      
+      ogLog::debug("send - Aplicando delay mensaje", [
+        'message_index' => $index + 1,
+        'delay_data' => $msgDelay
+      ], self::$logMeta);
+      
+      if ($msgDelay['ms'] > 0) {
+        self::executeDelay($from, $msgDelay, $bot);
       }
 
       // Enviar mensaje
-      $messageStartTime = microtime(true);
+      ogLog::debug("send - Enviando mensaje", [
+        'message_index' => $index + 1,
+        'preview' => substr($text, 0, 30)
+      ], self::$logMeta);
+      
       $result = $chatapi::send($from, $text, $url);
-      $messageSendDuration = microtime(true) - $messageStartTime;
       $messagesSent++;
-      $elapsedSinceStart = microtime(true) - $welcomeStartTime;
 
       // Crear venta después del primer mensaje
       if ($messagesSent === 1 && $result['success']) {
         $saleResult = CreateSaleAction::create($dataSale);
 
         if ($saleResult['success']) {
-          ogLog::success("send - Venta creada", [ 'sale_id' => $saleResult['sale_id'], 'client_id' => $saleResult['client_id'] ], self::$logMeta);
+          ogLog::success("send - Venta creada", [
+            'sale_id' => $saleResult['sale_id'],
+            'client_id' => $saleResult['client_id']
+          ], self::$logMeta);
           $clientId = $saleResult['client_id'];
           $saleId = $saleResult['sale_id'];
 
-          // Registrar followups
           $followups = ProductHandler::getMessagesFile('follow', $productId);
           if (!empty($followups)) {
             ogApp()->loadHandler('followup');
@@ -103,14 +97,19 @@ class SendWelcomeAction {
               'client_id' => $clientId,
               'bot_id' => $bot['id'],
               'number' => $from
-            ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil');
+            ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil', $bot);
           }
         }
       }
     }
 
     $totalDuration = microtime(true) - $welcomeStartTime;
-    ogLog::success("send - Welcome completado", [ 'messages_sent' => $messagesSent, 'total_duration_seconds' => round($totalDuration, 2), 'sale_id' => $saleId ], self::$logMeta);
+
+    ogLog::success("send - Welcome completado", [
+      'messages_sent' => $messagesSent,
+      'total_duration_seconds' => round($totalDuration, 2),
+      'sale_id' => $saleId
+    ], self::$logMeta);
 
     return [
       'success' => true,
@@ -123,184 +122,68 @@ class SendWelcomeAction {
     ];
   }
 
-  // Calcular plan completo de delays con variación aleatoria
-  private static function calculateDelayPlan($messages, $bot) {
+  // Calcular plan simplificado
+  private static function calculateSimplePlan($messages, $bot) {
     $plan = ['initial' => null, 'messages' => []];
 
-    // Delay inicial
-    $initialDelay = self::getInitialDelay($bot);
-    $plan['initial'] = self::calculateDelayData($initialDelay, $bot);
+    // Delay inicial: fijo, sin variación
+    $initialDelay = (int)($bot['config']['welcome_initial_delay'] ?? 2);
+    $plan['initial'] = ['ms' => $initialDelay * 1000];
 
-    // Delay por cada mensaje (el delay se aplica ANTES de enviar ese mensaje)
+    // Delays de mensajes: con variación ±2s
     foreach ($messages as $index => $msg) {
-      $configuredDelay = isset($msg['delay']) ? (int)$msg['delay'] : 3;
-      $plan['messages'][$index] = self::calculateDelayData($configuredDelay, $bot);
+      $configuredDelay = (int)($msg['delay'] ?? 3);
+      $plan['messages'][$index] = self::calculateSimpleDelay($configuredDelay);
     }
 
     return $plan;
   }
 
-  // Calcular delay con variación del 20% y número de pulsos aleatorios
-  private static function calculateDelayData($configuredDelay, $bot) {
-    if ($configuredDelay <= 0) {
-      return [
-        'delay_seconds' => 0,
-        'typing_pulses' => 0,
-        'pulse_durations' => [],
-        'pause_durations' => []
-      ];
+  // Calcular delay simple: variación ±2s, 1 pulse
+  private static function calculateSimpleDelay($seconds) {
+    if ($seconds <= 0) {
+      return ['ms' => 0];
     }
 
-    // Variación del 20% (puede ser -20% a +20%)
-    $variation = rand(-20, 20) / 100;
-    $realDelay = $configuredDelay * (1 + $variation);
-    $realDelay = max(0.5, $realDelay);
+    // Variación ±2 segundos
+    $variation = rand(-2, 2);
+    $realSeconds = max(1, $seconds + $variation);
 
-    $minDelay = self::getMinTypingDelay($bot);
-
-    // Si es menor al mínimo, no hay typing
-    if ($realDelay < $minDelay) {
-      return [
-        'delay_seconds' => round($realDelay, 2),
-        'typing_pulses' => 0,
-        'pulse_durations' => [],
-        'pause_durations' => []
-      ];
-    }
-
-    // Calcular número de pulsos (máximo 5 por mensaje)
-    // Garantizar múltiples pulsos para delays largos
-    if ($realDelay <= 4) {
-      $numPulses = 1; // Delays cortos: 1 pulso
-    } else if ($realDelay <= 8) {
-      $numPulses = rand(2, 3); // Delays medianos: 2-3 pulsos
-    } else if ($realDelay <= 15) {
-      $numPulses = rand(3, 4); // Delays largos: 3-4 pulsos
-    } else {
-      $numPulses = rand(4, 5); // Delays muy largos: 4-5 pulsos
-    }
-
-    // Distribuir el tiempo entre pulsos y pausas
-    // 60% para typing, 40% para pausas
-    $timeForTyping = $realDelay * 0.6;
-    $timeForPauses = $realDelay * 0.4;
-
-    // Generar duraciones de pulsos respetando el tiempo total
-    $pulseDurations = [];
-    $pauseDurations = [];
-
-    // Distribuir tiempo de typing entre pulsos
-    $avgPulseTime = $timeForTyping / $numPulses;
-    $remainingTyping = $timeForTyping;
-
-    for ($i = 0; $i < $numPulses; $i++) {
-      if ($i === $numPulses - 1) {
-        // Último pulso: usar tiempo restante (mínimo 1.5s, máximo 3.5s)
-        $pulse = max(1.5, min(3.5, $remainingTyping));
-        $pulseDurations[] = round($pulse, 2);
-      } else {
-        // Pulso aleatorio alrededor del promedio (±30%)
-        $minPulse = max(1.5, $avgPulseTime * 0.7);
-        $maxPulse = min(3.5, $avgPulseTime * 1.3);
-
-        // Asegurar que quede suficiente tiempo para los pulsos restantes
-        $minRequired = ($numPulses - $i - 1) * 1.5;
-        $maxPulse = min($maxPulse, $remainingTyping - $minRequired);
-
-        $minPulseCents = max(150, (int)round($minPulse * 100));
-        $maxPulseCents = max($minPulseCents, (int)round($maxPulse * 100));
-        $pulse = rand($minPulseCents, $maxPulseCents) / 100;
-        $pulseDurations[] = round($pulse, 2);
-        $remainingTyping -= $pulse;
-      }
-    }
-
-    // Distribuir tiempo de pausas entre pulsos (excepto después del último)
-    if ($numPulses > 1) {
-      $numPauses = $numPulses - 1;
-      $avgPauseTime = $timeForPauses / $numPauses;
-      $remainingPauses = $timeForPauses;
-
-      for ($i = 0; $i < $numPauses; $i++) {
-        if ($i === $numPauses - 1) {
-          // Última pausa: usar tiempo restante (mínimo 1.5s, máximo 3.5s)
-          $pause = max(1.5, min(3.5, $remainingPauses));
-          $pauseDurations[] = round($pause, 2);
-        } else {
-          // Pausa aleatoria alrededor del promedio (±30%)
-          $minPause = max(1.5, $avgPauseTime * 0.7);
-          $maxPause = min(3.5, $avgPauseTime * 1.3);
-
-          // Asegurar que quede suficiente tiempo para las pausas restantes
-          $minRequired = ($numPauses - $i - 1) * 1.5;
-          $maxPause = min($maxPause, $remainingPauses - $minRequired);
-
-          $minPauseCents = max(150, (int)round($minPause * 100));
-          $maxPauseCents = max($minPauseCents, (int)round($maxPause * 100));
-          $pause = rand($minPauseCents, $maxPauseCents) / 100;
-          $pauseDurations[] = round($pause, 2);
-          $remainingPauses -= $pause;
-        }
-      }
-    }
-
-    // El delay real es el configurado (con variación)
-    return [
-      'delay_seconds' => round($realDelay, 2),
-      'typing_pulses' => $numPulses,
-      'pulse_durations' => $pulseDurations,
-      'pause_durations' => $pauseDurations
-    ];
+    return ['ms' => $realSeconds * 1000];
   }
 
-  // Ejecutar el plan de typing con pausas entre pulsos
-  private static function executeTypingPlan($to, $delayData, $bot) {
-    $delaySeconds = $delayData['delay_seconds'];
-    $typingPulses = $delayData['typing_pulses'];
-    $pulseDurations = $delayData['pulse_durations'];
-    $pauseDurations = $delayData['pause_durations'] ?? [];
+  // Ejecutar delay con 1 pulse (Evolution + sleep maneja todo)
+  private static function executeDelay($to, $delayData, $bot) {
+    $ms = $delayData['ms'];
 
-    if ($delaySeconds <= 0) return;
-
-    // Si no hay typing, solo sleep
-    if ($typingPulses === 0) {
-      usleep((int)($delaySeconds * 1000000));
-      return;
-    }
+    if ($ms <= 0) return;
 
     $chatapi = ogApp()->service('chatApi');
     $provider = $chatapi::getProvider();
 
-    foreach ($pulseDurations as $index => $pulseSec) {
-      $pulseMs = (int)($pulseSec * 1000);
+    ogLog::debug("executeDelay - Ejecutando", [
+      'ms' => $ms,
+      'provider' => $provider
+    ], self::$logMeta);
 
-      // Enviar typing indicator
-      try {
-        if ($provider === 'evolutionapi') {
-          $chatapi::sendPresence($to, 'composing', $pulseMs);
-        } else {
-          usleep((int)($pulseSec * 1000000));
-        }
-      } catch (Exception $e) {
-        usleep((int)($pulseSec * 1000000));
-      }
-
-      // Pausa entre pulsos (excepto después del último)
-      if ($index < $typingPulses - 1 && isset($pauseDurations[$index])) {
-        $pauseSec = $pauseDurations[$index];
-
-        usleep((int)($pauseSec * 1000000)); // Microsegundos
-      }
+    // Para APIs sin typing, reducir tiempo
+    if ($provider !== 'evolutionapi') {
+      $reduction = (int)($bot['config']['no_typing_delay_reduction'] ?? 1);
+      $seconds = max(1, ($ms / 1000) - $reduction);
+      sleep($seconds);
+      return;
     }
 
-  }
-
-  private static function getInitialDelay($bot) {
-    return (int)($bot['config']['welcome_initial_delay'] ?? 2);
-  }
-
-  private static function getMinTypingDelay($bot) {
-    return (float)($bot['config']['min_typing_delay'] ?? 1.4);
+    // Evolution API: 1 solo sendPresence (ya incluye sleep interno)
+    try {
+      $chatapi::sendPresence($to, 'composing', $ms);
+      ogLog::debug("executeDelay - Completado", [], self::$logMeta);
+    } catch (Exception $e) {
+      ogLog::error("executeDelay - Error en sendPresence", [
+        'error' => $e->getMessage()
+      ], self::$logMeta);
+      sleep($ms / 1000);
+    }
   }
 
   private static function cancelPendingSaleFollowups($number, $botId, $newProductId) {

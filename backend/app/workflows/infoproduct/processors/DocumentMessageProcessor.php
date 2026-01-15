@@ -44,6 +44,12 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
   }
 
   private function sendDocumentRejectionMessage($to) {
+
+    $chatapi = ogApp()->service('chatApi');
+    // Enviar presence después del mensaje (1.5-2.2 segundos)
+    $randomDelayMs = rand(12, 17) * 100; // 1500-2200ms en pasos de 100ms
+    $chatapi::sendPresence($to, 'composing', $randomDelayMs);
+
     $message = "🚫 No puedo procesar documentos PDF.\n\n";
     $message .= "📸 Si enviaste un *comprobante de pago*, por favor:\n";
     $message .= "1️⃣ Abre el PDF en tu dispositivo\n";
@@ -51,7 +57,6 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
     $message .= "3️⃣ Envíame la imagen aquí\n\n";
     $message .= "Así podré verificar tu pago y confirmar tu pedido. ✅";
 
-    $chatapi = ogApp()->service('chatApi');
     $chatapi::send($to, $message);
   }
 

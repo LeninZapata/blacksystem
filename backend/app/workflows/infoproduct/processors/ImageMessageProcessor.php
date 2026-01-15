@@ -70,7 +70,15 @@ class ImageMessageProcessor implements MessageProcessorInterface {
 
   private function sendWaitMessage($to) {
     $chatapi = ogApp()->service('chatApi');
-    $message = "Listo ✅\nUn momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste)\n\n🕐 Si tardo en responder, no te preocupes.\nEstoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊💡";
+
+    // Enviar presence después del mensaje (1.5-2.2 segundos)
+    $randomDelayMs = rand(12, 17) * 100; // 1500-2200ms en pasos de 100ms
+    $message = "Listo ✅\nUn momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste){p}\n\n🕐 Si tardo en responder, no te preocupes.\nEstoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊{e-like}";
+    $chatapi::sendPresence($to, 'composing', $randomDelayMs);
     $chatapi::send($to, $message);
+
+    // Enviar presence después del mensaje (1.5-2.2 segundos)
+    $randomDelayMs = rand(15, 22) * 100; // 1500-2200ms en pasos de 100ms
+    $chatapi::sendPresence($to, 'composing', $randomDelayMs);
   }
 }

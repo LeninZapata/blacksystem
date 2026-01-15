@@ -5,23 +5,23 @@ class FollowupHandler {
   private static $lastCalculatedDate = null;
   private static $logMeta = ['module' => 'FollowupHandler', 'layer' => 'app/resources'];
 
-  // Variable estática para almacenar el user_id globalmente (NUEVO)
+  // Variable estática para almacenar el user_id globalmente
   private static $currentUserId = null;
 
-  // Configuración de horarios (desde infoproduct-v2.php)
+  // Configuración de horarios
   private static $startHour = 8;  // 08:00 AM
   private static $endHour = 22;   // 22:00 (último permitido 21:59)
 
-  // Configuración de variación aleatoria (desde infoproduct-v2.php)
-  private static $minutesBefore = 15;  // Minutos a restar (máximo)
-  private static $minutesAfter = 15;   // Minutos a sumar (máximo)
+  // Configuración de variación aleatoria
+  private static $minutesBefore = 15;
+  private static $minutesAfter = 15;
 
-  // Establecer el user_id global (NUEVO)
+  // Establecer el user_id global
   static function setUserId($userId) {
     self::$currentUserId = $userId;
   }
 
-  // Obtener el user_id actual (NUEVO)
+  // Obtener el user_id actual
   static function getUserId() {
     return self::$currentUserId;
   }
@@ -41,7 +41,7 @@ class FollowupHandler {
       return $chatUserId;
     }
 
-    // Prioridad 3: Obtener desde la tabla bots (si se proporciona botId)
+    // Prioridad 3: Obtener desde la tabla bots
     if ($botId !== null) {
       try {
         $bot = ogDb::t('bots')
@@ -60,7 +60,6 @@ class FollowupHandler {
       }
     }
 
-    // Si no se puede resolver, lanzar error
     ogLog::throwError("FollowupHandler - No se pudo resolver user_id", [
       'bot_id' => $botId
     ], self::$logMeta);
@@ -78,32 +77,67 @@ class FollowupHandler {
     self::$minutesAfter = $minutesAfter;
   }
 
+  // Detectar si el bot usa WhatsApp Cloud API (Facebook)
+  private static function usesFacebookProvider($botData) {
+    $chatApis = $botData['config']['apis']['chat'] ?? [];
+    
+    foreach ($chatApis as $api) {
+      $typeValue = $api['config']['type_value'] ?? '';
+      if ($typeValue === 'whatsapp-cloud-api') {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   // Registrar followups desde venta
-  static function registerFromSale($saleData, $followups, $botTimezone) {
+  static function registerFromSale($saleData, $followups, $botTimezone, $botData = null) {
     if (empty($followups)) {
       return ['success' => true, 'count' => 0];
     }
 
-    // Resolver user_id automáticamente (NUEVO)
+    // Resolver user_id automáticamente
     $userId = self::resolveUserId($saleData['bot_id'] ?? null);
 
     self::$lastCalculatedDate = null;
-    $count = 0;
     $botTz = new DateTimeZone($botTimezone);
 
-    foreach ($followups as $fup) {
+    // PASO 1: Calcular todas las fechas futuras normalmente
+    $calculatedFollowups = [];
+    foreach ($followups as $index => $fup) {
       $result = self::calculateFutureDate($fup, $botTimezone);
       $futureDate = $result['future_date'];
       $dateInBotTz = $result['date_in_bot_tz'];
 
-      // Limitar mensaje a 20 caracteres
+      $calculatedFollowups[] = [
+        'index' => $index,
+        'config' => $fup,
+        'future_date' => $futureDate,
+        'date_in_bot_tz' => $dateInBotTz,
+        'future_timestamp' => strtotime($futureDate)
+      ];
+
+      self::$lastCalculatedDate = $dateInBotTz;
+    }
+
+    // PASO 2: Si usa Facebook, ajustar las últimas 24 horas dentro de 70h
+    if ($botData && self::usesFacebookProvider($botData)) {
+      ogLog::info("registerFromSale - Facebook detectado, ajustando followups a 70h", [
+        'total_followups' => count($calculatedFollowups)
+      ], self::$logMeta);
+
+      $calculatedFollowups = self::adjustFor70Hours($calculatedFollowups, $botTimezone);
+    }
+
+    // PASO 3: Insertar followups en BD
+    $count = 0;
+    foreach ($calculatedFollowups as $item) {
+      $fup = $item['config'];
       $fullMessage = $fup['message'] ?? '';
-     /* $shortMessage = mb_strlen($fullMessage) > 20
-        ? mb_substr($fullMessage, 0, 20) . '...'
-        : $fullMessage;*/
 
       $data = [
-        'user_id' => $userId, // AGREGADO
+        'user_id' => $userId,
         'sale_id' => $saleData['sale_id'],
         'product_id' => $saleData['product_id'],
         'client_id' => $saleData['client_id'],
@@ -114,33 +148,118 @@ class FollowupHandler {
         'instruction' => !empty($fup['instruction']) ? $fup['instruction'] : '',
         'text' => $fullMessage ?: null,
         'source_url' => $fup['url'] ?? null,
-        'future_date' => $futureDate,
+        'future_date' => $item['future_date'],
         'processed' => 0,
         'status' => 1,
         'dc' => date('Y-m-d H:i:s'),
         'tc' => time()
       ];
 
-      // Validar: debe tener texto O media (source_url)
+      // Validar: debe tener texto O media
       $hasText = !empty($fullMessage);
       $hasMedia = !empty($fup['url']);
 
       if (!$hasText && !$hasMedia) {
         ogLog::warning("registerFromSale - Followup sin texto ni media, omitido", [
           'tracking_id' => $fup['tracking_id'],
-          'index' => $count
+          'index' => $item['index']
         ], self::$logMeta);
         continue;
       }
 
       ogDb::t('followups')->insert($data);
       $count++;
-
-      // Actualizar lastCalculatedDate con la fecha en timezone del bot
-      self::$lastCalculatedDate = $dateInBotTz;
     }
 
     return ['success' => true, 'count' => $count];
+  }
+
+  // Ajustar followups para que estén dentro de 70 horas
+  private static function adjustFor70Hours($followups, $botTimezone) {
+    if (empty($followups)) return $followups;
+
+    $botTz = new DateTimeZone($botTimezone);
+    $now = new DateTime('now', $botTz);
+    $maxTimestamp = $now->getTimestamp() + (70 * 3600); // 70 horas desde ahora
+
+    ogLog::debug("adjustFor70Hours - Analizando followups", [
+      'now' => $now->format('Y-m-d H:i:s'),
+      'max_time' => date('Y-m-d H:i:s', $maxTimestamp),
+      'total_followups' => count($followups)
+    ], self::$logMeta);
+
+    // Identificar followups que pasan de 70h
+    $needsAdjustment = false;
+    $last24HoursStart = $maxTimestamp - (24 * 3600); // Últimas 24h = desde hora 46 hasta 70
+
+    foreach ($followups as $item) {
+      if ($item['future_timestamp'] > $maxTimestamp) {
+        $needsAdjustment = true;
+        ogLog::info("adjustFor70Hours - Followup excede 70h", [
+          'index' => $item['index'],
+          'original_date' => $item['future_date'],
+          'hours_from_now' => round(($item['future_timestamp'] - $now->getTimestamp()) / 3600, 2)
+        ], self::$logMeta);
+        break;
+      }
+    }
+
+    if (!$needsAdjustment) {
+      ogLog::info("adjustFor70Hours - Todos los followups están dentro de 70h", [], self::$logMeta);
+      return $followups;
+    }
+
+    // Ajustar: comprimir los que están en las últimas 24h hacia atrás
+    $adjusted = [];
+    $usedSlots = []; // Para evitar colisiones
+
+    foreach ($followups as $item) {
+      $timestamp = $item['future_timestamp'];
+
+      // Si está dentro de las primeras 46h, dejar como está
+      if ($timestamp <= $last24HoursStart) {
+        $adjusted[] = $item;
+        $usedSlots[] = $timestamp;
+        continue;
+      }
+
+      // Si está en las últimas 24h o se pasa de 70h, ajustar
+      if ($timestamp > $maxTimestamp) {
+        // Mover hacia atrás al límite de 70h
+        $newTimestamp = $maxTimestamp;
+      } else {
+        $newTimestamp = $timestamp;
+      }
+
+      // Resolver colisiones: si ya existe un followup en ese minuto, mover 1h atrás
+      while (in_array($newTimestamp, $usedSlots)) {
+        $newTimestamp -= 3600; // 1 hora atrás
+        ogLog::debug("adjustFor70Hours - Resolviendo colisión", [
+          'index' => $item['index'],
+          'moved_back_1h' => true
+        ], self::$logMeta);
+      }
+
+      // Actualizar fecha
+      $newDate = new DateTime('@' . $newTimestamp);
+      $newDate->setTimezone($botTz);
+
+      $item['future_date'] = $newDate->format('Y-m-d H:i:s');
+      $item['future_timestamp'] = $newTimestamp;
+      $item['date_in_bot_tz'] = $newDate->format('Y-m-d H:i:s');
+
+      ogLog::info("adjustFor70Hours - Followup ajustado", [
+        'index' => $item['index'],
+        'original_date' => date('Y-m-d H:i:s', $timestamp),
+        'new_date' => $item['future_date'],
+        'hours_from_now' => round(($newTimestamp - $now->getTimestamp()) / 3600, 2)
+      ], self::$logMeta);
+
+      $adjusted[] = $item;
+      $usedSlots[] = $newTimestamp;
+    }
+
+    return $adjusted;
   }
 
   // Calcular fecha futura según timezone del bot
@@ -178,13 +297,9 @@ class FollowupHandler {
         $defaultHour = $timeHour !== '00:00' ? $timeHour : '20:00';
         list($hour, $minute) = explode(':', $defaultHour);
 
-        // Guardar la fecha/hora anterior antes de modificar
         $previousDate = clone $baseDate;
-
-        // Establecer la hora de "esta noche" en el día actual de $baseDate
         $baseDate->setTime((int)$hour, (int)$minute, 0);
 
-        // Si la hora ya pasó respecto a la fecha anterior, mover al siguiente día
         if ($baseDate <= $previousDate) {
           $baseDate->modify('+1 day');
         }
@@ -196,7 +311,6 @@ class FollowupHandler {
         list($hour, $minute) = explode(':', $timeHour);
         $baseDate->setTime((int)$hour, (int)$minute, 0);
 
-        // Si el domingo calculado es anterior a la fecha previa, avanzar una semana más
         if ($baseDate <= $previousDate) {
           $baseDate->modify('+7 days');
         }
@@ -213,7 +327,6 @@ class FollowupHandler {
         list($hour, $minute) = explode(':', $timeHour);
         $baseDate->setTime((int)$hour, (int)$minute, 0);
 
-        // Si la fecha calculada es anterior a la previa, mover a la siguiente quincena
         if ($baseDate <= $previousDate) {
           if ($currentDay <= 15) {
             $baseDate->modify('last day of this month');
@@ -232,7 +345,6 @@ class FollowupHandler {
         list($hour, $minute) = explode(':', $timeHour);
         $baseDate->setTime((int)$hour, (int)$minute, 0);
 
-        // Si la fecha calculada es anterior a la previa, mover al mes siguiente
         if ($baseDate <= $previousDate) {
           $baseDate->modify('+1 month');
         }
@@ -242,21 +354,19 @@ class FollowupHandler {
         break;
     }
 
-    // Aplicar restricciones de horario (en timezone del bot)
+    // Aplicar restricciones de horario
     $dateBeforeRestrictions = clone $baseDate;
     $baseDate = self::applyTimeRestrictions($baseDate);
 
-    // Aplicar variación aleatoria si NO es tipo inmediato (en timezone del bot)
+    // Aplicar variación aleatoria si NO es tipo inmediato
     $shouldApplyVariation = !in_array($timeType, ['minuto', 'hora']);
     if ($shouldApplyVariation) {
       $baseDate = self::applyRandomMinutesVariation($baseDate);
     }
 
-    // Guardar la fecha en botTz ANTES de convertir a Ecuador
     $dateInBotTz = $baseDate->format('Y-m-d H:i:s');
 
     // Determinar si debe convertirse a Ecuador
-    // Para minuto/hora: solo convertir si se movió al día siguiente por restricciones
     $isImmediateType = in_array($timeType, ['minuto', 'hora']);
     $movedToNextDay = $baseDate->format('Y-m-d') > $dateBeforeRestrictions->format('Y-m-d');
 
@@ -264,7 +374,6 @@ class FollowupHandler {
       $baseDate->setTimezone($ecuadorTz);
     }
 
-    // Retornar array con ambas fechas
     return [
       'future_date' => $baseDate->format('Y-m-d H:i:s'),
       'date_in_bot_tz' => $dateInBotTz
@@ -275,13 +384,10 @@ class FollowupHandler {
   private static function applyTimeRestrictions($dateTime) {
     $hour = (int)$dateTime->format('H');
 
-    // Si es >= hora fin (ej: 22:00 o más) → Mover al día siguiente startHour
     if ($hour >= self::$endHour) {
       $dateTime->modify('+1 day');
       $dateTime->setTime(self::$startHour, 0, 0);
-    }
-    // Si es < hora inicio (ej: antes de 08:00) → Mover a startHour del mismo día
-    elseif ($hour < self::$startHour) {
+    } elseif ($hour < self::$startHour) {
       $dateTime->setTime(self::$startHour, 0, 0);
     }
 
@@ -309,9 +415,8 @@ class FollowupHandler {
     $now = date('Y-m-d H:i:s');
     $botsConfig = [];
     $allFollowups = [];
-    $seenNumbers = []; // Para trackear números ya procesados
+    $seenNumbers = [];
 
-    // PASO 1: Obtener bots activos
     $activeBots = ogDb::t('bots')
       ->where('status', 1)
       ->get();
@@ -323,19 +428,16 @@ class FollowupHandler {
       ];
     }
 
-    // PASO 2: Por cada bot, cargar config y obtener followups pendientes
     foreach ($activeBots as $bot) {
       $botId = $bot['id'];
       $botNumber = $bot['number'];
 
-      // Cargar configuración del bot desde archivo JSON
       ogApp()->loadHandler('bot');
       $botData = BotHandler::getDataFile($botNumber);
       if (!$botData) continue;
 
       $botsConfig[$botId] = $botData;
 
-      // Obtener followups pendientes de este bot
       $followups = ogDb::t('followups')
         ->where('bot_id', $botId)
         ->where('processed', 0)
@@ -349,15 +451,11 @@ class FollowupHandler {
         foreach ($followups as $fup) {
           $personNumber = $fup['number'];
 
-          // Filtrar: Solo agregar el primer followup de cada número
           if (!isset($seenNumbers[$personNumber])) {
-            // Agregar bot_number al followup
             $fup['bot_number'] = $botNumber;
-
             $allFollowups[] = $fup;
             $seenNumbers[$personNumber] = true;
           }
-          // Si ya existe este número, ignorar este followup (quedarse con el primero)
         }
       }
     }

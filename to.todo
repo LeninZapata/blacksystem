@@ -1,6 +1,6 @@
 Backend (Aplicacion):
 ✔ Hacer un limpieza semanal  de estos archivos para que no quede basura @done(14-01-2026 13:07)
-☐ Humaniza los chats desde la bienvenida y todas las etapas en que envias mensajes.... al hacerlo muy rapido
+✔ Humaniza los chats desde la bienvenida y todas las etapas en que envias mensajes.... al hacerlo muy rapido @done(15-01-2026 17:57)
 estas probocando baneo al numero, hay que poner delays entre mensajes y hacerlos mas humanos
 
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
@@ -43,3 +43,6 @@ CRON jobs:
 https://blacksystem.site/api/cleanup/storage/logs (cada 36 horas)
 https://blacksystem.site/api/cleanup/storage/middleware (cada 36 horas)
 https://blacksystem.site/api/chat/cleanup/old-chats (cada 6 horas)
+
+Verificar negocio en facebook
+https://www.youtube.com/watch?v=Z0Rdc8KIaG0

@@ -227,18 +227,72 @@ class UpsellHandler {
     $messageSentSuccessfully = false;
 
     if (!empty($welcomeMessages)) {
-      ogLog::info("executeUpsell - Enviando welcome upsell", [ 'product_id' => $upsellProductId, 'total_messages' => count($welcomeMessages) ], self::$logMeta);
+      ogLog::info("executeUpsell - Enviando welcome upsell", [ 
+        'product_id' => $upsellProductId, 
+        'total_messages' => count($welcomeMessages) 
+      ], self::$logMeta);
+
+      // Sleep inicial
+      sleep(1);
+
+      // Delay inicial simple (2 segundos)
+      $initialDelayMs = 2000;
+      ogLog::debug("executeUpsell - Enviando presence inicial", [
+        'delay_ms' => $initialDelayMs
+      ], self::$logMeta);
+      
+      try {
+        $chatapi::sendPresence($number, 'composing', $initialDelayMs);
+      } catch (Exception $e) {
+        ogLog::error("executeUpsell - Error en presence inicial", [
+          'error' => $e->getMessage()
+        ], self::$logMeta);
+      }
 
       foreach ($welcomeMessages as $index => $msg) {
-        $delay = isset($msg['delay']) ? (int)$msg['delay'] : 3;
         $text = $msg['message'] ?? '';
         $url = !empty($msg['url']) && $msg['type'] != 'text' ? $msg['url'] : '';
+        $configuredDelay = (int)($msg['delay'] ?? 3);
 
-        if ($index > 0 && $delay > 0) {
-          sleep($delay);
+        ogLog::debug("executeUpsell - Procesando mensaje", [
+          'index' => $index,
+          'has_text' => !empty($text),
+          'has_url' => !empty($url),
+          'configured_delay' => $configuredDelay
+        ], self::$logMeta);
+
+        // Delay antes del mensaje (excepto el primero)
+        if ($index > 0 && $configuredDelay > 0) {
+          // Variación ±2 segundos, múltiplo de 100ms
+          $variation = rand(-2, 2);
+          $delaySeconds = max(1, $configuredDelay + $variation);
+          $delayMs = round($delaySeconds * 10) * 100; // Redondear a múltiplo de 100
+
+          ogLog::debug("executeUpsell - Enviando presence antes de mensaje", [
+            'index' => $index,
+            'configured_delay' => $configuredDelay,
+            'variation' => $variation,
+            'final_delay_ms' => $delayMs
+          ], self::$logMeta);
+
+          try {
+            $chatapi::sendPresence($number, 'composing', $delayMs);
+          } catch (Exception $e) {
+            ogLog::error("executeUpsell - Error en presence", [
+              'index' => $index,
+              'error' => $e->getMessage()
+            ], self::$logMeta);
+            // Fallback a sleep
+            sleep($delaySeconds);
+          }
         }
 
-        // Enviar mensaje y verificar resultado
+        // Enviar mensaje
+        ogLog::debug("executeUpsell - Enviando mensaje", [
+          'index' => $index,
+          'text_preview' => substr($text, 0, 30)
+        ], self::$logMeta);
+
         $sendResult = $chatapi::send($number, $text, $url);
         
         if (!$sendResult['success']) {
@@ -248,15 +302,22 @@ class UpsellHandler {
             'error' => $sendResult['error'] ?? 'unknown'
           ], self::$logMeta);
           
-          // Si falla el envío, retornar error SIN crear venta
           return ['success' => false, 'error' => 'failed_to_send_welcome_message'];
         }
         
+        ogLog::debug("executeUpsell - Mensaje enviado exitosamente", [
+          'index' => $index
+        ], self::$logMeta);
+        
         $messageSentSuccessfully = true;
       }
+
+      ogLog::info("executeUpsell - Todos los mensajes welcome enviados", [
+        'total' => count($welcomeMessages)
+      ], self::$logMeta);
+
     } else {
       ogLog::warning("executeUpsell - No hay mensajes de welcome upsell para enviar", [ 'product_id' => $upsellProductId ], self::$logMeta);
-      // Si no hay mensajes, consideramos que no se puede proceder
       return ['success' => false, 'error' => 'no_welcome_messages_configured'];
     }
 
@@ -365,7 +426,8 @@ class UpsellHandler {
           'number' => $number
         ],
         $followupMessages,
-        $botTimezone
+        $botTimezone,
+        $botData
       );
     }
 

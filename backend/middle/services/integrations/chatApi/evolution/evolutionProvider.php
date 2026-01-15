@@ -24,48 +24,31 @@ class evolutionProvider extends baseChatApiProvider {
     $payload = ['number' => $number];
 
     if ($mediaType === 'text') {
-      // Mensaje de texto simple
       $payload['text'] = $message;
     } elseif ($mediaType === 'audio') {
-      // Audio de WhatsApp
-
-      // Extraer información del archivo de audio
       $parsedUrl = parse_url($url, PHP_URL_PATH);
       $extension = pathinfo($parsedUrl, PATHINFO_EXTENSION);
       $originalName = pathinfo($parsedUrl, PATHINFO_FILENAME);
-
-      // Generar filename: {nombre-archivo}-timestamp.{extension}
       $filename = ($originalName ?: 'audio') . '-' . time() . '.' . ($extension ?: 'ogg');
-
-      // Obtener mimetype del audio
       $mimetype = $this->getMimeType($extension ?: 'ogg');
 
-      // Payload para audio
-      //$payload['audioMessage'] = ['audio' => $url];
       $payload['mediatype'] = $mediaType;
       $payload['media'] = $url ?: '';
       $payload['audio'] = $url ?: '';
       $payload['filename'] = $filename;
       $payload['mimetype'] = $mimetype;
     } else {
-      // Media (image, video, document)
-      // Extraer información del archivo
       $parsedUrl = parse_url($url, PHP_URL_PATH);
       $extension = pathinfo($parsedUrl, PATHINFO_EXTENSION);
       $originalName = pathinfo($parsedUrl, PATHINFO_FILENAME);
-
-      // Generar filename: {nombre-archivo}-timestamp.{extension}
       $filename = ($originalName ?: 'file') . '-' . time() . '.' . ($extension ?: 'jpg');
-
-      // Obtener mimetype
       $mimetype = $this->getMimeType($extension ?: 'jpg');
 
-      // Campos directos en payload (no dentro de mediaMessage)
       $payload['mediatype'] = $mediaType;
       $payload['media'] = $url ?: '';
       $payload['filename'] = $filename;
       $payload['caption'] = $message ?: '';
-      $payload['text'] = $message ?: ''; // Mismo valor que caption
+      $payload['text'] = $message ?: '';
       $payload['mimetype'] = $mimetype;
     }
 
@@ -128,6 +111,7 @@ class evolutionProvider extends baseChatApiProvider {
         );
       }
 
+      // Evolution API bloquea la respuesta HTTP hasta completar el delay
       return $this->successResponse(['presence_sent' => true]);
 
     } catch (Exception $e) {

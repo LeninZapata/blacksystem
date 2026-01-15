@@ -7,10 +7,10 @@ $router->group('/api/followup', function($router) {
   // GET /api/followup/pending -> Procesar y enviar
   $router->get('/pending', function() {
 
-    set_time_limit(600);
-    ini_set('max_execution_time', 600);
+    set_time_limit(900);
+    ini_set('max_execution_time', 900);
     // en el comando de CRON poner esto
-    // wget --timeout=600 --tries=1 -q -O - https://url.com/api/followup/pending /dev/null 2>&1
+    // wget --timeout=900 --tries=1 -q -O - https://url.com/api/followup/pending /dev/null 2>&1
 
     $logMeta = ['module' => 'followup', 'layer' => 'app/routes'];
     $list = ogRequest::query('list', null);
@@ -103,12 +103,19 @@ $router->group('/api/followup', function($router) {
         ogLog::info("CRON Followup - Procesando followup normal", [ 'followup_id' => $fup['id'], 'number' => $fup['number'], 'tracking_id' => $fup['name'] ?? 'N/A' ], $logMeta);
 
         // Configurar ogChatApi con el bot específico
-        // ogLog::info("CRON Followup - Configurando Chat API para el bot", $botData, $logMeta);
         $chatapi::setConfig($botData);
 
         // Preparar texto y source_url
         $messageText = $fup['text'] ?? '';
         $sourceUrl = $fup['source_url'] ?? '';
+
+        // Enviar presence antes del mensaje (1.2-2.2 segundos)
+        $randomDelayMs = rand(12, 22) * 100; // 1200-2200ms en pasos de 100ms
+        ogLog::debug("CRON Followup - Enviando presence antes del mensaje", [
+          'followup_id' => $fup['id'],
+          'delay_ms' => $randomDelayMs
+        ], $logMeta);
+        $chatapi::sendPresence($fup['number'], 'composing', $randomDelayMs);
 
         // Enviar mensaje (puede ser solo texto, solo media, o ambos)
         $result = $chatapi::send($fup['number'], $messageText, $sourceUrl);
