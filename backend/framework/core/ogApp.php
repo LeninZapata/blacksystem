@@ -24,8 +24,6 @@ class ogFramework {
   static function instance($pluginName = 'default', $pluginPath = null, $isWP = false, $prefix = null) {
     if (!isset(self::$instances[$pluginName])) {
       self::$instances[$pluginName] = new self($pluginName, $pluginPath, $isWP, $prefix);
-      // Log solo cuando se crea una nueva instancia, no en cada retrieval
-      ogLog::debug("ogFramework instance created for plugin: {$pluginName}", [], self::$instances[$pluginName]->logMeta);
     }
     return self::$instances[$pluginName];
   }

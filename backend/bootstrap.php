@@ -5,9 +5,7 @@
 $phpValid = ogValidatePhpVersion($pluginData['RequiresPHP'] ?? '8.1', $isWP);
 
 // Si falla en WordPress, no continuar carga
-if (!$phpValid && $isWP) {
-  return;
-}
+if (!$phpValid && $isWP) { return; }
 
 $pluginName    = $isWP ? $pluginData['PluginID'] : 'default';
 $appPath       = $thePluginPath . '/backend/app';
