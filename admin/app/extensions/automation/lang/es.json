@@ -42,7 +42,8 @@
         "phone_number_id": "Phone Number ID",
         "phone_number_id_placeholder": "123456789012345",
         "business_account_id": "WhatsApp Business Account ID",
-        "business_account_id_placeholder": "789012345678901"
+        "business_account_id_placeholder": "789012345678901",
+        "status": "Activo"
       },
       "type": {
         "ai_agent": "AI Agent",

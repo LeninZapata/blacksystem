@@ -146,13 +146,6 @@ button:focus {
 
 /* Botones en grupos (statusbar) */
 .form-statusbar {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  
   button {
     min-width: 100px;
   }

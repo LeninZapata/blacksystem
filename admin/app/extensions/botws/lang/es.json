@@ -64,7 +64,8 @@
             "conversation": "Conversación",
             "image": "Análisis de imagen",
             "audio": "Análisis de audio"
-          }
+          },
+          "status": "Activo"
         }
       },
       "success": {

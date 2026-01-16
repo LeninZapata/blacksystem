@@ -31,6 +31,9 @@ class botws {
 
   // Llenar formulario
   static fillForm(formId, data) {
+    ogLogger.debug('ext:botws', 'fillForm - data completa:', data);
+    ogLogger.debug('ext:botws', 'fillForm - status recibido:', data.status, 'tipo:', typeof data.status);
+    
     const configData = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
 
     // Convertir desde bot.apis.ai[task] al formato de repeatable para agent
@@ -58,6 +61,7 @@ class botws {
       personality: data.personality || '',
       type: data.type || '',
       mode: data.mode || '',
+      status: data.status == 1,
       'config.workflow_id': configData.workflow_id ? String(configData.workflow_id) : '',
       'config.apis.agent': agentArray,
       'config.apis.chat': chatArray
@@ -161,6 +165,7 @@ class botws {
       personality: formData.personality || null,
       type: formData.type,
       mode: formData.mode,
+      status: formData.status ? 1 : 0,
       config: config
     };
   }

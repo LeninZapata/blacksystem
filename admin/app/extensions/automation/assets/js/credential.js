@@ -35,7 +35,7 @@ class credential {
   }
 
   static fillForm(formId, data) {
-    const fillData = { name: data.name, type: data.type };
+    const fillData = { name: data.name, type: data.type, status: data.status == 1 };
 
     // Si hay config, extraer los campos específicos
     if (data.config && typeof data.config === 'object') {
@@ -122,7 +122,7 @@ class credential {
       config.credential_value = formData.api_token || '';
     }
 
-    return { name: formData.name, type: formData.type, config: config };
+    return { name: formData.name, type: formData.type, status: formData.status ? 1 : 0, config: config };
   }
 
   static async create(data) {

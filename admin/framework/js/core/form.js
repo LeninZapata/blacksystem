@@ -239,12 +239,48 @@ class ogForm {
         ${schema.description ? `<p class="form-desc">${this.t(schema.description)}</p>` : ''}
 
         <form id="${schema.id}" data-form-id="${schema.id}" data-real-id="${realId}" method="post">
-          ${schema.toolbar ? `<div class="form-toolbar">${this.renderFields(schema.toolbar)}</div>` : ''}
+          ${schema.toolbar ? this.renderToolbar(schema.toolbar) : ''}
           ${schema.fields ? this.renderFields(schema.fields) : ''}
-          ${schema.statusbar ? `<div class="form-statusbar">${this.renderFields(schema.statusbar)}</div>` : ''}
+          ${schema.statusbar ? this.renderStatusbar(schema.statusbar) : ''}
         </form>
       </div>
     `;
+  }
+
+  static renderToolbar(items) {
+    const leftItems = [];
+    const rightItems = [];
+    
+    items.forEach(item => {
+      if (item.align === 'left') {
+        leftItems.push(item);
+      } else {
+        rightItems.push(item);
+      }
+    });
+    
+    const leftHtml = leftItems.length > 0 ? `<div class="toolbar-left">${this.renderFields(leftItems)}</div>` : '';
+    const rightHtml = rightItems.length > 0 ? `<div class="toolbar-right">${this.renderFields(rightItems)}</div>` : '';
+    
+    return `<div class="form-toolbar">${leftHtml}${rightHtml}</div>`;
+  }
+
+  static renderStatusbar(items) {
+    const leftItems = [];
+    const rightItems = [];
+    
+    items.forEach(item => {
+      if (item.align === 'left') {
+        leftItems.push(item);
+      } else {
+        rightItems.push(item);
+      }
+    });
+    
+    const leftHtml = leftItems.length > 0 ? `<div class="statusbar-left">${this.renderFields(leftItems)}</div>` : '';
+    const rightHtml = rightItems.length > 0 ? `<div class="statusbar-right">${this.renderFields(rightItems)}</div>` : '';
+    
+    return `<div class="form-statusbar">${leftHtml}${rightHtml}</div>`;
   }
 
   static renderFields(fields, path = '') {
@@ -1666,8 +1702,12 @@ class ogForm {
     // Primera pasada: llenar todo (o solo selects si skipRepeatables=true)
     if (skipRepeatables) {
       processFieldsForSelects(schema.fields);
+      if (schema.statusbar) processFieldsForSelects(schema.statusbar);
+      if (schema.toolbar) processFieldsForSelects(schema.toolbar);
     } else {
       processAllFields(schema.fields);
+      if (schema.statusbar) processAllFields(schema.statusbar);
+      if (schema.toolbar) processAllFields(schema.toolbar);
     }
 
     // ✅ Registrar listener SOLO UNA VEZ para reintentar seleccionar valores cuando selects carguen
@@ -1680,6 +1720,8 @@ class ogForm {
         // Solo reintentar seleccionar valores en selects, NO recrear repeatables
         const savedData = JSON.parse(formEl.dataset.formData || '{}');
         processFieldsForSelects(schema.fields);
+        if (schema.statusbar) processFieldsForSelects(schema.statusbar);
+        if (schema.toolbar) processFieldsForSelects(schema.toolbar);
       });
 
       formEl.dataset.fillListenerRegistered = 'true';

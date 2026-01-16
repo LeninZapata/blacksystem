@@ -55,12 +55,6 @@
       "validation": "max:255"
     },
     {
-      "name": "is_active",
-      "label": "i18n:automation.product_ad_assets.field.is_active",
-      "type": "checkbox",
-      "default": true
-    },
-    {
       "name": "notes",
       "label": "i18n:automation.product_ad_assets.field.notes",
       "type": "textarea",
@@ -68,7 +62,8 @@
     }
   ],
   "statusbar": [
-    {"name": "cancel", "type": "button", "label": "i18n:core.cancel", "action": "call:ogModal.closeAll", "style": "secondary"},
-    {"name": "submit", "type": "button", "label": "i18n:core.save", "action": "submit:productAdAsset.save"}
+    {"name": "is_active", "type": "checkbox", "label": "i18n:automation.product_ad_assets.field.is_active", "default": true, "align": "left"},
+    {"name": "cancel", "type": "button", "label": "i18n:core.cancel", "action": "call:ogModal.closeAll", "style": "secondary", "align": "right"},
+    {"name": "submit", "type": "button", "label": "i18n:core.save", "action": "submit:productAdAsset.save", "align": "right"}
   ]
 }

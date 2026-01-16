@@ -227,7 +227,8 @@
             "placeholder": "Ej: link-producto-principal",
             "hint": "Opcional: Código alfanumérico para referenciar esta plantilla"
           }
-        }
+        },
+        "status": "Activo"
       },
       "tab": {
         "welcome": "Bienvenida",

@@ -19,4 +19,17 @@
   &.space-between {
     justify-content: space-between;
   }
+  
+  .toolbar-left {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .toolbar-right {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-left: auto;
+  }
 }

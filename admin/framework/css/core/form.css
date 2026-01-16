@@ -82,7 +82,25 @@ textarea {
 
 .form-statusbar {
   margin-top: 1.5rem;
-  justify-content: flex-end;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  flex-wrap: wrap;
+  
+  & .statusbar-left {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  & .statusbar-right {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
 }
 
 /* ===================================

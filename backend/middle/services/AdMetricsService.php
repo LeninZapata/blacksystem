@@ -157,7 +157,7 @@ class adMetricsService {
 
   // Crear instancia del provider
   private function createProvider($platform, $credential) {
-    $basePath = ogApp()->getPath() . '/services/integrations/ads';
+    $basePath = ogCache::memoryGet('path_middle') . '/services/integrations/ads';
 
     // Mapeo de plataformas a providers
     $providerMap = [

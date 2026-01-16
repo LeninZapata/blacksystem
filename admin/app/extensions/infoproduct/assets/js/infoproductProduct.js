@@ -37,6 +37,7 @@ class infoproductProduct {
       bot_id: data.bot_id ? String(data.bot_id) : '',
       price: data.price || '',
       description: data.description || '',
+      status: data.status == 1,
       'config.welcome_triggers': configData.welcome_triggers || '',
       'config.prompt': configData.prompt || '',
       'config.welcome_messages': messagesData.welcome_messages || [],
@@ -137,6 +138,7 @@ class infoproductProduct {
       price: parseFloat(formData.price),
       name: formData.name,
       description: formData.description || null,
+      status: formData.status ? 1 : 0,
       config: Object.keys(config).length > 0 ? config : null
     };
   }
