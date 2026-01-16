@@ -12,7 +12,11 @@ estas probocando baneo al numero, hay que poner delays entre mensajes y hacerlos
 ☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
 ☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
 hacer que se ejecute al otro dia en la mañana
+☐ Agregar estatus al bot y asegurate que los follow consulten bot activos asi si pasa algo no esta jodiendo con un bot
+que esta inactivo
+☐ Baja el tiempo de todos los seguimientos.......
 FRONTEND:
+☐ ponele los acordiones active a los bienvenida/seguimiento/upsell/plantillas
 ☐ Revisa que parece que solo te acumula 100 logs maximo, habria que aumentarlo a 500 o 1000
 De a poco revisa cuales son necesarios porque hay logs no necesarios la verdad.
 ☐ algo pasa quue no se refreca los cambios del formulario ni porque le cambie de version
@@ -28,6 +32,38 @@ que ver con la version o algo asi pero los cambios de json no se reflejan
   "placeholder": "i18n:botws.bot.field.personality.placeholder",
   "rows": 8
 },
+
+☐ Revisa este error
+6 ERROR
+2026-01-16 00:00:02.434600
+app/services
+adMetricsService
+createProvider - Interface no encontrada
+AdMetricsService.php:144
+📋
+{
+  "path": "/home/kviocppc/automation/blacksystem.site/backend/app/services/integrations/ads/adProviderInterface.php"
+}
+5 ERROR
+2026-01-16 00:00:02.433200
+app/services
+adMetricsService
+createProvider - Interface no encontrada
+AdMetricsService.php:144
+📋
+{
+  "path": "/home/kviocppc/automation/blacksystem.site/backend/app/services/integrations/ads/adProviderInterface.php"
+}
+4 ERROR
+2026-01-16 00:00:02.431200
+app/services
+adMetricsService
+createProvider - Interface no encontrada
+AdMetricsService.php:144
+📋
+{
+  "path": "/home/kviocppc/automation/blacksystem.site/backend/app/services/integrations/ads/adProviderInterface.php"
+}
 Mas adelant:
 ☐ Ahora cuando guardas los datos de anuncios debe ser por timezone de la cuenta publicitaria
 con esto se evita que los datos no cuadren por el tema de las zonas horarias

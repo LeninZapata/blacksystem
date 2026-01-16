@@ -7,12 +7,34 @@ $router->group('/api/followup', function($router) {
   // GET /api/followup/pending -> Procesar y enviar
   $router->get('/pending', function() {
 
+
+
     set_time_limit(900);
     ini_set('max_execution_time', 900);
     // en el comando de CRON poner esto
     // wget --timeout=900 --tries=1 -q -O - https://url.com/api/followup/pending /dev/null 2>&1
 
     $logMeta = ['module' => 'followup', 'layer' => 'app/routes'];
+
+    // Validar horario de no molestar (22:30 - 6:00 AM)
+    $currentHour = (int)date('H');
+    $currentMinute = (int)date('i');
+    $currentTime = $currentHour + ($currentMinute / 60);
+
+    // Si está entre 22:30 (22.5) y medianoche (24.0) o entre medianoche (0.0) y 6:00 (6.0)
+    if ($currentTime >= 22.5 || $currentTime < 6.0) {
+      ogLog::info("CRON Followup - Proceso detenido por horario de no molestar", [
+        'current_hour' => date('H:i')
+      ], $logMeta);
+      
+      ogResponse::json([
+        'success' => true,
+        'message' => 'Proceso detenido por horario de no molestar (22:30 - 6:00 AM)',
+        'current_time' => date('H:i')
+      ]);
+      return;
+    }
+
     $list = ogRequest::query('list', null);
 
     ogApp()->loadHandler('followup');
@@ -21,15 +43,6 @@ $router->group('/api/followup', function($router) {
     $followups = $data['followups'];
 
     ogLog::info("CRON Followup - Iniciando proceso", [], $logMeta);
-
-    // Solo listar
-    if ($list) {
-      ogLog::info("CRON Followup - Listando followups pendientes sin procesar", [ 'total_followups' => count($followups), 'total_bots' => count($botsConfig) ], $logMeta);
-      ogResponse::json([ 'success' => true, 'total' => count($followups), 'bots' => count($botsConfig), 'followups' => $followups ]);
-      return;
-    }
-
-    // Procesar y enviar
     $sent = 0;
     $failed = 0;
     $upsellsExecuted = 0;

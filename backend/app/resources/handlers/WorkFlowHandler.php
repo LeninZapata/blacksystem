@@ -1,0 +1,43 @@
+<?php
+class WorkflowHandler {
+  private static $logMeta = ['module' => 'WorkflowHandler', 'layer' => 'app/resources'];
+
+  // Actualiza archivos workflow de todos los bots que usan este workflow
+  static function updateBotsContext($workflowId) {
+    if (!$workflowId) {
+      ogLog::warning('updateBotsContext - workflow_id no proporcionado', [], self::$logMeta);
+      return 0;
+    }
+
+    // Buscar todos los bots que usan este workflow
+    $bots = ogDb::t('bots')
+      ->where('config', 'LIKE', '%"workflow_id":"' . $workflowId . '"%')
+      ->get();
+
+    if (empty($bots)) {
+      ogLog::info('updateBotsContext - No hay bots usando workflow', [ 'workflow_id' => $workflowId ], self::$logMeta);
+      return 0;
+    }
+
+    $updated = 0;
+
+    foreach ($bots as $bot) {
+      $botNumber = $bot['number'] ?? null;
+
+      if ($botNumber) {
+        // Regenerar archivo workflow del bot
+        ogApp()->loadHandler('bot');
+        $result = BotHandler::generateWorkflowFile($botNumber, $bot, 'update');
+
+        if ($result) {
+          $updated++;
+          ogLog::info('updateBotsContext - Bot actualizado', [ 'bot_id' => $bot['id'], 'bot_number' => $botNumber, 'workflow_id' => $workflowId ], self::$logMeta);
+        }
+      }
+    }
+
+    ogLog::info('updateBotsContext - Proceso completado', [ 'workflow_id' => $workflowId, 'bots_updated' => $updated, 'bots_total' => count($bots) ], self::$logMeta);
+
+    return $updated;
+  }
+}

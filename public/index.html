@@ -1,1 +1,683 @@
-Hi!
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlackSystem - Automatización Empresarial 2026</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        :root {
+            --primary: #0a0a0f;
+            --secondary: #1a1a2e;
+            --accent: #00d9ff;
+            --accent-dark: #0099cc;
+            --text: #f0f0f0;
+            --text-secondary: #b0b0b0;
+            --ecuador-yellow: #FFD100;
+            --ecuador-blue: #0050A4;
+            --ecuador-red: #ED1C24;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--primary);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: rgba(10, 10, 15, 0.95);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .logo-circle {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.5);
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-left: 30px;
+        }
+
+        .nav-menu a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        .nav-menu a:hover {
+            color: var(--accent);
+        }
+
+        .nav-menu a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            left: 0;
+            bottom: -5px;
+            transition: width 0.3s;
+        }
+
+        .nav-menu a:hover::after {
+            width: 100%;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        /* Ecuador Badge */
+        .ecuador-badge {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(90deg, var(--ecuador-blue), var(--ecuador-yellow), var(--ecuador-red));
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .ecuador-badge i {
+            margin-right: 8px;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 0 100px;
+            background: radial-gradient(circle at 30% 20%, rgba(26, 26, 46, 0.8) 0%, rgba(10, 10, 15, 1) 70%);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--accent), #ffffff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 40px;
+            color: var(--text-secondary);
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: var(--primary);
+            padding: 15px 35px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 217, 255, 0.3);
+            margin-top: 20px;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 217, 255, 0.5);
+        }
+
+        .whatsapp-button {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            margin-left: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        /* Sections */
+        section {
+            padding: 100px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+            font-size: 2.5rem;
+            color: var(--accent);
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 3px;
+            background: var(--accent);
+            margin: 15px auto;
+            border-radius: 2px;
+        }
+
+        /* Services */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .service-card {
+            background-color: var(--secondary);
+            border-radius: 15px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(0, 217, 255, 0.1);
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 217, 255, 0.1);
+            border-color: rgba(0, 217, 255, 0.3);
+        }
+
+        .service-icon {
+            font-size: 3.5rem;
+            color: var(--accent);
+            margin-bottom: 25px;
+        }
+
+        .service-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--text);
+        }
+
+        .service-card p {
+            color: var(--text-secondary);
+        }
+
+        /* About */
+        .about-content {
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+
+        .about-text {
+            flex: 1;
+        }
+
+        .about-image {
+            flex: 1;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            border-radius: 15px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8rem;
+            color: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ecuador-flag {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            width: 80px;
+            height: 60px;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .flag-stripe {
+            flex: 1;
+        }
+
+        .flag-yellow { background-color: var(--ecuador-yellow); }
+        .flag-blue { background-color: var(--ecuador-blue); }
+        .flag-red { background-color: var(--ecuador-red); }
+
+        /* Contact */
+        .contact-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .contact-item {
+            text-align: center;
+            padding: 30px;
+            background-color: var(--secondary);
+            border-radius: 15px;
+        }
+
+        .contact-icon {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .whatsapp-contact {
+            background: linear-gradient(135deg, rgba(37, 211, 102, 0.1), rgba(18, 140, 126, 0.1));
+            border: 1px solid rgba(37, 211, 102, 0.3);
+        }
+
+        .phone-number {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin: 10px 0;
+        }
+
+        /* Privacy Policy */
+        .privacy-policy {
+            background-color: var(--secondary);
+            padding: 50px 0;
+            margin-top: 50px;
+        }
+
+        .privacy-content {
+            max-width: 900px;
+            margin: 0 auto;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .privacy-content h3 {
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .privacy-content p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            padding: 30px 0;
+            text-align: center;
+            background-color: var(--primary);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(0, 217, 255, 0.1);
+        }
+
+        .copyright {
+            margin-top: 10px;
+        }
+
+        .footer-location {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+            color: var(--ecuador-yellow);
+        }
+
+        .footer-location i {
+            margin-right: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                position: fixed;
+                top: 80px;
+                left: -100%;
+                flex-direction: column;
+                background-color: var(--secondary);
+                width: 100%;
+                text-align: center;
+                transition: 0.3s;
+                padding: 20px 0;
+                border-top: 1px solid rgba(0, 217, 255, 0.1);
+            }
+
+            .nav-menu.active {
+                left: 0;
+            }
+
+            .nav-menu li {
+                margin: 15px 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .about-content {
+                flex-direction: column;
+            }
+
+            .about-image {
+                width: 100%;
+            }
+
+            .button-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .button-group a {
+                width: 100%;
+                max-width: 300px;
+                text-align: center;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="container nav-container">
+            <a href="#home" class="logo">
+                <div class="logo-circle">BS</div>
+                BlackSystem
+            </a>
+            
+            <div class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </div>
+            
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home">Inicio</a></li>
+                <li><a href="#services">Servicios</a></li>
+                <li><a href="#about">Nosotros</a></li>
+                <li><a href="#contact">Contacto</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <h1>Automatización Empresarial 2026</h1>
+            <p>Optimizamos tus procesos con soluciones avanzadas de automatización utilizando n8n y WhatsApp API. Aumenta la productividad y reduce costos operativos.</p>
+            
+            <div class="ecuador-badge">
+                <i class="fas fa-map-marker-alt"></i>
+                Servimos a todo Ecuador desde 2023
+            </div>
+            
+            <div class="button-group">
+                <a href="#contact" class="cta-button">Solicitar Demo</a>
+                <a href="https://wa.me/593978745575?text=Hola%20BlackSystem,%20estoy%20interesado%20en%20sus%20servicios%20de%20automatización" target="_blank" class="cta-button whatsapp-button">
+                    <i class="fab fa-whatsapp"></i> WhatsApp: 593 978745575
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services">
+        <div class="container">
+            <h2 class="section-title">Nuestros Servicios</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>Automatización con n8n</h3>
+                    <p>Desarrollamos flujos de trabajo personalizados con n8n para conectar tus aplicaciones y automatizar procesos empresariales complejos, desde CRM hasta gestión de inventarios.</p>
+                </div>
+                
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <h3>WhatsApp Business API</h3>
+                    <p>Integramos WhatsApp API para automatizar atención al cliente, envío de notificaciones, recordatorios y ventas, mejorando la comunicación con tus clientes en Ecuador.</p>
+                </div>
+                
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3>Soluciones Empresariales</h3>
+                    <p>Desarrollamos sistemas completos de automatización que se adaptan a las necesidades específicas de tu empresa en el mercado ecuatoriano, escalables y de alto rendimiento.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about">
+        <div class="container">
+            <h2 class="section-title">Sobre BlackSystem Ecuador</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>En <strong>BlackSystem</strong>, nos especializamos en transformar operaciones empresariales mediante soluciones de automatización inteligente. Desde 2023, hemos ayudado a más de 80 empresas ecuatorianas a optimizar sus procesos.</p>
+                    <br>
+                    <p>Nuestro equipo de expertos en n8n y WhatsApp API desarrolla integraciones personalizadas que se adaptan a las necesidades únicas de cada cliente en el mercado ecuatoriano, garantizando una implementación rápida y resultados medibles.</p>
+                    <br>
+                    <p>En el entorno empresarial de 2026, la automatización ya no es una opción, sino una necesidad competitiva. Nos posicionamos a la vanguardia tecnológica para ofrecer las soluciones más avanzadas adaptadas a la realidad empresarial de Ecuador.</p>
+                    <br>
+                    <div class="ecuador-badge">
+                        <i class="fas fa-globe-americas"></i>
+                        Tecnología global, implementación local
+                    </div>
+                </div>
+                <div class="about-image">
+                    <i class="fas fa-brain-circuit"></i>
+                    <div class="ecuador-flag">
+                        <div class="flag-stripe flag-yellow"></div>
+                        <div class="flag-stripe flag-blue"></div>
+                        <div class="flag-stripe flag-red"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact">
+        <div class="container">
+            <h2 class="section-title">Contáctanos en Ecuador</h2>
+            <p style="text-align: center; max-width: 700px; margin: 0 auto 50px; color: var(--text-secondary);">
+                ¿Listo para automatizar tu empresa? Contáctanos para una consulta gratuita y descubre cómo nuestras soluciones pueden transformar tus operaciones en el mercado ecuatoriano.
+            </p>
+            
+            <div class="contact-info">
+                <div class="contact-item whatsapp-contact">
+                    <div class="contact-icon">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <h3>WhatsApp Directo</h3>
+                    <p>Comunícate directamente con nuestro equipo de soporte:</p>
+                    <div class="phone-number">+593 978 745 575</div>
+                    <p>Disponible de Lunes a Viernes 9:00 - 18:00</p>
+                    <a href="https://wa.me/593978745575?text=Hola%20BlackSystem%20Ecuador,%20necesito%20información%20sobre%20automatización" target="_blank" class="cta-button whatsapp-button" style="margin-top: 15px; padding: 10px 20px; font-size: 0.9rem;">
+                        <i class="fab fa-whatsapp"></i> Escribir por WhatsApp
+                    </a>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Email</h3>
+                    <p>info@blacksystem-ec.com</p>
+                    <p>soporte@blacksystem-ec.com</p>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3>Ubicación</h3>
+                    <p>Servimos a todo Ecuador</p>
+                    <p>Quito, Guayaquil, Cuenca, Manta</p>
+                    <p>Consultas remotas y presenciales</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Privacy Policy Section -->
+    <section class="privacy-policy">
+        <div class="container">
+            <div class="privacy-content">
+                <h3>Políticas de Privacidad - BlackSystem Ecuador 2026</h3>
+                <p>En BlackSystem Ecuador, nos comprometemos a proteger la privacidad de nuestros clientes según las regulaciones de protección de datos aplicables en Ecuador. Esta política describe cómo recopilamos, usamos y protegemos la información que nos proporcionas.</p>
+                
+                <p><strong>Información recopilada:</strong> Recopilamos información que nos proporcionas directamente, como nombre, correo electrónico, datos de empresa y necesidades específicas de automatización.</p>
+                
+                <p><strong>Uso de la información:</strong> Utilizamos tu información para proporcionar y mejorar nuestros servicios, comunicarnos contigo sobre actualizaciones y ofrecer soporte técnico adaptado al mercado ecuatoriano.</p>
+                
+                <p><strong>Protección de datos:</strong> Implementamos medidas de seguridad técnicas y organizativas para proteger tus datos contra accesos no autorizados, alteración o destrucción, cumpliendo con los estándares de seguridad internacionales.</p>
+                
+                <p><strong>Cookies y tecnologías similares:</strong> Nuestro sitio web puede utilizar cookies para mejorar la experiencia del usuario y analizar el tráfico del sitio.</p>
+                
+                <p><strong>Actualizaciones:</strong> Esta política puede actualizarse periódicamente. La versión actualizada se publicará en esta página con la fecha de revisión correspondiente.</p>
+                
+                <p>Última actualización: Enero 2026 - Quito, Ecuador</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="logo" style="justify-content: center; margin-bottom: 20px;">
+                <div class="logo-circle">BS</div>
+                BlackSystem Ecuador
+            </div>
+            
+            <div class="footer-location">
+                <i class="fas fa-map-pin"></i>
+                <span>Serviendo a empresas ecuatorianas desde 2023</span>
+            </div>
+            
+            <p>Soluciones de automatización empresarial con n8n y WhatsApp API</p>
+            <div class="phone-number" style="font-size: 1.1rem; margin: 15px 0;">+593 978 745 575</div>
+            <div class="copyright">
+                &copy; 2026 BlackSystem Ecuador. Todos los derechos reservados.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navMenu = document.getElementById('navMenu');
+        
+        mobileMenuBtn.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            mobileMenuBtn.innerHTML = navMenu.classList.contains('active') 
+                ? '<i class="fas fa-times"></i>' 
+                : '<i class="fas fa-bars"></i>';
+        });
+        
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('.nav-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                navMenu.classList.remove('active');
+                mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            });
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if(targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if(targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // WhatsApp click tracking
+        document.querySelectorAll('.whatsapp-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // Aquí podrías añadir Google Analytics o otro tracking
+                console.log('WhatsApp click desde: ' + this.innerText);
+            });
+        });
+    </script>
+</body>
+</html>
