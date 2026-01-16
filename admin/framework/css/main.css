@@ -7,7 +7,6 @@
 @import url('./core/view.css');
 @import url('./core/table.css');
 @import url('./core/button.css');
-@import url('./core/auth.css');
 @import url('./core/toolbar.css');
 
 
@@ -19,6 +18,7 @@
 @import url('./components/toast.css');
 @import url('./components/langSelector.css');
 @import url('./components/grouper.css');
+@import url('./components/textareaExpander.css');
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

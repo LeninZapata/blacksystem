@@ -1,5 +1,8 @@
+/* ===================================
+   Estilos Base del Formulario
+   ================================= */
 .form-container {
-  padding: 1rem;
+  padding: 0.3rem 1.2rem;  
 }
 
 .form-desc {
@@ -9,23 +12,30 @@
 
 .form-group {
   margin-bottom: 1rem;
+  line-height: 1;
+  & .form-hint{
+    line-height: 3px;
+    font-size: 0.755rem;
+    color: var(--gray-700);
+  }
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.2rem;
   font-weight: 600;
   color: #333;
+  font-size: .95rem;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.4rem 0.7rem;
   border: 1px solid #ddd;
   border-radius: 0.375rem;
-  font-size: 1rem;
+  font-size: .95rem;
 }
 
 .form-group input:focus,
@@ -50,9 +60,12 @@
 
 textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 52px;
 }
 
+/* ===================================
+   Toolbars y Statusbar
+   ================================= */
 .form-toolbar,
 .form-statusbar {
   display: flex;
@@ -72,81 +85,9 @@ textarea {
   justify-content: flex-end;
 }
 
-.form-container {
-  padding: 1rem;
-}
-
-.form-desc {
-  color: #666;
-  margin-bottom: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-}
-
-.form-checkbox label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-weight: normal;
-}
-
-.form-checkbox input {
-  width: auto;
-}
-
-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.form-toolbar,
-.form-statusbar {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.form-toolbar {
-  margin-bottom: 1.5rem;
-}
-
-.form-statusbar {
-  margin-top: 1.5rem;
-  justify-content: flex-end;
-}
-
-/* ✅ NUEVO: Estilos para repetibles */
+/* ===================================
+   Repetibles
+   ================================= */
 .form-repeatable {
   margin-bottom: 1.5rem;
   padding: 1rem;
@@ -182,7 +123,6 @@ textarea {
   font-weight: normal;
 }
 
-
 .repeatable-items {
   display: flex;
   flex-direction: column;
@@ -191,7 +131,7 @@ textarea {
 
 .repeatable-item {
   display: flex;
-  gap: 1rem;
+  gap: 0;
   padding: 1rem;
   background: white;
   border: 1px solid #ddd;
@@ -202,10 +142,9 @@ textarea {
   flex: 1;
 }
 
-.repeatable-remove {
-  align-self: flex-start;
-}
-
+/* ===================================
+   Botones
+   ================================= */
 .btn-sm {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
@@ -223,7 +162,9 @@ textarea {
   background: #c0392b;
 }
 
-/* Estilos para repetibles anidados */
+/* ===================================
+   Repetibles Anidados
+   ================================= */
 .repeatable-item .form-repeatable {
   margin-left: 1rem;
   margin-top: 1rem;
@@ -251,23 +192,21 @@ textarea {
 }
 
 /* ===================================
-   Acordeón en Repetables (Minimalista)
+   Acordeón en Repetables
    ================================= */
-
-/* Items con header (acordeón o simple) */
 .repeatable-item.repeatable-item-accordion,
 .repeatable-item.repeatable-item-with-header {
   border: 1px solid #ddd;
   flex-direction: column;
   padding: 0;
+  position: relative;
 }
 
-/* Header del item con acordeón */
 .repeatable-item-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.2rem 1rem;
   background: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   border-radius: 0.375rem 0.375rem 0 0;
@@ -289,11 +228,24 @@ textarea {
   flex: 1;
 }
 
-/* Acciones del header (toggle + botón eliminar) */
 .repeatable-item-header-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.repeatable-item-header .repeatable-remove {
+  align-self: center;
+}
+
+.repeatable-item-header .repeatable-remove.btn-danger {
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  background: transparent;
+}
+
+.repeatable-item-header .repeatable-remove.btn-sm {
+  padding: 1px 10px;
 }
 
 .repeatable-toggle {
@@ -302,25 +254,17 @@ textarea {
   transition: transform 0.2s;
 }
 
-/* Body del acordeón */
 .repeatable-item-body {
   padding: 1rem;
 }
 
-/* Content para header simple */
 .repeatable-item.repeatable-item-with-header .repeatable-content {
   padding: 1rem;
 }
 
-/* Item colapsado */
 .repeatable-item.collapsed .repeatable-item-header {
   border-radius: 0.375rem;
   border-bottom: none;
-}
-
-/* Evitar que el botón eliminar dispare el toggle */
-.repeatable-item-header-actions .repeatable-remove {
-  pointer-events: auto;
 }
 
 .repeatable-item-header.clickable .repeatable-remove {
@@ -328,9 +272,8 @@ textarea {
 }
 
 /* ===================================
-   Drag and Drop (Minimalista)
+   Drag and Drop
    ================================= */
-
 .repeatable-drag-handle {
   cursor: move;
   color: #6c757d;
@@ -351,38 +294,26 @@ textarea {
   opacity: 0.3;
 }
 
-/* Asegurar que los items con header tengan position relative */
-.repeatable-item.repeatable-item-accordion,
-.repeatable-item.repeatable-item-with-header {
-  position: relative;
-}
-
 /* ===================================
    Grupos de Campos (Field Groups)
    ================================= */
-
-/* Contenedor base de grupos */
 .form-group-cols {
   display: grid;
   margin-bottom: 1rem;
 }
 
-/* Grid de 2 columnas */
 .form-group-cols-2 {
   grid-template-columns: repeat(2, 1fr);
 }
 
-/* Grid de 3 columnas */
 .form-group-cols-3 {
   grid-template-columns: repeat(3, 1fr);
 }
 
-/* Grid de 4 columnas */
 .form-group-cols-4 {
   grid-template-columns: repeat(4, 1fr);
 }
 
-/* Espaciado entre campos */
 .form-group-gap-small {
   gap: 0.5rem;
 }
@@ -395,16 +326,26 @@ textarea {
   gap: 1.5rem;
 }
 
-/* Los campos dentro del grupo no necesitan margin-bottom */
 .form-group-cols > .form-group {
   margin-bottom: 0;
 }
 
+/* ===================================
+   Validación y Errores
+   ================================= */
 .form-group.has-error input,
 .form-group.has-error select,
 .form-group.has-error textarea {
   border-color: #dc3545;
   background-color: #fff5f5;
+}
+
+.form-group.has-error input:focus,
+.form-group.has-error select:focus,
+.form-group.has-error textarea:focus {
+  outline: none;
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .form-error {
@@ -419,17 +360,24 @@ textarea {
 }
 
 /* ===================================
+   Campos Requeridos
+   ================================= */
+.form-required {
+  color: #e74c3c;
+  margin-left: 2px;
+  font-weight: bold;
+}
+
+.form-group label span[style*="color: #e74c3c"] {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+/* ===================================
    Responsive
    ================================= */
-
-/* Tablets (< 1024px) */
 @media (max-width: 1024px) {
-  /* 4 columnas → 2 columnas */
-  .form-group-cols-4 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  /* 3 columnas → 2 columnas */
+  .form-group-cols-4,
   .form-group-cols-3 {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -443,19 +391,15 @@ textarea {
   .repeatable-header .btn {
     width: 100%;
   }
-
 }
 
-/* Móviles (< 768px) */
 @media (max-width: 768px) {
-  /* Todas las columnas → 1 columna */
   .form-group-cols-2,
   .form-group-cols-3,
   .form-group-cols-4 {
     grid-template-columns: 1fr;
   }
   
-  /* En móvil, mantener spacing normal */
   .form-group-cols > .form-group {
     margin-bottom: 1rem;
   }
@@ -465,7 +409,6 @@ textarea {
   }
 }
 
-/* Móviles pequeños (< 480px) */
 @media (max-width: 480px) {
   .form-group-gap-large {
     gap: 1rem;
@@ -474,27 +417,4 @@ textarea {
   .form-group-gap-normal {
     gap: 0.75rem;
   }
-}
-/* Asterisco de campos requeridos */
-.form-required {
-  color: #e74c3c;
-  margin-left: 2px;
-  font-weight: bold;
-}
-
-/* Compatibilidad con estilo inline anterior */
-.form-group label span[style*="color: #e74c3c"] {
-  font-weight: bold;
-  font-size: 1.1em;
-}
-/* ===================================
-   Validación - Estilos de Error Focus
-   ================================= */
-
-.form-group.has-error input:focus,
-.form-group.has-error select:focus,
-.form-group.has-error textarea:focus {
-  outline: none;
-  border-color: #dc3545;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }

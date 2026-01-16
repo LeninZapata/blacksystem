@@ -1033,6 +1033,9 @@ class ogForm {
     if (field.accordionSingle !== undefined) {
       container.dataset.accordionSingle = field.accordionSingle;
     }
+    if (field.accordionOpenFirst !== undefined) {
+      container.dataset.accordionOpenFirst = field.accordionOpenFirst;
+    }
     if (field.sortable !== undefined) {
       container.dataset.sortable = field.sortable;
     }
@@ -1214,6 +1217,7 @@ class ogForm {
     const headerTitle = container.dataset.headerTitle || 'Item #{index}';
     const removeText = container.dataset.removeText || __('core.form.repeatable.remove') || 'Eliminar';
     const accordionSingle = container.dataset.accordionSingle === 'true';
+    const accordionOpenFirst = container.dataset.accordionOpenFirst === 'true';
     const sortable = container.dataset.sortable === 'true';
 
     // 3. Construir el path del item
@@ -1280,7 +1284,7 @@ class ogForm {
             <span class="repeatable-item-title">${processedTitle}</span>
             ${headerActions}
           </div>
-          <div class="${contentClass}" ${accordion ? 'style="display:block"' : ''}>
+          <div class="${contentClass}" ${accordion ? 'style="display:none"' : ''}>
             ${contentHtml}
           </div>
         </div>
@@ -1303,25 +1307,30 @@ class ogForm {
     container.insertAdjacentHTML('beforeend', itemHtml);
     container.dataset.itemCount = (newIndex + 1).toString();
 
-    // Si accordionSingle está activo, cerrar todos los otros items del mismo nivel
-    if (accordionSingle && accordion) {
-      const addedItem = container.lastElementChild;
-      const allItems = container.querySelectorAll(':scope > .repeatable-item');
+    // Obtener el item recién agregado
+    const addedItem = container.lastElementChild;
+
+    // Cerrar el item recién agregado (por defecto todos empiezan cerrados)
+    if (accordion && addedItem) {
+      const body = addedItem.querySelector('.repeatable-item-body');
+      const toggle = addedItem.querySelector('.repeatable-toggle');
       
-      allItems.forEach(item => {
-        if (item !== addedItem) {
-          const body = item.querySelector('.repeatable-item-body');
-          const toggle = item.querySelector('.repeatable-toggle');
-          
-          if (body) {
-            body.style.display = 'none';
-            if (toggle) {
-              toggle.textContent = '▶';
-            }
-            item.classList.add('collapsed');
-          }
+      if (body) {
+        body.style.display = 'none';
+        if (toggle) {
+          toggle.textContent = '▶';
         }
-      });
+        addedItem.classList.add('collapsed');
+      }
+
+      // Si accordionOpenFirst está activo y es el primer item (index 0), abrirlo
+      if (accordionOpenFirst && newIndex === 0) {
+        body.style.display = 'block';
+        if (toggle) {
+          toggle.textContent = '▼';
+        }
+        addedItem.classList.remove('collapsed');
+      }
     }
 
     // 🚨 VERIFICAR IDS DUPLICADOS
@@ -1335,7 +1344,6 @@ class ogForm {
     });
 
     // 8. Aplicar valores por defecto a los campos
-    const addedItem = container.lastElementChild;
     if (addedItem) {
       fieldSchema.forEach(field => {
         if (field.defaultValue !== undefined && field.defaultValue !== null) {
@@ -1778,6 +1786,48 @@ class ogForm {
       if (subField.type === 'repeatable') {
         // RECURSIÓN: Llenar repeatable anidado
         this.fillRepeatable(currentItem, subField, itemData, itemPath);
+
+      } else if (subField.type === 'group' && subField.fields) {
+        // RECURSIÓN: Procesar campos dentro del group
+        subField.fields.forEach(groupField => {
+          const value = itemData[groupField.name];
+
+          if (value === undefined || value === null) {
+            return;
+          }
+
+          const inputName = `${itemPath}.${groupField.name}`;
+          const input = currentItem.querySelector(`[name="${inputName}"]`);
+
+          if (input) {
+            if (input.tagName === 'SELECT' && input.dataset.source) {
+              input.dataset.pendingValue = JSON.stringify(value);
+              
+              if (input.options.length > 1) {
+                this.setInputValue(input, value, true);
+              } else {
+                const waitForLoad = (e) => {
+                  if (e.target === input || e.detail?.selectId === input.id) {
+                    const pendingValue = input.dataset.pendingValue;
+                    if (pendingValue) {
+                      try {
+                        const val = JSON.parse(pendingValue);
+                        this.setInputValue(input, val, true);
+                        delete input.dataset.pendingValue;
+                      } catch (err) {
+                        this.setInputValue(input, pendingValue, true);
+                      }
+                    }
+                    input.removeEventListener('select:afterLoad', waitForLoad);
+                  }
+                };
+                input.addEventListener('select:afterLoad', waitForLoad);
+              }
+            } else {
+              this.setInputValue(input, value, true);
+            }
+          }
+        });
 
       } else {
         // Campo normal

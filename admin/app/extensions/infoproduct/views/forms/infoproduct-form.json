@@ -4,61 +4,69 @@
   "description": "i18n:infoproduct.products.form.description",
   "fields": [
     {
-      "name": "name",
-      "label": "i18n:infoproduct.products.field.name",
-      "type": "text",
-      "validation": "required|min:3|max:200",
-      "placeholder": "i18n:infoproduct.products.field.name.placeholder"
-    },
-    {
-      "name": "bot_id",
-      "label": "i18n:infoproduct.products.field.bot",
-      "type": "select",
-      "required": true,
-      "validation": "required",
-      "source": "/api/bot",
-      "sourceValue": "id",
-      "sourceLabel": "name",
-      "options": [
+      "type": "group",
+      "columns": 3,
+      "gap": "normal",
+      "fields": [
         {
-          "value": "",
-          "label": "i18n:core.form.select.placeholder"
+          "name": "name",
+          "label": "i18n:infoproduct.products.field.name",
+          "type": "text",
+          "validation": "required|min:3|max:200",
+          "placeholder": "i18n:infoproduct.products.field.name.placeholder"
+        },
+        {
+          "name": "price",
+          "label": "i18n:infoproduct.products.field.price",
+          "type": "text",
+          "required": true,
+          "validation": "required|decimal|min:0",
+          "placeholder": "i18n:infoproduct.products.field.price.placeholder"
+        },
+        {
+          "name": "bot_id",
+          "label": "i18n:infoproduct.products.field.bot",
+          "type": "select",
+          "required": true,
+          "validation": "required",
+          "source": "/api/bot",
+          "sourceValue": "id",
+          "sourceLabel": "name",
+          "options": [
+            {
+              "value": "",
+              "label": "i18n:core.form.select.placeholder"
+            }
+          ]
         }
       ]
     },
     {
-      "name": "price",
-      "label": "i18n:infoproduct.products.field.price",
-      "type": "text",
-      "required": true,
-      "validation": "required|decimal|min:0",
-      "placeholder": "i18n:infoproduct.products.field.price.placeholder"
-    },
-    {
-      "name": "description",
-      "label": "i18n:infoproduct.products.field.description",
-      "type": "textarea",
-      "validation": "max:2500|required",
-      "placeholder": "i18n:infoproduct.products.field.description.placeholder",
-      "hint": "i18n:infoproduct.products.field.description.hint",
-      "rows": 4
-    },
-    {
-      "name": "config.welcome_triggers",
-      "label": "i18n:infoproduct.products.field.welcome_triggers",
-      "type": "text",
-      "validation": "max:200|required",
-      "placeholder": "i18n:infoproduct.products.field.welcome_triggers.placeholder",
-      "hint": "i18n:infoproduct.products.field.welcome_triggers.hint"
-    },
-    {
-      "name": "config.prompt",
-      "label": "i18n:infoproduct.products.field.prompt",
-      "type": "textarea",
-      "validation": "max:550",
-      "placeholder": "i18n:infoproduct.products.field.prompt.placeholder",
-      "hint": "i18n:infoproduct.products.field.prompt.hint",
-      "rows": 8
+      "type": "group",
+      "columns": 2,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "description",
+          "label": "i18n:infoproduct.products.field.description",
+          "type": "textarea",
+          "validation": "max:2500|required",
+          "placeholder": "i18n:infoproduct.products.field.description.placeholder",
+          "hint": "i18n:infoproduct.products.field.description.hint",
+          "rows": 2,
+          "className": "textarea-expandable"
+        },
+        {
+          "name": "config.prompt",
+          "label": "i18n:infoproduct.products.field.prompt",
+          "type": "textarea",
+          "validation": "max:550",
+          "placeholder": "i18n:infoproduct.products.field.prompt.placeholder",
+          "hint": "i18n:infoproduct.products.field.prompt.hint",
+          "rows": 2,
+          "className": "textarea-expandable"
+        }
+      ]
     },
     {
       "name": "config.messages",
@@ -71,9 +79,21 @@
           "title": "i18n:infoproduct.products.tab.welcome",
           "fields": [
             {
+              "name": "config.welcome_triggers",
+              "label": "i18n:infoproduct.products.field.welcome_triggers",
+              "type": "text",
+              "validation": "max:200|required",
+              "placeholder": "i18n:infoproduct.products.field.welcome_triggers.placeholder"
+            },
+            {
               "name": "config.welcome_messages",
               "label": "i18n:infoproduct.products.field.welcome_messages",
               "type": "repeatable",
+              "accordion": true,
+              "accordionSingle": true,
+              "sortable": true,
+              "hasHeader": true,
+              "headerTitle": "Mensaje #{index}",
               "buttonPosition": "bottom",
               "addText": "i18n:infoproduct.products.field.welcome_messages.add",
               "removeText": "i18n:core.form.repeatable.remove",
@@ -84,30 +104,38 @@
                   "type": "textarea",
                   "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.welcome_messages.message.placeholder",
-                  "rows": 3
+                  "rows": 2,
+                  "className": "textarea-expandable"
                 },
                 {
-                  "name": "type",
-                  "label": "i18n:infoproduct.products.field.welcome_messages.type",
-                  "type": "select",
-                  "options": [
+                  "type": "group",
+                  "columns": 2,
+                  "gap": "normal",
+                  "fields": [
                     {
-                      "value": "text",
-                      "label": "i18n:infoproduct.products.field.welcome_messages.type.text"
+                      "name": "type",
+                      "label": "i18n:infoproduct.products.field.welcome_messages.type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "text",
+                          "label": "i18n:infoproduct.products.field.welcome_messages.type.text"
+                        },
+                        {
+                          "value": "media",
+                          "label": "i18n:infoproduct.products.field.welcome_messages.type.media"
+                        }
+                      ]
                     },
                     {
-                      "value": "media",
-                      "label": "i18n:infoproduct.products.field.welcome_messages.type.media"
+                      "name": "delay",
+                      "label": "i18n:infoproduct.products.field.welcome_messages.delay",
+                      "type": "text",
+                      "validation": "numeric|min:0|max:999",
+                      "placeholder": "i18n:infoproduct.products.field.welcome_messages.delay.placeholder",
+                      "defaultValue": "3"
                     }
                   ]
-                },
-                {
-                  "name": "delay",
-                  "label": "i18n:infoproduct.products.field.welcome_messages.delay",
-                  "type": "text",
-                  "validation": "numeric|min:0|max:999",
-                  "placeholder": "i18n:infoproduct.products.field.welcome_messages.delay.placeholder",
-                  "defaultValue": "3"
                 },
                 {
                   "name": "url",
@@ -130,6 +158,11 @@
               "name": "config.welcome_messages_upsell",
               "label": "i18n:infoproduct.products.field.welcome_messages_upsell",
               "type": "repeatable",
+              "accordion": true,
+              "accordionSingle": true,
+              "sortable": true,
+              "hasHeader": true,
+              "headerTitle": "Mensaje Upsell #{index}",
               "buttonPosition": "bottom",
               "addText": "i18n:infoproduct.products.field.welcome_messages_upsell.add",
               "removeText": "i18n:core.form.repeatable.remove",
@@ -140,30 +173,38 @@
                   "type": "textarea",
                   "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.message.placeholder",
-                  "rows": 3
+                  "rows": 2,
+                  "className": "textarea-expandable"
                 },
                 {
-                  "name": "type",
-                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type",
-                  "type": "select",
-                  "options": [
+                  "type": "group",
+                  "columns": 2,
+                  "gap": "normal",
+                  "fields": [
                     {
-                      "value": "text",
-                      "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.text"
+                      "name": "type",
+                      "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "text",
+                          "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.text"
+                        },
+                        {
+                          "value": "media",
+                          "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.media"
+                        }
+                      ]
                     },
                     {
-                      "value": "media",
-                      "label": "i18n:infoproduct.products.field.welcome_messages_upsell.type.media"
+                      "name": "delay",
+                      "label": "i18n:infoproduct.products.field.welcome_messages_upsell.delay",
+                      "type": "text",
+                      "validation": "numeric|min:0|max:999",
+                      "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.delay.placeholder",
+                      "defaultValue": "3"
                     }
                   ]
-                },
-                {
-                  "name": "delay",
-                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.delay",
-                  "type": "text",
-                  "validation": "numeric|min:0|max:999",
-                  "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.delay.placeholder",
-                  "defaultValue": "3"
                 },
                 {
                   "name": "url",
@@ -192,6 +233,11 @@
               "name": "config.tracking_messages",
               "label": "i18n:infoproduct.products.field.tracking_messages",
               "type": "repeatable",
+              "accordion": true,
+              "accordionSingle": true,
+              "sortable": true,
+              "hasHeader": true,
+              "headerTitle": "Seguimiento #{index}",
               "buttonPosition": "bottom",
               "addText": "i18n:infoproduct.products.field.tracking_messages.add",
               "removeText": "i18n:core.form.repeatable.remove",
@@ -211,26 +257,107 @@
                   "type": "textarea",
                   "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages.message.placeholder",
-                  "rows": 3
+                  "rows": 2,
+                  "className": "textarea-expandable"
                 },
                 {
-                  "name": "instruction",
-                  "label": "i18n:infoproduct.products.field.tracking_messages.instruction",
-                  "type": "text",
-                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.instruction.placeholder"
-                },
-                {
-                  "name": "type",
-                  "label": "i18n:infoproduct.products.field.tracking_messages.type",
-                  "type": "select",
-                  "options": [
+                  "type": "group",
+                  "columns": 3,
+                  "gap": "normal",
+                  "fields": [
                     {
-                      "value": "text",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.type.text"
+                      "name": "time_type",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "minuto",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.time_type.minute"
+                        },
+                        {
+                          "value": "hora",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.time_type.hour"
+                        },
+                        {
+                          "value": "dia",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.time_type.day"
+                        },
+                        {
+                          "value": "esta_noche",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.time_type.tonight"
+                        },
+                        {
+                          "value": "fin_semana",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.time_type.weekend"
+                        },
+                        {
+                          "value": "quincena_actual",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.time_type.current_fortnight"
+                        },
+                        {
+                          "value": "inicio_mes_proximo",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.time_type.next_month_start"
+                        }
+                      ]
                     },
                     {
-                      "value": "media",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.type.media"
+                      "name": "time_value",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.time_value",
+                      "type": "text",
+                      "validation": "numeric|min:0|max:99",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages.time_value.placeholder",
+                      "defaultValue": "1",
+                      "condition": [
+                        {
+                          "field": "time_type",
+                          "operator": "not-any",
+                          "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    },
+                    {
+                      "name": "hour",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.hour",
+                      "type": "time",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages.hour.placeholder",
+                      "defaultValue": "20:00",
+                      "condition": [
+                        {
+                          "field": "time_type",
+                          "operator": "not-any",
+                          "value": "hora,minuto"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "columns": 2,
+                  "gap": "normal",
+                  "fields": [
+                    {
+                      "name": "instruction",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.instruction",
+                      "type": "text",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages.instruction.placeholder"
+                    },
+                    {
+                      "name": "type",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "text",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.type.text"
+                        },
+                        {
+                          "value": "media",
+                          "label": "i18n:infoproduct.products.field.tracking_messages.type.media"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -248,72 +375,6 @@
                     }
                   ],
                   "conditionContext": "repeatable"
-                },
-                {
-                  "name": "time_type",
-                  "label": "i18n:infoproduct.products.field.tracking_messages.time_type",
-                  "type": "select",
-                  "options": [
-                    {
-                      "value": "minuto",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.minute"
-                    },
-                    {
-                      "value": "hora",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.hour"
-                    },
-                    {
-                      "value": "dia",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.day"
-                    },
-                    {
-                      "value": "esta_noche",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.tonight"
-                    },
-                    {
-                      "value": "fin_semana",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.weekend"
-                    },
-                    {
-                      "value": "quincena_actual",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.current_fortnight"
-                    },
-                    {
-                      "value": "inicio_mes_proximo",
-                      "label": "i18n:infoproduct.products.field.tracking_messages.time_type.next_month_start"
-                    }
-                  ]
-                },
-                {
-                  "name": "time_value",
-                  "label": "i18n:infoproduct.products.field.tracking_messages.time_value",
-                  "type": "text",
-                  "validation": "numeric|min:0|max:99",
-                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.time_value.placeholder",
-                  "defaultValue": "1",
-                  "condition": [
-                    {
-                      "field": "time_type",
-                      "operator": "not-any",
-                      "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"
-                    }
-                  ],
-                  "conditionContext": "repeatable"
-                },
-                {
-                  "name": "hour",
-                  "label": "i18n:infoproduct.products.field.tracking_messages.hour",
-                  "type": "time",
-                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.hour.placeholder",
-                  "defaultValue": "20:00",
-                  "condition": [
-                    {
-                      "field": "time_type",
-                      "operator": "not-any",
-                      "value": "hora,minuto"
-                    }
-                  ],
-                  "conditionContext": "repeatable"
                 }
               ]
             },
@@ -321,6 +382,11 @@
               "name": "config.tracking_messages_upsell",
               "label": "i18n:infoproduct.products.field.tracking_messages_upsell",
               "type": "repeatable",
+              "accordion": true,
+              "accordionSingle": true,
+              "sortable": true,
+              "hasHeader": true,
+              "headerTitle": "Seguimiento Upsell #{index}",
               "buttonPosition": "bottom",
               "addText": "i18n:infoproduct.products.field.tracking_messages_upsell.add",
               "removeText": "i18n:core.form.repeatable.remove",
@@ -340,26 +406,107 @@
                   "type": "textarea",
                   "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.message.placeholder",
-                  "rows": 3
+                  "rows": 2,
+                  "className": "textarea-expandable"
                 },
                 {
-                  "name": "instruction",
-                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.instruction",
-                  "type": "text",
-                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.instruction.placeholder"
-                },
-                {
-                  "name": "type",
-                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type",
-                  "type": "select",
-                  "options": [
+                  "type": "group",
+                  "columns": 3,
+                  "gap": "normal",
+                  "fields": [
                     {
-                      "value": "text",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.text"
+                      "name": "time_type",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "minuto",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.minute"
+                        },
+                        {
+                          "value": "hora",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.hour"
+                        },
+                        {
+                          "value": "dia",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.day"
+                        },
+                        {
+                          "value": "esta_noche",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.tonight"
+                        },
+                        {
+                          "value": "fin_semana",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.weekend"
+                        },
+                        {
+                          "value": "quincena_actual",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.current_fortnight"
+                        },
+                        {
+                          "value": "inicio_mes_proximo",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.next_month_start"
+                        }
+                      ]
                     },
                     {
-                      "value": "media",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.media"
+                      "name": "time_value",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_value",
+                      "type": "text",
+                      "validation": "numeric|min:0|max:99",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.time_value.placeholder",
+                      "defaultValue": "1",
+                      "condition": [
+                        {
+                          "field": "time_type",
+                          "operator": "not-any",
+                          "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    },
+                    {
+                      "name": "hour",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.hour",
+                      "type": "time",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.hour.placeholder",
+                      "defaultValue": "20:00",
+                      "condition": [
+                        {
+                          "field": "time_type",
+                          "operator": "not-any",
+                          "value": "hora,minuto"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "columns": 2,
+                  "gap": "normal",
+                  "fields": [
+                    {
+                      "name": "instruction",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.instruction",
+                      "type": "text",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.instruction.placeholder"
+                    },
+                    {
+                      "name": "type",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "text",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.text"
+                        },
+                        {
+                          "value": "media",
+                          "label": "i18n:infoproduct.products.field.tracking_messages_upsell.type.media"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -377,72 +524,6 @@
                     }
                   ],
                   "conditionContext": "repeatable"
-                },
-                {
-                  "name": "time_type",
-                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type",
-                  "type": "select",
-                  "options": [
-                    {
-                      "value": "minuto",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.minute"
-                    },
-                    {
-                      "value": "hora",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.hour"
-                    },
-                    {
-                      "value": "dia",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.day"
-                    },
-                    {
-                      "value": "esta_noche",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.tonight"
-                    },
-                    {
-                      "value": "fin_semana",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.weekend"
-                    },
-                    {
-                      "value": "quincena_actual",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.current_fortnight"
-                    },
-                    {
-                      "value": "inicio_mes_proximo",
-                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_type.next_month_start"
-                    }
-                  ]
-                },
-                {
-                  "name": "time_value",
-                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.time_value",
-                  "type": "text",
-                  "validation": "numeric|min:0|max:99",
-                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.time_value.placeholder",
-                  "defaultValue": "1",
-                  "condition": [
-                    {
-                      "field": "time_type",
-                      "operator": "not-any",
-                      "value": "esta_noche,fin_semana,quincena_actual,inicio_mes_proximo"
-                    }
-                  ],
-                  "conditionContext": "repeatable"
-                },
-                {
-                  "name": "hour",
-                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.hour",
-                  "type": "time",
-                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.hour.placeholder",
-                  "defaultValue": "20:00",
-                  "condition": [
-                    {
-                      "field": "time_type",
-                      "operator": "not-any",
-                      "value": "hora,minuto"
-                    }
-                  ],
-                  "conditionContext": "repeatable"
                 }
               ]
             },
@@ -450,62 +531,81 @@
               "name": "config.upsell_products",
               "label": "i18n:infoproduct.products.field.upsell_products",
               "type": "repeatable",
+              "accordion": true,
+              "accordionSingle": true,
+              "sortable": true,
+              "hasHeader": true,
+              "headerTitle": "Producto Upsell #{index}",
               "buttonPosition": "bottom",
               "addText": "i18n:infoproduct.products.field.upsell_products.add",
               "removeText": "i18n:core.form.repeatable.remove",
               "fields": [
                 {
-                  "name": "product_id",
-                  "label": "i18n:infoproduct.products.field.upsell_products.product",
-                  "type": "select",
-                  "options": [
+                  "type": "group",
+                  "columns": 2,
+                  "gap": "normal",
+                  "fields": [
                     {
-                      "value": "",
-                      "label": "i18n:core.form.select.placeholder"
+                      "name": "product_id",
+                      "label": "i18n:infoproduct.products.field.upsell_products.product",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "",
+                          "label": "i18n:core.form.select.placeholder"
+                        }
+                      ],
+                      "source": "/api/product",
+                      "sourceValue": "id",
+                      "sourceLabel": "name"
+                    },
+                    {
+                      "name": "price",
+                      "label": "i18n:infoproduct.products.field.upsell_products.price",
+                      "type": "text",
+                      "required": true,
+                      "validation": "required|decimal|min:0",
+                      "placeholder": "i18n:infoproduct.products.field.upsell_products.price.placeholder"
                     }
-                  ],
-                  "source": "/api/product",
-                  "sourceValue": "id",
-                  "sourceLabel": "name"
-                },
-                {
-                  "name": "price",
-                  "label": "i18n:infoproduct.products.field.upsell_products.price",
-                  "type": "text",
-                  "required": true,
-                  "validation": "required|decimal|min:0",
-                  "placeholder": "i18n:infoproduct.products.field.upsell_products.price.placeholder"
+                  ]
                 },
                 {
                   "type": "html",
                   "content": "<div style=\"background: #e0f2fe; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; border-left: 3px solid #0284c7; font-size: 0.9rem;\"><strong>⏰ ¿Desde cuándo empieza este Upsell luego de la compra?</strong></div>"
                 },
                 {
-                  "name": "time_type",
-                  "label": "i18n:infoproduct.products.field.upsell_products.time_type",
-                  "type": "select",
-                  "options": [
+                  "type": "group",
+                  "columns": 2,
+                  "gap": "normal",
+                  "fields": [
                     {
-                      "value": "minuto",
-                      "label": "i18n:infoproduct.products.field.upsell_products.time_type.minute"
+                      "name": "time_type",
+                      "label": "i18n:infoproduct.products.field.upsell_products.time_type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "minuto",
+                          "label": "i18n:infoproduct.products.field.upsell_products.time_type.minute"
+                        },
+                        {
+                          "value": "hora",
+                          "label": "i18n:infoproduct.products.field.upsell_products.time_type.hour"
+                        },
+                        {
+                          "value": "dia",
+                          "label": "i18n:infoproduct.products.field.upsell_products.time_type.day"
+                        }
+                      ]
                     },
                     {
-                      "value": "hora",
-                      "label": "i18n:infoproduct.products.field.upsell_products.time_type.hour"
-                    },
-                    {
-                      "value": "dia",
-                      "label": "i18n:infoproduct.products.field.upsell_products.time_type.day"
+                      "name": "time_value",
+                      "label": "i18n:infoproduct.products.field.upsell_products.time_value",
+                      "type": "text",
+                      "validation": "numeric|min:0|max:99",
+                      "placeholder": "i18n:infoproduct.products.field.upsell_products.time_value.placeholder",
+                      "defaultValue": "1"
                     }
                   ]
-                },
-                {
-                  "name": "time_value",
-                  "label": "i18n:infoproduct.products.field.upsell_products.time_value",
-                  "type": "text",
-                  "validation": "numeric|min:0|max:99",
-                  "placeholder": "i18n:infoproduct.products.field.upsell_products.time_value.placeholder",
-                  "defaultValue": "1"
                 }
               ]
             }
@@ -519,30 +619,51 @@
               "name": "config.templates",
               "label": "i18n:infoproduct.products.field.templates",
               "type": "repeatable",
+              "accordion": true,
+              "accordionSingle": true,
+              "sortable": true,
+              "hasHeader": true,
+              "headerTitle": "Template #{index}",
               "buttonPosition": "bottom",
               "addText": "i18n:infoproduct.products.field.templates.add",
               "removeText": "i18n:core.form.repeatable.remove",
               "fields": [
                 {
-                  "name": "template_type",
-                  "label": "i18n:infoproduct.products.field.templates.template_type",
-                  "type": "select",
-                  "options": [
+                  "type": "group",
+                  "columns": 2,
+                  "gap": "normal",
+                  "fields": [
                     {
-                      "value": "link_product",
-                      "label": "i18n:infoproduct.products.field.templates.template_type.link_product"
+                      "name": "template_type",
+                      "label": "i18n:infoproduct.products.field.templates.template_type",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "link_product",
+                          "label": "i18n:infoproduct.products.field.templates.template_type.link_product"
+                        },
+                        {
+                          "value": "link_payment_method",
+                          "label": "i18n:infoproduct.products.field.templates.template_type.link_payment_method"
+                        },
+                        {
+                          "value": "link_review",
+                          "label": "i18n:infoproduct.products.field.templates.template_type.link_review"
+                        },
+                        {
+                          "value": "link_media",
+                          "label": "i18n:infoproduct.products.field.templates.template_type.link_media"
+                        }
+                      ]
                     },
                     {
-                      "value": "link_payment_method",
-                      "label": "i18n:infoproduct.products.field.templates.template_type.link_payment_method"
-                    },
-                    {
-                      "value": "link_review",
-                      "label": "i18n:infoproduct.products.field.templates.template_type.link_review"
-                    },
-                    {
-                      "value": "link_media",
-                      "label": "i18n:infoproduct.products.field.templates.template_type.link_media"
+                      "name": "template_id",
+                      "label": "i18n:infoproduct.products.field.templates.template_id",
+                      "type": "text",
+                      "validation": "max:50",
+                      "placeholder": "i18n:infoproduct.products.field.templates.template_id.placeholder",
+                      "hint": "i18n:infoproduct.products.field.templates.template_id.hint",
+                      "transform": "slug"
                     }
                   ]
                 },
@@ -552,7 +673,8 @@
                   "type": "textarea",
                   "validation": "max:2500",
                   "placeholder": "i18n:infoproduct.products.field.templates.message.placeholder",
-                  "rows": 3
+                  "rows": 2,
+                  "className": "textarea-expandable"
                 },
                 {
                   "name": "type",
@@ -583,15 +705,6 @@
                     }
                   ],
                   "conditionContext": "repeatable"
-                },
-                {
-                  "name": "template_id",
-                  "label": "i18n:infoproduct.products.field.templates.template_id",
-                  "type": "text",
-                  "validation": "max:50",
-                  "placeholder": "i18n:infoproduct.products.field.templates.template_id.placeholder",
-                  "hint": "i18n:infoproduct.products.field.templates.template_id.hint",
-                  "transform": "slug"
                 }
               ]
             }

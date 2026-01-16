@@ -49,7 +49,8 @@
     'js/components/tabs.js',
     'js/components/widget.js',
     'js/components/grouper.js',
-    'js/components/dataTable.js'
+    'js/components/dataTable.js',
+    'js/components/textareaExpander.js',
   ];
 
   // ==========================================
@@ -136,10 +137,17 @@
 
       ogLogger.success('framework', '✅ Framework scripts loaded');
 
-      // Cargar scripts de MIDDLE condicionalmente (auth.js)
+      // Cargar scripts de MIDDLE condicionalmente (auth.js + auth.css)
       if (firstConfig.auth?.enabled === true) {
-        ogLogger.info('framework', '🔐 Auth habilitado - Cargando middle/auth.js');
+        ogLogger.info('framework', '🔐 Auth habilitado - Cargando middle/auth');
         try {
+          // Cargar auth.css
+          const cssLink = document.createElement('link');
+          cssLink.rel = 'stylesheet';
+          cssLink.href = firstConfig.baseUrl + 'middle/css/auth.css' + cacheBuster;
+          document.head.appendChild(cssLink);
+
+          // Cargar auth.js
           const authUrl = firstConfig.baseUrl + 'middle/js/auth.js' + cacheBuster;
           const authResponse = await fetch(authUrl);
 
@@ -150,12 +158,12 @@
           const authScript = await authResponse.text();
           new Function(authScript)();
 
-          ogLogger.success('framework', '✅ Auth.js cargado correctamente');
+          ogLogger.success('framework', '✅ Auth.js y auth.css cargados correctamente');
         } catch (error) {
-          ogLogger.error('framework', '❌ Error cargando auth.js:', error);
+          ogLogger.error('framework', '❌ Error cargando auth:', error);
         }
       } else {
-        ogLogger.info('framework', '⚠️ Auth deshabilitado - Saltando middle/auth.js');
+        ogLogger.info('framework', '⚠️ Auth deshabilitado - Saltando middle/auth');
       }
 
       this._scriptsLoaded = true;

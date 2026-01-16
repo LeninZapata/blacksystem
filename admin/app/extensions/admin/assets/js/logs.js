@@ -104,6 +104,7 @@ class logs {
           endpoint = `/api/logs/${year}/${month}/${day}`;
         } else {
           // Hace X días (usar search con rango)
+          // LÍMITE: Aumentado a 2000 para rangos largos (7, 15, 30 días)
           const today = new Date();
           const fromDate = new Date();
           fromDate.setDate(today.getDate() - daysAgo);
@@ -111,7 +112,7 @@ class logs {
           const toStr = today.toISOString().split('T')[0];
           const fromStr = fromDate.toISOString().split('T')[0];
 
-          endpoint = `/api/logs/search?from=${fromStr}&to=${toStr}&limit=1000`;
+          endpoint = `/api/logs/search?from=${fromStr}&to=${toStr}&limit=2000`;
         }
 
         // Hacer petición al endpoint

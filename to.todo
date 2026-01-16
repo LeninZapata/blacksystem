@@ -2,37 +2,19 @@ Backend (Aplicacion):
 ✔ Hacer un limpieza semanal  de estos archivos para que no quede basura @done(14-01-2026 13:07)
 ✔ Humaniza los chats desde la bienvenida y todas las etapas en que envias mensajes.... al hacerlo muy rapido @done(15-01-2026 17:57)
 estas probocando baneo al numero, hay que poner delays entre mensajes y hacerlos mas humanos
-
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
   ☐ grafica de productos vendidos
   ☐ grafica de ingresos por producto
   ☐ graficas de chats vs ventas
   ☐ chat por dias | horas
   ☐ ventas por dias | horas
-☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
-☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
-hacer que se ejecute al otro dia en la mañana
 ☐ Agregar estatus al bot y asegurate que los follow consulten bot activos asi si pasa algo no esta jodiendo con un bot
 que esta inactivo
+✔ Revisa los idiomas de las key del frontend que algo esta pasando. @done(16-01-2026 12:57)
+☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
+hacer que se ejecute al otro dia en la mañana
 ☐ Baja el tiempo de todos los seguimientos.......
 FRONTEND:
-☐ ponele los acordiones active a los bienvenida/seguimiento/upsell/plantillas
-☐ Revisa que parece que solo te acumula 100 logs maximo, habria que aumentarlo a 500 o 1000
-De a poco revisa cuales son necesarios porque hay logs no necesarios la verdad.
-☐ algo pasa quue no se refreca los cambios del formulario ni porque le cambie de version
-verficia la version o cache buster de los json de formulario
-☐ Agrupar con group los campos de bienvenida y seguimiento porque puede de 4 filas hacerla 2 filas
-sospecho que tiene algo que ver con el cache, debes revisar si form o view tiene un cache que no tiene
-que ver con la version o algo asi pero los cambios de json no se reflejan
-{
-  "name": "personality",
-  "label": "i18n:botws.bot.field.personality",
-  "type": "textarea",
-  "validation": "max:550",
-  "placeholder": "i18n:botws.bot.field.personality.placeholder",
-  "rows": 8
-},
-
 ☐ Revisa este error
 6 ERROR
 2026-01-16 00:00:02.434600
@@ -65,6 +47,7 @@ AdMetricsService.php:144
   "path": "/home/kviocppc/automation/blacksystem.site/backend/app/services/integrations/ads/adProviderInterface.php"
 }
 Mas adelant:
+  ☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
 ☐ Ahora cuando guardas los datos de anuncios debe ser por timezone de la cuenta publicitaria
 con esto se evita que los datos no cuadren por el tema de las zonas horarias
 entonces al momento de guardar los activos de producto debe tambien guardar la timezone

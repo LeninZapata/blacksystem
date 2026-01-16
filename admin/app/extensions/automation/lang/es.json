@@ -81,6 +81,72 @@
       "refresh": {
         "success": "Lista actualizada"
       }
+    },
+    "product_ad_assets": {
+      "listado": {
+        "title": "🎬 Activos Publicitarios de Productos",
+        "header": {
+          "title": "🎬 Gestión de Activos Publicitarios",
+          "description": "Administra los activos publicitarios vinculados a productos"
+        }
+      },
+      "column": {
+        "id": "ID",
+        "product_id": "ID Producto",
+        "ad_asset_name": "Nombre del Activo",
+        "ad_platform": "Plataforma",
+        "ad_asset_type": "Tipo de Activo",
+        "ad_asset_id": "ID del Activo",
+        "is_active": "Estado",
+        "created": "Creado"
+      },
+      "form": {
+        "title": "Formulario de Activo Publicitario",
+        "description": "Completa los datos del activo publicitario"
+      },
+      "field": {
+        "product_id": "Producto",
+        "ad_platform": "Plataforma Publicitaria",
+        "ad_asset_type": "Tipo de Activo",
+        "ad_asset_id": "ID del Activo",
+        "ad_asset_id_placeholder": "Ej: 123456789012345",
+        "ad_asset_name": "Nombre del Activo",
+        "ad_asset_name_placeholder": "Ej: Campaña de Lanzamiento Verano 2024",
+        "is_active": "Activo",
+        "notes": "Notas",
+        "notes_placeholder": "Observaciones adicionales sobre este activo..."
+      },
+      "asset_type": {
+        "campaign": "Campaña",
+        "adset": "Conjunto de Anuncios",
+        "ad": "Anuncio"
+      },
+      "ogModal": {
+        "new": {
+          "title": "➕ Nuevo Activo Publicitario"
+        },
+        "edit": {
+          "title": "✏️ Editar Activo Publicitario"
+        }
+      },
+      "confirm": {
+        "delete": "¿Eliminar activo publicitario?"
+      },
+      "refresh": {
+        "success": "Lista actualizada"
+      },
+      "success": {
+        "created": "Activo publicitario creado correctamente",
+        "updated": "Activo publicitario actualizado correctamente",
+        "deleted": "Activo publicitario eliminado correctamente"
+      },
+      "error": {
+        "create_failed": "Error al crear activo publicitario",
+        "update_failed": "Error al actualizar activo publicitario",
+        "delete_failed": "Error al eliminar activo publicitario",
+        "load_failed": "Error al cargar activo publicitario",
+        "not_found": "Activo publicitario no encontrado"
+      }
     }
   }
 }

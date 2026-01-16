@@ -1,0 +1,46 @@
+/* Textarea Expander - Estilos minimalistas */
+
+.textarea-wrapper {
+  position: relative;
+  display: block;
+}
+
+.textarea-expand-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.textarea-expand-btn:hover {
+  opacity: 1;
+  background: #2563eb;
+}
+
+.textarea-expand-btn svg {
+  pointer-events: none;
+  display: block;
+}
+
+/* Ajuste para textarea dentro del wrapper */
+.textarea-wrapper textarea {
+  padding-right: 44px; /* Espacio para el botón */
+}
+
+/* Modal textarea específico */
+#expanded-textarea {
+  width: 100%;
+  font-family: inherit;
+}

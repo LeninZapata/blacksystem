@@ -4,6 +4,14 @@
  *
  * Responsabilidad: SOLO leer/consultar logs
  * Separado de log.php para mantener responsabilidades claras
+ *
+ * LÍMITES CONFIGURABLES:
+ * - today($limit = 500): Retorna los últimos 500 logs de HOY
+ * - latest($limit = 200): Retorna los últimos 200 logs de los últimos 10 archivos
+ * - range($from, $to, $limit = 500): Retorna hasta 500 logs en el rango de fechas
+ *
+ * IMPORTANTE: Los límites NO acumulan logs, solo retornan los últimos N
+ * Si quieres ver TODOS los logs del día, usa today(0)
  */
 class ogLogReader {
 
@@ -33,7 +41,9 @@ class ogLogReader {
    * Parsear archivo de log
    *
    * @param string $file Ruta del archivo
-   * @param int $limit Límite de líneas (0 = todas)
+   * @param int $limit Límite de líneas (0 = todas las líneas del archivo)
+   *                    IMPORTANTE: array_slice($lines, -$limit) toma los ÚLTIMOS N logs
+   *                    NO acumula, solo retorna los últimos N del archivo
    * @return array Array de logs parseados
    */
   static function parse($file, $limit = 0) {
@@ -43,6 +53,7 @@ class ogLogReader {
 
     $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
+    // Si hay límite, tomar SOLO los últimos N logs del archivo
     if ($limit > 0) {
       $lines = array_slice($lines, -$limit);
     }
@@ -156,10 +167,10 @@ class ogLogReader {
   /**
    * Obtener logs de hoy
    *
-   * @param int $limit Límite de logs
+   * @param int $limit Límite de logs (0 = todos los del día)
    * @return array Array de logs
    */
-  static function today($limit = 100) {
+  static function today($limit = 500) {
     $files = self::find([
       'year' => date('Y'),
       'month' => date('m'),
@@ -172,10 +183,10 @@ class ogLogReader {
   /**
    * Obtener últimos logs
    *
-   * @param int $limit Límite de logs
+   * @param int $limit Límite de logs (0 = todos de los últimos 10 archivos)
    * @return array Array de logs
    */
-  static function latest($limit = 50) {
+  static function latest($limit = 200) {
     $files = self::find([]);
 
     // Ordenar por fecha de modificación DESC
