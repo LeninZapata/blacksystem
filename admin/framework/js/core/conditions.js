@@ -25,6 +25,7 @@ class ogConditions {
     if (rulesMap.size === 0) return;
 
     this.rules.set(formId, rulesMap);
+    ogLogger?.info('core:conditions', `[init] 📋 Total de reglas extraídas: ${rulesMap.size} para formulario "${formId}"`);
 
     // Configurar watchers
     this.setupWatchers(formId);
@@ -122,6 +123,7 @@ class ogConditions {
 
       // Si el campo tiene condiciones
       if (field.condition && Array.isArray(field.condition) && field.condition.length > 0) {
+        ogLogger?.debug('core:conditions', `[extractConditions] ✅ Extrayendo regla para "${fieldPath}" (type: ${field.type}, context: ${field.conditionContext || 'form'})`);
         rulesMap.set(fieldPath, {
           conditions: field.condition,
           context: field.conditionContext || 'form',
@@ -149,8 +151,22 @@ class ogConditions {
       }
 
       // Recursivo para groups
-      if (field.type === 'group' && field.fields) {
-        this.extractConditions(field.fields, rulesMap, parentPath);
+      if (field.type === 'group') {
+        ogLogger?.debug('core:conditions', `[extractConditions] 📦 Procesando GROUP: "${fieldPath}", tiene condiciones: ${!!(field.condition && field.condition.length > 0)}`);
+        // Si el group tiene condiciones, extraerlas primero
+        if (field.condition && Array.isArray(field.condition) && field.condition.length > 0) {
+          rulesMap.set(fieldPath, {
+            conditions: field.condition,
+            context: field.conditionContext || 'form',
+            logic: field.conditionLogic || 'AND',
+            isGroup: true
+          });
+        }
+        
+        // Luego procesar campos internos
+        if (field.fields) {
+          this.extractConditions(field.fields, rulesMap, parentPath);
+        }
       }
     });
   }
@@ -225,6 +241,7 @@ class ogConditions {
 
     rulesMap.forEach((rule, targetFieldPath) => {
       const { context } = rule;
+      ogLogger?.debug('core:conditions', `[evaluate] 🎯 Evaluando regla: "${targetFieldPath}" (context: ${context})`);
 
       if (context === 'repeatable') {
         // Para contexto repeatable, evaluar cada item individualmente
@@ -256,6 +273,7 @@ class ogConditions {
 
   static evaluateRepeatable(formEl, targetFieldPath, rule) {
     // Extraer el path del repeatable desde el targetFieldPath
+    ogLogger?.debug('core:conditions', `[evaluateRepeatable] 🔁 Evaluando en contexto repeatable: "${targetFieldPath}"`);
     // Ej: "proyectos.fases.nombre_fase" -> repeatablePath="proyectos.fases", fieldName="nombre_fase"
     const pathParts = targetFieldPath.split('.');
     const fieldName = pathParts[pathParts.length - 1];
@@ -287,7 +305,9 @@ class ogConditions {
 
       // Evaluar cada item individualmente
       repeatableItems.forEach((item, idx) => {
-        const shouldShow = this.checkConditions(item, rule, targetFieldPath);
+        // Para contexto repeatable, el item YA ES el contexto correcto
+        // No necesitamos llamar a checkConditions que usa getContext nuevamente
+        const shouldShow = this.checkConditionsWithContext(item, rule);
 
         // Buscar el campo target dentro de este item específico
         // Puede ser un input/select (con name), un repeatable anidado, o un grouper (con data-field-path)
@@ -295,7 +315,7 @@ class ogConditions {
 
         // Si no se encuentra por name, buscar por data-field-path (repeatables anidados o groupers)
         if (!targetField) {
-          const allFieldPaths = item.querySelectorAll('.form-repeatable[data-field-path], .grouper[data-field-path]');
+          const allFieldPaths = item.querySelectorAll('.form-repeatable[data-field-path], .og-grouper[data-field-path], .form-group-cols[data-field-path]');
           const candidates = Array.from(allFieldPaths).filter(el => {
             const fieldPath = el.getAttribute('data-field-path');
             // Eliminar índices para comparar: productos[0].grouper_envio_fisico -> productos.grouper_envio_fisico
@@ -315,7 +335,8 @@ class ogConditions {
         }
 
         if (targetField) {
-          const fieldElement = targetField.closest('.form-group, .form-checkbox, .form-repeatable, .grouper');
+          ogLogger?.debug('core:conditions', `[evaluateRepeatable] ✅ Target encontrado: ${targetField.getAttribute('data-field-path') || targetField.name} - shouldShow: ${shouldShow}`);
+          const fieldElement = targetField.closest('.form-group, .form-checkbox, .form-repeatable, .og-grouper, .form-group-cols');
 
           if (fieldElement) {
             if (shouldShow) {
@@ -420,25 +441,59 @@ class ogConditions {
     }
   }
 
+  // Versión alternativa que recibe directamente el contexto (para evaluateRepeatable)
+  static checkConditionsWithContext(context, rule) {
+    const { conditions, logic } = rule;
+    
+    ogLogger?.debug('core:conditions', `[checkConditionsWithContext] 🎯 Evaluando ${conditions.length} condiciones con lógica ${logic}`);
+
+    if (logic === 'OR') {
+      return conditions.some(cond => {
+        const result = this.checkCondition(context, cond);
+        ogLogger?.debug('core:conditions', `[checkConditionsWithContext] ↳ Condición ${cond.field} ${cond.operator} ${cond.value}: ${result}`);
+        return result;
+      });
+    } else {
+      return conditions.every(cond => {
+        const result = this.checkCondition(context, cond);
+        ogLogger?.debug('core:conditions', `[checkConditionsWithContext] ↳ Condición ${cond.field} ${cond.operator} ${cond.value}: ${result}`);
+        return result;
+      });
+    }
+  }
+
   static checkCondition(context, condition) {
     const { field, operator, value } = condition;
+    
+    ogLogger?.debug('core:conditions', `[checkCondition] 🔍 Buscando campo "${field}" en contexto ${context.classList?.contains('repeatable-item') ? 'repeatable-item' : 'otro'}`);
 
     // Buscar el campo en el contexto
     let fieldEl = null;
 
     // Si el contexto es un repeatable-item, buscar solo dentro de él
     if (context.classList && context.classList.contains('repeatable-item')) {
-      // Buscar por el nombre del campo sin índices
-      const fields = context.querySelectorAll(`[name*=".${field}"]`);
+      // Buscar por el nombre del campo (puede o no tener punto antes)
+      // Intento 1: buscar con punto (ej: "actions[0].action_type" con field="action_type")
+      let fields = context.querySelectorAll(`[name*=".${field}"]`);
       fieldEl = fields.length > 0 ? fields[0] : null;
+      ogLogger?.debug('core:conditions', `[checkCondition] Intento 1 [name*=".${field}"]: ${fieldEl ? '✅ encontrado' : '❌'}`);
 
-      // Si no se encuentra, intentar con el nombre exacto
+      // Intento 2: buscar que termine con el nombre (ej: "[0].action_type")
+      if (!fieldEl) {
+        fields = context.querySelectorAll(`[name$=".${field}"]`);
+        fieldEl = fields.length > 0 ? fields[0] : null;
+        ogLogger?.debug('core:conditions', `[checkCondition] Intento 2 [name$=".${field}"]: ${fieldEl ? '✅ encontrado' : '❌'}`);
+      }
+
+      // Intento 3: buscar que contenga el nombre exacto (fallback)
       if (!fieldEl) {
         fieldEl = context.querySelector(`[name="${field}"], [name*="${field}"]`);
+        ogLogger?.debug('core:conditions', `[checkCondition] Intento 3 [name="${field}"] o [name*="${field}"]: ${fieldEl ? '✅ encontrado' : '❌'}`);
       }
     } else {
       // Búsqueda normal en form/view
       fieldEl = context.querySelector(`[name="${field}"], [name*="${field}"]`);
+      ogLogger?.debug('core:conditions', `[checkCondition] Búsqueda normal: ${fieldEl ? '✅ encontrado' : '❌'}`);
     }
 
     if (!fieldEl) {
@@ -447,8 +502,10 @@ class ogConditions {
     }
 
     const fieldValue = this.getFieldValue(fieldEl);
+    ogLogger?.debug('core:conditions', `[checkCondition] ✅ Valor de "${field}": "${fieldValue}"`);
 
     const result = this.evalOperator(operator, fieldValue, value);
+    ogLogger?.debug('core:conditions', `[checkCondition] 🎯 Resultado: ${fieldValue} ${operator} ${value} = ${result}`);
 
     return result;
   }
@@ -589,9 +646,31 @@ class ogConditions {
   }
 
   static findFieldElement(formEl, fieldPath) {
+    ogLogger?.debug('core:conditions', `[findFieldElement] 🔍 Buscando elemento para: "${fieldPath}"`);
     // Intentar encontrar por name exacto
     let field = formEl.querySelector(`[name="${fieldPath}"]`);
     if (field) return field.closest('.form-group, .form-checkbox, .form-html-wrapper, .form-repeatable');
+    
+    // Buscar group por data-field-path exacto
+    let group = formEl.querySelector(`.form-group-cols[data-field-path="${fieldPath}"]`);
+    if (group) return group;
+    
+    // Buscar group considerando índices de repeatables
+    // Convertir "actions.budget_fields_group" a pattern que coincida con "actions[0].budget_fields_group"
+    if (fieldPath.includes('.')) {
+      const allGroups = formEl.querySelectorAll('.form-group-cols[data-field-path]');
+      for (const g of allGroups) {
+        const gPath = g.getAttribute('data-field-path');
+        // Comparar removiendo índices: "actions[0].budget_fields_group" → "actions.budget_fields_group"
+        const normalizedPath = gPath.replace(/\[\d+\]/g, '');
+        if (normalizedPath === fieldPath) {
+          ogLogger?.debug('core:conditions', `[findFieldElement] ✅ GROUP encontrado: "${gPath}" normalizado a "${normalizedPath}"`);
+          return g;
+        }
+      }
+    }
+
+
 
     // Buscar wrapper HTML por data-field-name
     let htmlWrapper = formEl.querySelector(`.form-html-wrapper[data-field-name="${fieldPath}"]`);
@@ -619,6 +698,7 @@ class ogConditions {
     field = formEl.querySelector(`[name*="${fieldPath}"]`);
     if (field) return field.closest('.form-group, .form-checkbox, .form-html-wrapper, .form-repeatable');
 
+    ogLogger?.warn('core:conditions', `[findFieldElement] ❌ NO se encontró elemento para: "${fieldPath}"`);
     return null;
   }
 

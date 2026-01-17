@@ -316,9 +316,12 @@ class ogForm {
       ? `<p class="repeatable-description">${this.t(field.description)}</p>`
       : '';
 
+    ogLogger?.debug('core:form', `renderRepeatable - addText original: "${addText}"`);
+    const processedAddText = this.processI18nTitle(addText);
+    ogLogger?.debug('core:form', `renderRepeatable - addText procesado: "${processedAddText}"`);
     const addButton = `
       <button type="button" class="btn btn-primary btn-sm repeatable-add" data-path="${path}">
-        ${addText}
+        ${processedAddText}
       </button>
     `;
 
@@ -372,10 +375,15 @@ class ogForm {
     const columns = field.columns || 2;
     const gap = field.gap || 'normal';
 
+    
+    // Generar fieldPath para el group
+    const groupFieldPath = field.name ? (basePath ? `${basePath}.${field.name}` : field.name) : '';
+    const dataPath = groupFieldPath ? `data-field-path="${groupFieldPath}"` : '';
+
     const groupClass = `form-group-cols form-group-cols-${columns} form-group-gap-${gap}`;
 
     return `
-      <div class="${groupClass}">
+      <div class="${groupClass}" ${dataPath}>
         ${field.fields ? field.fields.map(subField => {
           // ✅ Normalizar tipo
           const normalizedSubField = this.normalizeFieldType(subField);
@@ -1064,7 +1072,7 @@ class ogForm {
       container.dataset.headerTitle = field.headerTitle;
     }
     if (field.removeText) {
-      container.dataset.removeText = this.t(field.removeText);
+      container.dataset.removeText = field.removeText;
     }
     if (field.accordionSingle !== undefined) {
       container.dataset.accordionSingle = field.accordionSingle;
@@ -1247,12 +1255,15 @@ class ogForm {
     const columns = container.dataset.columns ? parseInt(container.dataset.columns) : null;
     const gap = container.dataset.gap || 'normal';
 
+    ogLogger?.debug('core:form', `addRepeatableItem - headerTitle del dataset: "${container.dataset.headerTitle}"`);
+    ogLogger?.debug('core:form', `addRepeatableItem - removeText del dataset: "${container.dataset.removeText}"`);
     // Obtener opciones de acordeón
     const accordion = container.dataset.accordion === 'true';
     const hasHeader = container.dataset.hasHeader === 'true' || accordion;
     const headerTitle = container.dataset.headerTitle || 'Item #{index}';
-    const removeText = container.dataset.removeText || __('core.form.repeatable.remove') || 'Eliminar';
+    const removeText = this.processI18nTitle(container.dataset.removeText || __('core.form.repeatable.remove') || 'Eliminar');
     const accordionSingle = container.dataset.accordionSingle === 'true';
+    ogLogger?.debug('core:form', `addRepeatableItem - removeText procesado: "${removeText}"`);
     const accordionOpenFirst = container.dataset.accordionOpenFirst === 'true';
     const sortable = container.dataset.sortable === 'true';
 
@@ -1288,8 +1299,9 @@ class ogForm {
     }
 
     // Opciones de acordeón (ya obtenidas del dataset arriba)
-    const processedTitle = headerTitle.replace('{index}', (newIndex + 1).toString());
-
+    const titleWithIndex = headerTitle.replace('{index}', (newIndex + 1).toString());
+    const processedTitle = this.processI18nTitle(titleWithIndex);
+    ogLogger?.debug('core:form', `addRepeatableItem - titleWithIndex: "${titleWithIndex}", processedTitle: "${processedTitle}"`);
     // 6. Crear el HTML del item
     let itemHtml = '';
     
@@ -2415,12 +2427,49 @@ class ogForm {
   }
 
   /**
-   * Procesar títulos con claves i18n para grouper
-   * Usa i18n.processString() para soportar ambos formatos
+   * Procesar títulos con claves i18n para grouper y repeatables
+   * Soporta múltiples formatos:
+   * - "i18n:key" → traduce todo
+   * - "i18n:key texto" → traduce key y deja el resto
+   * - "texto i18n:key" → traduce solo la parte i18n:key
+   * - "{i18n:key}" → traduce y remueve las llaves
    */
   static processI18nTitle(title) {
+    if (!title || typeof title !== 'string') return title;
+    
     const i18n = ogModule('i18n');
-    return i18n ? i18n.processString(title) : title;
+    if (!i18n) return title;
+    
+    // Si empieza con i18n: extraer la key hasta el primer espacio o final
+    if (title.startsWith('i18n:')) {
+      const match = title.match(/^i18n:([a-zA-Z0-9._-]+)(.*)$/);
+      if (match) {
+        const key = match[1];
+        const rest = match[2]; // Puede ser vacío o contener texto adicional como " 1"
+        const translated = i18n.t(key);
+        return translated + rest;
+      }
+    }
+    
+    // Si contiene i18n: en medio (ej: "➕ i18n:key"), extraer y traducir
+    const i18nMatch = title.match(/i18n:([a-zA-Z0-9._-]+)/);
+    if (i18nMatch) {
+      const key = i18nMatch[1];
+      const translated = i18n.t(key);
+      // Reemplazar solo la parte i18n:key con la traducción
+      return title.replace(/i18n:[a-zA-Z0-9._-]+/, translated);
+    }
+    
+    // Si tiene formato {i18n:key}, extraer key, traducir y quitar llaves
+    const bracketMatch = title.match(/\{i18n:([a-zA-Z0-9._-]+)\}/);
+    if (bracketMatch) {
+      const key = bracketMatch[1];
+      const translated = i18n.t(key);
+      // Reemplazar {i18n:key} con la traducción (sin llaves)
+      return title.replace(/\{i18n:[a-zA-Z0-9._-]+\}/, translated);
+    }
+    
+    return title;
   }
 
   // Limpiar cache de selects por source

@@ -5,7 +5,7 @@ class MessageBuffer {
   private $delaySeconds;
 
   function __construct($delaySeconds = 10) {
-    $this->bufferDir = ogApp()->getPath('stogare/json/chats/buffer') . '/';
+    $this->bufferDir = ogApp()->getPath('storage/json/chats/buffer') . '/';
     $this->delaySeconds = $delaySeconds;
 
     if (!is_dir($this->bufferDir)) {

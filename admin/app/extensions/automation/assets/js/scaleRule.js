@@ -35,7 +35,7 @@ class scaleRule {
   static fillForm(formId, data) {
     const fillData = {
       name: data.name,
-      level: data.level,
+      product_ad_asset_id: data.product_ad_asset_id,
       status: data.status == 1
     };
 
@@ -85,7 +85,6 @@ class scaleRule {
     const conditionsLogic = logicSelect ? logicSelect.value : 'and_or_and';
 
     let config = {
-      level: formData.level,
       conditions_logic: conditionsLogic,
       actions: formData.actions || [],
       condition_groups: formData.condition_groups || []
@@ -93,7 +92,7 @@ class scaleRule {
 
     return {
       name: formData.name,
-      level: formData.level,
+      product_ad_asset_id: parseInt(formData.product_ad_asset_id),
       status: formData.status ? 1 : 0,
       config: config
     };

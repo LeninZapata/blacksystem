@@ -94,7 +94,7 @@
       "column": {
         "id": "ID",
         "name": "Nombre",
-        "level": "Nivel",
+        "product_ad_asset": "Activo Publicitario",
         "status": "Estado",
         "created": "Creado"
       },
@@ -105,6 +105,8 @@
       "field": {
         "name": "Nombre de la Regla",
         "name_placeholder": "Ej: Escalar campañas con ROAS > 3",
+        "product_ad_asset": "Activo Publicitario",
+        "product_ad_asset_help": "Selecciona el activo de Facebook Ads al que se aplicará esta regla",
         "level": "Nivel de Aplicación",
         "level_help": "Selecciona en qué nivel de Facebook Ads se aplicará esta regla",
         "actions": "Acciones",
@@ -134,7 +136,7 @@
         "ad": "Anuncio"
       },
       "actions": {
-        "add": "Agregar Acción",
+        "add": "➕ Agregar Acción",
         "header": "Acción"
       },
       "action_type": {
@@ -152,9 +154,9 @@
         "lifetime": "Total (Lifetime)"
       },
       "conditions": {
-        "add_group": "Agregar Grupo de Condiciones",
+        "add_group": "➕ Agregar Grupo de Condiciones",
         "group_header": "Grupo",
-        "add": "AND"
+        "add": "➕ AND"
       },
       "metric": {
         "results": "Resultados (Conversiones FB)",
@@ -164,6 +166,8 @@
         "frequency": "Frecuencia"
       },
       "time_range": {
+        "today": "Hoy",
+        "yesterday": "Ayer",
         "last_3d": "Últimos 3 días",
         "last_7d": "Últimos 7 días",
         "last_14d": "Últimos 14 días",
@@ -271,5 +275,13 @@
         "not_found": "Activo publicitario no encontrado"
       }
     }
+  },
+  "core": {
+    "add": "Agregar",
+    "delete": "🗑️ Eliminar",
+    "edit": "Editar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "refresh": "Actualizar"
   }
 }

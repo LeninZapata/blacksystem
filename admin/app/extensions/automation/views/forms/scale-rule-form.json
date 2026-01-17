@@ -1,40 +1,38 @@
 {
   "id": "scale-rule-form",
-  "title": "i18n:automation.scale_rules.form.title",
-  "description": "i18n:automation.scale_rules.form.description",
   "fields": [
     {
-      "name": "name",
-      "label": "i18n:automation.scale_rules.field.name",
-      "type": "text",
-      "required": true,
-      "placeholder": "i18n:automation.scale_rules.field.name_placeholder",
-      "validation": "required|min:3|max:200"
-    },
-    {
-      "name": "level",
-      "label": "i18n:automation.scale_rules.field.level",
-      "type": "select",
-      "required": true,
-      "options": [
-        {"value": "", "label": "i18n:core.form.select.placeholder"},
-        {"value": "campaign", "label": "i18n:automation.scale_rules.level.campaign"},
-        {"value": "adset", "label": "i18n:automation.scale_rules.level.adset"},
-        {"value": "ad", "label": "i18n:automation.scale_rules.level.ad"}
-      ],
-      "validation": "required",
-      "help": "i18n:automation.scale_rules.field.level_help"
-    },
-    {
-      "type": "html",
-      "content": "<div style='background: #f3f4f6; padding: 1rem; border-radius: 6px; margin: 1rem 0; border-left: 4px solid #3b82f6;'><strong>📋 Acciones</strong><p style='margin: 0.5rem 0 0; font-size: 0.9rem;'>Define qué acciones se ejecutarán cuando se cumplan las condiciones. Puedes agregar múltiples acciones que se ejecutarán en secuencia.</p></div>"
+      "type": "group",
+      "columns": 2,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "name",
+          "label": "i18n:automation.scale_rules.field.name",
+          "type": "text",
+          "required": true,
+          "placeholder": "i18n:automation.scale_rules.field.name_placeholder",
+          "validation": "required|min:3|max:200"
+        },
+        {
+          "name": "product_ad_asset_id",
+          "label": "i18n:automation.scale_rules.field.product_ad_asset",
+          "type": "select",
+          "required": true,
+          "source": "api/productAdAsset?per_page=1000&is_active=1",
+          "sourceValue": "id",
+          "sourceLabel": "ad_asset_name",
+          "validation": "required",
+          "help": "i18n:automation.scale_rules.field.product_ad_asset_help"
+        }
+      ]
     },
     {
       "name": "actions",
       "label": "i18n:automation.scale_rules.field.actions",
       "type": "repeatable",
-      "addText": "➕ i18n:automation.scale_rules.actions.add",
-      "removeText": "🗑️",
+      "addText": "i18n:automation.scale_rules.actions.add",
+      "removeText": "i18n:core.delete",
       "hasHeader": true,
       "accordion": true,
       "headerTitle": "i18n:automation.scale_rules.actions.header {index}",
@@ -53,6 +51,7 @@
           "validation": "required"
         },
         {
+          "name": "budget_fields_group",
           "type": "group",
           "columns": 4,
           "gap": "normal",
@@ -106,6 +105,7 @@
           ]
         },
         {
+          "name": "period_fields_group",
           "type": "group",
           "columns": 2,
           "gap": "normal",
@@ -136,22 +136,9 @@
                 {"value": "daily", "label": "i18n:automation.scale_rules.budget_type.daily"},
                 {"value": "lifetime", "label": "i18n:automation.scale_rules.budget_type.lifetime"}
               ],
-              "validation": "required",
-              "condition": [
-                {"field": "level", "operator": "any", "value": "campaign,adset"}
-              ],
-              "conditionContext": "form"
+              "validation": "required"
             }
           ]
-        },
-        {
-          "type": "html",
-          "content": "<div style='background: #dbeafe; padding: 0.75rem; border-radius: 4px; margin: 1rem 0; border-left: 3px solid #3b82f6; font-size: 0.85rem;'><strong>ℹ️ Nota sobre acciones de presupuesto</strong><br>Las acciones de aumentar/disminuir presupuesto NO se ejecutan en campañas CBO (Campaign Budget Optimization).</div>",
-          "condition": [
-            {"field": "action_type", "operator": "any", "value": "increase_budget,decrease_budget"},
-            {"field": "level", "operator": "==", "value": "adset"}
-          ],
-          "conditionContext": "repeatable"
         }
       ]
     },
@@ -167,8 +154,8 @@
       "name": "condition_groups",
       "label": "i18n:automation.scale_rules.field.condition_groups",
       "type": "repeatable",
-      "addText": "➕ i18n:automation.scale_rules.conditions.add_group",
-      "removeText": "🗑️",
+      "addText": "i18n:automation.scale_rules.conditions.add_group",
+      "removeText": "i18n:core.delete",
       "hasHeader": true,
       "accordion": true,
       "headerTitle": "i18n:automation.scale_rules.conditions.group_header {index}",
@@ -177,12 +164,12 @@
           "name": "conditions",
           "label": "i18n:automation.scale_rules.field.conditions",
           "type": "repeatable",
-          "addText": "➕ i18n:automation.scale_rules.conditions.add",
+          "addText": "i18n:automation.scale_rules.conditions.add",
           "removeText": "❌",
           "fields": [
             {
               "type": "group",
-              "columns": 5,
+              "columns": 4,
               "gap": "small",
               "fields": [
                 {
@@ -202,24 +189,13 @@
                   "validation": "required"
                 },
                 {
-                  "name": "metric_level",
-                  "label": "i18n:automation.scale_rules.field.metric_level",
-                  "type": "select",
-                  "required": true,
-                  "options": [
-                    {"value": "campaign", "label": "i18n:automation.scale_rules.level.campaign"},
-                    {"value": "adset", "label": "i18n:automation.scale_rules.level.adset"},
-                    {"value": "ad", "label": "i18n:automation.scale_rules.level.ad"}
-                  ],
-                  "validation": "required",
-                  "help": "i18n:automation.scale_rules.field.metric_level_help"
-                },
-                {
                   "name": "time_range",
                   "label": "i18n:automation.scale_rules.field.time_range",
                   "type": "select",
                   "required": true,
                   "options": [
+                    {"value": "today", "label": "i18n:automation.scale_rules.time_range.today"},
+                    {"value": "yesterday", "label": "i18n:automation.scale_rules.time_range.yesterday"},
                     {"value": "last_3d", "label": "i18n:automation.scale_rules.time_range.last_3d"},
                     {"value": "last_7d", "label": "i18n:automation.scale_rules.time_range.last_7d"},
                     {"value": "last_14d", "label": "i18n:automation.scale_rules.time_range.last_14d"},
