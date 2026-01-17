@@ -83,6 +83,128 @@
         "success": "Lista actualizada"
       }
     },
+    "scale_rules": {
+      "listado": {
+        "title": "📈 Escala Automática",
+        "header": {
+          "title": "📈 Reglas de Escalado Automático",
+          "description": "Gestiona reglas para escalar automáticamente tus campañas de Facebook Ads según condiciones específicas"
+        }
+      },
+      "column": {
+        "id": "ID",
+        "name": "Nombre",
+        "level": "Nivel",
+        "status": "Estado",
+        "created": "Creado"
+      },
+      "form": {
+        "title": "Formulario de Regla de Escalado",
+        "description": "Define las condiciones y acciones para el escalado automático"
+      },
+      "field": {
+        "name": "Nombre de la Regla",
+        "name_placeholder": "Ej: Escalar campañas con ROAS > 3",
+        "level": "Nivel de Aplicación",
+        "level_help": "Selecciona en qué nivel de Facebook Ads se aplicará esta regla",
+        "actions": "Acciones",
+        "action_type": "Tipo de Acción",
+        "change_by": "Cambiar por",
+        "change_type": "Tipo",
+        "until_limit": "Hasta",
+        "until_limit_help": "Límite máximo del presupuesto",
+        "currency": "Moneda",
+        "time_period": "Período de Tiempo",
+        "time_period_help": "Frecuencia de ejecución de la regla",
+        "budget_type": "Tipo de Presupuesto",
+        "condition_groups": "Grupos de Condiciones",
+        "conditions": "Condiciones",
+        "metric": "Métrica",
+        "metric_level": "Nivel de Métrica",
+        "metric_level_help": "Nivel donde se evalúa la métrica (puede ser diferente al nivel de aplicación)",
+        "time_range": "Rango de Tiempo",
+        "operator": "Operador",
+        "value": "Valor",
+        "value_suffix": "Sufijo",
+        "status": "Activo"
+      },
+      "level": {
+        "campaign": "Campaña",
+        "adset": "Conjunto de Anuncios",
+        "ad": "Anuncio"
+      },
+      "actions": {
+        "add": "Agregar Acción",
+        "header": "Acción"
+      },
+      "action_type": {
+        "pause": "Pausar",
+        "increase_budget": "Aumentar Presupuesto",
+        "decrease_budget": "Disminuir Presupuesto"
+      },
+      "time_period": {
+        "everytime": "Cada vez que se cumplan las condiciones",
+        "once": "Una sola vez",
+        "daily": "Diariamente"
+      },
+      "budget_type": {
+        "daily": "Diario",
+        "lifetime": "Total (Lifetime)"
+      },
+      "conditions": {
+        "add_group": "Agregar Grupo de Condiciones",
+        "group_header": "Grupo",
+        "add": "AND"
+      },
+      "metric": {
+        "results": "Resultados (Conversiones FB)",
+        "cost_per_result": "Costo por Resultado",
+        "spend": "Gasto",
+        "impressions": "Impresiones",
+        "frequency": "Frecuencia"
+      },
+      "time_range": {
+        "last_3d": "Últimos 3 días",
+        "last_7d": "Últimos 7 días",
+        "last_14d": "Últimos 14 días",
+        "last_30d": "Últimos 30 días",
+        "lifetime": "Todo el tiempo"
+      },
+      "operator": {
+        "is_within": "está dentro de"
+      },
+      "suffix": {
+        "none": "Sin sufijo",
+        "percent": "Porcentaje (%)",
+        "currency": "Moneda ($)"
+      },
+      "ogModal": {
+        "new": {
+          "title": "➕ Nueva Regla de Escalado"
+        },
+        "edit": {
+          "title": "✏️ Editar Regla de Escalado"
+        }
+      },
+      "confirm": {
+        "delete": "¿Eliminar regla de escalado?"
+      },
+      "refresh": {
+        "success": "Lista actualizada"
+      },
+      "success": {
+        "created": "Regla creada correctamente",
+        "updated": "Regla actualizada correctamente",
+        "deleted": "Regla eliminada correctamente"
+      },
+      "error": {
+        "create_failed": "Error al crear regla",
+        "update_failed": "Error al actualizar regla",
+        "delete_failed": "Error al eliminar regla",
+        "load_failed": "Error al cargar regla",
+        "not_found": "Regla no encontrada"
+      }
+    },
     "product_ad_assets": {
       "listado": {
         "title": "🎬 Activos Publicitarios de Productos",

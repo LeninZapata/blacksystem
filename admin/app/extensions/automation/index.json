@@ -28,6 +28,12 @@
         "title": "Activos Publicitarios",
         "view": "sections/automation-product-ad-assets",
         "order": 3
+      },
+      {
+        "id": "automation-scale-rules",
+        "title": "Escala Automática",
+        "view": "sections/automation-scale-rules",
+        "order": 4
       }
     ]
   }
