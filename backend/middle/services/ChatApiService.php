@@ -37,6 +37,10 @@ class chatApiService {
     return self::$provider;
   }
 
+  static function getBotConfig() {
+    return self::$botData;
+  }
+
   // Detectar provider desde webhook y normalizar
   static function detectAndNormalize($rawData) {
     // Extraer primer elemento si viene como array

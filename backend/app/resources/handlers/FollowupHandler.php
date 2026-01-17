@@ -444,7 +444,7 @@ class FollowupHandler {
         ->where('status', 1)
         ->where('future_date', '<=', $now)
         ->orderBy('future_date', 'ASC')
-        ->limit(50)
+        ->limit(40)
         ->get();
 
       if (!empty($followups)) {

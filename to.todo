@@ -9,25 +9,11 @@ Backend (Aplicacion):
 ☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
 hacer que se ejecute al otro dia en la mañana
 ☐ Baja el tiempo de todos los seguimientos.......
-FRONTEND:
-
-
-Mas adelant:
 ☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
 ☐ Ahora cuando guardas los datos de anuncios debe ser por timezone de la cuenta publicitaria
 con esto se evita que los datos no cuadren por el tema de las zonas horarias
 entonces al momento de guardar los activos de producto debe tambien guardar la timezone
 ☐ Plantillas que se ejecutan a un triger, es decir si dice
 'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
-Produccion:
-☐ cuando envian un emoji validar el webhook y el de reation porque actualmente estan cambiando las validaciones
-para reaction no debe hacer nada, y para emoji lo que esta haciendo reaction ahorita
 
-Agregar al sistema real:
-CRON jobs:
-https://blacksystem.site/api/cleanup/storage/logs (cada 36 horas)
-https://blacksystem.site/api/cleanup/storage/middleware (cada 36 horas)
-https://blacksystem.site/api/chat/cleanup/old-chats (cada 6 horas)
-
-Verificar negocio en facebook
-https://www.youtube.com/watch?v=Z0Rdc8KIaG0
+FRONTEND:

@@ -26,6 +26,20 @@ class WebhookController {
       $context = $standard['context'];
       $webhookData = $standard['webhook'];
 
+
+      // FILTRO: Ignorar eventos de status (sent, delivered, read)
+      if ($message['type'] === 'STATUS') {
+        $statusType = $standard['status']['type'] ?? 'unknown';
+        ogLog::info('whatsapp - Evento de status detectado, ignorando', [
+          'status_type' => $statusType,
+          'message_id' => $message['id']
+        ], $this->logMeta);
+        ogResponse::success([
+          'message' => 'Status event received',
+          'status' => $statusType,
+          'ignored' => true
+        ]);
+      }
       if (!$sender['number']) {
         ogResponse::json(['success' => false, 'error' => 'Sender no encontrado'], 400);
       }

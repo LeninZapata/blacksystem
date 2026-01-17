@@ -5,7 +5,7 @@
  * Plugin ID: blacksystem
  * Plugin prefix: bs
  * Description: Sistema de ventas automatizado.
- * Version: 0.2
+ * Version: 0.3
  * Author: Lenin Zapata
  * Author URI: https://blacksystem.site
  * Requires at least: 6.5
