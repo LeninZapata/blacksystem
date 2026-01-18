@@ -1,6 +1,6 @@
 class scaleRule {
   static apis = {
-    scaleRule: '/api/ad-auto-scale'
+    scaleRule: '/api/adAutoScale'
   };
 
   static currentId = null;
@@ -10,7 +10,7 @@ class scaleRule {
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
     ogModule('form').clearAllErrors(realId);
-    
+
     setTimeout(() => {
       ogModule('conditions')?.init(formId);
     }, 100);
@@ -20,13 +20,13 @@ class scaleRule {
     this.currentId = id;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    
+
     ogModule('form').clearAllErrors(realId);
     const data = await this.get(id);
     if (!data) return;
-    
+
     this.fillForm(formId, data);
-    
+
     setTimeout(() => {
       ogModule('conditions')?.init(formId);
     }, 100);
@@ -64,13 +64,13 @@ class scaleRule {
     const body = this.buildBody(validation.data);
     if (!body) return;
 
-    const result = this.currentId 
-      ? await this.update(this.currentId, body) 
+    const result = this.currentId
+      ? await this.update(this.currentId, body)
       : await this.create(body);
 
     if (result) {
-      ogComponent('toast').success(this.currentId 
-        ? __('automation.scale_rules.success.updated') 
+      ogComponent('toast').success(this.currentId
+        ? __('automation.scale_rules.success.updated')
         : __('automation.scale_rules.success.created')
       );
       setTimeout(() => {

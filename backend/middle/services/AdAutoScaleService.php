@@ -6,7 +6,7 @@ class AdAutoScaleService {
   function processRules($userId = null) {
     try {
       $startTime = microtime(true);
-      
+
       // Obtener reglas activas
       $query = ogDb::t('ad_auto_scale')->where('status', 1);
       if ($userId) {
@@ -155,19 +155,35 @@ class AdAutoScaleService {
     }
   }
 
-  // Obtener métricas del activo
+  // Obtener métricas del activo (PRIVADO - solo para AdAutoScaleService)
   private function getAssetMetrics($asset, $config) {
     try {
       $productId = $asset['product_id'];
       $assetId = $asset['ad_asset_id'];
-      
+
       // Determinar rango de fechas más común en las condiciones
       $timeRange = $this->getMostCommonTimeRange($config);
       $dates = $this->getDateRangeFromTimeRange($timeRange);
 
       // Obtener métricas de ads
       $adMetrics = $this->getAdMetrics($asset, $dates['from'], $dates['to']);
-      
+
+      // VALIDACIÓN 1: Verificar que haya datos en el período
+      if ($adMetrics['spend'] <= 0 && $adMetrics['results'] <= 0 && $adMetrics['impressions'] <= 0) {
+        return [
+          'success' => false,
+          'error' => "Sin datos de métricas para el rango {$timeRange} ({$dates['from']} - {$dates['to']})"
+        ];
+      }
+
+      // VALIDACIÓN 2: Mínimo de actividad (al menos 2 resultados/mensajes)
+      if ($adMetrics['results'] < 2) {
+        return [
+          'success' => false,
+          'error' => "Actividad insuficiente: {$adMetrics['results']} resultados (mínimo requerido: 2)"
+        ];
+      }
+
       // Calcular ROAS personalizado
       $roas = $this->calculateROAS($productId, $assetId, $dates['from'], $dates['to'], $adMetrics['spend']);
 
@@ -228,7 +244,7 @@ class AdAutoScaleService {
     // HISTÓRICO: días anteriores a hoy (ad_metrics_daily)
     if ($dateFrom < $today) {
       $historicTo = ($dateTo < $today) ? $dateTo : date('Y-m-d', strtotime($today . ' -1 day'));
-      
+
       $sqlHistoric = "
         SELECT
           SUM(spend) as spend,
@@ -338,7 +354,7 @@ class AdAutoScaleService {
         }
       }
       $logic = ['or' => $orGroups];
-      
+
     } elseif ($conditionsLogic === 'or_and_or') {
       // (OR) and (OR) - Cada grupo es OR interno, grupos unidos por AND
       $andGroups = [];
@@ -349,14 +365,14 @@ class AdAutoScaleService {
         }
       }
       $logic = ['and' => $andGroups];
-      
+
     } else {
       ogLog::error('evaluateConditions - Lógica desconocida', ['logic' => $conditionsLogic], self::$logMeta);
       return false;
     }
 
     // Evaluar con ogLogic
-    return ogLogic::apply($logic, $metricsData);
+    return ogApp()->helper('logic')::apply($logic, $metricsData);
   }
 
   // Construir condiciones de un grupo
@@ -481,8 +497,8 @@ class AdAutoScaleService {
       $change = $changeBy;
     }
 
-    $newBudget = $actionType === 'increase_budget' 
-      ? $budget + $change 
+    $newBudget = $actionType === 'increase_budget'
+      ? $budget + $change
       : $budget - $change;
 
     // Aplicar límites
@@ -654,30 +670,30 @@ class AdAutoScaleService {
   // Convertir time_range a fechas
   private function getDateRangeFromTimeRange($timeRange) {
     $today = date('Y-m-d');
-    
+
     switch ($timeRange) {
       case 'today':
         return ['from' => $today, 'to' => $today];
-      
+
       case 'yesterday':
         $yesterday = date('Y-m-d', strtotime('-1 day'));
         return ['from' => $yesterday, 'to' => $yesterday];
-      
+
       case 'last_3d':
         return ['from' => date('Y-m-d', strtotime('-3 days')), 'to' => $today];
-      
+
       case 'last_7d':
         return ['from' => date('Y-m-d', strtotime('-7 days')), 'to' => $today];
-      
+
       case 'last_14d':
         return ['from' => date('Y-m-d', strtotime('-14 days')), 'to' => $today];
-      
+
       case 'last_30d':
         return ['from' => date('Y-m-d', strtotime('-30 days')), 'to' => $today];
-      
+
       case 'lifetime':
         return ['from' => '2020-01-01', 'to' => $today];
-      
+
       default:
         return ['from' => $today, 'to' => $today];
     }

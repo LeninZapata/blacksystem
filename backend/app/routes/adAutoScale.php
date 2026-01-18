@@ -17,6 +17,6 @@ $router->group('/api/adAutoScale', function($router) {
     ogResponse::json(
       ogApp()->handler('AdAutoScale')::executeRule(['rule_id' => $ruleId])
     );
-  })->middleware(['auth', 'throttle:10,1']);
+  })->middleware(['throttle:10,1']);
 
 });

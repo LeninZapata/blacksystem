@@ -4,11 +4,11 @@
   "timestamps": true,
   "middleware": ["throttle:100,1"],
   "routes": {
-    "list": {"method": "GET", "path": "/api/ad-auto-scale", "middleware": ["auth"]},
-    "show": {"method": "GET", "path": "/api/ad-auto-scale/{id}", "middleware": ["auth"]},
-    "create": {"method": "POST", "path": "/api/ad-auto-scale", "middleware": ["auth", "json"]},
-    "update": {"method": "PUT", "path": "/api/ad-auto-scale/{id}", "middleware": ["auth", "json"]},
-    "delete": {"method": "DELETE", "path": "/api/ad-auto-scale/{id}", "middleware": ["auth"]}
+    "list": {"method": "GET", "path": "/api/adAutoScale", "middleware": ["auth"]},
+    "show": {"method": "GET", "path": "/api/adAutoScale/{id}", "middleware": []},
+    "create": {"method": "POST", "path": "/api/adAutoScale", "middleware": ["auth", "json"]},
+    "update": {"method": "PUT", "path": "/api/adAutoScale/{id}", "middleware": ["auth", "json"]},
+    "delete": {"method": "DELETE", "path": "/api/adAutoScale/{id}", "middleware": ["auth"]}
   },
   "fields": [
     {"name": "user_id", "type": "int", "required": false},
