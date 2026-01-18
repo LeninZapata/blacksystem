@@ -37,7 +37,7 @@ class scaleRule {
 
     const fillData = {
       name: data.name,
-      ad_assets_id: data.ad_assets_id,
+      product_ad_asset_id: data.ad_assets_id, // ✅ Mapear correctamente
       status: data.status == 1
     };
 
@@ -92,7 +92,7 @@ class scaleRule {
 
     return {
       name: formData.name,
-      ad_assets_id: parseInt(formData.ad_assets_id),
+      ad_assets_id: parseInt(formData.product_ad_asset_id || formData.ad_assets_id), // ✅ Corregido
       status: formData.status ? 1 : 0,
       config: config
     };

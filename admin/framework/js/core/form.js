@@ -1458,7 +1458,8 @@ class ogForm {
       if (headerTitle.includes('{index}')) {
         const titleEl = item.querySelector('.repeatable-item-title');
         if (titleEl) {
-          titleEl.textContent = headerTitle.replace('{index}', (index + 1).toString());
+          const newTitle = headerTitle.replace('{index}', (index + 1).toString());
+          titleEl.textContent = this.processI18nTitle(newTitle);
         }
       }
 

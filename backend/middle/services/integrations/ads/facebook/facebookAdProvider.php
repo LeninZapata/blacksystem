@@ -257,4 +257,108 @@ class facebookAdProvider extends baseAdProvider {
       'conversion_rate' => 0
     ];
   }
+
+  // Obtener presupuesto actual
+  function getBudget(string $assetId, string $assetType): array {
+    try {
+      $fields = $assetType === 'campaign' ? 'daily_budget,lifetime_budget,status' : 'daily_budget,status';
+      $url = "{$this->baseUrl}/{$assetId}?fields={$fields}&access_token={$this->apiKey}";
+
+      $this->log("Obteniendo presupuesto de {$assetType}: {$assetId}");
+
+      $response = ogApp()->helper('http')::get($url);
+
+      if (!$response['success']) {
+        return $this->errorResponse(
+          "Error HTTP al consultar presupuesto: " . ($response['error'] ?? 'Unknown'),
+          $response['httpCode'] ?? 500
+        );
+      }
+
+      $data = $response['data'];
+
+      // Presupuesto en centavos, convertir a dólares
+      $dailyBudget = isset($data['daily_budget']) ? (int)$data['daily_budget'] / 100 : null;
+      $lifetimeBudget = isset($data['lifetime_budget']) ? (int)$data['lifetime_budget'] / 100 : null;
+
+      return $this->successResponse([
+        'asset_id' => $assetId,
+        'asset_type' => $assetType,
+        'budget' => $dailyBudget ?? $lifetimeBudget ?? 0,
+        'daily_budget' => $dailyBudget,
+        'lifetime_budget' => $lifetimeBudget,
+        'status' => $data['status'] ?? null
+      ]);
+
+    } catch (Exception $e) {
+      $this->log('Error obteniendo presupuesto', ['error' => $e->getMessage()]);
+      return $this->errorResponse($e->getMessage());
+    }
+  }
+
+  // Actualizar presupuesto
+  function updateBudget(string $assetId, string $assetType, float $newBudget, string $budgetType = 'daily'): array {
+    try {
+      // Convertir a centavos
+      $budgetCents = (int)($newBudget * 100);
+
+      $field = $budgetType === 'lifetime' ? 'lifetime_budget' : 'daily_budget';
+      $url = "{$this->baseUrl}/{$assetId}?{$field}={$budgetCents}&access_token={$this->apiKey}";
+
+      $this->log("Actualizando presupuesto de {$assetType}: {$assetId}", [
+        'new_budget' => $newBudget,
+        'budget_type' => $budgetType
+      ]);
+
+      $response = ogApp()->helper('http')::post($url);
+
+      if (!$response['success']) {
+        return $this->errorResponse(
+          "Error HTTP al actualizar presupuesto: " . ($response['error'] ?? 'Unknown'),
+          $response['httpCode'] ?? 500
+        );
+      }
+
+      return $this->successResponse([
+        'asset_id' => $assetId,
+        'asset_type' => $assetType,
+        'budget' => $newBudget,
+        'budget_type' => $budgetType,
+        'updated' => true
+      ]);
+
+    } catch (Exception $e) {
+      $this->log('Error actualizando presupuesto', ['error' => $e->getMessage()]);
+      return $this->errorResponse($e->getMessage());
+    }
+  }
+
+  // Pausar activo
+  function pauseAsset(string $assetId, string $assetType): array {
+    try {
+      $url = "{$this->baseUrl}/{$assetId}?status=PAUSED&access_token={$this->apiKey}";
+
+      $this->log("Pausando {$assetType}: {$assetId}");
+
+      $response = ogApp()->helper('http')::post($url);
+
+      if (!$response['success']) {
+        return $this->errorResponse(
+          "Error HTTP al pausar activo: " . ($response['error'] ?? 'Unknown'),
+          $response['httpCode'] ?? 500
+        );
+      }
+
+      return $this->successResponse([
+        'asset_id' => $assetId,
+        'asset_type' => $assetType,
+        'status' => 'PAUSED',
+        'paused' => true
+      ]);
+
+    } catch (Exception $e) {
+      $this->log('Error pausando activo', ['error' => $e->getMessage()]);
+      return $this->errorResponse($e->getMessage());
+    }
+  }
 }
