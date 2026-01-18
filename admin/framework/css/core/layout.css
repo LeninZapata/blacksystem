@@ -160,14 +160,16 @@
 
 /* Layout en modo auth (sin sidebar) */
 .onlygrow-active .og-layout.auth-mode {
-  grid-template-areas:
-    "header"
-    "content";
+  grid-template-areas: "content";
   grid-template-columns: 1fr;
-  grid-template-rows: var(--og-header-height, 60px) 1fr;
+  grid-template-rows: 1fr;
 
   .og-sidebar {
     display: none;
+  }
+  
+  .og-content {
+    padding: 0;
   }
 }
 

@@ -45,6 +45,7 @@ class productAdAsset {
     const result = this.currentId ? await this.update(this.currentId, body) : await this.create(body);
 
     if (result) {
+      ogModule('form').clearSelectCache('/api/productAdAsset');
       ogComponent('toast').success(this.currentId ? __('automation.product_ad_assets.success.updated') : __('automation.product_ad_assets.success.created'));
       setTimeout(() => { ogModule('modal').closeAll(); this.refresh(); }, 100);
     }

@@ -163,7 +163,8 @@
         "cost_per_result": "Costo por Resultado",
         "spend": "Gasto",
         "impressions": "Impresiones",
-        "frequency": "Frecuencia"
+        "frequency": "Frecuencia",
+        "roas": "ROAS (sistema)"
       },
       "time_range": {
         "today": "Hoy",

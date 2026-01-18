@@ -35,7 +35,7 @@ class ogLayout {
       ogLogger?.info('core:layout', `🔐 Renderizando layout AUTH mode`);
       app.innerHTML = `
         <div class="og-layout auth-mode">
-          <main class="og-content" id="content"></main>
+          <div class="og-content" id="content"></div>
         </div>
       `;
     } else {

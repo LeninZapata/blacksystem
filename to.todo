@@ -17,4 +17,5 @@ entonces al momento de guardar los activos de producto debe tambien guardar la t
 'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
 
 FRONTEND:
-  ☐ limpiar el clearSelectCache en productAssets porque si hay cambios alli este va vinculado con las reglas
+  ☐ sortable pierde el idioma y vuelve a key de idioma
+  ✔ limpiar el clearSelectCache en productAssets porque si hay cambios alli este va vinculado con las reglas @done(17-01-2026 19:24)

@@ -1,0 +1,24 @@
+{
+  "resource": "adAutoScale",
+  "table": "ad_auto_scale",
+  "timestamps": true,
+  "middleware": ["throttle:100,1"],
+  "routes": {
+    "list": {"method": "GET", "path": "/api/ad-auto-scale", "middleware": ["auth"]},
+    "show": {"method": "GET", "path": "/api/ad-auto-scale/{id}", "middleware": ["auth"]},
+    "create": {"method": "POST", "path": "/api/ad-auto-scale", "middleware": ["auth", "json"]},
+    "update": {"method": "PUT", "path": "/api/ad-auto-scale/{id}", "middleware": ["auth", "json"]},
+    "delete": {"method": "DELETE", "path": "/api/ad-auto-scale/{id}", "middleware": ["auth"]}
+  },
+  "fields": [
+    {"name": "user_id", "type": "int", "required": false},
+    {"name": "name", "type": "string", "maxLength": 200, "required": true},
+    {"name": "ad_assets_id", "type": "int", "required": true},
+    {"name": "config", "type": "json"},
+    {"name": "status", "type": "tinyint", "required": false, "default": 1},
+    {"name": "dc", "type": "datetime"},
+    {"name": "du", "type": "datetime"},
+    {"name": "tc", "type": "int"},
+    {"name": "tu", "type": "int"}
+  ]
+}

@@ -43,10 +43,22 @@
           "type": "select",
           "required": true,
           "options": [
-            {"value": "", "label": "i18n:core.form.select.placeholder"},
-            {"value": "pause", "label": "i18n:automation.scale_rules.action_type.pause"},
-            {"value": "increase_budget", "label": "i18n:automation.scale_rules.action_type.increase_budget"},
-            {"value": "decrease_budget", "label": "i18n:automation.scale_rules.action_type.decrease_budget"}
+            {
+              "value": "",
+              "label": "i18n:core.form.select.placeholder"
+            },
+            {
+              "value": "pause",
+              "label": "i18n:automation.scale_rules.action_type.pause"
+            },
+            {
+              "value": "increase_budget",
+              "label": "i18n:automation.scale_rules.action_type.increase_budget"
+            },
+            {
+              "value": "decrease_budget",
+              "label": "i18n:automation.scale_rules.action_type.decrease_budget"
+            }
           ],
           "validation": "required"
         },
@@ -56,7 +68,11 @@
           "columns": 4,
           "gap": "normal",
           "condition": [
-            {"field": "action_type", "operator": "any", "value": "increase_budget,decrease_budget"}
+            {
+              "field": "action_type",
+              "operator": "any",
+              "value": "increase_budget,decrease_budget"
+            }
           ],
           "conditionContext": "repeatable",
           "fields": [
@@ -76,8 +92,14 @@
               "type": "select",
               "required": true,
               "options": [
-                {"value": "percent", "label": "%"},
-                {"value": "fixed", "label": "$"}
+                {
+                  "value": "percent",
+                  "label": "%"
+                },
+                {
+                  "value": "fixed",
+                  "label": "$"
+                }
               ],
               "validation": "required"
             },
@@ -98,7 +120,10 @@
               "type": "select",
               "required": true,
               "options": [
-                {"value": "USD", "label": "$"}
+                {
+                  "value": "USD",
+                  "label": "$"
+                }
               ],
               "defaultValue": "USD"
             }
@@ -110,7 +135,11 @@
           "columns": 2,
           "gap": "normal",
           "condition": [
-            {"field": "action_type", "operator": "any", "value": "increase_budget,decrease_budget"}
+            {
+              "field": "action_type",
+              "operator": "any",
+              "value": "increase_budget,decrease_budget"
+            }
           ],
           "conditionContext": "repeatable",
           "fields": [
@@ -120,9 +149,18 @@
               "type": "select",
               "required": true,
               "options": [
-                {"value": "everytime", "label": "i18n:automation.scale_rules.time_period.everytime"},
-                {"value": "once", "label": "i18n:automation.scale_rules.time_period.once"},
-                {"value": "daily", "label": "i18n:automation.scale_rules.time_period.daily"}
+                {
+                  "value": "everytime",
+                  "label": "i18n:automation.scale_rules.time_period.everytime"
+                },
+                {
+                  "value": "once",
+                  "label": "i18n:automation.scale_rules.time_period.once"
+                },
+                {
+                  "value": "daily",
+                  "label": "i18n:automation.scale_rules.time_period.daily"
+                }
               ],
               "validation": "required",
               "help": "i18n:automation.scale_rules.field.time_period_help"
@@ -133,14 +171,23 @@
               "type": "select",
               "required": true,
               "options": [
-                {"value": "daily", "label": "i18n:automation.scale_rules.budget_type.daily"},
-                {"value": "lifetime", "label": "i18n:automation.scale_rules.budget_type.lifetime"}
+                {
+                  "value": "daily",
+                  "label": "i18n:automation.scale_rules.budget_type.daily"
+                },
+                {
+                  "value": "lifetime",
+                  "label": "i18n:automation.scale_rules.budget_type.lifetime"
+                }
               ],
               "validation": "required"
             }
           ]
         }
-      ]
+      ],
+      "accordionOpenFirst": true,
+      "sortable": true,
+      "initialItems": 1
     },
     {
       "type": "html",
@@ -178,13 +225,34 @@
                   "type": "select",
                   "required": true,
                   "options": [
-                    {"value": "", "label": "i18n:core.form.select.placeholder"},
-                    {"value": "roas", "label": "ROAS"},
-                    {"value": "results", "label": "i18n:automation.scale_rules.metric.results"},
-                    {"value": "cost_per_result", "label": "i18n:automation.scale_rules.metric.cost_per_result"},
-                    {"value": "spend", "label": "i18n:automation.scale_rules.metric.spend"},
-                    {"value": "impressions", "label": "i18n:automation.scale_rules.metric.impressions"},
-                    {"value": "frequency", "label": "i18n:automation.scale_rules.metric.frequency"}
+                    {
+                      "value": "",
+                      "label": "i18n:core.form.select.placeholder"
+                    },
+                    {
+                      "value": "roas",
+                      "label": "i18n:automation.scale_rules.metric.roas"
+                    },
+                    {
+                      "value": "results",
+                      "label": "i18n:automation.scale_rules.metric.results"
+                    },
+                    {
+                      "value": "cost_per_result",
+                      "label": "i18n:automation.scale_rules.metric.cost_per_result"
+                    },
+                    {
+                      "value": "spend",
+                      "label": "i18n:automation.scale_rules.metric.spend"
+                    },
+                    {
+                      "value": "impressions",
+                      "label": "i18n:automation.scale_rules.metric.impressions"
+                    },
+                    {
+                      "value": "frequency",
+                      "label": "i18n:automation.scale_rules.metric.frequency"
+                    }
                   ],
                   "validation": "required"
                 },
@@ -194,13 +262,34 @@
                   "type": "select",
                   "required": true,
                   "options": [
-                    {"value": "today", "label": "i18n:automation.scale_rules.time_range.today"},
-                    {"value": "yesterday", "label": "i18n:automation.scale_rules.time_range.yesterday"},
-                    {"value": "last_3d", "label": "i18n:automation.scale_rules.time_range.last_3d"},
-                    {"value": "last_7d", "label": "i18n:automation.scale_rules.time_range.last_7d"},
-                    {"value": "last_14d", "label": "i18n:automation.scale_rules.time_range.last_14d"},
-                    {"value": "last_30d", "label": "i18n:automation.scale_rules.time_range.last_30d"},
-                    {"value": "lifetime", "label": "i18n:automation.scale_rules.time_range.lifetime"}
+                    {
+                      "value": "today",
+                      "label": "i18n:automation.scale_rules.time_range.today"
+                    },
+                    {
+                      "value": "yesterday",
+                      "label": "i18n:automation.scale_rules.time_range.yesterday"
+                    },
+                    {
+                      "value": "last_3d",
+                      "label": "i18n:automation.scale_rules.time_range.last_3d"
+                    },
+                    {
+                      "value": "last_7d",
+                      "label": "i18n:automation.scale_rules.time_range.last_7d"
+                    },
+                    {
+                      "value": "last_14d",
+                      "label": "i18n:automation.scale_rules.time_range.last_14d"
+                    },
+                    {
+                      "value": "last_30d",
+                      "label": "i18n:automation.scale_rules.time_range.last_30d"
+                    },
+                    {
+                      "value": "lifetime",
+                      "label": "i18n:automation.scale_rules.time_range.lifetime"
+                    }
                   ],
                   "validation": "required"
                 },
@@ -210,12 +299,30 @@
                   "type": "select",
                   "required": true,
                   "options": [
-                    {"value": ">", "label": ">"},
-                    {"value": "<", "label": "<"},
-                    {"value": ">=", "label": "≥"},
-                    {"value": "<=", "label": "≤"},
-                    {"value": "==", "label": "="},
-                    {"value": "is_within", "label": "i18n:automation.scale_rules.operator.is_within"}
+                    {
+                      "value": ">",
+                      "label": ">"
+                    },
+                    {
+                      "value": "<",
+                      "label": "<"
+                    },
+                    {
+                      "value": ">=",
+                      "label": "≥"
+                    },
+                    {
+                      "value": "<=",
+                      "label": "≤"
+                    },
+                    {
+                      "value": "==",
+                      "label": "="
+                    },
+                    {
+                      "value": "is_within",
+                      "label": "i18n:automation.scale_rules.operator.is_within"
+                    }
                   ],
                   "validation": "required"
                 },
@@ -235,23 +342,58 @@
               "label": "i18n:automation.scale_rules.field.value_suffix",
               "type": "select",
               "options": [
-                {"value": "", "label": "i18n:automation.scale_rules.suffix.none"},
-                {"value": "percent", "label": "i18n:automation.scale_rules.suffix.percent"},
-                {"value": "currency", "label": "$"}
+                {
+                  "value": "",
+                  "label": "i18n:automation.scale_rules.suffix.none"
+                },
+                {
+                  "value": "percent",
+                  "label": "i18n:automation.scale_rules.suffix.percent"
+                },
+                {
+                  "value": "currency",
+                  "label": "$"
+                }
               ],
               "condition": [
-                {"field": "metric", "operator": "any", "value": "roas,cost_per_result,spend"}
+                {
+                  "field": "metric",
+                  "operator": "any",
+                  "value": "roas,cost_per_result,spend"
+                }
               ],
               "conditionContext": "repeatable"
             }
           ]
         }
-      ]
+      ],
+      "accordionOpenFirst": true,
+      "sortable": true,
+      "initialItems": 1
     }
   ],
   "statusbar": [
-    {"name": "status", "type": "checkbox", "label": "i18n:automation.scale_rules.field.status", "default": true, "align": "left"},
-    {"name": "cancel", "type": "button", "label": "i18n:core.cancel", "action": "call:ogModal.closeAll", "style": "secondary", "align": "right"},
-    {"name": "submit", "type": "button", "label": "i18n:core.save", "action": "submit:scaleRule.save", "align": "right"}
+    {
+      "name": "status",
+      "type": "checkbox",
+      "label": "i18n:automation.scale_rules.field.status",
+      "default": true,
+      "align": "left"
+    },
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "i18n:core.cancel",
+      "action": "call:ogModal.closeAll",
+      "style": "secondary",
+      "align": "right"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "i18n:core.save",
+      "action": "submit:scaleRule.save",
+      "align": "right"
+    }
   ]
 }

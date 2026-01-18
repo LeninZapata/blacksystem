@@ -82,7 +82,7 @@ class ogForm {
 
   static t(text) {
     const i18n = ogModule('i18n');
-    
+
     if (!text || typeof text !== 'string') return text || '';
     if (!text.startsWith('i18n:')) return text;
     const key = text.replace('i18n:', '');
@@ -250,7 +250,7 @@ class ogForm {
   static renderToolbar(items) {
     const leftItems = [];
     const rightItems = [];
-    
+
     items.forEach(item => {
       if (item.align === 'left') {
         leftItems.push(item);
@@ -258,17 +258,17 @@ class ogForm {
         rightItems.push(item);
       }
     });
-    
+
     const leftHtml = leftItems.length > 0 ? `<div class="toolbar-left">${this.renderFields(leftItems)}</div>` : '';
     const rightHtml = rightItems.length > 0 ? `<div class="toolbar-right">${this.renderFields(rightItems)}</div>` : '';
-    
+
     return `<div class="form-toolbar">${leftHtml}${rightHtml}</div>`;
   }
 
   static renderStatusbar(items) {
     const leftItems = [];
     const rightItems = [];
-    
+
     items.forEach(item => {
       if (item.align === 'left') {
         leftItems.push(item);
@@ -276,10 +276,10 @@ class ogForm {
         rightItems.push(item);
       }
     });
-    
+
     const leftHtml = leftItems.length > 0 ? `<div class="statusbar-left">${this.renderFields(leftItems)}</div>` : '';
     const rightHtml = rightItems.length > 0 ? `<div class="statusbar-right">${this.renderFields(rightItems)}</div>` : '';
-    
+
     return `<div class="form-statusbar">${leftHtml}${rightHtml}</div>`;
   }
 
@@ -375,7 +375,7 @@ class ogForm {
     const columns = field.columns || 2;
     const gap = field.gap || 'normal';
 
-    
+
     // Generar fieldPath para el group
     const groupFieldPath = field.name ? (basePath ? `${basePath}.${field.name}` : field.name) : '';
     const dataPath = groupFieldPath ? `data-field-path="${groupFieldPath}"` : '';
@@ -443,7 +443,7 @@ class ogForm {
       // CAMBIAR: .grouper-title → .og-grouper-title
       // CAMBIAR: .grouper-toggle → .og-grouper-toggle
       // CAMBIAR: .grouper-content → .og-grouper-content
-      
+
       html += `
         <div class="og-grouper-section ${isOpen ? 'open' : ''} ${!collapsible ? 'non-collapsible' : ''}" data-group-index="${index}">
           <div class="og-grouper-header ${collapsible ? 'collapsible' : 'non-collapsible'}"
@@ -480,7 +480,7 @@ class ogForm {
     field.groups.forEach((group, index) => {
       const isActive = index === activeIndex;
       const processedTitle = this.processI18nTitle(group.title) || `Tab ${index + 1}`;
-      
+
       // CAMBIAR: .grouper-tab-btn → .og-grouper-tab-btn
       html += `
         <button type="button" class="og-grouper-tab-btn ${isActive ? 'active' : ''}"
@@ -495,7 +495,7 @@ class ogForm {
     html += `<div class="og-grouper-tabs-content">`;
     field.groups.forEach((group, index) => {
       const isActive = index === activeIndex;
-      
+
       // CAMBIAR: .grouper-tab-panel → .og-grouper-tab-panel
       html += `
         <div class="og-grouper-tab-panel ${isActive ? 'active' : ''}"
@@ -844,30 +844,30 @@ class ogForm {
       const header = e.target.closest('.repeatable-item-header');
       if (header && header.dataset.toggle === 'accordion') {
         // No hacer nada si se clickeó el botón eliminar o el drag handle
-        if (e.target.classList.contains('repeatable-remove') || 
+        if (e.target.classList.contains('repeatable-remove') ||
             e.target.closest('.repeatable-remove') ||
             e.target.classList.contains('repeatable-drag-handle') ||
             e.target.closest('.repeatable-drag-handle')) {
           return;
         }
-        
+
         const item = header.closest('.repeatable-item');
         const body = item.querySelector('.repeatable-item-body');
         const toggle = header.querySelector('.repeatable-toggle');
-        
+
         if (body) {
           const isOpen = body.style.display !== 'none';
-          
+
           // Si accordionSingle está activo, cerrar todos los otros del mismo nivel
           const container = item.closest('.repeatable-items');
           if (container && container.dataset.accordionSingle === 'true' && !isOpen) {
             const allItems = container.querySelectorAll(':scope > .repeatable-item');
-            
+
             allItems.forEach(otherItem => {
               if (otherItem !== item) {
                 const otherBody = otherItem.querySelector('.repeatable-item-body');
                 const otherToggle = otherItem.querySelector('.repeatable-toggle');
-                
+
                 if (otherBody && otherBody.style.display !== 'none') {
                   otherBody.style.display = 'none';
                   if (otherToggle) {
@@ -878,7 +878,7 @@ class ogForm {
               }
             });
           }
-          
+
           // Toggle del item actual
           body.style.display = isOpen ? 'none' : 'block';
           if (toggle) {
@@ -899,7 +899,7 @@ class ogForm {
 
       const item = dragHandle.closest('.repeatable-item');
       const container = item?.closest('.repeatable-items');
-      
+
       if (item && container && container.dataset.sortable === 'true') {
         draggedItem = item;
         draggedContainer = container;
@@ -912,9 +912,9 @@ class ogForm {
     document.addEventListener('dragover', (e) => {
       if (!draggedItem) return;
       e.preventDefault();
-      
+
       const afterElement = this.getDragAfterElement(draggedContainer, e.clientY);
-      
+
       if (afterElement == null) {
         draggedContainer.appendChild(draggedItem);
       } else {
@@ -924,14 +924,14 @@ class ogForm {
 
     document.addEventListener('dragend', (e) => {
       if (!draggedItem) return;
-      
+
       draggedItem.classList.remove('dragging');
-      
+
       // Recalcular índices y títulos
       if (draggedContainer) {
         this.reindexRepeatableItems(draggedContainer);
       }
-      
+
       draggedItem = null;
       draggedContainer = null;
     });
@@ -1304,19 +1304,19 @@ class ogForm {
     ogLogger?.debug('core:form', `addRepeatableItem - titleWithIndex: "${titleWithIndex}", processedTitle: "${processedTitle}"`);
     // 6. Crear el HTML del item
     let itemHtml = '';
-    
+
     if (hasHeader) {
       // Con header (puede ser acordeón o no)
       const headerClass = accordion ? 'repeatable-item-accordion' : 'repeatable-item-with-header';
       const contentClass = accordion ? 'repeatable-item-body' : 'repeatable-content';
-      
+
       // Icono drag si sortable está activo (3 columnas de puntos para que sea más fácil clickear)
       const dragIcon = sortable ? '<span class="repeatable-drag-handle" draggable="true">⋮⋮⋮</span>' : '';
-      
+
       // Botón eliminar siempre en el header cuando hay header
       const removeButton = `<button type="button" class="btn btn-sm btn-danger repeatable-remove">${removeText}</button>`;
       const toggleIcon = accordion ? '<span class="repeatable-toggle">▼</span>' : '';
-      
+
       // Orden: drag, eliminar, toggle
       const headerActions = `
         <div class="repeatable-item-header-actions">
@@ -1325,7 +1325,7 @@ class ogForm {
           ${toggleIcon}
         </div>
       `;
-      
+
       itemHtml = `
         <div class="repeatable-item ${headerClass}" data-index="${newIndex}">
           <div class="repeatable-item-header ${accordion ? 'clickable' : ''}" ${accordion ? 'data-toggle="accordion"' : ''}>
@@ -1362,7 +1362,7 @@ class ogForm {
     if (accordion && addedItem) {
       const body = addedItem.querySelector('.repeatable-item-body');
       const toggle = addedItem.querySelector('.repeatable-toggle');
-      
+
       if (body) {
         body.style.display = 'none';
         if (toggle) {
@@ -1665,10 +1665,10 @@ class ogForm {
         } else if (field.name) {
           // Buscar valor por name directo o con dot notation
           let value = data[field.name];
-          
+
           // Si no se encuentra, intentar con dot notation
           if (value === undefined) {
-            const dotNotationKey = Object.keys(data).find(key => 
+            const dotNotationKey = Object.keys(data).find(key =>
               key.endsWith('.' + field.name) || key === field.name
             );
             if (dotNotationKey) {
@@ -1691,9 +1691,9 @@ class ogForm {
           if (field.type === 'repeatable') {
             // Buscar datos del repeatable con dot notation
             let repeatableData = data[field.name];
-            
+
             if (!repeatableData) {
-              const dotNotationKey = Object.keys(data).find(key => 
+              const dotNotationKey = Object.keys(data).find(key =>
                 key.endsWith('.' + field.name) || key === field.name
               );
               if (dotNotationKey) {
@@ -1782,8 +1782,9 @@ class ogForm {
       return;
     }
 
-    // Limpiar items existentes
+    // Limpiar items existentes y resetear contador
     itemsContainer.innerHTML = '';
+    itemsContainer.dataset.itemCount = '0';
 
     const formEl = container.closest('form');
     let completedItems = 0;
@@ -1793,9 +1794,34 @@ class ogForm {
     const processItem = (index) => {
       if (index >= totalItems) {
         // Todos los items procesados
+
         if (conditions) {
           requestAnimationFrame(() => {
             conditions.resumeEvaluations(formEl?.id);
+
+            // Si accordionOpenFirst está activo, abrir el primer item después de resumir condiciones
+            const accordionOpenFirst = itemsContainer.dataset.accordionOpenFirst === 'true';
+            ogLogger?.debug('core:form', `🔍 accordionOpenFirst=${accordionOpenFirst}, totalItems=${totalItems}`);
+
+            if (accordionOpenFirst && totalItems > 0) {
+              const firstItem = itemsContainer.querySelector('.repeatable-item[data-index="0"]');
+              ogLogger?.debug('core:form', `🔍 firstItem encontrado: ${!!firstItem}`);
+
+              if (firstItem) {
+                const body = firstItem.querySelector('.repeatable-item-body');
+                const header = firstItem.querySelector('.repeatable-item-header');
+                const toggle = header ? header.querySelector('.repeatable-toggle') : null;
+
+                ogLogger?.debug('core:form', `🔍 body=${!!body}, toggle=${!!toggle}, collapsed=${firstItem.classList.contains('collapsed')}`);
+
+                if (body && header) {
+                  body.style.display = 'block';
+                  if (toggle) toggle.textContent = '▼';
+                  firstItem.classList.remove('collapsed');
+                  ogLogger?.debug('core:form', `✅ Primer accordion abierto por accordionOpenFirst`);
+                }
+              }
+            }
           });
         }
         return;
@@ -1807,7 +1833,7 @@ class ogForm {
       // Usar setTimeout mínimo para dar tiempo a que el select se inicialice
       setTimeout(() => {
         this.fillRepeatableItem(itemsContainer, fieldName, index, itemData, field.fields, fullPath);
-        
+
         // Procesar siguiente item
         processItem(index + 1);
       }, 50); // 50ms es suficiente para que el select se inicialice
@@ -1856,7 +1882,7 @@ class ogForm {
           if (input) {
             if (input.tagName === 'SELECT' && input.dataset.source) {
               input.dataset.pendingValue = JSON.stringify(value);
-              
+
               if (input.options.length > 1) {
                 this.setInputValue(input, value, true);
               } else {
@@ -1900,7 +1926,7 @@ class ogForm {
           if (input.tagName === 'SELECT' && input.dataset.source) {
             // Marcar que necesita ser llenado después de cargar
             input.dataset.pendingValue = JSON.stringify(value);
-            
+
             // Si el select ya está cargado (cache), llenar inmediatamente
             if (input.options.length > 1) {
               this.setInputValue(input, value, true);
@@ -2436,10 +2462,10 @@ class ogForm {
    */
   static processI18nTitle(title) {
     if (!title || typeof title !== 'string') return title;
-    
+
     const i18n = ogModule('i18n');
     if (!i18n) return title;
-    
+
     // Si empieza con i18n: extraer la key hasta el primer espacio o final
     if (title.startsWith('i18n:')) {
       const match = title.match(/^i18n:([a-zA-Z0-9._-]+)(.*)$/);
@@ -2450,7 +2476,7 @@ class ogForm {
         return translated + rest;
       }
     }
-    
+
     // Si contiene i18n: en medio (ej: "➕ i18n:key"), extraer y traducir
     const i18nMatch = title.match(/i18n:([a-zA-Z0-9._-]+)/);
     if (i18nMatch) {
@@ -2459,7 +2485,7 @@ class ogForm {
       // Reemplazar solo la parte i18n:key con la traducción
       return title.replace(/i18n:[a-zA-Z0-9._-]+/, translated);
     }
-    
+
     // Si tiene formato {i18n:key}, extraer key, traducir y quitar llaves
     const bracketMatch = title.match(/\{i18n:([a-zA-Z0-9._-]+)\}/);
     if (bracketMatch) {
@@ -2468,7 +2494,7 @@ class ogForm {
       // Reemplazar {i18n:key} con la traducción (sin llaves)
       return title.replace(/\{i18n:[a-zA-Z0-9._-]+\}/, translated);
     }
-    
+
     return title;
   }
 

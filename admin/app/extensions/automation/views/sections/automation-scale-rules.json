@@ -19,11 +19,11 @@
       "component": "datatable",
       "order": 2,
       "config": {
-        "source": "api/scale-rule",
+        "source": "api/ad-auto-scale",
         "columns": [
           {"id": {"name": "i18n:automation.scale_rules.column.id", "width": "80px", "align": "center", "sortable": true}},
           {"name": {"name": "i18n:automation.scale_rules.column.name", "sortable": true}},
-          {"product_ad_asset_id": {"name": "i18n:automation.scale_rules.column.product_ad_asset", "width": "200px", "align": "center", "sortable": true}},
+          {"ad_assets_id": {"name": "i18n:automation.scale_rules.column.product_ad_asset", "width": "200px", "align": "center", "sortable": true}},
           {"status": {"name": "i18n:automation.scale_rules.column.status", "width": "100px", "align": "center"}},
           {"dc": {"name": "i18n:automation.scale_rules.column.created", "format": "datetime", "width": "180px", "align": "center"}}
         ],

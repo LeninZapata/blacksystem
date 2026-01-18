@@ -1,6 +1,6 @@
 class scaleRule {
   static apis = {
-    scaleRule: '/api/scale-rule'
+    scaleRule: '/api/ad-auto-scale'
   };
 
   static currentId = null;
@@ -33,25 +33,25 @@ class scaleRule {
   }
 
   static fillForm(formId, data) {
+    const config = typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {});
+
     const fillData = {
       name: data.name,
-      product_ad_asset_id: data.product_ad_asset_id,
+      ad_assets_id: data.ad_assets_id,
       status: data.status == 1
     };
 
-    if (data.config && typeof data.config === 'object') {
-      if (data.config.conditions_logic) {
-        const logicSelect = document.getElementById('conditions_logic');
-        if (logicSelect) logicSelect.value = data.config.conditions_logic;
-      }
+    if (config.conditions_logic) {
+      const logicSelect = document.getElementById('conditions_logic');
+      if (logicSelect) logicSelect.value = config.conditions_logic;
+    }
 
-      if (data.config.actions && Array.isArray(data.config.actions)) {
-        fillData.actions = data.config.actions;
-      }
+    if (config.actions && Array.isArray(config.actions)) {
+      fillData.actions = config.actions;
+    }
 
-      if (data.config.condition_groups && Array.isArray(data.config.condition_groups)) {
-        fillData.condition_groups = data.config.condition_groups;
-      }
+    if (config.condition_groups && Array.isArray(config.condition_groups)) {
+      fillData.condition_groups = config.condition_groups;
     }
 
     ogModule('form').fill(formId, fillData);
@@ -84,7 +84,7 @@ class scaleRule {
     const logicSelect = document.getElementById('conditions_logic');
     const conditionsLogic = logicSelect ? logicSelect.value : 'and_or_and';
 
-    let config = {
+    const config = {
       conditions_logic: conditionsLogic,
       actions: formData.actions || [],
       condition_groups: formData.condition_groups || []
@@ -92,7 +92,7 @@ class scaleRule {
 
     return {
       name: formData.name,
-      product_ad_asset_id: parseInt(formData.product_ad_asset_id),
+      ad_assets_id: parseInt(formData.ad_assets_id),
       status: formData.status ? 1 : 0,
       config: config
     };
