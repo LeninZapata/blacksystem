@@ -213,6 +213,8 @@
           "type": "repeatable",
           "addText": "i18n:automation.scale_rules.conditions.add",
           "removeText": "❌",
+          "hasHeader": true,
+          "sortable": true,
           "fields": [
             {
               "type": "group",
