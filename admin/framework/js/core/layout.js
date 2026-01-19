@@ -1,25 +1,14 @@
 class ogLayout {
   static init(mode = 'app', container = null) {
-    ogLogger?.info('core:layout', `🎨 === INIT LAYOUT CALLED ===`);
-    ogLogger?.info('core:layout', `📦 mode: ${mode}`);
-    ogLogger?.info('core:layout', `📦 container param:`, container);
-    
     // OBTENER EL CONTENEDOR DE LA CONFIGURACIÓN ACTIVA
     let app = container;
 
     if (!app) {
-      ogLogger?.info('core:layout', `🔍 Container es null, buscando en config...`);
       const config = window.ogFramework?.activeConfig;
-      ogLogger?.info('core:layout', `🔍 config:`, config);
-      
       if (config && config.container) {
-        ogLogger?.info('core:layout', `🔍 Buscando selector: ${config.container}`);
         app = document.querySelector(config.container);
-        ogLogger?.info('core:layout', `🔍 Resultado querySelector:`, app);
       } else {
-        ogLogger?.info('core:layout', `🔍 Fallback a #app`);
         app = document.getElementById('app');
-        ogLogger?.info('core:layout', `🔍 Resultado getElementById:`, app);
       }
     }
 
@@ -28,18 +17,14 @@ class ogLayout {
       return;
     }
 
-    ogLogger?.info('core:layout', `✅ Contenedor encontrado:`, app);
-    ogLogger?.info('core:layout', `📝 Contenedor HTML antes:`, app.innerHTML.substring(0, 100));
 
     if (mode === 'auth') {
-      ogLogger?.info('core:layout', `🔐 Renderizando layout AUTH mode`);
       app.innerHTML = `
         <div class="og-layout auth-mode">
           <div class="og-content" id="content"></div>
         </div>
       `;
     } else {
-      ogLogger?.info('core:layout', `🏠 Renderizando layout APP mode`);
       const html = `
         <div class="og-layout">
           <header class="og-header" id="header">
@@ -59,14 +44,11 @@ class ogLayout {
         </div>
       `;
       
-      ogLogger?.info('core:layout', `📝 HTML a insertar (primeros 200 chars):`, html.substring(0, 200));
       app.innerHTML = html;
       
-      ogLogger?.info('core:layout', `📝 Contenedor HTML después:`, app.innerHTML.substring(0, 200));
       
       // Verificar que el sidebar existe después de insertar
       const sidebarCheck = document.getElementById('sidebar');
-      ogLogger?.info('core:layout', `🔍 Verificando #sidebar existe:`, !!sidebarCheck);
       
       if (sidebarCheck) {
         ogLogger?.success('core:layout', `✅ #sidebar creado exitosamente`);

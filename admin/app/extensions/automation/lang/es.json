@@ -43,12 +43,14 @@
         "phone_number_id_placeholder": "123456789012345",
         "business_account_id": "WhatsApp Business Account ID",
         "business_account_id_placeholder": "789012345678901",
-        "status": "Activo"
+        "status": "Activo",
+        "timezone": "Zona Horaria de la Cuenta",
+        "timezone_help": "Zona horaria configurada en tu cuenta publicitaria (Facebook Ads, Google Ads, etc). Esto afecta cuándo se resetean los presupuestos diarios."
       },
       "type": {
         "ai_agent": "AI Agent",
         "chat": "Chat API",
-        "ad": "Administrador de Anuncios"
+        "ad": "API de Publicidad"
       },
       "ad_platform": {
         "facebook": "Facebook Ads",
@@ -242,7 +244,15 @@
         "ad_asset_name_placeholder": "Ej: Campaña de Lanzamiento Verano 2024",
         "is_active": "Activo",
         "notes": "Notas",
-        "notes_placeholder": "Observaciones adicionales sobre este activo..."
+        "credential_id": "Credencial (API de Publicidad)",
+        "credential_id_help": "Selecciona la credencial (token) que se usará para acceder a la cuenta publicitaria",
+        "timezone": "Zona Horaria de la Cuenta Publicitaria",
+        "timezone_help": "Zona horaria configurada en la cuenta publicitaria a la que pertenece este activo (campaign/adset/ad). Esto afecta cuándo se resetea el presupuesto diario.",
+        "base_daily_budget": "Presupuesto Diario Base",
+        "base_daily_budget_help": "Presupuesto al que se reseteará automáticamente cada día (en USD)",
+        "reset_time": "Hora de Reset",
+        "reset_time_help": "Hora local (según timezone de la cuenta) a la que resetear el presupuesto",
+        "auto_reset_budget": "Auto-Reset Activo"
       },
       "asset_type": {
         "campaign": "Campaña",

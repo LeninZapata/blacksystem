@@ -32,7 +32,7 @@
       {
         "id": "automation-scale-rules",
         "title": "Escala Automática",
-        "view": "sections/automation-scale-rules",
+        "view": "sections/automation-scale-stats",
         "order": 4
       }
     ]

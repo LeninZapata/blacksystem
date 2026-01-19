@@ -11,7 +11,6 @@ class credential {
     const realId = formEl?.getAttribute('data-real-id') || formId;
     ogModule('form').clearAllErrors(realId);
     
-    // ✅ FIX: Reinicializar condiciones después de limpiar
     setTimeout(() => {
       ogModule('conditions')?.init(formId);
     }, 100);
@@ -28,7 +27,6 @@ class credential {
     
     this.fillForm(formId, data);
     
-    // ✅ FIX: Reinicializar condiciones después de llenar el formulario
     setTimeout(() => {
       ogModule('conditions')?.init(formId);
     }, 100);
@@ -114,7 +112,6 @@ class credential {
         config.access_token = formData.access_token || '';
         config.phone_number_id = formData.phone_number_id || '';
         config.business_account_id = formData.business_account_id || '';
-        // credential_value se deja vacío o igual al access_token
         config.credential_value = formData.access_token || '';
       }
     } else if (formData.type === 'ad') {
@@ -122,7 +119,12 @@ class credential {
       config.credential_value = formData.api_token || '';
     }
 
-    return { name: formData.name, type: formData.type, status: formData.status ? 1 : 0, config: config };
+    return { 
+      name: formData.name, 
+      type: formData.type, 
+      status: formData.status ? 1 : 0, 
+      config: config 
+    };
   }
 
   static async create(data) {
@@ -132,7 +134,7 @@ class credential {
       const res = await ogModule('api').post(this.apis.credential, data);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      ogLogger.error('ext:automation', error);
+      ogLogger.error('ext:automation:credential', error);
       ogComponent('toast').error(__('automation.credentials.error.create_failed'));
       return null;
     }
@@ -143,7 +145,7 @@ class credential {
       const res = await ogModule('api').get(`${this.apis.credential}/${id}`);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      ogLogger.error('ext:automation', error);
+      ogLogger.error('ext:automation:credential', error);
       ogComponent('toast').error(__('automation.credentials.error.load_failed'));
       return null;
     }
@@ -156,8 +158,8 @@ class credential {
       const res = await ogModule('api').put(`${this.apis.credential}/${id}`, {...data, id});
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      ogLogger.error('ext:automation:credential: ' + __('automation.credentials.error.update_failed'), error);
-      //ogComponent('toast').error(__('automation.credentials.error.update_failed'));
+      ogLogger.error('ext:automation:credential', error);
+      ogComponent('toast').error(__('automation.credentials.error.update_failed'));
       return null;
     }
   }
@@ -173,7 +175,7 @@ class credential {
       this.refresh();
       return res.data || res;
     } catch (error) {
-      ogLogger.error('ext:automation', error);
+      ogLogger.error('ext:automation:credential', error);
       ogComponent('toast').error(__('automation.credentials.error.delete_failed'));
       return null;
     }
@@ -184,7 +186,7 @@ class credential {
       const res = await ogModule('api').get(this.apis.credential);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
-      ogLogger.error('ext:automation', error);
+      ogLogger.error('ext:automation:credential', error);
       return [];
     }
   }

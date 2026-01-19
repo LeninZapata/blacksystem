@@ -1,0 +1,83 @@
+{
+  "id": "automationScaleRules",
+  "title": "{i18n:automation.scale_rules.listado.title}",
+  "type": "content",
+  "styles": ["automation/assets/css/scaleRuleStats.css"],
+  "scripts": [
+    "automation/assets/js/scaleRule.js",
+    "automation/assets/js/scaleRuleStats.js"
+  ],
+  "content": [
+    {
+      "type": "component",
+      "component": "tabs",
+      "config": {
+        "id": "scale-tabs",
+        "preloadAllTabs": false,
+        "tabs": [
+          {
+            "id": "tab-reglas",
+            "title": "📋 Reglas",
+            "content": [
+              {
+                "type": "html",
+                "content": "<div class='view-header'><h2>{i18n:automation.scale_rules.listado.header.title}</h2><p>{i18n:automation.scale_rules.listado.header.description}</p></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/scale-rule-form', {title: '{i18n:automation.scale_rules.ogModal.new.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='scaleRule.refresh();ogToast.info(\"{i18n:automation.scale_rules.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>"
+              },
+              {
+                "type": "component",
+                "component": "datatable",
+                "config": {
+                  "source": "api/adAutoScale",
+                  "columns": [
+                    {"id": {"name": "i18n:automation.scale_rules.column.id", "width": "80px", "align": "center", "sortable": true}},
+                    {"name": {"name": "i18n:automation.scale_rules.column.name", "sortable": true}},
+                    {"ad_assets_id": {"name": "i18n:automation.scale_rules.column.product_ad_asset", "width": "200px", "align": "center", "sortable": true}},
+                    {"status": {"name": "i18n:automation.scale_rules.column.status", "width": "100px", "align": "center"}},
+                    {"dc": {"name": "i18n:automation.scale_rules.column.created", "format": "datetime", "width": "180px", "align": "center"}}
+                  ],
+                  "actions": {
+                    "edit": {
+                      "name": "i18n:core.edit",
+                      "onclick": "ogModal.open('automation|forms/scale-rule-form', {title: '{i18n:automation.scale_rules.ogModal.edit.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openEdit(formId, {id});}})"
+                    },
+                    "delete": {
+                      "name": "i18n:core.delete",
+                      "onclick": "if(confirm('{i18n:automation.scale_rules.confirm.delete}')) scaleRule.delete({id}).then(r => r && scaleRule.refresh())"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "tab-stats",
+            "title": "📊 Estadísticas",
+            "onLoad": "scaleRuleStats.init()",
+            "content": [
+              {
+                "type": "html",
+                "content": "<div class='view-header'><h2>📊 Estadísticas de Escalado</h2><p>Visualiza cómo ha cambiado el presupuesto de tus activos publicitarios</p></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div class='stats-controls'><select id='asset-selector' class='form-control' onchange='scaleRuleStats.changeAsset(this.value)'><option value=''>Selecciona un activo...</option></select><select id='range-selector-scale' class='form-control' onchange='scaleRuleStats.changeRange(this.value)'><option value='today' selected>Hoy</option><option value='yesterday'>Ayer</option><option value='last_7_days'>Últimos 7 días</option><option value='last_15_days'>Últimos 15 días</option><option value='last_30_days'>Últimos 30 días</option><option value='this_month'>Este mes</option></select></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='chart-budget-changes'></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='timeline-budget-changes'></div>"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

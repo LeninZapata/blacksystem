@@ -17,6 +17,30 @@ $router->group('/api/adAutoScale', function($router) {
     ogResponse::json(
       ogApp()->handler('AdAutoScale')::executeRule(['rule_id' => $ruleId])
     );
+  })->middleware(['auth', 'throttle:10,1']);
+
+  // ============================================
+  // ESTADÍSTICAS
+  // ============================================
+
+  // Obtener cambios de presupuesto por activo
+  // GET /api/adAutoScale/stats/budget-changes?asset_id=11&range=last_7_days
+  $router->get('/stats/budget-changes', function() {
+    ogResponse::json(
+      ogApp()->handler('AdAutoScaleStats')::getBudgetChanges([
+        'asset_id' => ogRequest::query('asset_id'),
+        'range' => ogRequest::query('range', 'today')
+      ])
+    );
+  })->middleware(['auth', 'throttle:100,1']);
+
+  // Resetear presupuestos diarios (CRON cada hora)
+  // GET /api/adAutoScale/reset-budgets
+  $router->get('/reset-budgets', function() {
+    ogResponse::json(
+      ogApp()->handler('AdAutoScale')::resetDailyBudgets([])
+    );
   })->middleware(['throttle:10,1']);
+  
 
 });

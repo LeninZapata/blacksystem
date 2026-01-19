@@ -1,0 +1,361 @@
+/* scaleRuleStats.css - Estilos para estadísticas de escala */
+
+/* ========================================
+   STATS CONTROLS
+   ======================================== */
+.stats-controls {
+  margin-bottom: 1.5rem !important;
+  display: flex !important;
+  gap: 1rem !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+.stats-controls select {
+  max-width: 200px !important;
+  padding: 0.5rem !important;
+  border: 1px solid #ddd !important;
+  border-radius: 0.25rem !important;
+  font-size: 0.9rem !important;
+  background: white !important;
+}
+
+/* ========================================
+   CHART CARD
+   ======================================== */
+div[id^="chart-"] .chart-card,
+.chart-card {
+  background: #ffffff !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  margin-bottom: 1.5rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.chart-card .chart-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 1.5rem !important;
+  padding: 1rem;
+}
+
+.chart-card h3.chart-title,
+.chart-card .chart-title {
+  margin: 0 0 1rem 0 !important;
+  color: #2c3e50 !important;
+  font-size: 1.2rem !important;
+  font-weight: 600 !important;
+}
+
+/* ========================================
+   CHART STATS
+   ======================================== */
+.chart-card .chart-stats {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+  gap: 1rem !important;
+  margin-bottom: 2rem !important;
+  padding: 1rem !important;
+  background: #f8f9fa !important;
+  border-radius: 0.5rem !important;
+}
+
+.chart-stats .stat-box {
+  text-align: center !important;
+  padding: 0.5rem !important;
+}
+
+.stat-box .stat-value,
+.chart-stats .stat-value {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  color: #2c3e50 !important;
+  margin-bottom: 0.25rem !important;
+  line-height: 1.2 !important;
+}
+
+.stat-box .stat-label,
+.chart-stats .stat-label {
+  font-size: 0.85rem !important;
+  color: #7f8c8d !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  font-weight: 500 !important;
+}
+
+/* ========================================
+   CHART CANVAS
+   ======================================== */
+.chart-card .chart-canvas-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  min-height: 300px !important;
+  padding: 1rem 0 !important;
+}
+
+.chart-canvas-wrapper canvas {
+  display: block !important;
+  max-width: 100% !important;
+  height: auto !important;
+  width: 100% !important;
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+.chart-loading,
+div[id^="chart-"] .chart-loading {
+  padding: 3rem 2rem !important;
+  text-align: center !important;
+  color: #666 !important;
+  background: #f8f9fa !important;
+  border-radius: 0.5rem !important;
+}
+
+.chart-loading p {
+  margin-top: 1rem !important;
+  font-size: 0.9rem !important;
+  color: #7f8c8d !important;
+}
+
+.chart-empty,
+div[id^="chart-"] .chart-empty {
+  padding: 3rem 2rem !important;
+  text-align: center !important;
+  color: #7f8c8d !important;
+  background: #f8f9fa !important;
+  border-radius: 0.5rem !important;
+  font-size: 1rem !important;
+}
+
+.chart-error,
+div[id^="chart-"] .chart-error {
+  padding: 3rem 2rem !important;
+  text-align: center !important;
+  color: #dc3545 !important;
+  background: #fff5f5 !important;
+  border: 1px solid #fecaca !important;
+  border-radius: 0.5rem !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+}
+
+/* ========================================
+   SPINNER
+   ======================================== */
+.spinner,
+.chart-loading .spinner {
+  border: 4px solid #f3f3f3 !important;
+  border-top: 4px solid #3498db !important;
+  border-radius: 50% !important;
+  width: 50px !important;
+  height: 50px !important;
+  animation: spin-stats 1s linear infinite !important;
+  margin: 0 auto !important;
+}
+
+@keyframes spin-stats {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ========================================
+   TIMELINE
+   ======================================== */
+.timeline-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.timeline-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.timeline-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid #ddd;
+  background: #f8f9fa;
+  transition: all 0.2s;
+}
+
+.timeline-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.timeline-item.increase {
+  border-left-color: #27ae60;
+  background: #f0fff4;
+}
+
+.timeline-item.decrease {
+  border-left-color: #e74c3c;
+  background: #fff5f5;
+}
+
+.timeline-item.pause {
+  border-left-color: #95a5a6;
+  background: #f5f5f5;
+}
+
+.timeline-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.timeline-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timeline-time {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.timeline-action {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.timeline-change {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #34495e;
+}
+
+.timeline-rule {
+  font-size: 0.8rem;
+  color: #95a5a6;
+  font-style: italic;
+}
+
+.timeline-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.timeline-badge.increase {
+  background: #d4edda;
+  color: #155724;
+}
+
+.timeline-badge.decrease {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.timeline-badge.pause {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 1024px) {
+  .charts-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .chart-card {
+    padding: 1rem !important;
+  }
+
+  .chart-card .chart-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .chart-card .chart-title {
+    font-size: 1.1rem !important;
+  }
+
+  .chart-card .chart-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+    padding: 0.75rem !important;
+  }
+
+  .chart-stats .stat-value {
+    font-size: 1.4rem !important;
+  }
+
+  .chart-stats .stat-label {
+    font-size: 0.75rem !important;
+  }
+
+  .chart-card .chart-canvas-wrapper {
+    min-height: 250px !important;
+  }
+
+  .stats-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .stats-controls select {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .timeline-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .timeline-badge {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-stats .stat-value {
+    font-size: 1.2rem !important;
+  }
+
+  .chart-stats .stat-label {
+    font-size: 0.7rem !important;
+  }
+
+  .chart-card .chart-canvas-wrapper {
+    min-height: 200px !important;
+  }
+}
+
+.chart-card * {
+  box-sizing: border-box !important;
+}

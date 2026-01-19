@@ -284,193 +284,237 @@ class adMetricsHandler {
     }
   }
 
-  // Guardar métricas diarias del DÍA ANTERIOR de todos los productos activos
-  // Ejecutado por CRON varias veces (1am, 3am, etc.) pero solo inserta si no existen
+  /**
+   * Guardar métricas diarias del día ANTERIOR de todos los productos activos
+   * Se ejecuta cada hora via CRON (06:00, 07:00, 08:00, etc.)
+   * Agrupa activos por timezone y calcula "ayer" según cada timezone
+   * Solo inserta si no existe (idempotencia)
+   */
   static function saveDailyMetrics($params = []) {
     $logMeta = ['module' => 'AdMetricsHandler', 'layer' => 'app/resources', 'method' => 'saveDailyMetrics'];
 
     try {
       $startTime = microtime(true);
 
-      // Fecha del día ANTERIOR
-      $yesterday = date('Y-m-d', strtotime('-1 day'));
+      ogLog::info('saveDailyMetrics - Iniciando proceso', [], $logMeta);
 
-      ogLog::info('saveDailyMetrics - Iniciando proceso', [
-        'date_to_process' => $yesterday
-      ], $logMeta);
-
-      // 1. Obtener todos los productos activos
-      $products = ogDb::t('products')
+      // 1. Obtener todos los activos activos con su timezone
+      $assets = ogDb::t('product_ad_assets')
+        ->where('is_active', 1)
         ->where('status', 1)
         ->get();
 
-      if (empty($products)) {
-        ogLog::info('saveDailyMetrics - No hay productos activos', [], $logMeta);
+      if (empty($assets)) {
+        ogLog::info('saveDailyMetrics - No hay activos activos', [], $logMeta);
         return [
           'success' => true,
-          'message' => 'No hay productos activos',
-          'date_processed' => $yesterday,
-          'products_processed' => 0,
+          'message' => 'No hay activos activos',
           'assets_saved' => 0,
           'assets_skipped' => 0
         ];
       }
 
-      $productsProcessed = 0;
+      // 2. Agrupar activos por timezone
+      $assetsByTimezone = [];
+      foreach ($assets as $asset) {
+        $timezone = $asset['timezone'] ?? 'America/Guayaquil';
+        if (!isset($assetsByTimezone[$timezone])) {
+          $assetsByTimezone[$timezone] = [];
+        }
+        $assetsByTimezone[$timezone][] = $asset;
+      }
+
+      ogLog::info('saveDailyMetrics - Activos agrupados por timezone', [
+        'total_assets' => count($assets),
+        'timezones_count' => count($assetsByTimezone),
+        'timezones' => array_keys($assetsByTimezone)
+      ], $logMeta);
+
       $assetsSaved = 0;
       $assetsSkipped = 0;
       $errors = [];
 
-      // 2. Por cada producto, obtener sus activos activos
-      foreach ($products as $product) {
-        $productId = $product['id'];
-        $userId = $product['user_id'];
-
+      // 3. Procesar cada timezone
+      foreach ($assetsByTimezone as $timezone => $timezoneAssets) {
         try {
-          // Obtener activos activos del producto
-          $assets = ogDb::t('product_ad_assets')
-            ->where('product_id', $productId)
-            ->where('is_active', 1)
-            ->get();
+          // Calcular "ayer" según este timezone
+          $currentTime = new DateTime('now', new DateTimeZone($timezone));
+          $yesterday = clone $currentTime;
+          $yesterday->modify('-1 day');
+          $yesterdayDate = $yesterday->format('Y-m-d');
 
-          if (empty($assets)) {
-            ogLog::info('saveDailyMetrics - Producto sin activos activos', [
-              'product_id' => $productId,
-              'product_name' => $product['name']
-            ], $logMeta);
-            continue;
+          ogLog::debug('saveDailyMetrics - Procesando timezone', [
+            'timezone' => $timezone,
+            'assets_count' => count($timezoneAssets),
+            'current_time' => $currentTime->format('Y-m-d H:i:s'),
+            'yesterday_date' => $yesterdayDate
+          ], $logMeta);
+
+          // 4. Agrupar activos por producto para optimizar consultas
+          $assetsByProduct = [];
+          foreach ($timezoneAssets as $asset) {
+            $productId = $asset['product_id'];
+            if (!isset($assetsByProduct[$productId])) {
+              $assetsByProduct[$productId] = [];
+            }
+            $assetsByProduct[$productId][] = $asset;
           }
 
-          // 3. Obtener métricas del día anterior
-          $metricsResult = self::getByProduct([
-            'product_id' => $productId,
-            'date_from' => $yesterday,
-            'date_to' => $yesterday
-          ]);
-
-          if (!$metricsResult['success']) {
-            $errors[] = [
-              'product_id' => $productId,
-              'product_name' => $product['name'],
-              'error' => 'Error al obtener métricas del día anterior'
-            ];
-            ogLog::error('saveDailyMetrics - Error al obtener métricas', [
-              'product_id' => $productId,
-              'date' => $yesterday
-            ], $logMeta);
-            continue; // Continuar con el siguiente producto
-          }
-
-          // 4. Guardar métricas por activo (solo si no existen)
-          if (!empty($metricsResult['by_asset'])) {
-            foreach ($metricsResult['by_asset'] as $assetData) {
-              if (!$assetData['success'] || !$assetData['has_data']) {
+          // 5. Por cada producto, obtener métricas de "ayer"
+          foreach ($assetsByProduct as $productId => $productAssets) {
+            try {
+              // Obtener info del producto
+              $product = ogDb::t('products')->find($productId);
+              if (!$product) {
+                ogLog::warning('saveDailyMetrics - Producto no encontrado', [
+                  'product_id' => $productId
+                ], $logMeta);
                 continue;
               }
 
-              $assetId = $assetData['asset_id'];
-              $assetType = $assetData['asset_type'];
-              $platform = $assetData['provider'];
-              $metrics = $assetData['metrics'];
+              // Obtener métricas del día anterior
+              $metricsResult = self::getByProduct([
+                'product_id' => $productId,
+                'date_from' => $yesterdayDate,
+                'date_to' => $yesterdayDate
+              ]);
 
-              // Buscar info del activo en product_ad_assets
-              $assetInfo = null;
-              foreach ($assets as $asset) {
-                if ($asset['ad_asset_id'] === $assetId) {
-                  $assetInfo = $asset;
-                  break;
+              if (!$metricsResult['success']) {
+                $errors[] = [
+                  'product_id' => $productId,
+                  'product_name' => $product['name'],
+                  'timezone' => $timezone,
+                  'date' => $yesterdayDate,
+                  'error' => 'Error al obtener métricas'
+                ];
+                ogLog::error('saveDailyMetrics - Error al obtener métricas', [
+                  'product_id' => $productId,
+                  'date' => $yesterdayDate,
+                  'timezone' => $timezone
+                ], $logMeta);
+                continue;
+              }
+
+              // 6. Guardar métricas por activo (solo si no existen)
+              if (!empty($metricsResult['by_asset'])) {
+                foreach ($metricsResult['by_asset'] as $assetData) {
+                  if (!$assetData['success'] || !$assetData['has_data']) {
+                    continue;
+                  }
+
+                  $assetId = $assetData['asset_id'];
+                  $assetType = $assetData['asset_type'];
+                  $platform = $assetData['provider'];
+                  $metrics = $assetData['metrics'];
+
+                  // Buscar info del activo en productAssets
+                  $assetInfo = null;
+                  foreach ($productAssets as $asset) {
+                    if ($asset['ad_asset_id'] === $assetId) {
+                      $assetInfo = $asset;
+                      break;
+                    }
+                  }
+
+                  // 6.1 VERIFICAR SI YA EXISTE este registro (idempotencia)
+                  $existing = ogDb::t('ad_metrics_daily')
+                    ->where('product_id', $productId)
+                    ->where('ad_asset_id', $assetId)
+                    ->where('metric_date', $yesterdayDate)
+                    ->first();
+
+                  if ($existing) {
+                    ogLog::debug('saveDailyMetrics - Registro ya existe, omitiendo', [
+                      'product_id' => $productId,
+                      'asset_id' => $assetId,
+                      'date' => $yesterdayDate,
+                      'timezone' => $timezone
+                    ], $logMeta);
+                    $assetsSkipped++;
+                    continue;
+                  }
+
+                  // 6.2 Insertar nuevo registro SOLO si no existe
+                  $insertData = [
+                    'user_id' => $product['user_id'],
+                    'product_id' => $productId,
+                    'ad_platform' => $platform,
+                    'ad_asset_type' => $assetType,
+                    'ad_asset_id' => $assetId,
+                    'ad_asset_name' => $assetInfo['ad_asset_name'] ?? null,
+                    'spend' => $metrics['spend'] ?? 0,
+                    'impressions' => $metrics['impressions'] ?? 0,
+                    'reach' => $metrics['reach'] ?? 0,
+                    'clicks' => $metrics['clicks'] ?? 0,
+                    'link_clicks' => $metrics['link_clicks'] ?? 0,
+                    'page_views' => $metrics['page_views'] ?? 0,
+                    'view_content' => $metrics['view_content'] ?? 0,
+                    'add_to_cart' => $metrics['add_to_cart'] ?? 0,
+                    'initiate_checkout' => $metrics['initiate_checkout'] ?? 0,
+                    'add_payment_info' => $metrics['add_payment_info'] ?? 0,
+                    'purchase' => $metrics['purchase'] ?? 0,
+                    'lead' => $metrics['lead'] ?? 0,
+                    'purchase_value' => $metrics['purchase_value'] ?? 0,
+                    'conversions' => $metrics['conversions'] ?? 0,
+                    'results' => $metrics['results'] ?? 0,
+                    'cpm' => $metrics['cpm'] ?? null,
+                    'cpc' => $metrics['cpc'] ?? null,
+                    'ctr' => $metrics['ctr'] ?? null,
+                    'conversion_rate' => $metrics['conversion_rate'] ?? null,
+                    'metric_date' => $yesterdayDate,
+                    'generated_at' => date('Y-m-d H:i:s'),
+                    'data_source' => 'api_direct',
+                    'dc' => date('Y-m-d H:i:s'),
+                    'tc' => time()
+                  ];
+
+                  ogDb::t('ad_metrics_daily')->insert($insertData);
+                  $assetsSaved++;
+
+                  ogLog::success('saveDailyMetrics - Métrica diaria guardada', [
+                    'product_id' => $productId,
+                    'asset_id' => $assetId,
+                    'date' => $yesterdayDate,
+                    'timezone' => $timezone,
+                    'spend' => $metrics['spend'],
+                    'impressions' => $metrics['impressions']
+                  ], $logMeta);
                 }
               }
 
-              // 4.1 VERIFICAR SI YA EXISTE este registro (idempotencia)
-              $existing = ogDb::t('ad_metrics_daily')
-                ->where('product_id', $productId)
-                ->where('ad_asset_id', $assetId)
-                ->where('metric_date', $yesterday)
-                ->first();
-
-              if ($existing) {
-                ogLog::info('saveDailyMetrics - Registro ya existe, omitiendo', [
-                  'product_id' => $productId,
-                  'asset_id' => $assetId,
-                  'date' => $yesterday
-                ], $logMeta);
-                $assetsSkipped++;
-                continue; // Ya existe, no insertar
-              }
-
-              // 4.2 Insertar nuevo registro SOLO si no existe
-              $insertData = [
-                'user_id' => $userId,
+            } catch (Exception $e) {
+              $errors[] = [
                 'product_id' => $productId,
-                'ad_platform' => $platform,
-                'ad_asset_type' => $assetType,
-                'ad_asset_id' => $assetId,
-                'ad_asset_name' => $assetInfo['ad_asset_name'] ?? null,
-                'spend' => $metrics['spend'] ?? 0,
-                'impressions' => $metrics['impressions'] ?? 0,
-                'reach' => $metrics['reach'] ?? 0,
-                'clicks' => $metrics['clicks'] ?? 0,
-                'link_clicks' => $metrics['link_clicks'] ?? 0,
-                'page_views' => $metrics['page_views'] ?? 0,
-                'view_content' => $metrics['view_content'] ?? 0,
-                'add_to_cart' => $metrics['add_to_cart'] ?? 0,
-                'initiate_checkout' => $metrics['initiate_checkout'] ?? 0,
-                'add_payment_info' => $metrics['add_payment_info'] ?? 0,
-                'purchase' => $metrics['purchase'] ?? 0,
-                'lead' => $metrics['lead'] ?? 0,
-                'purchase_value' => $metrics['purchase_value'] ?? 0,
-                'conversions' => $metrics['conversions'] ?? 0,
-                'results' => $metrics['results'] ?? 0,
-                'cpm' => $metrics['cpm'] ?? null,
-                'cpc' => $metrics['cpc'] ?? null,
-                'ctr' => $metrics['ctr'] ?? null,
-                'conversion_rate' => $metrics['conversion_rate'] ?? null,
-                'metric_date' => $yesterday,
-                'generated_at' => date('Y-m-d H:i:s'),
-                'data_source' => 'api_direct',
-                'dc' => date('Y-m-d H:i:s'),
-                'tc' => time()
+                'timezone' => $timezone,
+                'error' => $e->getMessage()
               ];
 
-              ogDb::t('ad_metrics_daily')->insert($insertData);
-              $assetsSaved++;
-
-              ogLog::success('saveDailyMetrics - Métrica diaria guardada', [
+              ogLog::error('saveDailyMetrics - Error procesando producto', [
                 'product_id' => $productId,
-                'asset_id' => $assetId,
-                'date' => $yesterday,
-                'spend' => $metrics['spend'],
-                'impressions' => $metrics['impressions']
+                'timezone' => $timezone,
+                'error' => $e->getMessage()
               ], $logMeta);
+
+              continue;
             }
           }
 
-          $productsProcessed++;
-
         } catch (Exception $e) {
-          // Si un producto falla, continuar con los demás
-          $errors[] = [
-            'product_id' => $productId,
-            'product_name' => $product['name'] ?? 'Unknown',
-            'error' => $e->getMessage()
-          ];
-
-          ogLog::error('saveDailyMetrics - Error procesando producto', [
-            'product_id' => $productId,
+          ogLog::error('saveDailyMetrics - Error procesando timezone', [
+            'timezone' => $timezone,
             'error' => $e->getMessage()
           ], $logMeta);
-
-          continue;
+          $errors[] = [
+            'timezone' => $timezone,
+            'error' => $e->getMessage()
+          ];
         }
       }
 
       $executionTime = round((microtime(true) - $startTime) * 1000, 2);
 
       ogLog::success('saveDailyMetrics - Proceso completado', [
-        'date_processed' => $yesterday,
-        'products_total' => count($products),
-        'products_processed' => $productsProcessed,
+        'total_assets' => count($assets),
         'assets_saved' => $assetsSaved,
         'assets_skipped' => $assetsSkipped,
         'execution_time_ms' => $executionTime,
@@ -479,9 +523,7 @@ class adMetricsHandler {
 
       return [
         'success' => true,
-        'date_processed' => $yesterday,
-        'products_total' => count($products),
-        'products_processed' => $productsProcessed,
+        'total_assets' => count($assets),
         'assets_saved' => $assetsSaved,
         'assets_skipped' => $assetsSkipped,
         'execution_time_ms' => $executionTime,

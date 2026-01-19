@@ -23,6 +23,31 @@ class ProductAdAssetController extends ogController {
     $data['tc'] = time();
 
     try {
+
+      // Validar que si auto_reset_budget está activo, tenga base_daily_budget
+      if (isset($data['auto_reset_budget']) && $data['auto_reset_budget'] == 1) {
+        if (!isset($data['base_daily_budget']) || $data['base_daily_budget'] <= 0) {
+          ogResponse::json([
+            'success' => false,
+            'error' => 'Si "Auto-Reset" está activo, debe especificar un "Presupuesto Diario Base" mayor a 0'
+          ], 400);
+        }
+
+        if (!isset($data['reset_time']) || empty($data['reset_time'])) {
+          ogResponse::json([
+            'success' => false,
+            'error' => 'Si "Auto-Reset" está activo, debe especificar una "Hora de Reset"'
+          ], 400);
+        }
+
+        if (!isset($data['timezone']) || empty($data['timezone'])) {
+          ogResponse::json([
+            'success' => false,
+            'error' => 'Si "Auto-Reset" está activo, debe especificar una "Zona Horaria"'
+          ], 400);
+        }
+      }
+
       $id = ogDb::t('product_ad_assets')->insert($data);
       if ($id) {
         ogLog::success('create - Asset publicitario creado', ['id' => $id], $this->logMeta);
@@ -43,6 +68,31 @@ class ProductAdAssetController extends ogController {
     $data['tu'] = time();
 
     try {
+
+            // Validar que si auto_reset_budget está activo, tenga base_daily_budget
+      if (isset($data['auto_reset_budget']) && $data['auto_reset_budget'] == 1) {
+        if (!isset($data['base_daily_budget']) || $data['base_daily_budget'] <= 0) {
+          ogResponse::json([
+            'success' => false,
+            'error' => 'Si "Auto-Reset" está activo, debe especificar un "Presupuesto Diario Base" mayor a 0'
+          ], 400);
+        }
+
+        if (!isset($data['reset_time']) || empty($data['reset_time'])) {
+          ogResponse::json([
+            'success' => false,
+            'error' => 'Si "Auto-Reset" está activo, debe especificar una "Hora de Reset"'
+          ], 400);
+        }
+
+        if (!isset($data['timezone']) || empty($data['timezone'])) {
+          ogResponse::json([
+            'success' => false,
+            'error' => 'Si "Auto-Reset" está activo, debe especificar una "Zona Horaria"'
+          ], 400);
+        }
+      }
+
       $affected = ogDb::t('product_ad_assets')->where('id', $id)->update($data);
       ogLog::info('update - Asset publicitario actualizado', ['id' => $id], $this->logMeta);
       ogResponse::success(['affected' => $affected], 'Asset publicitario actualizado correctamente');

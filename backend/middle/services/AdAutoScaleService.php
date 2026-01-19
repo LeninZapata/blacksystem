@@ -77,6 +77,7 @@ class AdAutoScaleService {
       $ruleId = $rule['id'];
       $ruleName = $rule['name'];
       $assetId = $rule['ad_assets_id'];
+      $userId = $rule['user_id']; // ✅ Ya viene en la regla
       $config = is_string($rule['config']) ? json_decode($rule['config'], true) : $rule['config'];
 
       ogLog::debug('processRule - Procesando regla', [
@@ -99,6 +100,25 @@ class AdAutoScaleService {
       // Obtener métricas del activo
       $metricsData = $this->getAssetMetrics($asset, $config);
       if (!$metricsData['success']) {
+        // Guardar en historial incluso si falla
+        $this->saveToHistory([
+          'rule_id' => $ruleId,
+          'user_id' => $userId,
+          'ad_assets_id' => $asset['id'],
+          'product_id' => $asset['product_id'],
+          'ad_platform' => $asset['ad_platform'],
+          'ad_asset_type' => $asset['ad_asset_type'],
+          'metrics_snapshot' => json_encode([]),
+          'time_range' => 'unknown',
+          'conditions_met' => 0,
+          'conditions_logic' => $config['conditions_logic'] ?? 'and_or_and',
+          'action_executed' => 0,
+          'action_type' => null,
+          'action_result' => json_encode(['error' => $metricsData['error']]),
+          'execution_source' => 'cron',
+          'error_message' => $metricsData['error']
+        ]);
+
         return [
           'success' => false,
           'rule_id' => $ruleId,
@@ -118,6 +138,24 @@ class AdAutoScaleService {
 
       // Si no cumple condiciones, no ejecutar acciones
       if (!$conditionsMet) {
+        // Guardar en historial
+        $this->saveToHistory([
+          'rule_id' => $ruleId,
+          'user_id' => $userId,
+          'ad_assets_id' => $asset['id'],
+          'product_id' => $asset['product_id'],
+          'ad_platform' => $asset['ad_platform'],
+          'ad_asset_type' => $asset['ad_asset_type'],
+          'metrics_snapshot' => json_encode($metricsData['metrics']),
+          'time_range' => $metricsData['time_range'],
+          'conditions_met' => 0,
+          'conditions_logic' => $config['conditions_logic'] ?? 'and_or_and',
+          'action_executed' => 0,
+          'action_type' => null,
+          'action_result' => json_encode([]),
+          'execution_source' => 'cron'
+        ]);
+
         return [
           'success' => true,
           'rule_id' => $ruleId,
@@ -130,6 +168,24 @@ class AdAutoScaleService {
 
       // Ejecutar acciones
       $actionResults = $this->executeActions($asset, $config['actions'] ?? [], $metricsData['metrics']);
+
+      // Guardar en historial
+      $this->saveToHistory([
+        'rule_id' => $ruleId,
+        'user_id' => $userId,
+        'ad_assets_id' => $asset['id'],
+        'product_id' => $asset['product_id'],
+        'ad_platform' => $asset['ad_platform'],
+        'ad_asset_type' => $asset['ad_asset_type'],
+        'metrics_snapshot' => json_encode($metricsData['metrics']),
+        'time_range' => $metricsData['time_range'],
+        'conditions_met' => 1,
+        'conditions_logic' => $config['conditions_logic'] ?? 'and_or_and',
+        'action_executed' => $actionResults['executed'] ? 1 : 0,
+        'action_type' => isset($actionResults['results'][0]) ? $actionResults['results'][0]['action'] : null,
+        'action_result' => json_encode($actionResults['results'][0] ?? []),
+        'execution_source' => 'cron'
+      ]);
 
       return [
         'success' => true,
@@ -152,6 +208,25 @@ class AdAutoScaleService {
         'rule_id' => $rule['id'] ?? null,
         'error' => $e->getMessage()
       ];
+    }
+  }
+
+  // Guardar en historial
+  private function saveToHistory($data) {
+    try {
+      $data['executed_at'] = date('Y-m-d H:i:s');
+      $data['dc'] = date('Y-m-d H:i:s');
+      $data['tc'] = time();
+      
+      ogDb::t('ad_auto_scale_history')->insert($data);
+      
+      ogLog::debug('saveToHistory - Registro guardado', [
+        'rule_id' => $data['rule_id'],
+        'action_executed' => $data['action_executed']
+      ], self::$logMeta);
+      
+    } catch (Exception $e) {
+      ogLog::error('saveToHistory - Error', ['error' => $e->getMessage()], self::$logMeta);
     }
   }
 

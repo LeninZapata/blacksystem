@@ -286,7 +286,7 @@ class ogHook {
             }));
             results = [...results, ...itemsWithOrder];
 
-            ogLogger?.debug('core:hook', `✅ Hook ejecutado: ${extensionName}.${finalHookName}() - ${hookResult.length} items`);
+            ogLogger?.info('core:hook', `✅ Hook ejecutado: ${extensionName}.${finalHookName}() - ${hookResult.length} items`);
           } else {
             ogLogger?.warn('core:hook', `${extensionName}.${finalHookName}() no retornó un array`);
           }

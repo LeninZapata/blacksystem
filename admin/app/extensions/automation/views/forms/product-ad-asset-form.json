@@ -55,6 +55,66 @@
       "validation": "max:255"
     },
     {
+      "name": "credential_id",
+      "label": "i18n:automation.product_ad_assets.field.credential_id",
+      "type": "select",
+      "required": true,
+      "source": "api/credential?type=ad&status=1&per_page=1000",
+      "sourceValue": "id",
+      "sourceLabel": "name",
+      "validation": "required",
+      "help": "i18n:automation.product_ad_assets.field.credential_id_help"
+    },
+    {
+      "name": "timezone",
+      "label": "i18n:automation.product_ad_assets.field.timezone",
+      "type": "select",
+      "required": true,
+      "source": "api/credential/timezones",
+      "sourceValue": "value",
+      "sourceLabel": "label",
+      "defaultValue": "America/Guayaquil",
+      "validation": "required",
+      "help": "i18n:automation.product_ad_assets.field.timezone_help"
+    },
+    {
+      "type": "html",
+      "content": "<div style='background: #f0f9ff; padding: 1rem; border-radius: 6px; margin: 1.5rem 0; border-left: 4px solid #3b82f6;'><strong>⚙️ Configuración de Reset Automático</strong><p style='margin: 0.5rem 0 0; font-size: 0.9rem;'>El presupuesto se reseteará automáticamente cada día a la hora configurada según la zona horaria de la cuenta publicitaria.</p></div>"
+    },
+    {
+      "type": "group",
+      "columns": 3,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "base_daily_budget",
+          "label": "i18n:automation.product_ad_assets.field.base_daily_budget",
+          "type": "number",
+          "required": true,
+          "placeholder": "3.00",
+          "min": 0.01,
+          "step": 0.01,
+          "validation": "required|min:0.01",
+          "help": "i18n:automation.product_ad_assets.field.base_daily_budget_help"
+        },
+        {
+          "name": "reset_time",
+          "label": "i18n:automation.product_ad_assets.field.reset_time",
+          "type": "time",
+          "required": true,
+          "defaultValue": "00:00",
+          "validation": "required",
+          "help": "i18n:automation.product_ad_assets.field.reset_time_help"
+        },
+        {
+          "name": "auto_reset_budget",
+          "label": "i18n:automation.product_ad_assets.field.auto_reset_budget",
+          "type": "checkbox",
+          "default": true
+        }
+      ]
+    },
+    {
       "name": "notes",
       "label": "i18n:automation.product_ad_assets.field.notes",
       "type": "textarea",

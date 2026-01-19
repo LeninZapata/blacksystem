@@ -114,52 +114,64 @@ class ogDatatable {
       return [];
     }
 
-    // Generar clave de caché
     const cacheKey = `datatable_${source.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const cacheTTL = config.cacheTTL || 5 * 60 * 1000; // 5 minutos default
+    const cacheTTL = config.cacheTTL || 5 * 60 * 1000;
 
     try {
-      // Detectar tipo de source
+      const appConfig = this.getConfig();
       const isApi = source.startsWith('api/');
       const isExternal = source.startsWith('http://') || source.startsWith('https://');
       const isAbsolute = source.startsWith('/');
       const hasExtensions = source.startsWith('extensions/');
+      const hasPipe = source.includes('|');
 
       let finalUrl;
       let data;
 
       if (isApi) {
-        // API → usar api.get()
         const response = await api.get(source);
         data = this.normalizeData(response);
-
-        // Guardar en caché
         cache.set(cacheKey, data, cacheTTL);
 
       } else if (isExternal) {
-        // URL externa → usar tal cual
         finalUrl = source;
 
       } else if (isAbsolute) {
-        // Ruta absoluta → usar tal cual
-        const config = this.getConfig();
-        finalUrl = `${config.baseUrl || '/'}${source.substring(1)}`;
+        finalUrl = `${appConfig.baseUrl || '/'}${source.substring(1)}`;
+
+      } else if (hasPipe) {
+        // Notación extension|path (ej: ejemplos|mock/users-mock.json)
+        const [extName, restPath] = source.split('|');
+        const extensionsBase = appConfig.extensionsPath || `${appConfig.baseUrl}app/extensions/`;
+        finalUrl = `${extensionsBase}${extName}/${restPath}`;
 
       } else if (hasExtensions) {
-        // Ya tiene "extensions/" → usar tal cual
-        const config = this.getConfig();
-        finalUrl = `${config.baseUrl || '/'}${source}`;
+        finalUrl = `${appConfig.baseUrl || '/'}${source}`;
 
       } else {
-        // Ruta relativa → agregar "extensions/" automáticamente
-        const config = this.getConfig();
-        finalUrl = `${config.baseUrl || '/'}extensions/${source}`;
+        // Ruta relativa → intentar con app/extensions/
+        let extName = extensionName;
+        let restPath = source;
+
+        // Si no tenemos extensionName, intentar extraerlo del source
+        if (!extName && source.includes('/')) {
+          const parts = source.split('/');
+          extName = parts[0];
+          restPath = parts.slice(1).join('/');
+        }
+
+        const extensionsBase = appConfig.extensionsPath || `${appConfig.baseUrl}app/extensions/`;
+        
+        if (extName) {
+          finalUrl = `${extensionsBase}${extName}/${restPath}`;
+        } else {
+          finalUrl = `${appConfig.baseUrl || '/'}${source}`;
+        }
       }
 
       // Para archivos JSON (no APIs)
       if (finalUrl) {
-        const config = this.getConfig();
-        const cacheBuster = `?v=${config.version || '1.0.0'}`;
+        const cacheBuster = `?v=${appConfig.version || '1.0.0'}`;
         const response = await fetch(finalUrl + cacheBuster);
 
         if (!response.ok) {
@@ -168,8 +180,6 @@ class ogDatatable {
 
         data = await response.json();
         data = this.normalizeData(data);
-
-        // Guardar en caché
         cache.set(cacheKey, data, cacheTTL);
       }
 
@@ -178,7 +188,6 @@ class ogDatatable {
     } catch (error) {
       ogLogger.error('com:datatable', `Error cargando datos desde ${source}:`, error);
 
-      // Intentar obtener del caché si falla la petición
       const cachedData = cache.get(cacheKey);
       if (cachedData) {
         ogLogger.warn('com:datatable', `Usando datos cacheados debido a error: ${cacheKey}`);

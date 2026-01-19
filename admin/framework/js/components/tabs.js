@@ -203,7 +203,9 @@ class ogTabs {
   }
 
   static renderContent(content) {
-    if (typeof content === 'string') return content;
+    if (typeof content === 'string') {
+      return ogI18n.processString(content);
+    }
 
     if (Array.isArray(content)) {
       return content
@@ -218,7 +220,9 @@ class ogTabs {
 
   static renderContentItem(item) {
     if (item == null) return '';
-    if (typeof item === 'string') return item;
+    if (typeof item === 'string') {
+      return ogI18n.processString(item);
+    }
     if (typeof item !== 'object') return '';
 
     const formJson = item.form_json || item.formJson;
@@ -232,7 +236,7 @@ class ogTabs {
     }
 
     if (item.type === 'html') {
-      return item.content || '';
+      return ogI18n.processString(item.content || '');
     }
 
     return '';

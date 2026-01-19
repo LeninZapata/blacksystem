@@ -29,7 +29,12 @@ class productAdAsset {
       ad_asset_id: data.ad_asset_id,
       ad_asset_name: data.ad_asset_name || '',
       is_active: data.is_active == 1,
-      notes: data.notes || ''
+      notes: data.notes || '',
+      credential_id: data.credential_id || '',
+      timezone: data.timezone || 'America/Guayaquil',
+      base_daily_budget: data.base_daily_budget || '',
+      reset_time: data.reset_time || '00:00',
+      auto_reset_budget: data.auto_reset_budget == 1
     };
 
     ogModule('form').fill(formId, fillData);
@@ -59,7 +64,12 @@ class productAdAsset {
       ad_asset_id: formData.ad_asset_id,
       ad_asset_name: formData.ad_asset_name || '',
       is_active: formData.is_active ? 1 : 0,
-      notes: formData.notes || ''
+      notes: formData.notes || '',
+      credential_id: formData.credential_id || null,
+      timezone: formData.timezone || 'America/Guayaquil',
+      base_daily_budget: formData.base_daily_budget || null,
+      reset_time: formData.reset_time || '00:00:00',
+      auto_reset_budget: formData.auto_reset_budget ? 1 : 0
     };
   }
 

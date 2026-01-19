@@ -1080,13 +1080,19 @@ class ogForm {
     if (field.accordionOpenFirst !== undefined) {
       container.dataset.accordionOpenFirst = field.accordionOpenFirst;
     }
+    if (field.accordionOpenAll !== undefined) {
+      container.dataset.accordionOpenAll = field.accordionOpenAll;
+    }
     if (field.sortable !== undefined) {
       container.dataset.sortable = field.sortable;
     }
 
-    // Crear items iniciales si initialItems > 0
+    // Crear items iniciales si initialItems > 0 Y el formulario no tiene datos precargados
+    const formEl = container.closest('form');
+    const hasFillData = formEl?.dataset.hasFillData === 'true';
     const initialItems = parseInt(field.initialItems) || 0;
-    if (initialItems > 0) {
+    
+    if (initialItems > 0 && !hasFillData) {
       for (let i = 0; i < initialItems; i++) {
         this.addRepeatableItem(path);
       }
@@ -1265,6 +1271,7 @@ class ogForm {
     const accordionSingle = container.dataset.accordionSingle === 'true';
     ogLogger?.debug('core:form', `addRepeatableItem - removeText procesado: "${removeText}"`);
     const accordionOpenFirst = container.dataset.accordionOpenFirst === 'true';
+    const accordionOpenAll = container.dataset.accordionOpenAll === 'true';
     const sortable = container.dataset.sortable === 'true';
 
     // 3. Construir el path del item
@@ -1371,8 +1378,16 @@ class ogForm {
         addedItem.classList.add('collapsed');
       }
 
+      // Si accordionOpenAll está activo, abrir todos los items
+      if (accordionOpenAll) {
+        body.style.display = 'block';
+        if (toggle) {
+          toggle.textContent = '▼';
+        }
+        addedItem.classList.remove('collapsed');
+      }
       // Si accordionOpenFirst está activo y es el primer item (index 0), abrirlo
-      if (accordionOpenFirst && newIndex === 0) {
+      else if (accordionOpenFirst && newIndex === 0) {
         body.style.display = 'block';
         if (toggle) {
           toggle.textContent = '▼';
@@ -1609,6 +1624,9 @@ class ogForm {
     if (!formEl.dataset.formData) {
       formEl.dataset.formData = JSON.stringify(data);
     }
+    
+    // Marcar que este formulario tendrá datos precargados
+    formEl.dataset.hasFillData = 'true';
 
     // Procesar campos recursivamente (solo selects, no repeatables)
     const processFieldsForSelects = (fields) => {
@@ -1688,6 +1706,31 @@ class ogForm {
 
       // Luego llenar repetables (asíncrono)
       if (!skipRepeatables) {
+        // Contar cuántos repeatables hay que llenar
+        let repeatablesToFill = 0;
+        fields.forEach(field => {
+          if (field.type === 'repeatable') {
+            let repeatableData = data[field.name];
+            if (!repeatableData) {
+              const dotNotationKey = Object.keys(data).find(key =>
+                key.endsWith('.' + field.name) || key === field.name
+              );
+              if (dotNotationKey) {
+                repeatableData = data[dotNotationKey];
+              }
+            }
+            if (repeatableData) {
+              repeatablesToFill++;
+            }
+          }
+        });
+
+        // Guardar contador en el formulario
+        if (repeatablesToFill > 0) {
+          formEl.dataset.repeatablesToFill = repeatablesToFill;
+          formEl.dataset.repeatablesFilled = 0;
+        }
+
         fields.forEach(field => {
           if (field.type === 'repeatable') {
             // Buscar datos del repeatable con dot notation
@@ -1823,7 +1866,39 @@ class ogForm {
                 }
               }
             }
+            
+            // Incrementar contador de repeatables llenados
+            if (formEl && formEl.dataset.repeatablesToFill) {
+              const filled = parseInt(formEl.dataset.repeatablesFilled || 0) + 1;
+              const total = parseInt(formEl.dataset.repeatablesToFill);
+              formEl.dataset.repeatablesFilled = filled;
+              
+              // Solo limpiar marca cuando todos los repeatables estén llenados
+              if (filled >= total) {
+                delete formEl.dataset.hasFillData;
+                delete formEl.dataset.repeatablesToFill;
+                delete formEl.dataset.repeatablesFilled;
+              }
+            } else if (formEl) {
+              // Fallback: si no hay contador, limpiar de inmediato
+              delete formEl.dataset.hasFillData;
+            }
           });
+        } else {
+          // Si no hay conditions, incrementar contador e igual aplicar lógica
+          if (formEl && formEl.dataset.repeatablesToFill) {
+            const filled = parseInt(formEl.dataset.repeatablesFilled || 0) + 1;
+            const total = parseInt(formEl.dataset.repeatablesToFill);
+            formEl.dataset.repeatablesFilled = filled;
+            
+            if (filled >= total) {
+              delete formEl.dataset.hasFillData;
+              delete formEl.dataset.repeatablesToFill;
+              delete formEl.dataset.repeatablesFilled;
+            }
+          } else if (formEl) {
+            delete formEl.dataset.hasFillData;
+          }
         }
         return;
       }

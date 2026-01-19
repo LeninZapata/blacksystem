@@ -364,10 +364,13 @@
               ],
               "conditionContext": "repeatable"
             }
-          ]
+          ],
+          "accordionOpenAll": true,
+          "initialItems": 1
         }
       ],
       "accordionOpenFirst": true,
+      "accordionOpenAll": true,
       "sortable": true,
       "initialItems": 1
     }
