@@ -1,8 +1,4 @@
 Backend (Aplicacion):
-☐ Hacer el registro de las reglas de escala para luego hacer un reporte de las mismas
-☐ Hacer un mecanicosmo manual para forzar la escala mediante el aumento de presupuesto
-de forma manual en botones, con eso podemos obligar a tener mas ventas y forzar una escala
-automatica, porque si no hay ventas no escala....
 ☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
   ☐ grafica de productos vendidos
   ☐ grafica de ingresos por producto
@@ -14,15 +10,15 @@ automatica, porque si no hay ventas no escala....
 hacer que se ejecute al otro dia en la mañana
 ☐ Baja el tiempo de todos los seguimientos.......
 ☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
-☐ Ahora cuando guardas los datos de anuncios debe ser por timezone de la cuenta publicitaria
-con esto se evita que los datos no cuadren por el tema de las zonas horarias
-entonces al momento de guardar los activos de producto debe tambien guardar la timezone
 ☐ Plantillas que se ejecutan a un triger, es decir si dice
 'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
+☐ Claude alucino con los servicios creo metodos que ya estan dentro de ellos, en la documentación esto debe estar claro
+y no debe haber confusión, ya que con ->service llegas hasta alli y puedes obtener solo llamando al servicio porque 
+este llama a las integraciones.
 
 ☐ Agregar api para CRON
 /api/adAutoScale/reset-budgets (CADA HORA)
 FRONTEND:
-  ☐ Cuando inicias con item 1 en un subrepeater funciona cuando es nueva pero con carga de datos se rompe...
-  ✔ sortable pierde el idioma y vuelve a key de idioma @done(18-01-2026 14:05)
-  ✔ limpiar el clearSelectCache en productAssets porque si hay cambios alli este va vinculado con las reglas @done(17-01-2026 19:24)
+☐ Hay qu reutilizar el css al maximo hay extensiones que estan pasdo de css creo que porque la IA no tiene el contexto del sistema
+que hay en el framework de css, posiblemente hay que hacer que lo tiene la extesion y no tenga el framework hacerlo que lo tenga
+para que esto sea reutilizable a futuro y no se haga css brutales largos. 

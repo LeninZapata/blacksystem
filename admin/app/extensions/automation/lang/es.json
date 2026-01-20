@@ -285,6 +285,35 @@
         "load_failed": "Error al cargar activo publicitario",
         "not_found": "Activo publicitario no encontrado"
       }
+    },
+    "budget_adjust": {
+      "modal": {
+        "title": "Ajustar Presupuesto",
+        "current_budget": "Presupuesto Actual",
+        "spent_today": "Gastado Hoy",
+        "remaining": "Restante",
+        "adjustment_amount": "Monto de Ajuste ($)",
+        "reason": "Motivo del Ajuste (Opcional)",
+        "new_budget": "Nuevo Presupuesto",
+        "increment": "Incremento",
+        "decrement": "Decremento"
+      },
+      "messages": {
+        "loading": "Consultando presupuesto...",
+        "success_increment": "✅ Presupuesto incrementado exitosamente",
+        "success_decrement": "✅ Presupuesto decrementado exitosamente",
+        "error": "Error al ajustar el presupuesto",
+        "invalid_amount": "El monto de ajuste no puede ser $0",
+        "negative_budget": "El nuevo presupuesto no puede ser $0 o negativo",
+        "confirm_increment": "¿Confirmas que deseas incrementar el presupuesto?",
+        "confirm_decrement": "¿Confirmas que deseas decrementar el presupuesto?"
+      },
+      "help": {
+        "how_it_works": "¿Cómo funciona?",
+        "positive_value": "Valor positivo (+): Incrementa el presupuesto",
+        "negative_value": "Valor negativo (-): Decrementa el presupuesto",
+        "example": "Ejemplo: +1.50 suma $1.50 al presupuesto actual"
+      }
     }
   },
   "core": {

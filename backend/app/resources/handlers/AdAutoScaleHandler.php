@@ -248,17 +248,32 @@ class AdAutoScaleHandler {
 
       // Parsear config de la credencial
       $credConfig = is_string($credential['config']) ? json_decode($credential['config'], true) : $credential['config'];
+      $credConfig['credential_value'] = $credConfig['credential_value'] ?? $credConfig['access_token'] ?? '';
 
-      // 2. Crear provider según la plataforma
-      $platform = $asset['ad_platform'];
-      $provider = self::createAdProvider($platform, $credConfig);
-
-      if (!$provider) {
-        return [
-          'success' => false,
-          'error' => "Provider no disponible para plataforma: {$platform}"
-        ];
+      // 2. Cargar provider (igual que en adjustBudget)
+      $platform = strtolower($asset['ad_platform']);
+      $providerClass = ucfirst($platform) . 'AdProvider';
+      
+      $basePath = ogCache::memoryGet('path_middle') . '/services/integrations/ads';
+      
+      if (!interface_exists('adProviderInterface')) {
+        require_once "{$basePath}/adProviderInterface.php";
       }
+      if (!class_exists('baseAdProvider')) {
+        require_once "{$basePath}/baseAdProvider.php";
+      }
+      
+      $providerFile = "{$basePath}/{$platform}/{$platform}AdProvider.php";
+      if (!file_exists($providerFile)) {
+        return ['success' => false, 'error' => "Provider no encontrado: {$platform}"];
+      }
+      
+      require_once $providerFile;
+      if (!class_exists($providerClass)) {
+        return ['success' => false, 'error' => "Clase provider no encontrada: {$providerClass}"];
+      }
+
+      $provider = new $providerClass($credConfig);
 
       // 3. Obtener presupuesto actual de la plataforma
       $currentBudgetData = $provider->getBudget($asset['ad_asset_id'], $asset['ad_asset_type']);
@@ -350,68 +365,143 @@ class AdAutoScaleHandler {
         ], self::$logMeta);
       }
 
+      return [
+        'success' => false,
+        'error' => $e->getMessage()
+      ];
+    }
+  }
+
+  /**
+   * Ajustar presupuesto manualmente (incremento/decremento)
+   * Guarda en ad_auto_scale_history con execution_source='manual'
+   */
+  static function adjustBudget($params = []) {
+    $startTime = microtime(true);
+    $params = $params ?? ogRequest::data();
+    ogLog::info('adjustBudget - Iniciando ajuste manual', $params, self::$logMeta);
+
+    try {
+      // Validar parámetros
+      $requiredParams = ['product_ad_asset_id', 'ad_asset_id', 'ad_asset_type', 'budget_before', 'budget_after'];
+      foreach ($requiredParams as $param) {
+        if (!isset($params[$param]) || $params[$param] === '') {
+          return ['success' => false, 'error' => "Parámetro requerido: {$param}"];
+        }
+      }
+
+      $productAdAssetId = $params['product_ad_asset_id'];
+      $adAssetId = $params['ad_asset_id'];
+      $adAssetType = $params['ad_asset_type'];
+      $budgetBefore = (float)$params['budget_before'];
+      $budgetAfter = (float)$params['budget_after'];
+      $adjustmentAmount = isset($params['adjustment_amount']) ? (float)$params['adjustment_amount'] : ($budgetAfter - $budgetBefore);
+      $reason = $params['reason'] ?? '';
+
+      if ($budgetAfter <= 0) {
+        return ['success' => false, 'error' => 'El nuevo presupuesto debe ser mayor a $0'];
+      }
+
+      // Obtener activo
+      $asset = ogDb::t('product_ad_assets')->find($productAdAssetId);
+      if (!$asset) {
+        return ['success' => false, 'error' => "Activo no encontrado: {$productAdAssetId}"];
+      }
+
+      // Obtener credencial
+      $credential = ogDb::t('credentials')->find($asset['credential_id']);
+      if (!$credential) {
+        return ['success' => false, 'error' => "Credencial no encontrada: {$asset['credential_id']}"]; 
+      }
+
+      $credConfig = is_string($credential['config']) ? json_decode($credential['config'], true) : $credential['config'];
+      $credConfig['credential_value'] = $credConfig['credential_value'] ?? $credConfig['access_token'] ?? '';
+
+      // Cargar provider
+      $platform = strtolower($asset['ad_platform']);
+      $providerClass = ucfirst($platform) . 'AdProvider';
+      
+      $basePath = ogCache::memoryGet('path_middle') . '/services/integrations/ads';
+      
+      if (!interface_exists('adProviderInterface')) {
+        require_once "{$basePath}/adProviderInterface.php";
+      }
+      if (!class_exists('baseAdProvider')) {
+        require_once "{$basePath}/baseAdProvider.php";
+      }
+      
+      $providerFile = "{$basePath}/{$platform}/{$platform}AdProvider.php";
+      if (!file_exists($providerFile)) {
+        return ['success' => false, 'error' => "Provider no encontrado: {$platform}"];
+      }
+      
+      require_once $providerFile;
+      if (!class_exists($providerClass)) {
+        return ['success' => false, 'error' => "Clase provider no encontrada: {$providerClass}"];
+      }
+
+      $provider = new $providerClass($credConfig);
+
+      // Actualizar presupuesto
+      $updateResult = $provider->updateBudget($adAssetId, $adAssetType, $budgetAfter, 'daily');
+
+      if (!$updateResult['success']) {
+        return ['success' => false, 'error' => $updateResult['error'] ?? 'Error actualizando presupuesto'];
+      }
+
+      $executionTime = round((microtime(true) - $startTime) * 1000);
+
+      // Guardar en historial - USAR COLUMNAS CORRECTAS
+      ogDb::t('ad_auto_scale_history')->insert([
+        'rule_id' => 0, // 0 para ajustes manuales (NOT NULL pero sin regla)
+        'user_id' => $asset['user_id'],
+        'ad_assets_id' => $productAdAssetId, // ← COLUMNA CORRECTA
+        'product_id' => $asset['product_id'],
+        'ad_platform' => $asset['ad_platform'],
+        'ad_asset_type' => $adAssetType,
+        'metrics_snapshot' => json_encode([
+          'budget_before' => $budgetBefore,
+          'budget_after' => $budgetAfter,
+          'adjustment_amount' => $adjustmentAmount,
+          'reason' => $reason
+        ]),
+        'time_range' => 'manual',
+        'conditions_met' => 1, // Manual siempre "cumple"
+        'conditions_logic' => null,
+        'conditions_result' => null,
+        'action_executed' => 1,
+        'action_type' => $adjustmentAmount > 0 ? 'increase_budget' : 'decrease_budget',
+        'action_result' => json_encode([
+          'success' => true,
+          'platform_response' => $updateResult
+        ]),
+        'execution_source' => 'manual',
+        'execution_time_ms' => $executionTime,
+        'error_message' => null,
+        'executed_at' => date('Y-m-d H:i:s'),
+        'dc' => date('Y-m-d H:i:s'),
+        'tc' => time()
+      ]);
+
+      ogLog::success('adjustBudget - Presupuesto ajustado', [
+        'asset_id' => $adAssetId,
+        'budget_before' => $budgetBefore,
+        'budget_after' => $budgetAfter,
+        'execution_time_ms' => $executionTime
+      ], self::$logMeta);
+
+      return [
+        'success' => true,
+        'budget_before' => $budgetBefore,
+        'budget_after' => $budgetAfter,
+        'adjustment_amount' => $adjustmentAmount,
+        'execution_time_ms' => $executionTime
+      ];
+
+    } catch (Exception $e) {
+      ogLog::error('adjustBudget - Error', ['error' => $e->getMessage()], self::$logMeta);
       return ['success' => false, 'error' => $e->getMessage()];
     }
   }
 
-
-  /**
-   * Crear instancia del provider de ads
-   */
-  private static function createAdProvider($platform, $credConfig) {
-    $basePath = ogCache::memoryGet('path_middle') . '/services/integrations/ads';
-
-    // Mapeo de plataformas
-    $providerMap = [
-      'facebook' => ['class' => 'facebookAdProvider', 'folder' => 'facebook'],
-      'tiktok' => ['class' => 'tiktokAdProvider', 'folder' => 'tiktok'],
-      'google' => ['class' => 'googleAdProvider', 'folder' => 'google']
-    ];
-
-    $platform = strtolower($platform);
-
-    if (!isset($providerMap[$platform])) {
-      ogLog::error('createAdProvider - Plataforma no soportada', ['platform' => $platform], self::$logMeta);
-      return null;
-    }
-
-    $providerInfo = $providerMap[$platform];
-    $providerClass = $providerInfo['class'];
-    $providerFolder = $providerInfo['folder'];
-
-    // Cargar interface
-    if (!interface_exists('adProviderInterface')) {
-      $interfacePath = "{$basePath}/adProviderInterface.php";
-      if (!file_exists($interfacePath)) {
-        ogLog::error('createAdProvider - Interface no encontrada', ['path' => $interfacePath], self::$logMeta);
-        return null;
-      }
-      require_once $interfacePath;
-    }
-
-    // Cargar base
-    if (!class_exists('baseAdProvider')) {
-      $basePath2 = "{$basePath}/baseAdProvider.php";
-      if (!file_exists($basePath2)) {
-        ogLog::error('createAdProvider - Base class no encontrada', ['path' => $basePath2], self::$logMeta);
-        return null;
-      }
-      require_once $basePath2;
-    }
-
-    // Cargar provider específico
-    $providerPath = "{$basePath}/{$providerFolder}/{$providerClass}.php";
-    if (!file_exists($providerPath)) {
-      ogLog::error('createAdProvider - Provider no encontrado', ['path' => $providerPath], self::$logMeta);
-      return null;
-    }
-    require_once $providerPath;
-
-    if (!class_exists($providerClass)) {
-      ogLog::error('createAdProvider - Clase de provider no encontrada', ['class' => $providerClass], self::$logMeta);
-      return null;
-    }
-
-    return new $providerClass($credConfig);
-  }
 }

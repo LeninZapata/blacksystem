@@ -927,4 +927,115 @@ class adMetricsHandler {
       ];
     }
   }
+
+  static function getBudgetStatus($params = []) {
+    $logMeta = ['module' => 'AdMetricsHandler', 'layer' => 'app/resources', 'method' => 'getBudgetStatus'];
+
+    try {
+      $adAssetId = $params['ad_asset_id'] ?? ogRequest::query('ad_asset_id');
+      
+      if (!$adAssetId) {
+        return ['success' => false, 'error' => 'El parámetro "ad_asset_id" es requerido'];
+      }
+
+      $today = date('Y-m-d');
+      $dateFrom = $params['date_from'] ?? ogRequest::query('date_from', $today);
+      $dateTo = $params['date_to'] ?? ogRequest::query('date_to', $today);
+
+      // Buscar activo
+      $asset = ogDb::t('product_ad_assets')->where('ad_asset_id', $adAssetId)->first();
+
+      if (!$asset) {
+        return ['success' => false, 'error' => "Activo no encontrado: {$adAssetId}"];
+      }
+
+      // 1. Obtener spend del service (métricas)
+      $service = ogApp()->service('AdMetrics');
+      
+      $metricsResult = $service->getAssetsMetrics(
+        [[
+          'ad_asset_id' => $asset['ad_asset_id'],
+          'ad_asset_type' => $asset['ad_asset_type'],
+          'ad_platform' => $asset['ad_platform'],
+          'user_id' => $asset['user_id']
+        ]],
+        $dateFrom,
+        $dateTo
+      );
+
+      $spent = $metricsResult['success'] ? ($metricsResult['totals']['spend'] ?? 0) : 0;
+
+      // 2. Obtener presupuesto actual en TIEMPO REAL desde Facebook
+      $credential = ogDb::t('credentials')->find($asset['credential_id']);
+      if (!$credential) {
+        return ['success' => false, 'error' => "Credencial no encontrada: {$asset['credential_id']}"];
+      }
+
+      $credConfig = is_string($credential['config']) ? json_decode($credential['config'], true) : $credential['config'];
+      $credConfig['credential_value'] = $credConfig['credential_value'] ?? $credConfig['access_token'] ?? '';
+
+      // Cargar provider
+      $platform = strtolower($asset['ad_platform']);
+      $providerClass = ucfirst($platform) . 'AdProvider';
+      
+      $basePath = ogCache::memoryGet('path_middle') . '/services/integrations/ads';
+      
+      if (!interface_exists('adProviderInterface')) {
+        require_once "{$basePath}/adProviderInterface.php";
+      }
+      if (!class_exists('baseAdProvider')) {
+        require_once "{$basePath}/baseAdProvider.php";
+      }
+      
+      $providerFile = "{$basePath}/{$platform}/{$platform}AdProvider.php";
+      if (!file_exists($providerFile)) {
+        return ['success' => false, 'error' => "Provider no encontrado: {$platform}"];
+      }
+      
+      require_once $providerFile;
+      if (!class_exists($providerClass)) {
+        return ['success' => false, 'error' => "Clase provider no encontrada: {$providerClass}"];
+      }
+
+      $provider = new $providerClass($credConfig);
+
+      // Obtener presupuesto actual en TIEMPO REAL
+      $budgetResult = $provider->getBudget($asset['ad_asset_id'], $asset['ad_asset_type']);
+
+      if (!$budgetResult['success']) {
+        ogLog::error('getBudgetStatus - Error obteniendo presupuesto del provider', [
+          'error' => $budgetResult['error'] ?? 'Unknown'
+        ], $logMeta);
+        
+        // Fallback a base_daily_budget de la tabla
+        $currentDaily = isset($asset['base_daily_budget']) && $asset['base_daily_budget'] > 0 
+          ? (float)$asset['base_daily_budget'] 
+          : 0;
+      } else {
+        $currentDaily = $budgetResult['daily_budget'] ?? 0;
+      }
+
+      $remaining = $currentDaily > 0 ? max(0, $currentDaily - $spent) : null;
+
+      return [
+        'success' => true,
+        'asset_id' => $adAssetId,
+        'asset_type' => $asset['ad_asset_type'],
+        'platform' => $asset['ad_platform'],
+        'date_range' => ['from' => $dateFrom, 'to' => $dateTo],
+        'budget' => [
+          'spent' => $spent,
+          'current_daily' => $currentDaily,
+          'current_lifetime' => $budgetResult['lifetime_budget'] ?? null,
+          'remaining_daily' => $remaining
+        ],
+        'data_source' => 'real_time'
+      ];
+
+    } catch (Exception $e) {
+      ogLog::error('getBudgetStatus - Error', ['error' => $e->getMessage()], $logMeta);
+      return ['success' => false, 'error' => $e->getMessage()];
+    }
+  }
+
 }

@@ -59,4 +59,12 @@ $router->group('/api/adMetrics', function($router) {
     );
   })->middleware(['auth', 'throttle:100,1']);
 
+  // Obtener presupuesto gastado y actual de un activo
+  // GET /api/adMetrics/budget-status?ad_asset_id=120232490086400388&date_from=2026-01-18&date_to=2026-01-18&real_time=false
+  $router->get('/budget-status', function() {
+    ogResponse::json(
+      ogApp()->handler('adMetrics')::getBudgetStatus([])
+    );
+  })->middleware(['throttle:100,1']);
+
 });

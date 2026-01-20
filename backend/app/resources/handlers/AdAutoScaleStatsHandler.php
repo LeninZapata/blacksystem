@@ -8,7 +8,6 @@ class AdAutoScaleStatsHandler {
       $assetId = $params['asset_id'] ?? null;
       $range = $params['range'] ?? 'today';
       
-      // ✅ Obtener user_id desde memoria (viene del middleware auth)
       $userId = ogCache::memoryGet('auth_user_id', $GLOBALS['auth_user_id'] ?? null);
 
       if (!$userId) {
@@ -22,7 +21,7 @@ class AdAutoScaleStatsHandler {
       // Obtener fechas según rango
       $dates = self::getDateRange($range);
 
-      // Consultar historial de cambios
+      // Consultar historial de cambios - CORREGIDO: lee desde metrics_snapshot
       $sql = "
         SELECT 
           h.id,
@@ -30,11 +29,10 @@ class AdAutoScaleStatsHandler {
           r.name as rule_name,
           h.ad_assets_id,
           h.action_type,
-          h.action_result,
+          h.execution_source,
           h.executed_at,
-          JSON_EXTRACT(h.action_result, '$.budget_before') as budget_before,
-          JSON_EXTRACT(h.action_result, '$.budget_after') as budget_after,
-          JSON_EXTRACT(h.action_result, '$.change') as budget_change
+          h.metrics_snapshot,
+          h.execution_time_ms
         FROM ad_auto_scale_history h
         LEFT JOIN ad_auto_scale r ON h.rule_id = r.id
         WHERE h.ad_assets_id = ?
@@ -53,17 +51,28 @@ class AdAutoScaleStatsHandler {
         $dates['to'] . ' 23:59:59'
       ]);
 
-      // Formatear datos
+      // Formatear datos - extraer desde metrics_snapshot
       $data = array_map(function($row) {
+        // Decodificar metrics_snapshot
+        $metricsSnapshot = is_string($row['metrics_snapshot']) 
+          ? json_decode($row['metrics_snapshot'], true) 
+          : $row['metrics_snapshot'];
+
+        $budgetBefore = $metricsSnapshot['budget_before'] ?? 0;
+        $budgetAfter = $metricsSnapshot['budget_after'] ?? 0;
+        $adjustmentAmount = $metricsSnapshot['adjustment_amount'] ?? ($budgetAfter - $budgetBefore);
+
         return [
           'id' => (int)$row['id'],
           'rule_id' => (int)$row['rule_id'],
           'rule_name' => $row['rule_name'],
           'action_type' => $row['action_type'],
-          'budget_before' => round((float)$row['budget_before'], 2),
-          'budget_after' => round((float)$row['budget_after'], 2),
-          'budget_change' => round((float)$row['budget_change'], 2),
-          'executed_at' => $row['executed_at']
+          'execution_source' => $row['execution_source'],
+          'budget_before' => round((float)$budgetBefore, 2),
+          'budget_after' => round((float)$budgetAfter, 2),
+          'budget_change' => round((float)$adjustmentAmount, 2),
+          'executed_at' => $row['executed_at'],
+          'execution_time_ms' => $row['execution_time_ms']
         ];
       }, $results);
 

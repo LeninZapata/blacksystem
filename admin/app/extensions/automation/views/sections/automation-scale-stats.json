@@ -5,7 +5,8 @@
   "styles": ["automation/assets/css/scaleRuleStats.css"],
   "scripts": [
     "automation/assets/js/scaleRule.js",
-    "automation/assets/js/scaleRuleStats.js"
+    "automation/assets/js/scaleRuleStats.js",
+    "automation/assets/js/budgetAdjust.js"
   ],
   "content": [
     {
@@ -64,7 +65,7 @@
               },
               {
                 "type": "html",
-                "content": "<div class='stats-controls'><select id='asset-selector' class='form-control' onchange='scaleRuleStats.changeAsset(this.value)'><option value=''>Selecciona un activo...</option></select><select id='range-selector-scale' class='form-control' onchange='scaleRuleStats.changeRange(this.value)'><option value='today' selected>Hoy</option><option value='yesterday'>Ayer</option><option value='last_7_days'>Últimos 7 días</option><option value='last_15_days'>Últimos 15 días</option><option value='last_30_days'>Últimos 30 días</option><option value='this_month'>Este mes</option></select></div>"
+                "content": "<div class='stats-controls'><select id='asset-selector' class='form-control' onchange='scaleRuleStats.changeAsset(this.value)'><option value=''>Selecciona un activo...</option></select><select id='range-selector-scale' class='form-control' onchange='scaleRuleStats.changeRange(this.value)'><option value='today' selected>Hoy</option><option value='yesterday'>Ayer</option><option value='last_7_days'>Últimos 7 días</option><option value='last_15_days'>Últimos 15 días</option><option value='last_30_days'>Últimos 30 días</option><option value='this_month'>Este mes</option></select><button class='btn btn-primary' onclick='scaleRuleStats.openBudgetAdjustModal()' style='margin-left: 0.5rem;'>💰 Ajustar Presupuesto</button></div>"
               },
               {
                 "type": "html",

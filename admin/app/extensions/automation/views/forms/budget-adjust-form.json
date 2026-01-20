@@ -1,0 +1,53 @@
+{
+  "id": "budget-adjust-form",
+  "title": "Ajustar Presupuesto",
+  "description": "Incrementa o decrementa el presupuesto diario del activo",
+  "fields": [
+    {
+      "type": "html",
+      "content": "<div id='budget-info-container' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; color: white;'><div style='text-align: center;'><div style='font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;'>💰 Presupuesto Actual</div><div id='current-budget-display' style='font-size: 2.5rem; font-weight: bold; margin-bottom: 1rem;'>--</div><div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;'><div style='background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 6px;'><div style='font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem;'>Gastado Hoy</div><div id='spent-today-display' style='font-size: 1.25rem; font-weight: 600;'>--</div></div><div style='background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 6px;'><div style='font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem;'>Restante</div><div id='remaining-display' style='font-size: 1.25rem; font-weight: 600;'>--</div></div></div></div></div>"
+    },
+    {
+      "type": "html",
+      "content": "<div style='background: #f0f9ff; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; border-left: 4px solid #3b82f6;'><strong>💡 ¿Cómo funciona?</strong><ul style='margin: 0.5rem 0 0; padding-left: 1.5rem; font-size: 0.9rem;'><li>Valor positivo (+): <strong>Incrementa</strong> el presupuesto</li><li>Valor negativo (-): <strong>Decrementa</strong> el presupuesto</li><li>Ejemplo: +1.50 suma $1.50 al presupuesto actual</li></ul></div>"
+    },
+    {
+      "name": "adjustment_amount",
+      "label": "Monto de Ajuste ($)",
+      "type": "number",
+      "required": true,
+      "placeholder": "0.00",
+      "step": 0.01,
+      "help": "Ingresa un valor positivo para incrementar o negativo para decrementar",
+      "focus": true
+    },
+    {
+      "type": "html",
+      "content": "<div id='new-budget-preview' style='background: #ecfdf5; border: 2px dashed #10b981; padding: 1rem; border-radius: 6px; margin-top: 1rem; display: none;'><div style='text-align: center;'><div style='font-size: 0.875rem; color: #065f46; margin-bottom: 0.25rem;'>✨ Nuevo Presupuesto</div><div style='font-size: 2rem; font-weight: bold; color: #059669;'>--</div></div></div>"
+    },
+    {
+      "name": "reason",
+      "label": "Motivo del Ajuste (Opcional)",
+      "type": "textarea",
+      "placeholder": "Ej: Aumento de presupuesto por buen rendimiento",
+      "rows": 3
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "Cancelar",
+      "style": "secondary",
+      "action": "call:ogModal.closeAll",
+      "align": "right"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "💾 Aplicar Ajuste",
+      "action": "submit:budgetAdjust.applyAdjustment",
+      "align": "right"
+    }
+  ]
+}

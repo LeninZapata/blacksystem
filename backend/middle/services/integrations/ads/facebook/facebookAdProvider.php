@@ -1,11 +1,12 @@
 <?php
 class facebookAdProvider extends baseAdProvider {
-  private $apiVersion = 'v21.0';
+  private $apiVersion = 'v24.0';
   private $baseUrl;
+  public static $logMeta = ['module' => 'facebookAdProvider', 'layer' => 'middle/services'];
 
   function __construct(array $config) {
     parent::__construct($config);
-    $this->apiVersion = $config['api_version'] ?? 'v21.0';
+    $this->apiVersion = $config['api_version'] ?? 'v24.0';
     $this->baseUrl = "https://graph.facebook.com/{$this->apiVersion}";
   }
 
@@ -13,7 +14,7 @@ class facebookAdProvider extends baseAdProvider {
     return 'facebook';
   }
 
-  // Obtener métricas de un solo activo
+  // Obtener métricas de un solo activo (con spend en tiempo real)
   function getAssetMetrics(string $assetId, string $assetType, string $dateFrom, string $dateTo): array {
     try {
       if (!$this->validateAssetType($assetType)) {
@@ -23,7 +24,7 @@ class facebookAdProvider extends baseAdProvider {
       $dateFrom = $this->formatDate($dateFrom);
       $dateTo = $this->formatDate($dateTo);
 
-      // Campos a consultar
+      // Para obtener spend en tiempo real, SÍ necesitamos /insights
       $fields = implode(',', [
         'spend',
         'impressions',
@@ -36,20 +37,40 @@ class facebookAdProvider extends baseAdProvider {
         'ctr'
       ]);
 
-      // URL del endpoint
-      $url = "{$this->baseUrl}/{$assetId}/insights";
-      $url .= "?fields={$fields}";
-      $url .= "&time_range={'since':'{$dateFrom}','until':'{$dateTo}'}";
-      $url .= "&access_token={$this->apiKey}";
+      // Usar date_preset si es hoy, sino usar time_range
+      $isToday = ($dateFrom === date('Y-m-d') && $dateTo === date('Y-m-d'));
+      
+      if ($isToday) {
+        // Para HOY usar date_preset=today (más rápido y en tiempo real)
+        $url = "{$this->baseUrl}/{$assetId}/insights";
+        $url .= "?fields={$fields}";
+        $url .= "&date_preset=today";
+        $url .= "&access_token={$this->apiKey}";
+      } else {
+        // Para otros rangos usar time_range
+        $url = "{$this->baseUrl}/{$assetId}/insights";
+        $url .= "?fields={$fields}";
+        $url .= "&time_range={'since':'{$dateFrom}','until':'{$dateTo}'}";
+        $url .= "&access_token={$this->apiKey}";
+      }
 
-      $this->log("Consultando métricas de {$assetType}: {$assetId}", [
+      ogLog::debug("Consultando métricas en tiempo real", [
+        'asset_type' => $assetType,
+        'asset_id' => $assetId,
         'date_from' => $dateFrom,
-        'date_to' => $dateTo
-      ]);
+        'date_to' => $dateTo,
+        'is_today' => $isToday,
+        'url' => str_replace($this->apiKey, '***', $url)
+      ], self::$logMeta);
 
       $response = ogApp()->helper('http')::get($url);
 
       if (!$response['success']) {
+        ogLog::error("Error HTTP en Facebook API", [
+          'error' => $response['error'] ?? 'Unknown',
+          'httpCode' => $response['httpCode'] ?? 500
+        ], self::$logMeta);
+        
         return $this->errorResponse(
           "Error HTTP al consultar Facebook API: " . ($response['error'] ?? 'Unknown'),
           $response['httpCode'] ?? 500
@@ -58,7 +79,6 @@ class facebookAdProvider extends baseAdProvider {
 
       $data = $response['data'];
 
-      // Verificar si hay datos
       if (!isset($data['data']) || empty($data['data'])) {
         return $this->successResponse([
           'asset_id' => $assetId,
@@ -70,7 +90,6 @@ class facebookAdProvider extends baseAdProvider {
         ]);
       }
 
-      // Procesar métricas
       $metrics = $this->processMetrics($data['data'][0]);
 
       return $this->successResponse([
@@ -83,7 +102,7 @@ class facebookAdProvider extends baseAdProvider {
       ]);
 
     } catch (Exception $e) {
-      $this->log('Error obteniendo métricas', ['error' => $e->getMessage()]);
+      ogLog::error('Error obteniendo métricas', ['error' => $e->getMessage()], self::$logMeta);
       return $this->errorResponse($e->getMessage());
     }
   }
@@ -107,7 +126,6 @@ class facebookAdProvider extends baseAdProvider {
         $results[] = $metrics;
       }
 
-      // Sumar todas las métricas
       $totals = $this->sumMetrics($results);
 
       return $this->successResponse([
@@ -122,7 +140,7 @@ class facebookAdProvider extends baseAdProvider {
       ]);
 
     } catch (Exception $e) {
-      $this->log('Error obteniendo métricas múltiples', ['error' => $e->getMessage()]);
+      ogLog::error('Error obteniendo métricas múltiples', ['error' => $e->getMessage()], self::$logMeta);
       return $this->errorResponse($e->getMessage());
     }
   }
@@ -151,7 +169,6 @@ class facebookAdProvider extends baseAdProvider {
       'conversion_rate' => 0
     ];
 
-    // Extraer actions (conversiones, clicks, etc)
     if (isset($data['actions']) && is_array($data['actions'])) {
       foreach ($data['actions'] as $action) {
         $actionType = $action['action_type'] ?? '';
@@ -192,7 +209,6 @@ class facebookAdProvider extends baseAdProvider {
       }
     }
 
-    // Extraer valores de conversiones (purchase_value)
     if (isset($data['action_values']) && is_array($data['action_values'])) {
       foreach ($data['action_values'] as $actionValue) {
         $actionType = $actionValue['action_type'] ?? '';
@@ -203,10 +219,8 @@ class facebookAdProvider extends baseAdProvider {
       }
     }
 
-    // Calcular conversiones totales
     $metrics['conversions'] = $metrics['purchase'] + $metrics['lead'];
 
-    // Calcular métricas derivadas si no vienen de Facebook
     if ($metrics['cpm'] == 0 && $metrics['impressions'] > 0) {
       $metrics['cpm'] = ($metrics['spend'] / $metrics['impressions']) * 1000;
     }
@@ -223,7 +237,6 @@ class facebookAdProvider extends baseAdProvider {
       $metrics['conversion_rate'] = ($metrics['conversions'] / $metrics['clicks']) * 100;
     }
 
-    // Redondear
     $metrics['cpm'] = round($metrics['cpm'], 2);
     $metrics['cpc'] = round($metrics['cpc'], 2);
     $metrics['ctr'] = round($metrics['ctr'], 2);
@@ -261,14 +274,23 @@ class facebookAdProvider extends baseAdProvider {
   // Obtener presupuesto actual
   function getBudget(string $assetId, string $assetType): array {
     try {
-      $fields = $assetType === 'campaign' ? 'daily_budget,lifetime_budget,status' : 'daily_budget,status';
+      $fields = 'id,name,daily_budget,lifetime_budget,status,configured_status';
       $url = "{$this->baseUrl}/{$assetId}?fields={$fields}&access_token={$this->apiKey}";
 
-      $this->log("Obteniendo presupuesto de {$assetType}: {$assetId}");
+      ogLog::debug("Obteniendo presupuesto", [
+        'asset_type' => $assetType,
+        'asset_id' => $assetId,
+        'url' => str_replace($this->apiKey, '***', $url)
+      ], self::$logMeta);
 
       $response = ogApp()->helper('http')::get($url);
 
       if (!$response['success']) {
+        ogLog::error("Error HTTP en Facebook API", [
+          'error' => $response['error'] ?? 'Unknown',
+          'httpCode' => $response['httpCode'] ?? 500
+        ], self::$logMeta);
+        
         return $this->errorResponse(
           "Error HTTP al consultar presupuesto: " . ($response['error'] ?? 'Unknown'),
           $response['httpCode'] ?? 500
@@ -277,9 +299,14 @@ class facebookAdProvider extends baseAdProvider {
 
       $data = $response['data'];
 
-      // Presupuesto en centavos, convertir a dólares
-      $dailyBudget = isset($data['daily_budget']) ? (int)$data['daily_budget'] / 100 : null;
-      $lifetimeBudget = isset($data['lifetime_budget']) ? (int)$data['lifetime_budget'] / 100 : null;
+      // Facebook devuelve budget como STRING en centavos, convertir a float dólares
+      $dailyBudget = isset($data['daily_budget']) && $data['daily_budget'] !== "0" 
+        ? (float)$data['daily_budget'] / 100 
+        : null;
+      
+      $lifetimeBudget = isset($data['lifetime_budget']) && $data['lifetime_budget'] !== "0"
+        ? (float)$data['lifetime_budget'] / 100 
+        : null;
 
       return $this->successResponse([
         'asset_id' => $assetId,
@@ -287,11 +314,12 @@ class facebookAdProvider extends baseAdProvider {
         'budget' => $dailyBudget ?? $lifetimeBudget ?? 0,
         'daily_budget' => $dailyBudget,
         'lifetime_budget' => $lifetimeBudget,
-        'status' => $data['status'] ?? null
+        'status' => $data['status'] ?? null,
+        'configured_status' => $data['configured_status'] ?? null
       ]);
 
     } catch (Exception $e) {
-      $this->log('Error obteniendo presupuesto', ['error' => $e->getMessage()]);
+      ogLog::error('Error obteniendo presupuesto', ['error' => $e->getMessage()], self::$logMeta);
       return $this->errorResponse($e->getMessage());
     }
   }
@@ -299,20 +327,27 @@ class facebookAdProvider extends baseAdProvider {
   // Actualizar presupuesto
   function updateBudget(string $assetId, string $assetType, float $newBudget, string $budgetType = 'daily'): array {
     try {
-      // Convertir a centavos
       $budgetCents = (int)($newBudget * 100);
 
       $field = $budgetType === 'lifetime' ? 'lifetime_budget' : 'daily_budget';
       $url = "{$this->baseUrl}/{$assetId}?{$field}={$budgetCents}&access_token={$this->apiKey}";
 
-      $this->log("Actualizando presupuesto de {$assetType}: {$assetId}", [
+      ogLog::info("Actualizando presupuesto", [
+        'asset_type' => $assetType,
+        'asset_id' => $assetId,
         'new_budget' => $newBudget,
-        'budget_type' => $budgetType
-      ]);
+        'budget_type' => $budgetType,
+        'url' => str_replace($this->apiKey, '***', $url)
+      ], self::$logMeta);
 
       $response = ogApp()->helper('http')::post($url);
 
       if (!$response['success']) {
+        ogLog::error("Error HTTP en Facebook API", [
+          'error' => $response['error'] ?? 'Unknown',
+          'httpCode' => $response['httpCode'] ?? 500
+        ], self::$logMeta);
+        
         return $this->errorResponse(
           "Error HTTP al actualizar presupuesto: " . ($response['error'] ?? 'Unknown'),
           $response['httpCode'] ?? 500
@@ -328,7 +363,7 @@ class facebookAdProvider extends baseAdProvider {
       ]);
 
     } catch (Exception $e) {
-      $this->log('Error actualizando presupuesto', ['error' => $e->getMessage()]);
+      ogLog::error('Error actualizando presupuesto', ['error' => $e->getMessage()], self::$logMeta);
       return $this->errorResponse($e->getMessage());
     }
   }
@@ -338,7 +373,10 @@ class facebookAdProvider extends baseAdProvider {
     try {
       $url = "{$this->baseUrl}/{$assetId}?status=PAUSED&access_token={$this->apiKey}";
 
-      $this->log("Pausando {$assetType}: {$assetId}");
+      ogLog::info("Pausando activo", [
+        'asset_type' => $assetType,
+        'asset_id' => $assetId
+      ], self::$logMeta);
 
       $response = ogApp()->helper('http')::post($url);
 
@@ -357,7 +395,7 @@ class facebookAdProvider extends baseAdProvider {
       ]);
 
     } catch (Exception $e) {
-      $this->log('Error pausando activo', ['error' => $e->getMessage()]);
+      ogLog::error('Error pausando activo', ['error' => $e->getMessage()], self::$logMeta);
       return $this->errorResponse($e->getMessage());
     }
   }

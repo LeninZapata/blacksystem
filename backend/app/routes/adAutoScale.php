@@ -41,6 +41,14 @@ $router->group('/api/adAutoScale', function($router) {
       ogApp()->handler('AdAutoScale')::resetDailyBudgets([])
     );
   })->middleware(['throttle:10,1']);
-  
+
+  // Ajustar presupuesto manualmente
+  // POST /api/adAutoScale/adjust-budget
+  $router->post('/adjust-budget', function() {
+    $data = ogRequest::data();
+    ogResponse::json(
+      ogApp()->handler('AdAutoScale')::adjustBudget($data)
+    );
+  })->middleware(['auth', 'json', 'throttle:20,1']);
 
 });

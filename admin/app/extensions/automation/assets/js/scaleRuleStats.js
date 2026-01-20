@@ -3,6 +3,7 @@ class scaleRuleStats {
   static currentAssetId = null;
   static currentRange = 'today';
   static chart = null;
+  static assetsCache = [];
 
   static async init() {
     ogLogger.debug('ext:automation', 'Inicializando estadísticas de escala');
@@ -26,6 +27,8 @@ class scaleRuleStats {
       const res = await ogApi.get('/api/productAdAsset?per_page=1000&is_active=1');
       const assets = res.success ? res.data : [];
       
+      this.assetsCache = assets;
+      
       const selector = document.getElementById('asset-selector');
       if (!selector) return;
 
@@ -34,6 +37,9 @@ class scaleRuleStats {
         const option = document.createElement('option');
         option.value = asset.id;
         option.textContent = `${asset.ad_asset_name} (${asset.ad_platform})`;
+        option.dataset.adAssetId = asset.ad_asset_id;
+        option.dataset.adAssetType = asset.ad_asset_type;  // ← AGREGADO
+        option.dataset.platform = asset.ad_platform;
         selector.appendChild(option);
       });
 
@@ -123,7 +129,6 @@ class scaleRuleStats {
 
     container.innerHTML = html;
 
-    // Crear gráfica
     const labels = data.map(item => this.formatTime(item.executed_at));
     const budgets = data.map(item => parseFloat(item.budget_after));
     
@@ -221,6 +226,7 @@ class scaleRuleStats {
       const isIncrease = item.action_type === 'increase_budget';
       const isDecrease = item.action_type === 'decrease_budget';
       const isPause = item.action_type === 'pause';
+      const isManual = item.execution_source === 'manual'; // ← DETECTAR MANUAL
       
       const icon = isIncrease ? '📈' : isDecrease ? '📉' : '⏸️';
       const colorClass = isIncrease ? 'increase' : isDecrease ? 'decrease' : 'pause';
@@ -231,9 +237,12 @@ class scaleRuleStats {
           <div class="timeline-icon">${icon}</div>
           <div class="timeline-content">
             <div class="timeline-time">${this.formatDateTime(item.executed_at)}</div>
-            <div class="timeline-action">${this.getActionLabel(item.action_type)}</div>
+            <div class="timeline-action">
+              ${this.getActionLabel(item.action_type)}
+              ${isManual ? '<span class="badge-manual" style="margin-left: 8px; background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">✋ MANUAL</span>' : ''}
+            </div>
             <div class="timeline-change">${changeText}</div>
-            ${item.rule_name ? `<div class="timeline-rule">Regla: ${item.rule_name}</div>` : ''}
+            ${item.rule_name && !isManual ? `<div class="timeline-rule">Regla: ${item.rule_name}</div>` : ''}
           </div>
           <div class="timeline-badge ${colorClass}">${item.budget_change >= 0 ? '+' : ''}$${item.budget_change}</div>
         </div>`;
@@ -312,6 +321,68 @@ class scaleRuleStats {
     const container = document.getElementById('timeline-budget-changes');
     if (container) container.innerHTML = '';
   }
+
+  static openBudgetAdjustModal() {
+    if (!this.currentAssetId) {
+      ogComponent('toast').warning('Debes seleccionar una cuenta publicitaria primero');
+      return;
+    }
+
+    const selectElement = document.getElementById('asset-selector');
+    if (!selectElement) {
+      ogComponent('toast').error('Error: No se encontró el selector de activos');
+      return;
+    }
+
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      ogComponent('toast').error('Error: No hay activo seleccionado');
+      return;
+    }
+
+    const adAssetId = selectedOption.dataset.adAssetId;
+    const adAssetType = selectedOption.dataset.adAssetType;  // ← CAPTURAR
+
+    if (!adAssetId) {
+      ogComponent('toast').error('Error: El activo no tiene ID válido');
+      ogLogger.error('ext:automation', 'dataset.adAssetId está vacío', selectedOption);
+      return;
+    }
+
+    if (!adAssetType) {
+      ogComponent('toast').error('Error: El activo no tiene tipo válido');
+      ogLogger.error('ext:automation', 'dataset.adAssetType está vacío', selectedOption);
+      return;
+    }
+
+    budgetAdjust.open(adAssetId, adAssetType, this.currentAssetId); 
+  }
+
+  static getAssetData(assetId) {
+    const selectElement = document.getElementById('asset-selector');
+    if (!selectElement) {
+      ogLogger.error('ext:automation', 'No se encontró el select #asset-selector');
+      return null;
+    }
+
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      ogLogger.error('ext:automation', 'No hay opción seleccionada');
+      return null;
+    }
+
+    const assetData = {
+      id: assetId,
+      ad_asset_id: selectedOption.dataset.adAssetId,
+      ad_asset_type: selectedOption.dataset.adAssetType || 'adset',
+      ad_platform: selectedOption.dataset.platform || 'facebook'
+    };
+
+    ogLogger.debug('ext:automation', 'Asset data extraído:', assetData);
+
+    return assetData;
+  }
+
 }
 
 window.scaleRuleStats = scaleRuleStats;
