@@ -1452,7 +1452,7 @@ class ogForm {
 
         const conditions = ogModule('conditions');
         conditions?.init(formId);
-      }, 20);
+      }, 10);
     }
   }
 

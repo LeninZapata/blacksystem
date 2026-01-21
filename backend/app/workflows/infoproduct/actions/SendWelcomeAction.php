@@ -28,12 +28,14 @@ class SendWelcomeAction {
 
     $totalMessages = count($messages);
     $messagesSent = 0;
+    $messagesFailed = 0;
+    $failedMessages = [];
     $clientId = null;
     $saleId = null;
 
     // Calcular plan simplificado
     $delayPlan = self::calculateSimplePlan($messages, $bot);
-    
+
     ogLog::info("send - Plan de delays calculado", $delayPlan, self::$logMeta);
 
     // Sleep inicial crudo
@@ -44,7 +46,7 @@ class SendWelcomeAction {
       ogLog::debug("send - Aplicando delay inicial", [
         'delay_data' => $delayPlan['initial']
       ], self::$logMeta);
-      
+
       self::executeDelay($from, $delayPlan['initial'], $bot);
     }
 
@@ -57,68 +59,111 @@ class SendWelcomeAction {
 
       // Delay antes del mensaje
       $msgDelay = $delayPlan['messages'][$index];
-      
+
       ogLog::debug("send - Aplicando delay mensaje", [
         'message_index' => $index + 1,
         'delay_data' => $msgDelay
       ], self::$logMeta);
-      
+
       if ($msgDelay['ms'] > 0) {
         self::executeDelay($from, $msgDelay, $bot);
       }
 
-      // Enviar mensaje
+      // Enviar mensaje con manejo de errores
       ogLog::debug("send - Enviando mensaje", [
         'message_index' => $index + 1,
         'preview' => substr($text, 0, 30)
       ], self::$logMeta);
-      
-      $result = $chatapi::send($from, $text, $url);
-      $messagesSent++;
 
-      // Crear venta después del primer mensaje
-      if ($messagesSent === 1 && $result['success']) {
-        $saleResult = CreateSaleAction::create($dataSale);
+      try {
+        $result = $chatapi::send($from, $text, $url);
+        
+        if ($result['success']) {
+          $messagesSent++;
+          
+          // Crear venta después del primer mensaje exitoso
+          if ($messagesSent === 1) {
+            $saleResult = CreateSaleAction::create($dataSale);
 
-        if ($saleResult['success']) {
-          ogLog::success("send - Venta creada", [
-            'sale_id' => $saleResult['sale_id'],
-            'client_id' => $saleResult['client_id']
-          ], self::$logMeta);
-          $clientId = $saleResult['client_id'];
-          $saleId = $saleResult['sale_id'];
+            ogLog::success("send - Venta para crear", [
+              'sale_id' => $saleResult['sale_id'],
+              'client_id' => $saleResult['client_id']
+            ], self::$logMeta);
+            if ($saleResult['success']) {
+              $clientId = $saleResult['client_id'];
+              $saleId = $saleResult['sale_id'];
 
-          $followups = ProductHandler::getMessagesFile('follow', $productId);
-          if (!empty($followups)) {
-            ogApp()->loadHandler('followup');
-            FollowupHandler::registerFromSale([
-              'sale_id' => $saleId,
-              'product_id' => $productId,
-              'client_id' => $clientId,
-              'bot_id' => $bot['id'],
-              'number' => $from
-            ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil', $bot);
+              $followups = ProductHandler::getMessagesFile('follow', $productId);
+              if (!empty($followups)) {
+                ogApp()->loadHandler('followup');
+                FollowupHandler::registerFromSale([
+                  'sale_id' => $saleId,
+                  'product_id' => $productId,
+                  'client_id' => $clientId,
+                  'bot_id' => $bot['id'],
+                  'number' => $from
+                ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil', $bot);
+              }
+            }
           }
+        } else {
+          // Mensaje falló con response success=false
+          $messagesFailed++;
+          $failedMessages[] = [
+            'index' => $index + 1,
+            'preview' => substr($text, 0, 30),
+            'error' => $result['error'] ?? 'Unknown error'
+          ];
+          
+          ogLog::warning("send - Mensaje falló, continuando con siguientes", [
+            'message_index' => $index + 1,
+            'error' => $result['error'] ?? 'Unknown'
+          ], self::$logMeta);
         }
+      } catch (Exception $e) {
+        // Excepción al enviar mensaje
+        $messagesFailed++;
+        $failedMessages[] = [
+          'index' => $index + 1,
+          'preview' => substr($text, 0, 30),
+          'error' => $e->getMessage()
+        ];
+        
+        ogLog::error("send - Excepción al enviar mensaje, continuando con siguientes", [
+          'message_index' => $index + 1,
+          'error' => $e->getMessage()
+        ], self::$logMeta);
       }
     }
 
     $totalDuration = microtime(true) - $welcomeStartTime;
 
-    ogLog::success("send - Welcome completado", [
-      'messages_sent' => $messagesSent,
-      'total_duration_seconds' => round($totalDuration, 2),
-      'sale_id' => $saleId
-    ], self::$logMeta);
+    if ($messagesFailed > 0) {
+      ogLog::warning("send - Welcome completado con errores", [
+        'messages_sent' => $messagesSent,
+        'messages_failed' => $messagesFailed,
+        'failed_messages' => $failedMessages,
+        'total_duration_seconds' => round($totalDuration, 2),
+        'sale_id' => $saleId
+      ], self::$logMeta);
+    } else {
+      ogLog::success("send - Welcome completado exitosamente", [
+        'messages_sent' => $messagesSent,
+        'total_duration_seconds' => round($totalDuration, 2),
+        'sale_id' => $saleId
+      ], self::$logMeta);
+    }
 
     return [
-      'success' => true,
+      'success' => $messagesSent > 0, // Éxito si al menos 1 mensaje se envió
       'total_messages' => $totalMessages,
       'messages_sent' => $messagesSent,
+      'messages_failed' => $messagesFailed,
+      'failed_messages' => $failedMessages,
       'client_id' => $clientId,
       'sale_id' => $saleId,
       'duration_seconds' => round($totalDuration, 2),
-      'error' => null
+      'error' => $messagesSent === 0 ? 'Ningún mensaje se envió exitosamente' : null
     ];
   }
 

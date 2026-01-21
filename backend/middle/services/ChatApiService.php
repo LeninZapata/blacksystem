@@ -4,7 +4,7 @@ class chatApiService {
   private static $botData = null;
   private static $provider = null;
   private static $providers = [];
-  private static $logMeta = ['module' => 'ogChatApi', 'layer' => 'framework'];
+  private static $logMeta = ['module' => 'ogChatApi', 'layer' => 'middle/framework'];
 
   static function setConfig(array $botData, string $provider = null) {
     self::$botData = $botData;
@@ -45,12 +45,17 @@ class chatApiService {
   static function detectAndNormalize($rawData) {
     // Extraer primer elemento si viene como array
     $data = is_array($rawData) && isset($rawData[0]) ? $rawData[0] : $rawData;
+    ogLog::info('webhook desde evolution', $data, self::$logMeta);
 
     // Detectar provider basado en estructura del webhook
     $provider = null;
 
-    // Evolution API
-    if (isset($data['body']['event']) && isset($data['body']['instance'])) {
+    // Evolution API - Formato directo (producción)
+    if (isset($data['event']) && isset($data['instance']) && isset($data['sender'])) {
+      $provider = 'evolutionapi';
+    }
+    // Evolution API - Formato envuelto en body (desarrollo/n8n)
+    elseif (isset($data['body']['event']) && isset($data['body']['instance'])) {
       $provider = 'evolutionapi';
     }
     // Facebook/WhatsApp Cloud API
@@ -212,13 +217,17 @@ class chatApiService {
       'instance' => $apiConfig['config']['instance'] ?? '',
       'base_url' => $apiConfig['config']['base_url'] ?? '',
       // Campos específicos de Facebook
-      'phone_number_id' => $apiConfig['config']['phone_number_id'] ?? '',
+      /*'phone_number_id' => $apiConfig['config']['phone_number_id'] ?? '',
       'business_account_id' => $apiConfig['config']['business_account_id'] ?? '',
-      'access_token' => $apiConfig['config']['access_token'] ?? ''
+      'access_token' => $apiConfig['config']['access_token'] ?? ''*/
     ];
+
+    ogLog::info('getProviderInstance - Config extraído', ['type' => $type, 'config' => $config, 'apiConfig' => $apiConfig], self::$logMeta);
 
     // Cargar provider bajo demanda según el tipo
     $provider = self::loadProvider($type, $config);
+    
+    ogLog::info('getProviderInstance - Provider cargado', ['provider_type' => $type, 'provider_class' => get_class($provider)], self::$logMeta);
 
     self::$providers[$cacheKey] = $provider;
     return $provider;
@@ -283,6 +292,12 @@ class chatApiService {
       ogLog::throwError( 'loadProvider - ' . __('services.ogChatApi.provider_class_not_found', ['class' => $providerClass]), [], self::$logMeta);
     }
 
-    return new $providerClass($config);
+    ogLog::info('loadProvider - Creando instancia del provider', ['class' => $providerClass, 'config_keys' => array_keys($config)], self::$logMeta);
+
+    $instance = new $providerClass($config);
+    
+    ogLog::info('loadProvider - Instancia creada', ['class' => $providerClass, 'instance_class' => get_class($instance)], self::$logMeta);
+
+    return $instance;
   }
 }

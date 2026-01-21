@@ -50,7 +50,7 @@ class InfoproductV2Handler {
   // ========================================
   private $actionDispatcher;
   private $maxConversationDays = 2;
-  private $bufferDelay = OG_IS_DEV ? 3 : 7;
+  private $bufferDelay = OG_IS_DEV ? 3 : 8;
   private $appPath;
 
   // Prompts personalizados
@@ -101,9 +101,11 @@ class InfoproductV2Handler {
     $botNumber = $bot['number'] ?? null;
 
     // ✅ 1. DETECTAR ORIGEN DEL WEBHOOK
-    $webhookSource = $standard['webhook']['source'] ?? 'evolution';
+    $webhookProvider = $standard['webhook']['provider'] ?? 'evolution';
+    $webhookSource = $standard['webhook']['source'] ?? 'unknown';
 
     ogLog::info("handle - Webhook recibido", [
+      'webhook_provider' => $webhookProvider,
       'webhook_source' => $webhookSource,
       'number' => $person['number'] ?? 'N/A',
       'message_type' => $message['type'] ?? 'unknown'
@@ -145,7 +147,7 @@ class InfoproductV2Handler {
 
     // ✅ 2. DETECTAR WELCOME
     ogLog::info("handle - Detectando welcome", [], $this->logMeta);
-    $welcomeCheck = WelcomeValidator::detect($bot, $message, $context);
+    $welcomeCheck = WelcomeValidator::detect($bot, $message, $context, $hasConversation['chat'] ?? null);
     ogLog::info("handle - Resultado de welcome detection", [ 'welcome_check' => $welcomeCheck ], $this->logMeta);
 
     if ( ($welcomeCheck['is_welcome'] && !$hasConversation['exists']) || ($welcomeCheck['is_welcome_diff_product'] && $hasConversation['exists']) ) {
@@ -158,8 +160,8 @@ class InfoproductV2Handler {
         'has_active_conversation' => $hasConversation['exists']
       ], $this->logMeta);
 
-      // Verificar si debe procesarse según webhook source
-      if (!$this->shouldProcessWebhook($webhookSource, $selectedProvider)) {
+      // Verificar si debe procesarse según webhook provider
+      if (!$this->shouldProcessWebhook($webhookProvider, $selectedProvider)) {
         ogLog::info("handle - Welcome descartado (webhook incorrecto)", [
           'webhook_source' => $webhookSource,
           'selected_provider' => $selectedProvider
@@ -182,7 +184,7 @@ class InfoproductV2Handler {
       $correctProvider = $this->selectChatProvider($chat, $bot);
 
       // Verificar si debe procesarse este webhook
-      if (!$this->shouldProcessWebhook($webhookSource, $correctProvider)) {
+      if (!$this->shouldProcessWebhook($webhookProvider, $correctProvider)) {
         return; // Descartar webhook duplicado
       }
 
@@ -191,7 +193,7 @@ class InfoproductV2Handler {
 
       ogLog::info("handle - No es welcome ➜ Continuar conversación", [
         'provider' => $correctProvider,
-        'webhook_source' => $webhookSource
+        'webhook_provider' => $webhookProvider
       ], $this->logMeta);
 
       $this->continueConversation($bot, $person, $message, $messageType);
@@ -284,7 +286,7 @@ class InfoproductV2Handler {
     }
 
     $buffer = new MessageBuffer($this->bufferDelay);
-    $buffer->cleanOld();
+    // NOTA: cleanOld() removido - causaba bloqueo con múltiples webhooks simultáneos
     $result = $buffer->process($person['number'], $bot['id'], $message);
 
     if ($result === null) {
@@ -555,17 +557,12 @@ class InfoproductV2Handler {
   /**
    * Verificar si debe procesarse este webhook según el provider
    */
-  private function shouldProcessWebhook($webhookSource, $correctProvider) {
-    $map = [
-      'facebook' => self::PROVIDER_FACEBOOK,
-      'evolution' => self::PROVIDER_EVOLUTION
-    ];
-
-    $shouldProcess = ($map[$webhookSource] ?? '') === $correctProvider;
+  private function shouldProcessWebhook($webhookProvider, $correctProvider) {
+    $shouldProcess = $webhookProvider === $correctProvider;
 
     if (!$shouldProcess) {
       ogLog::info("shouldProcessWebhook - Webhook descartado", [
-        'webhook_source' => $webhookSource,
+        'webhook_provider' => $webhookProvider,
         'correct_provider' => $correctProvider,
         'reason' => 'provider_mismatch'
       ], $this->logMeta);

@@ -17,13 +17,24 @@ class MessageBuffer {
     $bufferFile = $this->getBufferFile($number, $botId);
     $buffer = $this->readBuffer($bufferFile);
 
+    ogLog::info('Buffer - process() llamado', [
+      'number' => $number,
+      'bot_id' => $botId,
+      'buffer_exists' => $buffer !== null,
+      'buffer_expired' => $buffer ? $this->hasExpired($buffer) : null,
+      'buffer_file' => basename($bufferFile)
+    ], ['module' => 'buffer']);
+
     if ($buffer && !$this->hasExpired($buffer)) {
       $buffer['messages'][] = $message;
       $buffer['last_update'] = time();
       $this->writeBuffer($bufferFile, $buffer);
 
-      ogLog::debug('Mensaje agregado a buffer activo', [
-        'total_messages' => count($buffer['messages'])
+      ogLog::info('Buffer - Mensaje agregado a buffer activo', [
+        'number' => $number,
+        'total_messages' => count($buffer['messages']),
+        'time_since_first' => time() - $buffer['first_time'],
+        'seconds_since_last_update' => 0
       ], ['module' => 'buffer']);
       
       return null;
@@ -33,7 +44,8 @@ class MessageBuffer {
       $accumulated = $buffer['messages'];
       @unlink($bufferFile);
 
-      ogLog::info('Buffer expirado - Procesando mensajes', [
+      ogLog::info('Buffer - Expirado, procesando mensajes acumulados', [
+        'number' => $number,
         'total' => count($accumulated)
       ], ['module' => 'buffer']);
       
@@ -42,7 +54,10 @@ class MessageBuffer {
 
     $this->createBuffer($bufferFile, $message);
     
-    ogLog::info('Primer mensaje - Iniciando espera de ' . $this->delaySeconds . 's', [], ['module' => 'buffer']);
+    ogLog::info('Buffer - Primer mensaje, iniciando espera de ' . $this->delaySeconds . 's', [
+      'number' => $number,
+      'bot_id' => $botId
+    ], ['module' => 'buffer']);
 
     return $this->waitAndProcess($bufferFile);
   }
@@ -50,27 +65,50 @@ class MessageBuffer {
   private function waitAndProcess($bufferFile) {
     $startTime = time();
     $checkInterval = 1;
+    $iteration = 0;
 
     while (true) {
       sleep($checkInterval);
+      $iteration++;
 
       $buffer = $this->readBuffer($bufferFile);
-      if (!$buffer) return null;
+      if (!$buffer) {
+        ogLog::warning('Buffer - Archivo desapareció durante espera', [
+          'iteration' => $iteration
+        ], ['module' => 'buffer']);
+        return null;
+      }
 
-      $timeSinceLast = time() - $buffer['last_update'];
+      $now = time();
+      $timeSinceLast = $now - $buffer['last_update'];
+      $timeSinceStart = $now - $startTime;
+
+      ogLog::info('Buffer - Esperando mensajes', [
+        'iteration' => $iteration,
+        'messages_count' => count($buffer['messages']),
+        'seconds_since_last_message' => $timeSinceLast,
+        'total_wait_time' => $timeSinceStart,
+        'delay_threshold' => $this->delaySeconds
+      ], ['module' => 'buffer']);
 
       if ($timeSinceLast >= $this->delaySeconds) {
         @unlink($bufferFile);
         
-        ogLog::info('Timer completado - Procesando ' . count($buffer['messages']) . ' mensajes', [], ['module' => 'buffer']);
+        ogLog::success('Buffer - Timer completado, procesando ' . count($buffer['messages']) . ' mensajes', [
+          'total_messages' => count($buffer['messages']),
+          'total_wait_time' => $timeSinceStart
+        ], ['module' => 'buffer']);
         
         return $this->prepareMessages($buffer['messages']);
       }
 
-      if (time() - $startTime > 60) {
+      if ($timeSinceStart > 60) {
         @unlink($bufferFile);
         
-        ogLog::warning('Timeout alcanzado - Procesando buffer', [], ['module' => 'buffer']);
+        ogLog::warning('Buffer - Timeout alcanzado, procesando buffer', [
+          'messages_count' => count($buffer['messages']),
+          'total_wait_time' => $timeSinceStart
+        ], ['module' => 'buffer']);
         
         return $this->prepareMessages($buffer['messages']);
       }
@@ -95,6 +133,7 @@ class MessageBuffer {
   }
 
   private function readBuffer($file) {
+    clearstatcache(true, $file); // Limpiar cache antes de leer
     if (!file_exists($file)) return null;
     $content = file_get_contents($file);
     return $content ? json_decode($content, true) : null;

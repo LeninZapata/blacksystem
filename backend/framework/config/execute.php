@@ -10,17 +10,6 @@ ogLang::load(OG_DEFAULT_LANG);
 // $lang = $_GET['lang'] ?? OG_DEFAULT_LANG;
 // ogLang::load($lang);
 
-// Configurar error reporting según entorno
-if (OG_IS_DEV) {
-  error_reporting(E_ALL);
-  ini_set('display_errors', '1');
-  ini_set('log_errors', '1');
-} else {
-  error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING);
-  ini_set('display_errors', '0');
-  ini_set('log_errors', '0');
-}
-
 // Configurar logs
 ogLog::setConfig([
   'format' => 'custom',

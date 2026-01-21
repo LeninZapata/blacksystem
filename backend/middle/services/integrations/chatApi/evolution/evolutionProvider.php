@@ -52,6 +52,7 @@ class evolutionProvider extends baseChatApiProvider {
       $payload['mimetype'] = $mimetype;
     }
 
+    ogLog::info('evolutionProvider.sendMessage - Enviando mensaje', ['number' => $number, 'media_type' => $mediaType, 'endpoint' => $endpoint, 'payload' => $payload], self::$logMeta);
     try {
       $http = ogApp()->helper('http');
       $response = $http::post($this->baseUrl . $endpoint . '/' . $this->instance, $payload, [

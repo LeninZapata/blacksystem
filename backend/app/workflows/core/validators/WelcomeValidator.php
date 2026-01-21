@@ -2,15 +2,22 @@
 
 class WelcomeValidator {
 
-  static function detect($bot, $message, $context) {
+  static function detect($bot, $message, $context, $chatData = null) {
     $isFBAds = ($context['is_fb_ads'] ?? false) && !empty($context['source_app'] ?? null);
 
     $productId = self::detectProduct($bot, $message, $context);
+    
+    // Obtener product_id de la venta actual si existe chat
+    $currentProductId = null;
+    if ($chatData && isset($chatData['current_sale']['product_id'])) {
+      $currentProductId = $chatData['current_sale']['product_id'];
+    }
+    
     $result = [
       'is_welcome' => $productId !== null,
       'product_id' => $productId,
       'source' => 'fb_ads',
-      'is_welcome_diff_product' => $productId !== null && ($context['chat']['current_sale']['product_id'] ?? null) !== $productId,
+      'is_welcome_diff_product' => $productId !== null && $currentProductId !== null && $currentProductId !== $productId,
     ];
     if (!$isFBAds) {
       $result['source'] = 'normal';

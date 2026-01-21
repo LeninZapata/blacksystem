@@ -124,11 +124,12 @@ class evolutionNormalizer {
     return [
       // Metadata del webhook
       'webhook' => [
-        'provider' => 'evolution',
+        'provider' => 'evolutionapi',
         'instance' => $normalizedData['instance'],
         'event' => $normalizedData['event'],
         'timestamp' => $data['messageTimestamp'] ?? time(),
-        'server_url' => $normalizedData['serverUrl']
+        'server_url' => $normalizedData['serverUrl'],
+        'source' => $data['source'] ?? 'unknown'
       ],
 
       // Remitente (bot que recibe el mensaje)
