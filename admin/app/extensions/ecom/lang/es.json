@@ -1,0 +1,61 @@
+{
+  "ecom": {
+    "list": {
+      "title": "Productos E-commerce",
+      "header": {
+        "title": "Gestión de Productos",
+        "description": "Administra los productos de e-commerce y sus regalos asociados"
+      }
+    },
+    "form": {
+      "title": "Producto E-commerce",
+      "description": "Completa la información del producto"
+    },
+    "modal": {
+      "new": {
+        "title": "Nuevo Producto E-commerce"
+      },
+      "edit": {
+        "title": "Editar Producto E-commerce"
+      }
+    },
+    "field": {
+      "name": "Nombre del Producto",
+      "name_placeholder": "Ej: Pack Premium Fitness",
+      "slug": "Slug (Identificador Único)",
+      "slug_placeholder": "ej: pack-premium-fitness",
+      "slug_hint": "Identificador único del producto (solo letras, números y guiones). Se usa para vincular ventas.",
+      "gifts": "Regalos Incluidos",
+      "gifts_message": "Mensaje #{index}",
+      "gifts_add": "➕ Agregar Regalo",
+      "gift_product": "Producto Regalo",
+      "status": "Activo"
+    },
+    "column": {
+      "id": "ID",
+      "name": "Nombre",
+      "status": "Estado",
+      "created": "Fecha Creación"
+    },
+    "confirm": {
+      "delete": "¿Estás seguro de eliminar este producto?"
+    },
+    "refresh": {
+      "success": "Productos actualizados"
+    },
+    "success": {
+      "created": "Producto creado exitosamente",
+      "updated": "Producto actualizado exitosamente",
+      "deleted": "Producto eliminado exitosamente"
+    },
+    "error": {
+      "create_failed": "Error al crear el producto",
+      "update_failed": "Error al actualizar el producto",
+      "delete_failed": "Error al eliminar el producto",
+      "load_failed": "Error al cargar el producto",
+      "same_product_gift": "No puedes agregar el mismo producto como regalo",
+      "duplicate_gifts": "No puedes agregar el mismo producto regalo más de una vez",
+      "slug_exists": "Este slug ya existe. Por favor usa otro identificador único."
+    }
+  }
+}

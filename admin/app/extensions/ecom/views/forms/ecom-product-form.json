@@ -1,0 +1,78 @@
+{
+  "id": "ecomProductForm",
+  "title": "i18n:ecom.form.title",
+  "description": "i18n:ecom.form.description",
+  "fields": [
+    {
+      "name": "name",
+      "label": "i18n:ecom.field.name",
+      "type": "text",
+      "required": true,
+      "placeholder": "i18n:ecom.field.name_placeholder",
+      "validation": "required|min:3|max:200"
+    },
+    {
+      "name": "slug",
+      "label": "i18n:ecom.field.slug",
+      "type": "text",
+      "required": true,
+      "placeholder": "i18n:ecom.field.slug_placeholder",
+      "validation": "required|min:3|max:50",
+      "hint": "i18n:ecom.field.slug_hint",
+      "transform": "slug"
+    },
+    {
+      "name": "config.gifts",
+      "label": "i18n:ecom.field.gifts",
+      "type": "repeatable",
+      "accordion": false,
+      "sortable": true,
+      "initialItems": 1,
+      "hasHeader": false,
+      "headerTitle": "i18n:ecom.field.gifts_message",
+      "buttonPosition": "bottom",
+      "addText": "i18n:ecom.field.gifts_add",
+      "removeText": "i18n:core.form.repeatable.remove",
+      "fields": [
+        {
+          "name": "product_id",
+          "label": "i18n:ecom.field.gift_product",
+          "type": "select",
+          "source": "api/product?context=ecom",
+          "sourceValue": "id",
+          "sourceLabel": "name",
+          "options": [
+            {
+              "value": "",
+              "label": "i18n:core.form.select.placeholder"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "status",
+      "type": "checkbox",
+      "label": "i18n:ecom.field.status",
+      "default": true,
+      "align": "left"
+    },
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "i18n:core.cancel",
+      "action": "call:ogModal.closeAll",
+      "style": "secondary",
+      "align": "right"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "i18n:core.save",
+      "action": "submit:ecomProduct.save",
+      "align": "right"
+    }
+  ]
+}

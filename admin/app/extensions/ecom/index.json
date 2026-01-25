@@ -1,7 +1,7 @@
 {
   "name": "ecom",
   "version": "1.0.0",
-  "enabled": false,
+  "enabled": true,
   "hasViews": true,
   "hasMenu": true,
   "hasHooks": false,
@@ -16,12 +16,6 @@
         "title": "Productos",
         "view": "sections/ecom-products",
         "order": 1
-      },
-      {
-        "id": "ecom-stats",
-        "title": "Estadísticas",
-        "view": "sections/ecom-stats",
-        "order": 2
       }
     ]
   }

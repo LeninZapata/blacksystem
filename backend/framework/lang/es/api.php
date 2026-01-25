@@ -5,7 +5,7 @@ return [
   'success' => 'Operación exitosa',
   'invalid_json' => 'JSON inválido',
   'invalid_json_response' => 'Respuesta JSON inválida',
-  'unauthorized' => 'No autorizado',
+  'unauthorized' => 'No autorizado (desde API)',
   'forbidden' => 'Acceso prohibido',
   'too_many_requests' => 'Demasiadas peticiones',
   'server_error' => 'Error interno del servidor (desde API): {message}',

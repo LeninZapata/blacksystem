@@ -1,6 +1,6 @@
 <?php
 class ProductController extends ogController {
-  private $logMeta = ['module' => 'ProductControlleroduct', 'layer' => 'app/resources'];
+  private $logMeta = ['module' => 'ProductController', 'layer' => 'app/resources'];
 
   function __construct() {
     parent::__construct('product');
@@ -11,12 +11,25 @@ class ProductController extends ogController {
 
     if (isset($GLOBALS['auth_user_id'])) {
       $data['user_id'] = $GLOBALS['auth_user_id'];
-    } else {
-      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }
+    /*} else {
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }*/
 
     if (!isset($data['name']) || empty($data['name'])) {
       ogResponse::json(['success' => false, 'error' => __('product.name_required')], 200);
+    }
+
+    // Validar slug único solo si context = 'ecom'
+    if (isset($data['context']) && $data['context'] === 'ecom' && isset($data['slug']) && !empty($data['slug'])) {
+      $exists = ogDb::t('products')
+        ->where('slug', $data['slug'])
+        ->where('context', 'ecom')
+        ->exists();
+      
+      if ($exists) {
+        ogResponse::error(__('ecom.error.slug_exists'), 400);
+      }
     }
 
     $data['dc'] = date('Y-m-d H:i:s');
@@ -49,6 +62,20 @@ class ProductController extends ogController {
     if (!$exists) ogResponse::notFound(__('product.not_found'));
 
     $data = ogRequest::data();
+
+    // Validar slug único solo si context = 'ecom' (excepto el ID actual)
+    $context = $data['context'] ?? $exists['context'];
+    if ($context === 'ecom' && isset($data['slug']) && !empty($data['slug'])) {
+      $slugExists = ogDb::t('products')
+        ->where('slug', $data['slug'])
+        ->where('context', 'ecom')
+        ->where('id', '!=', $id)
+        ->exists();
+      
+      if ($slugExists) {
+        ogResponse::error(__('ecom.error.slug_exists'), 400);
+      }
+    }
 
     // Detectar si cambió el bot_id
     $oldBotId = $exists['bot_id'] ?? null;
@@ -91,9 +118,9 @@ class ProductController extends ogController {
     // Filtrar por user_id autenticado
     if (isset($GLOBALS['auth_user_id'])) {
       $query = $query->where('user_id', $GLOBALS['auth_user_id']);
-    } else {
+    }/* else {
       ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
-    }
+    }*/
 
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;

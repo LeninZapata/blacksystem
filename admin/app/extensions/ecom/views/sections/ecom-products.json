@@ -1,0 +1,69 @@
+{
+  "id": "ecomProducts",
+  "title": "i18n:ecom.list.title",
+  "type": "content",
+  "scripts": [
+    "ecom/assets/js/ecomProduct.js"
+  ],
+  "content": [
+    {
+      "type": "html",
+      "content": "<div class='view-header'><h2>{i18n:ecom.list.header.title}</h2><p>{i18n:ecom.list.header.description}</p></div>",
+      "order": 0
+    },
+    {
+      "type": "html",
+      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('ecom|forms/ecom-product-form', {title: '{i18n:ecom.modal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){ecomProduct.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='ecomProduct.refresh();ogToast.info(\"{i18n:ecom.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "order": 1
+    },
+    {
+      "type": "component",
+      "component": "datatable",
+      "order": 2,
+      "config": {
+        "source": "api/product?context=ecom",
+        "columns": [
+          {
+            "id": {
+              "name": "i18n:ecom.column.id",
+              "width": "80px",
+              "align": "center",
+              "sortable": true
+            }
+          },
+          {
+            "name": {
+              "name": "i18n:ecom.column.name",
+              "sortable": false
+            }
+          },
+          {
+            "status": {
+              "name": "i18n:ecom.column.status",
+              "width": "100px",
+              "align": "center"
+            }
+          },
+          {
+            "dc": {
+              "name": "i18n:ecom.column.created",
+              "format": "datetime",
+              "width": "180px",
+              "align": "center"
+            }
+          }
+        ],
+        "actions": {
+          "edit": {
+            "name": "i18n:core.edit",
+            "onclick": "ogModal.open('ecom|forms/ecom-product-form', {title: '{i18n:ecom.modal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){ecomProduct.openEdit(formId, {id});}})"
+          },
+          "delete": {
+            "name": "i18n:core.delete",
+            "onclick": "if(confirm('{i18n:ecom.confirm.delete}')) ecomProduct.delete({id}).then(r => r && ecomProduct.refresh())"
+          }
+        }
+      }
+    }
+  ]
+}

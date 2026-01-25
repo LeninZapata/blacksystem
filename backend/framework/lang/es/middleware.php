@@ -15,7 +15,7 @@ return [
     'session_corrupted' => 'Sesión corrupta',
     'token_mismatch' => 'Token no coincide',
     'token_expired_deleted' => 'Token expirado eliminado',
-    'unauthorized' => 'No autorizado',
+    'unauthorized' => 'No autorizado (desde Auth)',
     'session_required' => 'Sesión requerida',
     'session_expired' => 'Sesión expirada',
     'php_version_required' => 'Se requiere PHP :required o superior. Versión actual: :current',

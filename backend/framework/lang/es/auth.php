@@ -19,6 +19,6 @@ return [
     'invalid' => 'Credenciales inválidas',
     'required' => 'Usuario y contraseña requeridos'
   ],
-  'unauthorized' => 'No autorizado',
+  'unauthorized' => 'No autorizado (desde Auth).',
   'forbidden' => 'Acceso prohibido'
 ];

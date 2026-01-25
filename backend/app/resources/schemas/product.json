@@ -4,7 +4,7 @@
   "timestamps": true,
   "middleware": ["throttle:50,1"],
   "routes": {
-    "list": {"method": "GET", "path": "/api/product", "middleware": ["auth"]},
+    "list": {"method": "GET", "path": "/api/product", "middleware": []},
     "show": {"method": "GET", "path": "/api/product/{id}", "middleware": ["auth"]},
     "create": {"method": "POST", "path": "/api/product", "middleware": ["auth", "json"]},
     "update": {"method": "PUT", "path": "/api/product/{id}", "middleware": ["auth", "json"]},

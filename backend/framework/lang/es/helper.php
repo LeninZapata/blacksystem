@@ -3,7 +3,7 @@
 return [
   'response' => [
     'not_found' => 'Recurso no encontrado',
-    'unauthorized' => 'No autorizado',
+    'unauthorized' => 'No autorizado (desde helper)',
     'forbidden' => 'Acceso prohibido',
     'server_error' => 'Error interno del servidor (desde helper)',
   ],

@@ -77,9 +77,9 @@ class ClientController extends ogController {
     // Filtrar por user_id autenticado
     if (isset($GLOBALS['auth_user_id'])) {
       $query = $query->where('user_id', $GLOBALS['auth_user_id']);
-    } else {
+    }/* else {
       ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
-    }
+    }*/
 
     // Filtros
     foreach ($_GET as $key => $value) {

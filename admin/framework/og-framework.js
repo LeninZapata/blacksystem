@@ -89,7 +89,7 @@
       this._pendingInits.push({ slug, config: normalizedConfig });
     }
 
-    console.log(`✅ Config registered and activated for: ${slug}`);
+    ogLogger.info('framework', `Config registered and activated for: ${slug}`);
   };
 
   // ==========================================
