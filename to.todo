@@ -18,9 +18,9 @@ hacer que se ejecute al otro dia en la mañana
 y no debe haber confusión, ya que con ->service llegas hasta alli y puedes obtener solo llamando al servicio porque 
 este llama a las integraciones.
 ☐ Revisa la api de la transportadora para ver como se mueve para adaptar al sistema actual...
+☐ Parecia que esto estaba arreglando https://i.imgur.com/Sb7eVJg.png es un problema en la grafica info->estadisticas->ventsa->rmk
 
-
-☐ Agregar api para CRON
+✔ Agregar api para CRON @done(30-01-2026 18:55)
 /api/adAutoScale/reset-budgets (CADA HORA)
 FRONTEND:
 ☐ Hay qu reutilizar el css al maximo hay extensiones que estan pasdo de css creo que porque la IA no tiene el contexto del sistema
