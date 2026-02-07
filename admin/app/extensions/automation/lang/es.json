@@ -109,6 +109,7 @@
         "name_placeholder": "Ej: Escalar campañas con ROAS > 3",
         "product_ad_asset": "Activo Publicitario",
         "product_ad_asset_help": "Selecciona el activo de Facebook Ads al que se aplicará esta regla",
+        "is_active": "Regla Activa",
         "level": "Nivel de Aplicación",
         "level_help": "Selecciona en qué nivel de Facebook Ads se aplicará esta regla",
         "actions": "Acciones",

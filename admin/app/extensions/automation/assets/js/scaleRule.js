@@ -37,8 +37,8 @@ class scaleRule {
 
     const fillData = {
       name: data.name,
-      product_ad_asset_id: data.ad_assets_id, // ✅ Mapear correctamente
-      status: data.status == 1
+      product_ad_asset_id: data.ad_assets_id,
+      is_active: data.is_active == 1  // ← Cambiar de status a is_active
     };
 
     if (config.conditions_logic) {
@@ -92,8 +92,9 @@ class scaleRule {
 
     return {
       name: formData.name,
-      ad_assets_id: parseInt(formData.product_ad_asset_id || formData.ad_assets_id), // ✅ Corregido
-      status: formData.status ? 1 : 0,
+      ad_assets_id: parseInt(formData.product_ad_asset_id || formData.ad_assets_id),
+      is_active: formData.is_active ? 1 : 0,  // ← Del checkbox
+      status: 1,  // ← Siempre 1 (interno)
       config: config
     };
   }

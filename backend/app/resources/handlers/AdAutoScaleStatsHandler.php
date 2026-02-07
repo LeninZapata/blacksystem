@@ -21,7 +21,7 @@ class AdAutoScaleStatsHandler {
       // Obtener fechas según rango
       $dates = self::getDateRange($range);
 
-      // Consultar historial de cambios - CORREGIDO: lee desde metrics_snapshot
+      // Consultar historial de cambios - lee desde action_result
       $sql = "
         SELECT 
           h.id,
@@ -31,7 +31,7 @@ class AdAutoScaleStatsHandler {
           h.action_type,
           h.execution_source,
           h.executed_at,
-          h.metrics_snapshot,
+          h.action_result,
           h.execution_time_ms
         FROM ad_auto_scale_history h
         LEFT JOIN ad_auto_scale r ON h.rule_id = r.id
@@ -51,16 +51,16 @@ class AdAutoScaleStatsHandler {
         $dates['to'] . ' 23:59:59'
       ]);
 
-      // Formatear datos - extraer desde metrics_snapshot
+      // Formatear datos - extraer desde action_result
       $data = array_map(function($row) {
-        // Decodificar metrics_snapshot
-        $metricsSnapshot = is_string($row['metrics_snapshot']) 
-          ? json_decode($row['metrics_snapshot'], true) 
-          : $row['metrics_snapshot'];
+        // Decodificar action_result (aquí está budget_before/after)
+        $actionResult = is_string($row['action_result']) 
+          ? json_decode($row['action_result'], true) 
+          : $row['action_result'];
 
-        $budgetBefore = $metricsSnapshot['budget_before'] ?? 0;
-        $budgetAfter = $metricsSnapshot['budget_after'] ?? 0;
-        $adjustmentAmount = $metricsSnapshot['adjustment_amount'] ?? ($budgetAfter - $budgetBefore);
+        $budgetBefore = $actionResult['budget_before'] ?? 0;
+        $budgetAfter = $actionResult['budget_after'] ?? 0;
+        $adjustmentAmount = $actionResult['change'] ?? ($budgetAfter - $budgetBefore);
 
         return [
           'id' => (int)$row['id'],

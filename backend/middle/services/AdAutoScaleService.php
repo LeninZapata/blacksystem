@@ -3,99 +3,41 @@ class AdAutoScaleService {
   private static $logMeta = ['module' => 'AdAutoScaleService', 'layer' => 'middle/services'];
 
   // Procesar todas las reglas activas
-  function processRules($userId = null) {
-    try {
-      $startTime = microtime(true);
-
-      // Obtener reglas activas
-      $query = ogDb::t('ad_auto_scale')->where('status', 1);
-      if ($userId) {
-        $query = $query->where('user_id', $userId);
-      }
-      $rules = $query->get();
-
-      if (empty($rules)) {
-        ogLog::info('processRules - No hay reglas activas', ['user_id' => $userId], self::$logMeta);
-        return [
-          'success' => true,
-          'message' => 'No hay reglas activas',
-          'rules_processed' => 0,
-          'actions_executed' => 0
-        ];
-      }
-
-      $rulesProcessed = 0;
-      $actionsExecuted = 0;
-      $errors = [];
-      $results = [];
-
-      // Procesar cada regla
-      foreach ($rules as $rule) {
-        $ruleResult = $this->processRule($rule);
-        $results[] = $ruleResult;
-
-        if ($ruleResult['success']) {
-          $rulesProcessed++;
-          if ($ruleResult['action_executed']) {
-            $actionsExecuted++;
-          }
-        } else {
-          $errors[] = $ruleResult;
-        }
-      }
-
-      $executionTime = round(microtime(true) - $startTime, 2);
-
-      ogLog::info('processRules - Ejecución completada', [
-        'rules_processed' => $rulesProcessed,
-        'actions_executed' => $actionsExecuted,
-        'errors' => count($errors),
-        'execution_time' => $executionTime
-      ], self::$logMeta);
-
-      return [
-        'success' => true,
-        'rules_processed' => $rulesProcessed,
-        'actions_executed' => $actionsExecuted,
-        'errors' => count($errors),
-        'results' => $results,
-        'execution_time' => $executionTime
-      ];
-
-    } catch (Exception $e) {
-      ogLog::error('processRules - Error', ['error' => $e->getMessage()], self::$logMeta);
-      return [
-        'success' => false,
-        'error' => $e->getMessage()
-      ];
-    }
-  }
-
-  // Procesar una regla individual
-  private function processRule($rule) {
+  public function processRule($rule) {
     try {
       $ruleId = $rule['id'];
       $ruleName = $rule['name'];
+      $userId = $rule['user_id'];
       $assetId = $rule['ad_assets_id'];
-      $userId = $rule['user_id']; // ✅ Ya viene en la regla
-      $config = is_string($rule['config']) ? json_decode($rule['config'], true) : $rule['config'];
 
-      ogLog::debug('processRule - Procesando regla', [
+      ogLog::info('processRule - Iniciando', [
         'rule_id' => $ruleId,
-        'rule_name' => $ruleName,
-        'asset_id' => $assetId
+        'rule_name' => $ruleName
       ], self::$logMeta);
 
-      // Obtener info del activo
-      $asset = ogDb::t('product_ad_assets')->find($assetId);
+      // Obtener activo publicitario
+      $asset = ogDb::t('product_ad_assets')
+        ->where('id', $assetId)
+        ->where('is_active', 1)
+        ->where('status', 1)
+        ->first();
+
       if (!$asset) {
+        ogLog::warning('processRule - Activo no encontrado o inactivo', [
+          'asset_id' => $assetId
+        ], self::$logMeta);
+
         return [
           'success' => false,
           'rule_id' => $ruleId,
-          'rule_name' => $ruleName,
-          'error' => 'Activo publicitario no encontrado'
+          'error' => 'Activo no encontrado o inactivo'
         ];
       }
+
+      // Decodificar configuración
+      $config = is_string($rule['config'])
+        ? json_decode($rule['config'], true)
+        : $rule['config'];
 
       // Obtener métricas del activo
       $metricsData = $this->getAssetMetrics($asset, $config);
@@ -112,6 +54,7 @@ class AdAutoScaleService {
           'time_range' => 'unknown',
           'conditions_met' => 0,
           'conditions_logic' => $config['conditions_logic'] ?? 'and_or_and',
+          'conditions_result' => null, // ← No hay condiciones evaluadas
           'action_executed' => 0,
           'action_type' => null,
           'action_result' => json_encode(['error' => $metricsData['error']]),
@@ -127,17 +70,18 @@ class AdAutoScaleService {
         ];
       }
 
-      // Evaluar condiciones con ogLogic
-      $conditionsMet = $this->evaluateConditions($config, $metricsData['metrics']);
+      // Evaluar condiciones con ogLogic - AHORA RETORNA ARRAY
+      $conditionsEval = $this->evaluateConditions($metricsData, $config);
 
       ogLog::debug('processRule - Condiciones evaluadas', [
         'rule_id' => $ruleId,
-        'conditions_met' => $conditionsMet,
+        'conditions_met' => $conditionsEval['met'],
+        'groups_met_count' => count($conditionsEval['groups_met'] ?? []),
         'metrics' => $metricsData['metrics']
       ], self::$logMeta);
 
       // Si no cumple condiciones, no ejecutar acciones
-      if (!$conditionsMet) {
+      if (!$conditionsEval['met']) {
         // Guardar en historial
         $this->saveToHistory([
           'rule_id' => $ruleId,
@@ -149,10 +93,11 @@ class AdAutoScaleService {
           'metrics_snapshot' => json_encode($metricsData['metrics']),
           'time_range' => $metricsData['time_range'],
           'conditions_met' => 0,
-          'conditions_logic' => $config['conditions_logic'] ?? 'and_or_and',
+          'conditions_logic' => $conditionsEval['logic_type'],
+          'conditions_result' => null, // ← No guardamos detalles si no cumplió
           'action_executed' => 0,
           'action_type' => null,
-          'action_result' => json_encode([]),
+          'action_result' => json_encode(['message' => 'Condiciones no cumplidas']),
           'execution_source' => 'cron'
         ]);
 
@@ -166,10 +111,10 @@ class AdAutoScaleService {
         ];
       }
 
-      // Ejecutar acciones
-      $actionResults = $this->executeActions($asset, $config['actions'] ?? [], $metricsData['metrics']);
+      // SÍ cumplió condiciones - Ejecutar acciones
+      $actionResults = $this->executeActions($asset, $config['actions'] ?? [], $metricsData);
 
-      // Guardar en historial
+      // Guardar en historial CON conditions_result
       $this->saveToHistory([
         'rule_id' => $ruleId,
         'user_id' => $userId,
@@ -180,7 +125,8 @@ class AdAutoScaleService {
         'metrics_snapshot' => json_encode($metricsData['metrics']),
         'time_range' => $metricsData['time_range'],
         'conditions_met' => 1,
-        'conditions_logic' => $config['conditions_logic'] ?? 'and_or_and',
+        'conditions_logic' => $conditionsEval['logic_type'],
+        'conditions_result' => json_encode($conditionsEval['groups_met'], JSON_UNESCAPED_UNICODE), // ← NUEVO: detalles de grupos
         'action_executed' => $actionResults['executed'] ? 1 : 0,
         'action_type' => isset($actionResults['results'][0]) ? $actionResults['results'][0]['action'] : null,
         'action_result' => json_encode($actionResults['results'][0] ?? []),
@@ -211,20 +157,100 @@ class AdAutoScaleService {
     }
   }
 
+  
+  // Procesar todas las reglas activas (llamado por CRON)
+  public function processRules($userId = null) {
+    $startTime = microtime(true);
+    
+    ogLog::info('processRules - Iniciando', ['user_id' => $userId], self::$logMeta);
+
+    try {
+      // Query de reglas activas
+      $query = ogDb::t('ad_auto_scale')
+        ->where('is_active', 1)
+        ->where('status', 1);
+
+      // Filtrar por usuario si se especifica
+      if ($userId) {
+        $query = $query->where('user_id', $userId);
+      }
+
+      $rules = $query->get();
+
+      if (empty($rules)) {
+        ogLog::info('processRules - No hay reglas activas', [], self::$logMeta);
+        return [
+          'success' => true,
+          'rules_processed' => 0,
+          'actions_executed' => 0,
+          'execution_time' => round((microtime(true) - $startTime) * 1000, 2) . 'ms'
+        ];
+      }
+
+      $rulesProcessed = 0;
+      $actionsExecuted = 0;
+      $results = [];
+
+      // Procesar cada regla
+      foreach ($rules as $rule) {
+        $result = $this->processRule($rule);
+        
+        $rulesProcessed++;
+        
+        if ($result['success'] && ($result['action_executed'] ?? false)) {
+          $actionsExecuted++;
+        }
+
+        $results[] = [
+          'rule_id' => $rule['id'],
+          'rule_name' => $rule['name'],
+          'success' => $result['success'],
+          'action_executed' => $result['action_executed'] ?? false,
+          'message' => $result['message'] ?? ($result['error'] ?? 'OK')
+        ];
+      }
+
+      $executionTime = round((microtime(true) - $startTime) * 1000, 2);
+
+      ogLog::success('processRules - Completado', [
+        'rules_processed' => $rulesProcessed,
+        'actions_executed' => $actionsExecuted,
+        'execution_time' => $executionTime . 'ms'
+      ], self::$logMeta);
+
+      return [
+        'success' => true,
+        'rules_processed' => $rulesProcessed,
+        'actions_executed' => $actionsExecuted,
+        'execution_time' => $executionTime . 'ms',
+        'results' => $results
+      ];
+
+    } catch (Exception $e) {
+      ogLog::error('processRules - Error', ['error' => $e->getMessage()], self::$logMeta);
+      
+      return [
+        'success' => false,
+        'error' => $e->getMessage(),
+        'execution_time' => round((microtime(true) - $startTime) * 1000, 2) . 'ms'
+      ];
+    }
+  }
+
   // Guardar en historial
   private function saveToHistory($data) {
     try {
       $data['executed_at'] = date('Y-m-d H:i:s');
       $data['dc'] = date('Y-m-d H:i:s');
       $data['tc'] = time();
-      
+
       ogDb::t('ad_auto_scale_history')->insert($data);
-      
+
       ogLog::debug('saveToHistory - Registro guardado', [
         'rule_id' => $data['rule_id'],
         'action_executed' => $data['action_executed']
       ], self::$logMeta);
-      
+
     } catch (Exception $e) {
       ogLog::error('saveToHistory - Error', ['error' => $e->getMessage()], self::$logMeta);
     }
@@ -409,45 +435,115 @@ class AdAutoScaleService {
   }
 
   // Evaluar condiciones con ogLogic
-  private function evaluateConditions($config, $metricsData) {
+  private function evaluateConditions($metrics, $config) {
     $conditionGroups = $config['condition_groups'] ?? [];
-    if (empty($conditionGroups)) {
-      ogLog::warning('evaluateConditions - No hay grupos de condiciones', [], self::$logMeta);
-      return false;
-    }
-
     $conditionsLogic = $config['conditions_logic'] ?? 'and_or_and';
 
-    // Construir lógica ogLogic según el tipo
+    if (empty($conditionGroups)) {
+      ogLog::warning('evaluateConditions - Sin grupos de condiciones', [], self::$logMeta);
+      return [
+        'met' => false,
+        'groups_met' => [],
+        'logic_type' => $conditionsLogic
+      ];
+    }
+
+    $metricsData = $metrics['metrics'] ?? [];
+    $groupsMet = [];
+
+    // Construir lógica según tipo
     if ($conditionsLogic === 'and_or_and') {
-      // (AND) or (AND) - Cada grupo es AND interno, grupos unidos por OR
+      // (AND) or (AND) - Grupos unidos por OR
       $orGroups = [];
-      foreach ($conditionGroups as $group) {
-        $andConditions = $this->buildGroupConditions($group['conditions'] ?? []);
-        if (!empty($andConditions)) {
-          $orGroups[] = ['and' => $andConditions];
-        }
+
+      foreach ($conditionGroups as $groupIndex => $group) {
+        $conditions = $group['conditions'] ?? [];
+        if (empty($conditions)) continue;
+
+        $andConditions = $this->buildGroupConditions($conditions);
+        if (empty($andConditions)) continue;
+
+        $orGroups[] = ['and' => $andConditions];
       }
+
+      if (empty($orGroups)) {
+        return ['met' => false, 'groups_met' => [], 'logic_type' => $conditionsLogic];
+      }
+
+      // Evaluar con ogLogic::evaluate
       $logic = ['or' => $orGroups];
+      $evaluation = ogApp()->helper('logic')::evaluate($logic, $metricsData);
+
+      // Procesar matched_rules para extraer qué grupos cumplieron
+      foreach ($evaluation['matched_rules'] as $match) {
+        $groupIndex = $match['index'] ?? null;
+        if ($groupIndex === null) continue;
+
+        $group = $conditionGroups[$groupIndex] ?? null;
+        if (!$group) continue;
+
+        $groupsMet[] = [
+          'group_index' => $groupIndex + 1,
+          'logic' => 'AND',
+          'conditions' => $group['conditions'] ?? [],
+          'metrics_evaluated' => $this->extractMetricsFromMatch($match['details'] ?? [], $metricsData)
+        ];
+      }
+
+      return [
+        'met' => $evaluation['result'],
+        'groups_met' => $groupsMet,
+        'logic_type' => $conditionsLogic
+      ];
 
     } elseif ($conditionsLogic === 'or_and_or') {
-      // (OR) and (OR) - Cada grupo es OR interno, grupos unidos por AND
+      // (OR) and (OR) - Grupos unidos por AND
       $andGroups = [];
-      foreach ($conditionGroups as $group) {
-        $orConditions = $this->buildGroupConditions($group['conditions'] ?? []);
-        if (!empty($orConditions)) {
-          $andGroups[] = ['or' => $orConditions];
+
+      foreach ($conditionGroups as $groupIndex => $group) {
+        $conditions = $group['conditions'] ?? [];
+        if (empty($conditions)) continue;
+
+        $orConditions = $this->buildGroupConditions($conditions);
+        if (empty($orConditions)) continue;
+
+        $andGroups[] = ['or' => $orConditions];
+      }
+
+      if (empty($andGroups)) {
+        return ['met' => false, 'groups_met' => [], 'logic_type' => $conditionsLogic];
+      }
+
+      // Evaluar con ogLogic::evaluate
+      $logic = ['and' => $andGroups];
+      $evaluation = ogApp()->helper('logic')::evaluate($logic, $metricsData);
+
+      // Para AND, todos los grupos deben cumplir
+      if ($evaluation['result']) {
+        foreach ($conditionGroups as $groupIndex => $group) {
+          $groupsMet[] = [
+            'group_index' => $groupIndex + 1,
+            'logic' => 'OR',
+            'conditions' => $group['conditions'] ?? [],
+            'metrics_evaluated' => $this->formatMetricsForGroup($metricsData, $group['conditions'] ?? [])
+          ];
         }
       }
-      $logic = ['and' => $andGroups];
+
+      return [
+        'met' => $evaluation['result'],
+        'groups_met' => $groupsMet,
+        'logic_type' => $conditionsLogic
+      ];
 
     } else {
       ogLog::error('evaluateConditions - Lógica desconocida', ['logic' => $conditionsLogic], self::$logMeta);
-      return false;
+      return [
+        'met' => false,
+        'groups_met' => [],
+        'logic_type' => $conditionsLogic
+      ];
     }
-
-    // Evaluar con ogLogic
-    return ogApp()->helper('logic')::apply($logic, $metricsData);
   }
 
   // Construir condiciones de un grupo
@@ -772,5 +868,116 @@ class AdAutoScaleService {
       default:
         return ['from' => $today, 'to' => $today];
     }
+  }
+
+  private function extractMetricName($condition) {
+    if (!is_array($condition)) {
+      return null;
+    }
+
+    // Buscar recursivamente {"var": "nombre_metrica"}
+    foreach ($condition as $key => $value) {
+      if ($key === 'var' && is_string($value)) {
+        return $value;
+      }
+
+      if (is_array($value)) {
+        $found = $this->extractMetricName($value);
+        if ($found) {
+          return $found;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private function evaluateSingleCondition($metricValue, $operator, $threshold) {
+    if ($operator === null || $threshold === null) return false;
+
+    $threshold = (float)$threshold;
+    $metricValue = (float)$metricValue;
+
+    switch ($operator) {
+      case '>':
+        return $metricValue > $threshold;
+      case '>=':
+        return $metricValue >= $threshold;
+      case '<':
+        return $metricValue < $threshold;
+      case '<=':
+        return $metricValue <= $threshold;
+      case '==':
+        return abs($metricValue - $threshold) < 0.0001;
+      case '!=':
+        return abs($metricValue - $threshold) >= 0.0001;
+      default:
+        return false;
+    }
+  }
+
+
+  private function extractMetricsFromMatch($matchDetails, $metricsData) {
+    $metrics = [];
+
+    if (!is_array($matchDetails)) {
+      return $metrics;
+    }
+
+    foreach ($matchDetails as $detail) {
+      // Si es una condición directa con operator
+      if (isset($detail['details']['operator'])) {
+        $detailInfo = $detail['details'];
+        $operator = $detailInfo['operator'];
+        $left = $detailInfo['left'] ?? null;
+        $right = $detailInfo['right'] ?? null;
+        $met = $detailInfo['met'] ?? false;
+
+        // Intentar extraer nombre de métrica desde la condición
+        $condition = $detail['condition'] ?? [];
+        $metricName = $this->extractMetricName($condition);
+
+        if ($metricName) {
+          $metrics[$metricName] = [
+            'value' => round((float)$left, 2),
+            'operator' => $operator,
+            'threshold' => round((float)$right, 2),
+            'met' => $met
+          ];
+        }
+      }
+
+      // Recursivo para condiciones anidadas
+      if (isset($detail['details']) && is_array($detail['details'])) {
+        $nested = $this->extractMetricsFromMatch($detail['details'], $metricsData);
+        $metrics = array_merge($metrics, $nested);
+      }
+    }
+
+    return $metrics;
+  }
+
+  private function formatMetricsForGroup($metricsData, $conditions) {
+    $formatted = [];
+
+    foreach ($conditions as $condition) {
+      $metric = $condition['metric'] ?? null;
+      $operator = $condition['operator'] ?? null;
+      $threshold = $condition['value'] ?? null;
+
+      if (!$metric || !isset($metricsData[$metric])) continue;
+
+      $metricValue = $metricsData[$metric];
+      $conditionMet = $this->evaluateSingleCondition($metricValue, $operator, $threshold);
+
+      $formatted[$metric] = [
+        'value' => round((float)$metricValue, 2),
+        'operator' => $operator,
+        'threshold' => round((float)$threshold, 2),
+        'met' => $conditionMet
+      ];
+    }
+
+    return $formatted;
   }
 }

@@ -96,7 +96,7 @@ class SaleStatsHandler {
     ];
   }
 
-  // Ventas directas vs remarketing (barras apiladas)
+  // Ventas directas vs remarketing - CORREGIDO: usa payment_date para ingresos
   static function getSalesDirectVsRemarketing($params) {
     // Obtener user_id autenticado
     if (!isset($GLOBALS['auth_user_id'])) {
@@ -111,18 +111,32 @@ class SaleStatsHandler {
       return ['success' => false, 'error' => 'Rango inválido'];
     }
 
-    // Query combinada: todas las ventas del día con sus estados
-    // Nota: Para conversión excluimos origin='upsell' porque son ventas automáticas sin costo de adquisición
-    // Pero para ingresos totales SÍ incluimos upsells
+    // CORREGIDO: Usar payment_date para agrupar ingresos (consistente con AdMetricsHandler)
+    // Para conversión seguimos usando dc (fecha de prospecto)
     $sql = "
+      SELECT
+        DATE(payment_date) as date,
+        SUM(CASE WHEN tracking_funnel_id IS NULL AND process_status = 'sale_confirmed' THEN billed_amount ELSE 0 END) as direct_revenue,
+        SUM(CASE WHEN tracking_funnel_id IS NOT NULL AND process_status = 'sale_confirmed' THEN billed_amount ELSE 0 END) as remarketing_revenue,
+        COUNT(CASE WHEN tracking_funnel_id IS NULL AND process_status = 'sale_confirmed' THEN 1 END) as direct_count,
+        COUNT(CASE WHEN tracking_funnel_id IS NOT NULL AND process_status = 'sale_confirmed' THEN 1 END) as remarketing_count
+      FROM " . ogDb::t('sales', true) . "
+      WHERE user_id = ?
+        AND payment_date >= ? AND payment_date <= ?
+        AND process_status = 'sale_confirmed'
+        AND status = 1
+      GROUP BY DATE(payment_date)
+      ORDER BY date ASC
+    ";
+
+    $revenueData = ogDb::raw($sql, [$userId, $dates['start'], $dates['end'] . ' 23:59:59']);
+
+    // Query separada para conversión usando dc
+    $sqlConversion = "
       SELECT
         DATE(dc) as date,
         COUNT(CASE WHEN origin != 'upsell' OR origin IS NULL THEN 1 END) as total_sales,
         SUM(CASE WHEN process_status = 'sale_confirmed' AND (origin != 'upsell' OR origin IS NULL) THEN 1 ELSE 0 END) as confirmed_sales,
-        SUM(CASE WHEN tracking_funnel_id IS NULL AND process_status = 'sale_confirmed' THEN billed_amount ELSE 0 END) as direct_revenue,
-        SUM(CASE WHEN tracking_funnel_id IS NOT NULL AND process_status = 'sale_confirmed' THEN billed_amount ELSE 0 END) as remarketing_revenue,
-        COUNT(CASE WHEN tracking_funnel_id IS NULL AND process_status = 'sale_confirmed' THEN 1 END) as direct_count,
-        COUNT(CASE WHEN tracking_funnel_id IS NOT NULL AND process_status = 'sale_confirmed' THEN 1 END) as remarketing_count,
         ROUND((SUM(CASE WHEN process_status = 'sale_confirmed' AND (origin != 'upsell' OR origin IS NULL) THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(CASE WHEN origin != 'upsell' OR origin IS NULL THEN 1 END), 0)), 2) as conversion_rate
       FROM " . ogDb::t('sales', true) . "
       WHERE user_id = ?
@@ -132,21 +146,47 @@ class SaleStatsHandler {
       ORDER BY date ASC
     ";
 
-    $results = ogDb::raw($sql, [$userId, $dates['start'], $dates['end'] . ' 23:59:59']);
+    $conversionData = ogDb::raw($sqlConversion, [$userId, $dates['start'], $dates['end'] . ' 23:59:59']);
 
-    // Convertir a formato esperado
-    $formattedResults = [];
-    foreach ($results as $row) {
-      $formattedResults[] = [
+    // Combinar resultados
+    $statsMap = [];
+
+    // Inicializar con ingresos (por payment_date)
+    foreach ($revenueData as $row) {
+      $statsMap[$row['date']] = [
         'date' => $row['date'],
         'direct_revenue' => (float)$row['direct_revenue'],
         'remarketing_revenue' => (float)$row['remarketing_revenue'],
         'direct_count' => (int)$row['direct_count'],
         'remarketing_count' => (int)$row['remarketing_count'],
-        'total_sales' => (int)$row['total_sales'],
-        'conversion_rate' => (float)$row['conversion_rate']
+        'total_sales' => 0,
+        'conversion_rate' => 0
       ];
     }
+
+    // Agregar conversión (por dc)
+    foreach ($conversionData as $row) {
+      $date = $row['date'];
+      
+      if (!isset($statsMap[$date])) {
+        $statsMap[$date] = [
+          'date' => $date,
+          'direct_revenue' => 0,
+          'remarketing_revenue' => 0,
+          'direct_count' => 0,
+          'remarketing_count' => 0,
+          'total_sales' => 0,
+          'conversion_rate' => 0
+        ];
+      }
+
+      $statsMap[$date]['total_sales'] = (int)$row['total_sales'];
+      $statsMap[$date]['conversion_rate'] = (float)$row['conversion_rate'];
+    }
+
+    // Convertir a array ordenado
+    $formattedResults = array_values($statsMap);
+    usort($formattedResults, fn($a, $b) => strcmp($a['date'], $b['date']));
 
     return [
       'success' => true,

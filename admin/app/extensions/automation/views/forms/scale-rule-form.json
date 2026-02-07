@@ -379,9 +379,9 @@
   ],
   "statusbar": [
     {
-      "name": "status",
+      "name": "is_active",
       "type": "checkbox",
-      "label": "i18n:automation.scale_rules.field.status",
+      "label": "i18n:automation.scale_rules.field.is_active",
       "default": true,
       "align": "left"
     },

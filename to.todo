@@ -1,3 +1,6 @@
+URgentes:
+☐ el bot llamo a la persona con el nombre de el mismo, algo paso revisar el prompt caso 099 318 6025
+del bot de dannes
 Backend (Aplicacion):
 ☐ Cuando actualizo o activo un activo publicitario este no aparece en el a regla sino refresco la pagina
 creo que en activopublicitario debo limpiar el cache
@@ -28,3 +31,10 @@ que hay en el framework de css, posiblemente hay que hacer que lo tiene la extes
 para que esto sea reutilizable a futuro y no se haga css brutales largos. 
 ☐ Tienes que ver con la API de la transportador como se llama el ID producto para agreegar ese campo y que una..
 ☐ 
+
+ESCALA:
+  ☐ tiene que ver porque se escala en detalle
+  ☐ arreglar el problema de disminucion de presupuesto porque en 0 en forma manual
+  ☐ agregar la regla de seteo de prepuesto, esto hay que cambiar la forma en que se resetea el presupuesto en el CRON
+  la regla esta basada en que comience el dia con el presupuesto del dia anterior ganado
+  ☐ agregar condicion de dismunución hasta menor que el ingreso para tener margen de ganancia

@@ -226,11 +226,27 @@ class scaleRuleStats {
       const isIncrease = item.action_type === 'increase_budget';
       const isDecrease = item.action_type === 'decrease_budget';
       const isPause = item.action_type === 'pause';
-      const isManual = item.execution_source === 'manual'; // ← DETECTAR MANUAL
-      
+      const isManual = item.execution_source === 'manual';
+
       const icon = isIncrease ? '📈' : isDecrease ? '📉' : '⏸️';
       const colorClass = isIncrease ? 'increase' : isDecrease ? 'decrease' : 'pause';
       const changeText = isIncrease || isDecrease ? `$${item.budget_before} → $${item.budget_after}` : 'Pausado';
+
+      // Parsear conditions_result para mostrar qué grupo cumplió
+      let conditionsHTML = '';
+      if (item.conditions_result) {
+        try {
+          const conditionsResult = typeof item.conditions_result === 'string'
+            ? JSON.parse(item.conditions_result)
+            : item.conditions_result;
+
+          if (Array.isArray(conditionsResult) && conditionsResult.length > 0) {
+            conditionsHTML = this.formatConditionsResult(conditionsResult);
+          }
+        } catch (e) {
+          ogLogger.debug('ext:automation', 'Error parseando conditions_result:', e);
+        }
+      }
 
       html += `
         <div class="timeline-item ${colorClass}">
@@ -239,10 +255,11 @@ class scaleRuleStats {
             <div class="timeline-time">${this.formatDateTime(item.executed_at)}</div>
             <div class="timeline-action">
               ${this.getActionLabel(item.action_type)}
-              ${isManual ? '<span class="badge-manual" style="margin-left: 8px; background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">✋ MANUAL</span>' : ''}
+              ${isManual ? '<span class="badge-manual">✋ MANUAL</span>' : ''}
             </div>
             <div class="timeline-change">${changeText}</div>
             ${item.rule_name && !isManual ? `<div class="timeline-rule">Regla: ${item.rule_name}</div>` : ''}
+            ${conditionsHTML}
           </div>
           <div class="timeline-badge ${colorClass}">${item.budget_change >= 0 ? '+' : ''}$${item.budget_change}</div>
         </div>`;
@@ -381,6 +398,99 @@ class scaleRuleStats {
     ogLogger.debug('ext:automation', 'Asset data extraído:', assetData);
 
     return assetData;
+  }
+
+    
+  static formatConditionsResult(groupsMet) {
+    if (!Array.isArray(groupsMet) || groupsMet.length === 0) return '';
+
+    let html = '<div class="conditions-details">';
+    html += '<div class="conditions-header">✅ Condiciones cumplidas:</div>';
+
+    groupsMet.forEach((group, idx) => {
+      const groupNum = group.group_index || (idx + 1);
+      const logic = group.logic || 'AND';
+
+      html += `<div class="condition-group">`;
+      html += `<div class="group-label">Grupo ${groupNum} (${logic}):</div>`;
+
+      if (group.metrics_evaluated) {
+        html += '<div class="metrics-list">';
+
+        for (const [metricName, metricData] of Object.entries(group.metrics_evaluated)) {
+          const metricLabel = this.getMetricLabel(metricName);
+          const icon = metricData.met ? '✓' : '✗';
+          const metClass = metricData.met ? 'met' : 'not-met';
+
+          html += `
+            <div class="metric-item ${metClass}">
+              <span class="metric-icon">${icon}</span>
+              <span class="metric-name">${metricLabel}:</span>
+              <span class="metric-value">${this.formatMetricValue(metricName, metricData.value)}</span>
+              <span class="metric-operator">${metricData.operator}</span>
+              <span class="metric-threshold">${this.formatMetricValue(metricName, metricData.threshold)}</span>
+            </div>`;
+        }
+
+        html += '</div>';
+      }
+
+      html += '</div>';
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+    
+  /**
+   * Obtiene label legible de métrica
+   */
+  static getMetricLabel(metric) {
+    const labels = {
+      'roas': 'ROAS',
+      'cost_per_result': 'Costo/Resultado',
+      'frequency': 'Frecuencia',
+      'spend': 'Gasto',
+      'results': 'Resultados',
+      'impressions': 'Impresiones',
+      'reach': 'Alcance',
+      'ctr': 'CTR',
+      'cpc': 'CPC',
+      'cpm': 'CPM',
+      'clicks': 'Clicks'
+    };
+    return labels[metric] || metric;
+  }
+
+  /**
+   * Formatea valor de métrica según su tipo
+   */
+  static formatMetricValue(metric, value) {
+    if (value === null || value === undefined) return '--';
+
+    // Métricas monetarias
+    if (['spend', 'cost_per_result', 'cpc', 'cpm'].includes(metric)) {
+      return '$' + parseFloat(value).toFixed(2);
+    }
+
+    // Porcentajes
+    if (['ctr'].includes(metric)) {
+      return parseFloat(value).toFixed(2) + '%';
+    }
+
+    // ROAS y frecuencia (multiplicadores)
+    if (['roas', 'frequency'].includes(metric)) {
+      return parseFloat(value).toFixed(2) + 'x';
+    }
+
+    // Enteros (results, impressions, reach, clicks)
+    if (['results', 'impressions', 'reach', 'clicks'].includes(metric)) {
+      return parseInt(value).toLocaleString();
+    }
+
+    // Default: 2 decimales
+    return parseFloat(value).toFixed(2);
   }
 
 }
