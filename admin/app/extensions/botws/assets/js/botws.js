@@ -5,6 +5,25 @@ class botws {
   };
 
   static currentId = null;
+
+  // Inicializar formatters personalizados
+  static initFormatters() {
+    // Formatter para estado con badge de color
+    ogDatatable.registerFormatter('bot-status', (value, row) => {
+      const isActive = value == 1 || value === true;
+      const statusText = isActive ? __('core.status.active') : __('core.status.inactive');
+      const statusColor = isActive ? '#16a34a' : '#dc2626';
+      const statusBg = isActive ? '#dcfce7' : '#fee2e2';
+      return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
+    });
+
+    // Formatter para nombre con número de bot
+    ogDatatable.registerFormatter('bot-name-with-number', (value, row) => {
+      const number = row.number ? `+${row.country_code || ''} ${row.number}` : '';
+      return `<div><strong>${value}</strong> <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 0.25rem;">${number}</small></div>`;
+    });
+  }
+
   // FORMULARIOS
   // Abrir form nuevo
   static openNew(formId) {
@@ -248,5 +267,8 @@ class botws {
     ogComponent('datatable')?.refreshFirst();
   }
 }
+
+// Inicializar formatters al cargar el módulo
+botws.initFormatters();
 
 window.botws = botws;

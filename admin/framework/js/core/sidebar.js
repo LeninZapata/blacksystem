@@ -153,7 +153,7 @@ class ogSidebar {
       // CAMBIAR: .submenu-item → (ya no existe, solo og-menu-item)
       const itemClass = `og-menu-item ${hasSubmenu ? 'og-has-submenu' : ''} level-${level}`;
 
-      const showIcon = !isSubmenu && item.icon;
+      const showIcon = item.icon;
       // CAMBIAR: .menu-icon → .og-menu-icon
       const iconHtml = showIcon ? `<span class="og-menu-icon">${item.icon}</span>` : '';
 

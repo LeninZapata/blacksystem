@@ -1,7 +1,5 @@
 {
   "id": "product-ad-asset-form",
-  "title": "i18n:automation.product_ad_assets.form.title",
-  "description": "i18n:automation.product_ad_assets.form.description",
   "fields": [
     {
       "name": "product_id",

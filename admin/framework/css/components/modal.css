@@ -63,7 +63,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 8px 24px;
     border-bottom: 1px solid var(--og-modal-border);
     background: var(--og-modal-bg);
     border-radius: 8px 8px 0 0;
@@ -72,7 +72,7 @@
   .og-modal-header h3 {
     margin: 0;
     color: var(--og-modal-text);
-    font-size: 1.25rem;
+    font-size: var(--og-font-family);
   }
 
   /* Botón cerrar */

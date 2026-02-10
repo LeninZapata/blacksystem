@@ -1,6 +1,8 @@
-/* dataTable.css - MODIFICADO */
+/* dataTable.css - Estilos específicos para el componente DataTable */
+
 .onlygrow-active {
   .og-datatable-container {
+    /* Espaciado entre botones en acciones */
     td button + button {
       margin-left: 0.5rem;
     }

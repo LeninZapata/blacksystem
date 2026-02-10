@@ -1,7 +1,5 @@
 {
   "id": "bot-form",
-  "title": "i18n:botws.bot.form.title",
-  "description": "i18n:botws.bot.form.description",
   "fields": [
     {
       "name": "name",

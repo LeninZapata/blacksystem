@@ -1,15 +1,15 @@
-.view-container {
-  padding: 1rem;
+.og-view-container {
+  padding: 1rem 1.2rem;
   flex: 1;
 
-  .tabs-header {
+  .og-tabs-header {
     display: flex;
     gap: 0.5rem;
     border-bottom: 1px solid #e0e0e0;
     margin-bottom: 20px;
     /*padding-bottom: 0.5rem;*/
 
-    .tab-btn {
+    .og-tab-btn {
       padding: 10px 20px;
       border: none;
       background: none;
@@ -29,19 +29,19 @@
     }
   }
 
-  .tab-content {
+  .og-tab-content {
     min-height: 200px;
     padding: 1rem 0;
   }
 
-  .tab-loading {
+  .og-tab-loading {
     text-align: center;
     padding: 2rem;
     color: #666;
     font-style: italic;
   }
 
-  .tab-error {
+  .og-tab-error {
     color: #dc3545;
     text-align: center;
     padding: 40px;
@@ -59,15 +59,7 @@
   }
 }
 
-.view-toolbar {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  border: 1px solid #e9ecef;
-}
-
-.view-statusbar {
+.og-view-statusbar {
   background: #e9ecef;
   padding: 10px 15px;
   border-radius: 6px;
@@ -76,7 +68,7 @@
 }
 
 .dynamic-form {
-  margin: 20px 0;
+  margin: 2px 0;
 }
 
 .status-info {
@@ -86,7 +78,7 @@
 
 /* Mobile */
 @media (max-width: 600px) {
-  .view-container {
+  .og-view-container {
     padding: 0.4rem;
   }
 }

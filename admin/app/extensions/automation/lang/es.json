@@ -12,6 +12,7 @@
         "id": "ID",
         "name": "Nombre",
         "type": "Tipo",
+        "status": "Estado",
         "created": "Fecha de Creación"
       },
       "form": {
@@ -229,6 +230,7 @@
         "ad_asset_type": "Tipo de Activo",
         "ad_asset_id": "ID del Activo",
         "is_active": "Estado",
+        "status": "Estado",
         "created": "Creado"
       },
       "form": {

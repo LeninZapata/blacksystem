@@ -194,6 +194,45 @@ class credential {
   static refresh() {
     ogComponent('datatable')?.refreshFirst();
   }
+
+  static initFormatters() {
+    const dataTable = ogComponent('datatable');
+    if (!dataTable) return;
+
+    // Formatter para el estado del credential
+    dataTable.registerFormatter('credential-status', (value, row) => {
+      const isActive = value == 1 || value === true;
+      const statusText = isActive ? __('core.status.active') : __('core.status.inactive');
+      const statusColor = isActive ? '#16a34a' : '#dc2626';
+      const statusBg = isActive ? '#dcfce7' : '#fee2e2';
+      return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
+    });
+
+    // Formatter para nombre con tipo
+    dataTable.registerFormatter('credential-name-with-type', (value, row) => {
+      const name = value ?? '';
+      const type = row.type ?? '';
+      
+      // Mapeo de tipos a textos legibles
+      const typeLabels = {
+        'ai-agent': __('automation.credentials.type.ai_agent'),
+        'chat': __('automation.credentials.type.chat'),
+        'ad': __('automation.credentials.type.ad')
+      };
+      
+      const typeText = typeLabels[type] || type;
+      
+      return `
+        <div>
+          <div style="font-weight: 500;">${name}</div>
+          <div style="font-size: 0.85em; color: var(--og-gray-600); margin-top: 2px;">${typeText}</div>
+        </div>
+      `;
+    });
+  }
 }
 
 window.credential = credential;
+
+// Registrar formatters al cargar el módulo
+credential.initFormatters();

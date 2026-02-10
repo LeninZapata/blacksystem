@@ -36,9 +36,22 @@
     'js/core/loader.js',
     'js/core/hook.js',
     'js/core/validator.js',
+
+    'js/core/formConditionsCore.js',
+    'js/core/formConditionsOperators.js',
+    'js/core/formConditionsEvaluator.js',
     'js/core/conditions.js',
+
     'js/core/dataLoader.js',
+
+    'js/core/formCore.js',
+    'js/core/formInputs.js',
+    'js/core/formRender.js',
+    'js/core/formRepeatables.js',
+    'js/core/formData.js',
+    'js/core/formValidation.js',
     'js/core/form.js',
+
     'js/core/view.js',
     'js/core/navigation.js',
     'js/core/sidebar.js',

@@ -1,0 +1,137 @@
+/* grid.css - Sistema de grid minimalista */
+
+.onlygrow-active {
+  /* Variables de grid */
+  --og-grid-gap-xs: 0.25rem;
+  --og-grid-gap-sm: 0.5rem;
+  --og-grid-gap-md: 1rem;
+  --og-grid-gap-lg: 1.5rem;
+  --og-grid-gap-xl: 2rem;
+
+  /* Grid base */
+  .og-grid {
+    display: grid;
+    gap: var(--og-grid-gap-md);
+
+    /* Columnas fijas */
+    &.og-cols-1 { grid-template-columns: repeat(1, 1fr); }
+    &.og-cols-2 { grid-template-columns: repeat(2, 1fr); }
+    &.og-cols-3 { grid-template-columns: repeat(3, 1fr); }
+    &.og-cols-4 { grid-template-columns: repeat(4, 1fr); }
+    &.og-cols-5 { grid-template-columns: repeat(5, 1fr); }
+    &.og-cols-6 { grid-template-columns: repeat(6, 1fr); }
+
+    /* Gaps personalizados */
+    &.og-gap-xs { gap: var(--og-grid-gap-xs); }
+    &.og-gap-sm { gap: var(--og-grid-gap-sm); }
+    &.og-gap-md { gap: var(--og-grid-gap-md); }
+    &.og-gap-lg { gap: var(--og-grid-gap-lg); }
+    &.og-gap-xl { gap: var(--og-grid-gap-xl); }
+
+    /* Sin gap */
+    &.og-gap-none { gap: 0; }
+
+    /* Auto-fit (columnas que se ajustan automáticamente) */
+    &.og-auto-fit {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    &.og-auto-fit-sm {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    &.og-auto-fit-lg {
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      &.og-cols-6,
+      &.og-cols-5,
+      &.og-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      &.og-cols-6,
+      &.og-cols-5,
+      &.og-cols-4,
+      &.og-cols-3,
+      &.og-cols-2 {
+        grid-template-columns: 1fr;
+      }
+
+      /* Mantener 2 columnas en móvil si se especifica */
+      &.og-cols-2.og-keep-mobile {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  }
+
+  /* Flex como alternativa simple */
+  .og-flex {
+    display: flex;
+    gap: var(--og-grid-gap-md);
+    align-items: center;
+
+    &.og-gap-xs { gap: var(--og-grid-gap-xs); }
+    &.og-gap-sm { gap: var(--og-grid-gap-sm); }
+    &.og-gap-md { gap: var(--og-grid-gap-md); }
+    &.og-gap-lg { gap: var(--og-grid-gap-lg); }
+    &.og-gap-xl { gap: var(--og-grid-gap-xl); }
+    &.og-gap-none { gap: 0; }
+
+    &.og-wrap { flex-wrap: wrap; }
+    &.og-nowrap { flex-wrap: nowrap; }
+    &.og-column { flex-direction: column; }
+    &.og-row { flex-direction: row; }
+
+    /* Alineación justify-content */
+    &.og-center { justify-content: center; }
+    &.og-start { justify-content: flex-start; }
+    &.og-end { justify-content: flex-end; }
+    &.og-between { justify-content: space-between; }
+    &.og-around { justify-content: space-around; }
+    &.og-evenly { justify-content: space-evenly; }
+
+    /* Alineación align-items */
+    &.og-items-start { align-items: flex-start; }
+    &.og-items-center { align-items: center; }
+    &.og-items-end { align-items: flex-end; }
+    &.og-items-stretch { align-items: stretch; }
+    &.og-items-baseline { align-items: baseline; }
+
+    /* Contenedores automáticos para toolbars */
+    &.og-toolbar-split {
+      > *:last-child {
+        margin-left: auto;
+      }
+    }
+  }
+
+  /* Utilidades de spacing */
+  .og-mt-0 { margin-top: 0; }
+  .og-mt-1 { margin-top: 0.5rem; }
+  .og-mt-2 { margin-top: 1rem; }
+  .og-mt-3 { margin-top: 1.5rem; }
+  .og-mt-4 { margin-top: 2rem; }
+
+  .og-mb-0 { margin-bottom: 0; }
+  .og-mb-1 { margin-bottom: 0.5rem; }
+  .og-mb-2 { margin-bottom: 1rem; }
+  .og-mb-3 { margin-bottom: 1.5rem; }
+  .og-mb-4 { margin-bottom: 2rem; }
+
+  .og-my-0 { margin-top: 0; margin-bottom: 0; }
+  .og-my-1 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+  .og-my-2 { margin-top: 1rem; margin-bottom: 1rem; }
+  .og-my-3 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+  .og-my-4 { margin-top: 2rem; margin-bottom: 2rem; }
+
+  .og-p-0 { padding: 0; }
+  .og-p-1 { padding: 0.5rem; }
+  .og-p-2 { padding: 1rem; }
+  .og-p-3 { padding: 1.5rem; }
+  .og-p-4 { padding: 2rem; }
+}

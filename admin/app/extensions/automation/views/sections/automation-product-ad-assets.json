@@ -6,12 +6,12 @@
   "content": [
     {
       "type": "html",
-      "content": "<div class='view-header'><h2>{i18n:automation.product_ad_assets.listado.header.title}</h2><p>{i18n:automation.product_ad_assets.listado.header.description}</p></div>",
+      "content": "<h4>{i18n:automation.product_ad_assets.listado.header.title}</h4>",
       "order": 0
     },
     {
       "type": "html",
-      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/product-ad-asset-form', {title: '{i18n:automation.product_ad_assets.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){productAdAsset.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='productAdAsset.refresh();ogToast.info(\"{i18n:automation.product_ad_assets.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/product-ad-asset-form', {title: '{i18n:automation.product_ad_assets.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){productAdAsset.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='productAdAsset.refresh();ogToast.info(\"{i18n:automation.product_ad_assets.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
       "order": 1
     },
     {
@@ -21,14 +21,31 @@
       "config": {
         "source": "api/productAdAsset",
         "columns": [
-          {"id": {"name": "i18n:automation.product_ad_assets.column.id", "width": "80px", "align": "center", "sortable": true}},
-          {"product_id": {"name": "i18n:automation.product_ad_assets.column.product_id", "width": "100px", "align": "center", "sortable": true}},
-          {"ad_asset_name": {"name": "i18n:automation.product_ad_assets.column.ad_asset_name", "sortable": true}},
-          {"ad_platform": {"name": "i18n:automation.product_ad_assets.column.ad_platform", "width": "120px", "align": "center", "sortable": true}},
-          {"ad_asset_type": {"name": "i18n:automation.product_ad_assets.column.ad_asset_type", "width": "120px", "align": "center", "sortable": true}},
-          {"ad_asset_id": {"name": "i18n:automation.product_ad_assets.column.ad_asset_id", "width": "150px", "sortable": false}},
-          {"is_active": {"name": "i18n:automation.product_ad_assets.column.is_active", "width": "100px", "align": "center", "format": "badge", "formatOptions": {"1": {"label": "Activo", "class": "badge-success"}, "0": {"label": "Inactivo", "class": "badge-secondary"}}}},
-          {"dc": {"name": "i18n:automation.product_ad_assets.column.created", "format": "datetime", "width": "180px", "align": "center"}}
+          {
+            "id": {
+              "name": "i18n:automation.product_ad_assets.column.id",
+              "width": "30px",
+              "align": "center",
+              "sortable": true
+            }
+          },
+          {
+            "ad_asset_name": {
+              "name": "i18n:automation.product_ad_assets.column.ad_asset_name",
+              "format": "product-ad-asset-name-with-details",
+              "sortable": true,
+              "width": "200px"
+            }
+          },
+          {
+            "is_active": {
+              "name": "i18n:automation.product_ad_assets.column.status",
+              "format": "product-ad-asset-status",
+              "width": "120px",
+              "align": "left",
+              "sortable": false
+            }
+          }
         ],
         "actions": {
           "edit": {

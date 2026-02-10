@@ -6,6 +6,48 @@ class infoproductProduct {
   static currentId = null;
   static context = 'infoproductws';
 
+  // Inicializar formatters personalizados
+  static initFormatters() {
+    // Formatter para estado con badge de color
+    ogDatatable.registerFormatter('product-status', (value, row) => {
+      const isActive = value == 1 || value === true;
+      const statusText = isActive ? __('core.status.active') : __('core.status.inactive');
+      const statusColor = isActive ? '#16a34a' : '#dc2626';
+      const statusBg = isActive ? '#dcfce7' : '#fee2e2';
+      return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
+    });
+
+    // Formatter para nombre con precio incluido
+    ogDatatable.registerFormatter('product-name-with-price', (value, row) => {
+      const price = row.price ? new Intl.NumberFormat('es-EC', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(row.price) : 'Gratis';
+      
+      return `<div><strong>${value}</strong> <span style="color: #6b7280; font-size: 0.875rem;">(${price})</span></div>`;
+    });
+
+    // Formatter para precio con badge de color
+    ogDatatable.registerFormatter('product-price', (value, row) => {
+      if (!value || value === 0) {
+        return '<span class="og-bg-gray-200 og-text-gray-700 og-p-1 og-rounded" style="font-size: 0.875rem; display: inline-block; padding: 0.25rem 0.75rem;">Gratis</span>';
+      }
+      
+      const formatted = new Intl.NumberFormat('es-EC', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(value);
+      
+      return `<span class="og-bg-green-100 og-text-green-700 og-p-1 og-rounded" style="font-size: 0.875rem; font-weight: 600; display: inline-block; padding: 0.25rem 0.75rem;">${formatted}</span>`;
+    });
+
+    // Formatter para nombre con bot asociado
+    ogDatatable.registerFormatter('product-name-detailed', (value, row) => {
+      const botInfo = row.bot_id ? `<small class="og-text-gray-500" style="display: block; font-size: 0.75rem;">Bot #${row.bot_id}</small>` : '';
+      return `<div><strong>${value}</strong>${botInfo}</div>`;
+    });
+  }
+
   // Abrir form nuevo
   static openNew(formId) {
     this.currentId = null;
@@ -52,6 +94,7 @@ class infoproductProduct {
 
   static async save(formId) {
     const validation = window.ogForm.validate(formId);
+    console.log(`validation:`, validation);
     if (!validation.success) return ogToast.error(validation.message);
 
     // Validar que no se seleccione el mismo producto como upsell
@@ -212,5 +255,8 @@ class infoproductProduct {
     if (window.ogDatatable) ogDatatable.refreshFirst();
   }
 }
+
+// Inicializar formatters al cargar el módulo
+infoproductProduct.initFormatters();
 
 window.infoproductProduct = infoproductProduct;

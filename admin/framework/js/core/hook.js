@@ -125,17 +125,25 @@ class ogHook {
         });
       }
 
-      // 2. Cargar hooks.js si existe (opcional - solo para hooks dinámicos)
-      const hooksUrl = `${extensionsBase}${extensionName}/hooks.js?v=${config.version || '1.0.0'}`;
-      const hooksResponse = await fetch(hooksUrl);
+      // 2. Cargar hooks.js SOLO si hasHooks es true
+      const pluginConfig = this.pluginRegistry.get(extensionName);
+      
+      if (pluginConfig?.hasHooks) {
+        const hooksUrl = `${extensionsBase}${extensionName}/hooks.js?v=${config.version || '1.0.0'}`;
+        const hooksResponse = await fetch(hooksUrl);
 
-      if (hooksResponse.ok) {
-        const script = await hooksResponse.text();
-        new Function(script)();
+        if (hooksResponse.ok) {
+          const script = await hooksResponse.text();
+          new Function(script)();
 
-        // Marcar que los hooks fueron cargados
-        this.loadedHooks.add(extensionName);
-        ogLogger?.success('core:hook', `✅ Hooks de ${extensionName} cargados`);
+          // Marcar que los hooks fueron cargados
+          this.loadedHooks.add(extensionName);
+          ogLogger?.success('core:hook', `✅ Hooks de ${extensionName} cargados`);
+        } else {
+          ogLogger?.warn('core:hook', `⚠️ hasHooks=true pero no se encontró hooks.js para ${extensionName}`);
+        }
+      } else {
+        ogLogger?.info('core:hook', `⏭️ Skipping hooks para ${extensionName} (hasHooks=false)`);
       }
 
       // ✅ 3. NUEVO: Cargar idioma del extension

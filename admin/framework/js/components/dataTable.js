@@ -1,8 +1,22 @@
 class ogDatatable {
   static tables = new Map();
   static counter = 0;
+  static customFormatters = new Map(); // Registry de formatters personalizados
 
+  // Registrar formatter personalizado
+  static registerFormatter(name, formatterFn) {
+    if (typeof formatterFn !== 'function') {
+      ogLogger.error('com:datatable', `Formatter ${name} debe ser una función`);
+      return;
+    }
+    this.customFormatters.set(name, formatterFn);
+    ogLogger.info('com:datatable', `Formatter registrado: ${name}`);
+  }
 
+  // Eliminar formatter
+  static unregisterFormatter(name) {
+    this.customFormatters.delete(name);
+  }
 
   static getComponent(){
     return {
@@ -388,7 +402,7 @@ class ogDatatable {
   }
 
   static renderCell(row, column) {
-    let value = row[column.field] || '';
+    let value = row[column.field] ?? '';
 
     if (column.format) {
       value = this.formatValue(value, column.format, row);
@@ -404,12 +418,21 @@ class ogDatatable {
   }
 
   static formatValue(value, format, row) {
-    if (!value) return '';
+    // Permitir 0 como valor válido para ciertos formatos
+    if (!value && value !== 0) return '';
 
+    // Si el formato es una función, ejecutarla directamente
     if (typeof format === 'function') {
       return format(value, row);
     }
 
+    // Buscar en formatters personalizados registrados
+    if (typeof format === 'string' && this.customFormatters.has(format)) {
+      const customFormatter = this.customFormatters.get(format);
+      return customFormatter(value, row);
+    }
+
+    // Formatos predefinidos
     switch (format) {
       case 'date':
         return this.formatDate(value);

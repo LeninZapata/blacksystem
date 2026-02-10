@@ -1,0 +1,239 @@
+/* colors.css - Sistema de colores con variables y clases de utilidad */
+
+:root {
+  /* ==========================================================================
+     COLORES BASE
+     ========================================================================== */
+  
+  /* Blues */
+  --og-blue-50: #eff6ff;
+  --og-blue-100: #dbeafe;
+  --og-blue-200: #bfdbfe;
+  --og-blue-300: #93c5fd;
+  --og-blue-500: #3b82f6;
+  --og-blue-600: #2563eb;
+  --og-blue-700: #1d4ed8;
+  
+  /* Greens */
+  --og-green-50: #f0fdf4;
+  --og-green-100: #dcfce7;
+  --og-green-200: #bbf7d0;
+  --og-green-500: #22c55e;
+  --og-green-600: #16a34a;
+  --og-green-700: #15803d;
+  
+  /* Yellows */
+  --og-yellow-50: #fefce8;
+  --og-yellow-100: #fef3c7;
+  --og-yellow-200: #fde68a;
+  --og-yellow-500: #eab308;
+  --og-yellow-600: #ca8a04;
+  --og-yellow-700: #a16207;
+  
+  /* Reds */
+  --og-red-50: #fef2f2;
+  --og-red-100: #fee2e2;
+  --og-red-200: #fecaca;
+  --og-red-500: #ef4444;
+  --og-red-600: #dc2626;
+  --og-red-700: #b91c1c;
+  
+  /* Purples */
+  --og-purple-50: #faf5ff;
+  --og-purple-100: #f3e8ff;
+  --og-purple-200: #e9d5ff;
+  --og-purple-500: #a855f7;
+  --og-purple-600: #9333ea;
+  --og-purple-700: #7e22ce;
+  
+  /* Pinks */
+  --og-pink-50: #fdf2f8;
+  --og-pink-100: #fce7f3;
+  --og-pink-200: #fbcfe8;
+  --og-pink-500: #ec4899;
+  --og-pink-600: #db2777;
+  --og-pink-700: #be185d;
+  
+  /* Cyans */
+  --og-cyan-50: #ecfeff;
+  --og-cyan-100: #cffafe;
+  --og-cyan-200: #a5f3fc;
+  --og-cyan-500: #06b6d4;
+  --og-cyan-600: #0891b2;
+  --og-cyan-700: #0e7490;
+  
+  /* Oranges */
+  --og-orange-50: #fff7ed;
+  --og-orange-100: #ffedd5;
+  --og-orange-200: #fed7aa;
+  --og-orange-500: #f97316;
+  --og-orange-600: #ea580c;
+  --og-orange-700: #c2410c;
+  
+  /* Grays */
+  --og-gray-50: #f9fafb;
+  --og-gray-100: #f3f4f6;
+  --og-gray-200: #e5e7eb;
+  --og-gray-300: #d1d5db;
+  --og-gray-400: #9ca3af;
+  --og-gray-500: #6b7280;
+  --og-gray-600: #4b5563;
+  --og-gray-700: #374151;
+  --og-gray-800: #1f2937;
+  --og-gray-900: #111827;
+}
+
+.onlygrow-active {
+  /* ==========================================================================
+     CLASES DE BACKGROUND
+     ========================================================================== */
+  
+  /* Blues */
+  .og-bg-blue-50 { background-color: var(--og-blue-50); }
+  .og-bg-blue-100 { background-color: var(--og-blue-100); }
+  .og-bg-blue-200 { background-color: var(--og-blue-200); }
+  .og-bg-blue-500 { background-color: var(--og-blue-500); }
+  .og-bg-blue-600 { background-color: var(--og-blue-600); }
+  
+  /* Greens */
+  .og-bg-green-50 { background-color: var(--og-green-50); }
+  .og-bg-green-100 { background-color: var(--og-green-100); }
+  .og-bg-green-200 { background-color: var(--og-green-200); }
+  .og-bg-green-500 { background-color: var(--og-green-500); }
+  .og-bg-green-600 { background-color: var(--og-green-600); }
+  
+  /* Yellows */
+  .og-bg-yellow-50 { background-color: var(--og-yellow-50); }
+  .og-bg-yellow-100 { background-color: var(--og-yellow-100); }
+  .og-bg-yellow-200 { background-color: var(--og-yellow-200); }
+  .og-bg-yellow-500 { background-color: var(--og-yellow-500); }
+  .og-bg-yellow-600 { background-color: var(--og-yellow-600); }
+  
+  /* Reds */
+  .og-bg-red-50 { background-color: var(--og-red-50); }
+  .og-bg-red-100 { background-color: var(--og-red-100); }
+  .og-bg-red-200 { background-color: var(--og-red-200); }
+  .og-bg-red-500 { background-color: var(--og-red-500); }
+  .og-bg-red-600 { background-color: var(--og-red-600); }
+  
+  /* Purples */
+  .og-bg-purple-50 { background-color: var(--og-purple-50); }
+  .og-bg-purple-100 { background-color: var(--og-purple-100); }
+  .og-bg-purple-200 { background-color: var(--og-purple-200); }
+  .og-bg-purple-500 { background-color: var(--og-purple-500); }
+  .og-bg-purple-600 { background-color: var(--og-purple-600); }
+  
+  /* Pinks */
+  .og-bg-pink-50 { background-color: var(--og-pink-50); }
+  .og-bg-pink-100 { background-color: var(--og-pink-100); }
+  .og-bg-pink-200 { background-color: var(--og-pink-200); }
+  .og-bg-pink-500 { background-color: var(--og-pink-500); }
+  .og-bg-pink-600 { background-color: var(--og-pink-600); }
+  
+  /* Cyans */
+  .og-bg-cyan-50 { background-color: var(--og-cyan-50); }
+  .og-bg-cyan-100 { background-color: var(--og-cyan-100); }
+  .og-bg-cyan-200 { background-color: var(--og-cyan-200); }
+  .og-bg-cyan-500 { background-color: var(--og-cyan-500); }
+  .og-bg-cyan-600 { background-color: var(--og-cyan-600); }
+  
+  /* Oranges */
+  .og-bg-orange-50 { background-color: var(--og-orange-50); }
+  .og-bg-orange-100 { background-color: var(--og-orange-100); }
+  .og-bg-orange-200 { background-color: var(--og-orange-200); }
+  .og-bg-orange-500 { background-color: var(--og-orange-500); }
+  .og-bg-orange-600 { background-color: var(--og-orange-600); }
+  
+  /* Grays */
+  .og-bg-gray-50 { background-color: var(--og-gray-50); }
+  .og-bg-gray-100 { background-color: var(--og-gray-100); }
+  .og-bg-gray-200 { background-color: var(--og-gray-200); }
+  .og-bg-gray-300 { background-color: var(--og-gray-300); }
+  .og-bg-gray-400 { background-color: var(--og-gray-400); }
+  .og-bg-gray-500 { background-color: var(--og-gray-500); }
+  .og-bg-gray-600 { background-color: var(--og-gray-600); }
+  .og-bg-gray-700 { background-color: var(--og-gray-700); }
+  .og-bg-gray-800 { background-color: var(--og-gray-800); }
+  .og-bg-gray-900 { background-color: var(--og-gray-900); }
+  
+  /* White & Black */
+  .og-bg-white { background-color: #fff; }
+  .og-bg-black { background-color: #000; }
+  
+  /* ==========================================================================
+     CLASES DE TEXT COLOR
+     ========================================================================== */
+  
+  /* Blues */
+  .og-text-blue-500 { color: var(--og-blue-500); }
+  .og-text-blue-600 { color: var(--og-blue-600); }
+  .og-text-blue-700 { color: var(--og-blue-700); }
+  
+  /* Greens */
+  .og-text-green-500 { color: var(--og-green-500); }
+  .og-text-green-600 { color: var(--og-green-600); }
+  .og-text-green-700 { color: var(--og-green-700); }
+  
+  /* Yellows */
+  .og-text-yellow-600 { color: var(--og-yellow-600); }
+  .og-text-yellow-700 { color: var(--og-yellow-700); }
+  
+  /* Reds */
+  .og-text-red-500 { color: var(--og-red-500); }
+  .og-text-red-600 { color: var(--og-red-600); }
+  .og-text-red-700 { color: var(--og-red-700); }
+  
+  /* Purples */
+  .og-text-purple-600 { color: var(--og-purple-600); }
+  .og-text-purple-700 { color: var(--og-purple-700); }
+  
+  /* Grays */
+  .og-text-gray-400 { color: var(--og-gray-400); }
+  .og-text-gray-500 { color: var(--og-gray-500); }
+  .og-text-gray-600 { color: var(--og-gray-600); }
+  .og-text-gray-700 { color: var(--og-gray-700); }
+  .og-text-gray-800 { color: var(--og-gray-800); }
+  .og-text-gray-900 { color: var(--og-gray-900); }
+  
+  /* White & Black */
+  .og-text-white { color: #fff; }
+  .og-text-black { color: #000; }
+  
+  /* ==========================================================================
+     CLASES DE BORDER COLOR
+     ========================================================================== */
+  
+  .og-border-blue-500 { border-color: var(--og-blue-500); }
+  .og-border-green-500 { border-color: var(--og-green-500); }
+  .og-border-yellow-500 { border-color: var(--og-yellow-500); }
+  .og-border-red-500 { border-color: var(--og-red-500); }
+  .og-border-purple-500 { border-color: var(--og-purple-500); }
+  .og-border-gray-200 { border-color: var(--og-gray-200); }
+  .og-border-gray-300 { border-color: var(--og-gray-300); }
+  
+  /* ==========================================================================
+     UTILIDADES DE BORDER
+     ========================================================================== */
+  
+  .og-border { border: 1px solid; }
+  .og-border-2 { border-width: 2px; }
+  .og-border-4 { border-width: 4px; }
+  .og-border-l { border-left: 1px solid; }
+  .og-border-l-2 { border-left-width: 2px; }
+  .og-border-l-3 { border-left-width: 3px; }
+  .og-border-l-4 { border-left-width: 4px; }
+  .og-border-r { border-right: 1px solid; }
+  .og-border-t { border-top: 1px solid; }
+  .og-border-b { border-bottom: 1px solid; }
+  
+  /* ==========================================================================
+     UTILIDADES DE BORDER RADIUS
+     ========================================================================== */
+  
+  .og-rounded { border-radius: 0.25rem; }
+  .og-rounded-md { border-radius: 0.375rem; }
+  .og-rounded-lg { border-radius: 0.5rem; }
+  .og-rounded-xl { border-radius: 0.75rem; }
+  .og-rounded-2xl { border-radius: 1rem; }
+  .og-rounded-full { border-radius: 9999px; }
+}

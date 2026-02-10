@@ -138,6 +138,57 @@ class productAdAsset {
   static refresh() {
     ogComponent('datatable')?.refreshFirst();
   }
+
+  static initFormatters() {
+    const dataTable = ogComponent('datatable');
+    if (!dataTable) return;
+
+    // Formatter para el estado del activo publicitario
+    dataTable.registerFormatter('product-ad-asset-status', (value, row) => {
+      const isActive = value == 1 || value === true;
+      const statusText = isActive ? __('core.status.active') : __('core.status.inactive');
+      const statusColor = isActive ? '#16a34a' : '#dc2626';
+      const statusBg = isActive ? '#dcfce7' : '#fee2e2';
+      return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
+    });
+
+    // Formatter para nombre con plataforma/tipo y ID del activo
+    dataTable.registerFormatter('product-ad-asset-name-with-details', (value, row) => {
+      const name = value ?? '';
+      const platform = row.ad_platform ?? '';
+      const assetType = row.ad_asset_type ?? '';
+      const assetId = row.ad_asset_id ?? '';
+      
+      // Mapeo de plataformas y tipos
+      const platformLabels = {
+        'facebook': 'Facebook',
+        'google': 'Google',
+        'tiktok': 'TikTok',
+        'instagram': 'Instagram',
+        'other': 'Otra'
+      };
+      
+      const typeLabels = {
+        'campaign': __('automation.product_ad_assets.asset_type.campaign'),
+        'adset': __('automation.product_ad_assets.asset_type.adset'),
+        'ad': __('automation.product_ad_assets.asset_type.ad')
+      };
+      
+      const platformText = platformLabels[platform] || platform;
+      const typeText = typeLabels[assetType] || assetType;
+      
+      return `
+        <div>
+          <div style="font-weight: 500;">${name}</div>
+          <div style="font-size: 0.85em; color: var(--og-gray-600); margin-top: 2px;">${platformText} / ${typeText}</div>
+          <div style="font-size: 0.8em; color: var(--og-gray-500); margin-top: 2px; font-family: monospace;">${assetId}</div>
+        </div>
+      `;
+    });
+  }
 }
 
 window.productAdAsset = productAdAsset;
+
+// Registrar formatters al cargar el módulo
+productAdAsset.initFormatters();

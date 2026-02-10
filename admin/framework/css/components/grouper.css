@@ -1,219 +1,211 @@
 /* og-grouper.css - Componente grouper con prefijo og- para WordPress */
 
-/* ==========================================================================
-   GROUPER LINEAR
-   ========================================================================== */
-
-/* Contenedor linear */
-.og-grouper-linear {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* Sección individual */
-.og-grouper-section {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-}
-
-.og-grouper-section.non-collapsible {
-  margin-bottom: 1rem;
-  border-radius: 15px;
-}
-
-/* Header de sección */
-.og-grouper-header {
-  padding: 0.75rem 1rem;
-  background: #667eea;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.og-grouper-header.non-collapsible {
-  background: #4a5568;
-  cursor: default;
-}
-
-.og-grouper-header.collapsible {
-  cursor: pointer;
-}
-
-/* Título */
-.og-grouper-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-/* Icono toggle */
-.og-grouper-toggle {
-  transition: transform 0.2s;
-}
-
-.og-grouper-section.open .og-grouper-toggle {
-  transform: rotate(180deg);
-}
-
-/* Contenido */
-.og-grouper-content {
-  padding: 1rem;
-}
-
-/* ==========================================================================
-   GROUPER TABS
-   ========================================================================== */
-
-/* Contenedor tabs */
-.og-grouper-tabs {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-}
-
-/* Header de tabs */
-.og-grouper-tabs-header {
-  display: flex;
-  border-bottom: 1px solid #ddd;
-  background: #f8f9fa;
-  
-  /* Responsive: scroll horizontal */
-  overflow-x: auto;
-  overflow-y: hidden;
-  
-  /* Ocultar scrollbar pero mantener funcionalidad */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  
-  /* Smooth scroll */
-  scroll-behavior: smooth;
-  
-  /* Posición relativa para los degradados */
-  position: relative;
-}
-
-/* Ocultar scrollbar en Chrome/Safari */
-.og-grouper-tabs-header::-webkit-scrollbar {
-  display: none;
-}
-
-/* Degradado DERECHA */
-.og-grouper-tabs-header::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 60px;
-  background: linear-gradient(to left, #f8f9fa 30%, transparent 100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 10;
-}
-
-/* Degradado IZQUIERDA */
-.og-grouper-tabs-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 60px;
-  background: linear-gradient(to right, #f8f9fa 30%, transparent 100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 10;
-}
-
-/* Mostrar degradado derecho cuando hay overflow a la derecha */
-.og-grouper-tabs-header.has-overflow-right::after {
-  opacity: 1;
-}
-
-/* Mostrar degradado izquierdo cuando hay scroll a la izquierda */
-.og-grouper-tabs-header.has-overflow-left::before {
-  opacity: 1;
-}
-
-/* Botón de tab */
-.og-grouper-tab-btn {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: none;
-  background: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  font-weight: 500;
-  color: #6b7280;
-  
-  /* Evitar que se contraigan */
-  flex-shrink: 0;
-  white-space: nowrap;
-  
-  /* Ancho mínimo para cada tab */
-  min-width: 120px;
-  
-  /* Posición y z-index para que el degradado quede encima */
-  position: relative;
-  z-index: 1;
-}
-
-.og-grouper-tab-btn.active {
-  background: white;
-  color: #667eea;
-  border-bottom-color: #667eea;
-}
-
-/* Contenido de tabs */
-.og-grouper-tabs-content {
-  padding: 1rem;
-}
-
-/* Panel individual */
-.og-grouper-tab-panel {
-  display: none;
-}
-
-.og-grouper-tab-panel.active {
-  display: block;
-}
-
-/* ==========================================================================
-   RESPONSIVE
-   ========================================================================== */
-
-/* Mobile: reducir padding */
-@media (max-width: 768px) {
-  .og-grouper-tab-btn {
-    padding: 10px 16px;
-    font-size: 0.9rem;
-    min-width: 100px;
-  }
-  
-  .og-grouper-tabs-content {
-    padding: 15px;
-  }
-}
-
-/* ==========================================================================
-   ESTILOS DENTRO DEL WRAPPER .onlygrow-active
-   ========================================================================== */
-
-/* 
-  Clases de estado que pueden quedar sin prefijo 
-  porque están protegidas por el wrapper
-*/
 .onlygrow-active {
-  .og-grouper-section.open {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* ==========================================================================
+     GROUPER LINEAR
+     ========================================================================== */
+
+  /* Contenedor linear */
+  .og-grouper-linear {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    & .og-grouper-section {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
   }
-  
-  .og-grouper-tab-btn:hover:not(.active) {
-    background-color: #edf2f7;
+
+  /* Sección individual */
+  .og-grouper-section {
+    border: 1px solid var(--og-gray-200);
+    background: white;
+    margin-bottom: 1rem;
+
+    &.non-collapsible {
+      margin-bottom: 1rem;
+    }
+
+    &.open {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  /* Header de sección */
+  .og-grouper-header {
+    padding: 0.5rem 1rem;
+    background: var(--og-gray-50);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    & h3 {
+      color: var(--og-gray-500);
+      margin-bottom: 0;
+      font-size: var(--og-font-base);
+      font-weight: 400;
+    }
+
+    &.non-collapsible {
+      background: var(--og-gray-100);
+      cursor: default;
+    }
+
+    &.collapsible {
+      cursor: pointer;
+    }
+  }
+
+  /* Título */
+  .og-grouper-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  /* Icono toggle */
+  .og-grouper-toggle {
+    transition: transform 0.2s;
+  }
+
+  .og-grouper-section.open .og-grouper-toggle {
+    transform: rotate(180deg);
+  }
+
+  /* Contenido */
+  .og-grouper-content {
+    padding: 1rem;
+
+    & .og-repeatable-item{
+      border: 1px solid var(--og-form-repeatable-border);
+    }
+  }
+
+  /* ==========================================================================
+     GROUPER TABS
+     ========================================================================== */
+
+  /* Contenedor tabs */
+  .og-grouper-tabs {
+    border: 1px solid var(--og-gray-200);
+    border-radius: 4px;
+    background: white;
+    margin-bottom: 1rem;
+  }
+
+  /* Header de tabs */
+  .og-grouper-tabs-header {
+    display: flex;
+    border-bottom: 1px solid var(--og-gray-100);
+    background: #f8f9fa;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    position: relative;
+
+    /* Ocultar scrollbar en Chrome/Safari */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Degradado DERECHA */
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 60px;
+      background: linear-gradient(to left, #f8f9fa 30%, transparent 100%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+
+    /* Degradado IZQUIERDA */
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 60px;
+      background: linear-gradient(to right, #f8f9fa 30%, transparent 100%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+
+    /* Mostrar degradado derecho cuando hay overflow a la derecha */
+    &.has-overflow-right::after {
+      opacity: 1;
+    }
+
+    /* Mostrar degradado izquierdo cuando hay scroll a la izquierda */
+    &.has-overflow-left::before {
+      opacity: 1;
+    }
+  }
+
+  /* Botón de tab */
+  .og-grouper-tab-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6b7280;
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 120px;
+    position: relative;
+    z-index: 1;
+
+    &.active {
+      background: white;
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    &:hover:not(.active) {
+      background-color: #edf2f7;
+    }
+  }
+
+  /* Contenido de tabs */
+  .og-grouper-tabs-content {
+    padding: 1rem;
+  }
+
+  /* Panel individual */
+  .og-grouper-tab-panel {
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+
+  /* ==========================================================================
+     RESPONSIVE
+     ========================================================================== */
+
+  /* Mobile: reducir padding */
+  @media (max-width: 768px) {
+    .og-grouper-tab-btn {
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      min-width: 100px;
+    }
+
+    .og-grouper-tabs-content {
+      padding: 15px;
+    }
   }
 }

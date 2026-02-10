@@ -1,0 +1,332 @@
+/* alerts.css - Sistema de notas y alertas minimalista */
+
+.onlygrow-active {
+  /* Variables de alerts */
+  --og-alert-padding: 0.75rem;
+  --og-alert-border-width: 3px;
+  --og-alert-border-radius: 4px;
+  --og-alert-margin: 1rem 0;
+  
+  /* Colores por tipo */
+  --og-alert-info-bg: #e0f2fe;
+  --og-alert-info-border: #0284c7;
+  --og-alert-info-text: #0c4a6e;
+  
+  --og-alert-success-bg: #dcfce7;
+  --og-alert-success-border: #16a34a;
+  --og-alert-success-text: #14532d;
+  
+  --og-alert-warning-bg: #fef3c7;
+  --og-alert-warning-border: #f59e0b;
+  --og-alert-warning-text: #78350f;
+  
+  --og-alert-danger-bg: #fee2e2;
+  --og-alert-danger-border: #dc2626;
+  --og-alert-danger-text: #7f1d1d;
+  
+  --og-alert-note-bg: #f3f4f6;
+  --og-alert-note-border: #6b7280;
+  --og-alert-note-text: #1f2937;
+  
+  --og-alert-tip-bg: #fae8ff;
+  --og-alert-tip-border: #a855f7;
+  --og-alert-tip-text: #581c87;
+
+  /* Alert base */
+  .alert {
+    margin: var(--og-alert-margin);
+    padding: var(--og-alert-padding);
+    border-radius: var(--og-alert-border-radius);
+    font-size: var(--og-font-sm);
+    line-height: 1.5;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    background-color: var(--og-gray-50);
+
+    strong {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      margin-right: .5rem;
+    }
+
+    p {
+      margin: 0.5rem 0;
+
+      &:first-child {
+        margin-top: 0;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    /* Variante 1: Solo border izquierdo */
+    &.alert-border {
+      background: var(--og-gray-50);
+      border-left: var(--og-alert-border-width) solid;
+      padding-left: 1rem;
+    }
+
+    /* Variante 2: Fondo con border (por defecto) */
+    &.alert-filled {
+      border-left: var(--og-alert-border-width) solid;
+    }
+
+    /* Variante 3: Con descripción abajo */
+    &.alert-with-desc {
+      border-left: var(--og-alert-border-width) solid;
+      border-bottom: 1px solid;
+
+      .alert-desc {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid;
+        opacity: 0.8;
+        font-size: var(--og-font-xs);
+      }
+    }
+
+    /* Variante 4: Header de color con cuerpo blanco */
+    &.alert-header {
+      background: #fff;
+      border: 1px solid;
+      padding: 0;
+      overflow: hidden;
+
+      .alert-title {
+        padding: 0.5rem var(--og-alert-padding);
+        font-weight: 600;
+        font-size: var(--og-font-sm);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .alert-body {
+        padding: var(--og-alert-padding);
+        color: #333;
+      }
+
+      .alert-desc {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        opacity: 0.8;
+        font-size: var(--og-font-xs);
+      }
+    }
+
+    /* Tipos - Info */
+    &.alert-info {
+      &.alert-border {
+        border-left-color: var(--og-alert-info-border);
+        color: var(--og-alert-info-text);
+      }
+
+      &.alert-filled {
+        background: var(--og-alert-info-bg);
+        border-left-color: var(--og-alert-info-border);
+        color: var(--og-alert-info-text);
+      }
+
+      &.alert-with-desc {
+        background: var(--og-alert-info-bg);
+        border-left-color: var(--og-alert-info-border);
+        border-bottom-color: var(--og-alert-info-border);
+        color: var(--og-alert-info-text);
+
+        .alert-desc {
+          border-top-color: var(--og-alert-info-border);
+        }
+      }
+
+      &.alert-header {
+        border-color: var(--og-alert-info-border);
+
+        .alert-title {
+          background: var(--og-alert-info-bg);
+          color: var(--og-alert-info-text);
+        }
+      }
+    }
+
+    /* Tipos - Success */
+    &.alert-success {
+      &.alert-border {
+        border-left-color: var(--og-alert-success-border);
+        color: var(--og-alert-success-text);
+      }
+
+      &.alert-filled {
+        background: var(--og-alert-success-bg);
+        border-left-color: var(--og-alert-success-border);
+        color: var(--og-alert-success-text);
+      }
+
+      &.alert-with-desc {
+        background: var(--og-alert-success-bg);
+        border-left-color: var(--og-alert-success-border);
+        border-bottom-color: var(--og-alert-success-border);
+        color: var(--og-alert-success-text);
+
+        .alert-desc {
+          border-top-color: var(--og-alert-success-border);
+        }
+      }
+
+      &.alert-header {
+        border-color: var(--og-alert-success-border);
+
+        .alert-title {
+          background: var(--og-alert-success-bg);
+          color: var(--og-alert-success-text);
+        }
+      }
+    }
+
+    /* Tipos - Warning */
+    &.alert-warning {
+      &.alert-border {
+        border-left-color: var(--og-alert-warning-border);
+        color: var(--og-alert-warning-text);
+      }
+
+      &.alert-filled {
+        background: var(--og-alert-warning-bg);
+        border-left-color: var(--og-alert-warning-border);
+        color: var(--og-alert-warning-text);
+      }
+
+      &.alert-with-desc {
+        background: var(--og-alert-warning-bg);
+        border-left-color: var(--og-alert-warning-border);
+        border-bottom-color: var(--og-alert-warning-border);
+        color: var(--og-alert-warning-text);
+
+        .alert-desc {
+          border-top-color: var(--og-alert-warning-border);
+        }
+      }
+
+      &.alert-header {
+        border-color: var(--og-alert-warning-border);
+
+        .alert-title {
+          background: var(--og-alert-warning-bg);
+          color: var(--og-alert-warning-text);
+        }
+      }
+    }
+
+    /* Tipos - Danger */
+    &.alert-danger {
+      &.alert-border {
+        border-left-color: var(--og-alert-danger-border);
+        color: var(--og-alert-danger-text);
+      }
+
+      &.alert-filled {
+        background: var(--og-alert-danger-bg);
+        border-left-color: var(--og-alert-danger-border);
+        color: var(--og-alert-danger-text);
+      }
+
+      &.alert-with-desc {
+        background: var(--og-alert-danger-bg);
+        border-left-color: var(--og-alert-danger-border);
+        border-bottom-color: var(--og-alert-danger-border);
+        color: var(--og-alert-danger-text);
+
+        .alert-desc {
+          border-top-color: var(--og-alert-danger-border);
+        }
+      }
+
+      &.alert-header {
+        border-color: var(--og-alert-danger-border);
+
+        .alert-title {
+          background: var(--og-alert-danger-bg);
+          color: var(--og-alert-danger-text);
+        }
+      }
+    }
+
+    /* Tipos - Note */
+    &.alert-note {
+      &.alert-border {
+        border-left-color: var(--og-alert-note-border);
+        color: var(--og-alert-note-text);
+      }
+
+      &.alert-filled {
+        background: var(--og-alert-note-bg);
+        border-left-color: var(--og-alert-note-border);
+        color: var(--og-alert-note-text);
+      }
+
+      &.alert-with-desc {
+        background: var(--og-alert-note-bg);
+        border-left-color: var(--og-alert-note-border);
+        border-bottom-color: var(--og-alert-note-border);
+        color: var(--og-alert-note-text);
+
+        .alert-desc {
+          border-top-color: var(--og-alert-note-border);
+        }
+      }
+
+      &.alert-header {
+        border-color: var(--og-alert-note-border);
+
+        .alert-title {
+          background: var(--og-alert-note-bg);
+          color: var(--og-alert-note-text);
+        }
+      }
+    }
+
+    /* Tipos - Tip */
+    &.alert-tip {
+      &.alert-border {
+        border-left-color: var(--og-alert-tip-border);
+        color: var(--og-alert-tip-text);
+      }
+
+      &.alert-filled {
+        background: var(--og-alert-tip-bg);
+        border-left-color: var(--og-alert-tip-border);
+        color: var(--og-alert-tip-text);
+      }
+
+      &.alert-with-desc {
+        background: var(--og-alert-tip-bg);
+        border-left-color: var(--og-alert-tip-border);
+        border-bottom-color: var(--og-alert-tip-border);
+        color: var(--og-alert-tip-text);
+
+        .alert-desc {
+          border-top-color: var(--og-alert-tip-border);
+        }
+      }
+
+      &.alert-header {
+        border-color: var(--og-alert-tip-border);
+
+        .alert-title {
+          background: var(--og-alert-tip-bg);
+          color: var(--og-alert-tip-text);
+        }
+      }
+    }
+  }
+
+  /* Utils */
+  .og-view-content{
+    & .alert {
+      margin-top: 0;
+    }
+  }
+}

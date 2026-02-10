@@ -1,7 +1,5 @@
 {
   "id": "infoproduct-product-form",
-  "title": "i18n:infoproduct.products.form.title",
-  "description": "i18n:infoproduct.products.form.description",
   "fields": [
     {
       "type": "group",

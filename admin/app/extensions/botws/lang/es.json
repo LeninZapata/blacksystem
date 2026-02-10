@@ -11,6 +11,7 @@
       "column": {
         "id": "ID",
         "name": "Nombre del Bot",
+        "status": "Estado",
         "personality": "Personalidad (prompt especifico corto)",
         "created": "Fecha de Creación"
       },

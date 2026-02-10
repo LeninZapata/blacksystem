@@ -1,138 +1,139 @@
 /* og-widget.css - Componente widget con prefijo og- para WordPress */
 
-/* ==========================================================================
-   WIDGET GRID (Contenedor)
-   ========================================================================== */
+.onlygrow-active {
+  /* ==========================================================================
+     WIDGET GRID (Contenedor)
+     ========================================================================== */
 
-.og-widget-grid {
-  display: grid;
-  gap: 1rem;
-  padding: 1rem 0;
-  
-  &[data-cols="1"] { grid-template-columns: 1fr; }
-  &[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
-  &[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
-  &[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
+  .og-widget-grid {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem 0;
 
-  /* Tablet: 2 columnas si tiene 3 o 4 */
-  @media (max-width: 1024px) {
-    &[data-cols="3"],
-    &[data-cols="4"] {
+    &[data-cols="1"] {
+      grid-template-columns: 1fr;
+    }
+
+    &[data-cols="2"] {
       grid-template-columns: repeat(2, 1fr);
     }
-  }
 
-  /* Mobile: siempre 1 columna */
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* ==========================================================================
-   WIDGET ITEM (Cada widget individual)
-   ========================================================================== */
-
-.og-widget-item {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: all 0.2s;
-}
-
-/* ==========================================================================
-   WIDGET HEADER
-   ========================================================================== */
-
-.og-widget-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  
-  h4 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-}
-
-/* ==========================================================================
-   WIDGET BODY (Contenido)
-   ========================================================================== */
-
-.og-widget-body {
-  padding: 1rem;
-  min-height: 100px;
-}
-
-/* ==========================================================================
-   WIDGET ESTADOS (Loading, Error, Drag)
-   ========================================================================== */
-
-.og-widget-loading {
-  text-align: center;
-  padding: 2rem;
-  color: #999;
-  font-style: italic;
-}
-
-.og-widget-error {
-  padding: 1rem;
-  background: #fee;
-  color: #c33;
-  border-radius: 4px;
-  text-align: center;
-}
-
-/* ==========================================================================
-   WIDGET DRAG & DROP
-   ========================================================================== */
-
-.og-widget-drag {
-  cursor: move;
-  font-size: 1.2rem;
-  opacity: 0.7;
-  user-select: none;
-}
-
-/* ==========================================================================
-   ESTILOS DENTRO DEL WRAPPER .onlygrow-active
-   ========================================================================== */
-
-.onlygrow-active {
-  .og-widget-item {
-    /* Hover solo dentro de nuestro wrapper */
-    &:hover {
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    &[data-cols="3"] {
+      grid-template-columns: repeat(3, 1fr);
     }
-    
+
+    &[data-cols="4"] {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Tablet: 2 columnas si tiene 3 o 4 */
+    @media (max-width: 1024px) {
+      &[data-cols="3"],
+      &[data-cols="4"] {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Mobile: siempre 1 columna */
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* ==========================================================================
+     WIDGET ITEM (Cada widget individual)
+     ========================================================================== */
+
+  .og-widget-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+
+    /* Hover */
+    &:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
     /* Estado dragging */
     &.dragging {
       opacity: 0.5;
       transform: scale(0.95);
     }
   }
-  
-  .og-widget-drag {
-    /* Hover solo dentro de nuestro wrapper */
-    &:hover {
-      opacity: 1;
+
+  /* ==========================================================================
+     WIDGET HEADER
+     ========================================================================== */
+
+  .og-widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
     }
   }
-  
-  /* Estilos para contenido dentro de widgets */
+
+  /* ==========================================================================
+     WIDGET BODY (Contenido)
+     ========================================================================== */
+
   .og-widget-body {
+    padding: 1rem;
+    min-height: 100px;
+
+    /* Estilos para contenido dentro de widgets */
     .btn {
       margin-right: 0.5rem;
       margin-bottom: 0.5rem;
     }
-    
+
     .og-table {
       margin-top: 0;
+    }
+  }
+
+  /* ==========================================================================
+     WIDGET ESTADOS (Loading, Error, Drag)
+     ========================================================================== */
+
+  .og-widget-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #999;
+    font-style: italic;
+  }
+
+  .og-widget-error {
+    padding: 1rem;
+    background: #fee;
+    color: #c33;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  /* ==========================================================================
+     WIDGET DRAG & DROP
+     ========================================================================== */
+
+  .og-widget-drag {
+    cursor: move;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    user-select: none;
+    color: #fff;
+
+    &:hover {
+      opacity: 1;
     }
   }
 }

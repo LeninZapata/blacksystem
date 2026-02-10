@@ -1,16 +1,19 @@
 /* Core */
 @import url('./core/vars.css');
 @import url('./core/reset.css');
+@import url('./core/colors.css');
+@import url('./core/typography.css');
 @import url('./core/layout.css');
+@import url('./core/grid.css');
 @import url('./core/form.css');
 @import url('./core/sidebar.css');
 @import url('./core/view.css');
 @import url('./core/table.css');
 @import url('./core/button.css');
-@import url('./core/toolbar.css');
 
 
 /* Components */
+@import url('./components/alerts.css');
 @import url('./components/tabs.css');
 @import url('./components/modal.css');
 @import url('./components/dataTable.css');

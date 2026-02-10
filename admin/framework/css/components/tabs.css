@@ -1,163 +1,134 @@
-/* og-tabs.css - Componente tabs con prefijo og- para WordPress */
+/* tabs.css - Componente tabs minimalista */
 
-/* ==========================================================================
-   TABS BASE
-   ========================================================================== */
+.onlygrow-active {
+  /* Variables de tabs */
+  --og-tabs-border: var(--og-gray-100);
+  --og-tabs-bg: var(--og-gray-50);
+  --og-tabs-btn-color: #6c757d;
+  --og-tabs-btn-active-color: var(--accent-primary);
+  --og-tabs-btn-active-bg: #fff;
+  --og-tabs-btn-hover-bg: #e9ecef;
+  --og-tabs-gradient-width: 60px;
 
-.og-tabs-component {
-  width: 100%;
-}
+  .og-tabs-component {
+    width: 100%;
+    border-radius: 6px;
+  }
 
-/* Header de tabs */
-.og-tabs-header {
-  display: flex;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 20px;
-  background: #f8f9fa;
-  border-radius: 6px 6px 0 0;
+  .og-tabs-header {
+    display: flex;
+    border-bottom: 1px solid var(--og-tabs-border);
+    margin-bottom: 20px;
+    background: var(--og-tabs-bg);
+    border-radius: 6px 6px 0 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    position: relative;
 
-  /* Responsive: scroll horizontal */
-  overflow-x: auto;
-  overflow-y: hidden;
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
-  /* Ocultar scrollbar pero mantener funcionalidad */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+    /* Degradado derecho */
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: var(--og-tabs-gradient-width);
+      background: linear-gradient(to left, var(--og-tabs-bg) 30%, transparent 100%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
 
-  /* Smooth scroll */
-  scroll-behavior: smooth;
+    /* Degradado izquierdo */
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: var(--og-tabs-gradient-width);
+      background: linear-gradient(to right, var(--og-tabs-bg) 30%, transparent 100%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
 
-  /* Posición relativa para los degradados */
-  position: relative;
-}
+    &.has-overflow-right::after {
+      opacity: 1;
+    }
 
-/* Ocultar scrollbar en Chrome/Safari */
-.og-tabs-header::-webkit-scrollbar {
-  display: none;
-}
+    &.has-overflow-left::before {
+      opacity: 1;
+    }
+  }
 
-/* Degradado DERECHA */
-.og-tabs-header::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 60px;
-  background: linear-gradient(to left, #f8f9fa 30%, transparent 100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 10;
-}
-
-/* Degradado IZQUIERDA */
-.og-tabs-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 60px;
-  background: linear-gradient(to right, #f8f9fa 30%, transparent 100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 10;
-}
-
-/* Mostrar degradado derecho cuando hay overflow a la derecha */
-.og-tabs-header.has-overflow-right::after {
-  opacity: 1;
-}
-
-/* Mostrar degradado izquierdo cuando hay scroll hacia la izquierda */
-.og-tabs-header.has-overflow-left::before {
-  opacity: 1;
-}
-
-/* Botón de tab */
-.og-tab-btn {
-  padding: 12px 24px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  font-weight: 500;
-  color: #6c757d;
-  transition: all 0.3s ease;
-
-  /* Evitar que se contraigan */
-  flex-shrink: 0;
-  white-space: nowrap;
-
-  /* Posición y z-index para que el degradado quede encima */
-  position: relative;
-  z-index: 1;
-}
-
-.og-tab-btn.active {
-  border-bottom-color: #4a6cf7;
-  color: #4a6cf7;
-  background: white;
-}
-
-/* Contenido de tab */
-.og-tab-content {
-  min-height: 200px;
-  padding: 20px 0;
-}
-
-/* Estados de loading y error */
-.og-tab-loading {
-  text-align: center;
-  padding: 40px;
-  color: #6c757d;
-  font-style: italic;
-}
-
-.og-tab-error {
-  color: #dc3545;
-  text-align: center;
-  padding: 40px;
-  background: #f8d7da;
-  border-radius: 6px;
-}
-
-/* ==========================================================================
-   RESPONSIVE
-   ========================================================================== */
-
-/* Mobile: reducir padding */
-@media (max-width: 768px) {
   .og-tab-btn {
-    padding: 10px 16px;
-    font-size: 0.9rem;
+    padding: 12px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+    font-size: var(--og-font-sm);
+    color: var(--og-tabs-btn-color);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+
+    &:hover {
+      background: var(--og-tabs-btn-hover-bg);
+      color: #495057;
+    }
+
+    &.active {
+      border-bottom-color: var(--og-tabs-btn-active-color);
+      color: var(--og-tabs-btn-active-color);
+      background: var(--og-tabs-btn-active-bg);
+    }
   }
 
   .og-tab-content {
-    padding: 15px 0;
-  }
-}
-
-/* ==========================================================================
-   ESTILOS DENTRO DEL WRAPPER .onlygrow-active
-   ========================================================================== */
-
-/*
-  Clases de hover que pueden quedar sin prefijo
-  porque están protegidas por el wrapper
-*/
-.onlygrow-active {
-  .og-tab-btn:hover {
-    background: #e9ecef;
-    color: #495057;
+    min-height: 200px;
+    padding-bottom: 1rem;
   }
 
-  /* Estilos adicionales para tabs dentro de wrapper */
-  .og-tabs-component {
-    border: 1px solid #e5e7eb;
+  .og-tab-loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-style: italic;
+    font-size: var(--og-font-sm);
+  }
+
+  .og-tab-error {
+    color: #dc3545;
+    text-align: center;
+    padding: 40px;
+    background: #f8d7da;
     border-radius: 6px;
-    padding: 20px;
+    font-size: var(--og-font-sm);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .og-tab-btn {
+      padding: 10px 16px;
+      font-size: var(--og-font-xs);
+    }
+
+    .og-tab-content {
+      padding: 15px 0;
+    }
   }
 }

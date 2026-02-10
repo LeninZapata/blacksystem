@@ -26,7 +26,7 @@ class ogLayout {
       `;
     } else {
       const html = `
-        <div class="og-layout">
+        <div class="og-layout sidebar-compact2">
           <header class="og-header" id="header">
             <button class="og-menu-toggle" id="menu-toggle" style="display: none;">☰</button>
             <span>${__('core.layout.system_title')}</span>

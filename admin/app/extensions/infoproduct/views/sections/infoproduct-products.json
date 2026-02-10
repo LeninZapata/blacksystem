@@ -8,12 +8,12 @@
   "content": [
     {
       "type": "html",
-      "content": "<div class='view-header'><h2>{i18n:infoproduct.products.list.header.title}</h2><p>{i18n:infoproduct.products.list.header.description}</p></div>",
+      "content": "<h4>{i18n:infoproduct.products.list.header.title}</h4>",
       "order": 0
     },
     {
       "type": "html",
-      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='infoproductProduct.refresh();ogToast.info(\"{i18n:infoproduct.products.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='infoproductProduct.refresh();ogToast.info(\"{i18n:infoproduct.products.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
       "order": 1
     },
     {
@@ -29,7 +29,7 @@
           {
             "id": {
               "name": "i18n:infoproduct.products.column.id",
-              "width": "80px",
+              "width": "30px",
               "align": "center",
               "sortable": true
             }
@@ -37,15 +37,18 @@
           {
             "name": {
               "name": "i18n:infoproduct.products.column.name",
-              "sortable": false
+              "format": "product-name-with-price",
+              "sortable": false,
+              "width": "250px"
             }
           },
           {
-            "dc": {
-              "name": "i18n:infoproduct.products.column.created",
-              "format": "datetime",
-              "width": "180px",
-              "align": "center"
+            "status": {
+              "name": "i18n:infoproduct.products.column.status",
+              "format": "product-status",
+              "width": "120px",
+              "align": "left",
+              "sortable": false
             }
           }
         ],

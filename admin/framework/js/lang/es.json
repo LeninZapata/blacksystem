@@ -19,6 +19,11 @@
     "next": "Siguiente",
     "previous": "Anterior",
 
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+
     "api": {
       "error": "Error en la conexión",
       "success": "Operación exitosa",

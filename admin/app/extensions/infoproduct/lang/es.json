@@ -4,12 +4,12 @@
       "list": {
         "title": "Gestión de Infoproductos",
         "header": {
-          "title": "Infoproductos Digitales",
-          "description": "Gestiona tus productos de información digital (cursos, ebooks, webinars, etc.)"
+          "title": "Infoproductos Digitales"
         },
         "column": {
           "id": "ID",
           "name": "Nombre",
+          "status": "Estado",
           "created": "Fecha de Creación"
         }
       },

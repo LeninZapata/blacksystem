@@ -1,6 +1,7 @@
 /* toast.css - Con prefijo og- y wrapper .onlygrow-active */
+
 .onlygrow-active {
-  /* Variables de toast (solo dentro del scope) */
+  /* Variables de toast */
   --og-toast-success: #10b981;
   --og-toast-error: #ef4444;
   --og-toast-warning: #f59e0b;
@@ -57,7 +58,7 @@
     padding: 1rem 1.25rem;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 300px;
     max-width: 500px;
     pointer-events: auto;

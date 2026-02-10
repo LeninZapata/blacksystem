@@ -1,193 +1,270 @@
-/* og-sidebar.css - Sidebar con prefijo og- para WordPress */
-/* ¡IMPORTANTE! Toda la sidebar está dentro de .onlygrow-active */
+/* sidebar.css - Sidebar minimalista */
 
-.onlygrow-active .og-sidebar {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 0.5rem 0;
-}
+.onlygrow-active {
+  /* Variables de sidebar */
+  --og-sidebar-bg: #fff;
+  --og-sidebar-text: #333;
+  --og-sidebar-border: var(--og-gray-100); /*#e0e0e0*/;
+  --og-sidebar-hover-bg: #f5f5f5;
+  --og-sidebar-active-bg: #fafafa;
+  --og-sidebar-active-border: var(--accent-primary-dark, rgb(56, 93, 138));
 
-/* ==========================================================================
-   SIDEBAR HEADER
-   ========================================================================== */
-
-.onlygrow-active .og-sidebar-header {
-  padding: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: white;
-}
-
-/* ==========================================================================
-   SIDEBAR FOOTER
-   ========================================================================== */
-
-.onlygrow-active .og-sidebar-footer {
-  margin-top: auto;
-  padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.1);
-}
-
-/* ==========================================================================
-   MENÚ PRINCIPAL
-   ========================================================================== */
-
-/* Item de menú */
-.onlygrow-active .og-menu-item {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-bottom: 1px solid #34495e;
-  transition: all 0.15s ease;
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  
-  &:hover {
-    background: #34495e;
+  .og-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--og-sidebar-bg);
+    color: var(--og-sidebar-text);
+    border-right: 1px solid var(--og-sidebar-border);
   }
-  
-  &.active {
-    background: rgba(52, 152, 219, 0.2);
-    border-left: 3px solid #3498db;
-    padding-left: calc(1rem - 3px);
+
+  .og-sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--og-sidebar-border);
+    font-size: var(--og-font-md);
+    font-weight: 500;
+
+    &:empty {
+      padding: 0;
+      border: none;
+    }
   }
-  
-  &.og-has-submenu::after {
-    content: '▸';
-    margin-left: auto;
-    transition: transform 0.2s;
+
+  .og-sidebar-footer {
+    margin-top: auto;
+    padding: 1rem;
+    border-top: 1px solid var(--og-sidebar-border);
+
+    &:empty {
+      padding: 0;
+      margin: 0;
+      border: none;
+    }
   }
-  
-  &.open::after {
-    transform: rotate(90deg);
-  }
-  
-  &.open + .og-submenu {
-    display: block;
-  }
-}
 
-/* Icono de menú */
-.onlygrow-active .og-menu-icon {
-  font-size: 1.1rem;
-  width: 24px;
-  text-align: center;
-}
-
-/* Título de menú */
-.onlygrow-active .og-menu-title {
-  flex: 1;
-  font-size: 0.95rem;
-}
-
-/* Flecha de submenú */
-.onlygrow-active .og-menu-arrow {
-  margin-left: auto;
-  font-size: 0.9rem;
-  opacity: 0.7;
-}
-
-/* ==========================================================================
-   SUBMENÚ
-   ========================================================================== */
-
-.onlygrow-active .og-submenu {
-  display: none;
-  background: #34495e;
-  
   .og-menu-item {
-    padding: 0.6rem 1rem 0.6rem 2rem;
-    border-bottom: 1px solid #2c3e50;
-    
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--og-sidebar-border);
+    color: var(--og-sidebar-text);
+    text-decoration: none;
+    position: relative;
+
     &:hover {
-      background: #3c5a78;
+      background: var(--og-sidebar-hover-bg);
     }
-    
+
     &.active {
-      background: rgba(52, 152, 219, 0.15);
-      border-left: 3px solid #3498db;
-      padding-left: calc(2rem - 3px);
+      background: var(--og-sidebar-active-bg);
+      border-left: 2px solid var(--og-sidebar-active-border);
+      padding-left: calc(1rem - 2px);
+    }
+
+    &.og-has-submenu::after {
+      content: '▸';
+      margin-left: auto;
+    }
+
+    &.open::after {
+      transform: rotate(90deg);
+    }
+
+    &.open + .og-submenu {
+      display: block;
+    }
+
+    /* MEJORADO: Mayor indentación para mostrar mejor la jerarquía */
+    &.level-1 {
+      padding-left: 2.5rem;
+      
+      &.active {
+        padding-left: calc(2.5rem - 2px);
+      }
+    }
+
+    &.level-2 {
+      padding-left: 4rem;
+      
+      &.active {
+        padding-left: calc(4rem - 2px);
+      }
+    }
+
+    &.level-3 {
+      padding-left: 5.5rem;
+      
+      &.active {
+        padding-left: calc(5.5rem - 2px);
+      }
+    }
+  }
+
+  .og-menu-icon {
+    font-size: var(--og-font-md);
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .og-menu-title {
+    flex: 1;
+    font-size: var(--og-font-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .og-menu-arrow {
+    margin-left: auto;
+    font-size: var(--og-font-xs);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .og-submenu {
+    display: none;
+    background: var(--og-sidebar-bg);
+
+    .og-menu-item {
+      padding-top: 0.6rem;
+      padding-bottom: 0.6rem;
+      /* NO sobreescribir padding-left, dejar que level-X lo controle */
+
+      &.active {
+        border-left: 2px solid var(--og-sidebar-active-border);
+        /* El padding-left se ajusta automáticamente por level-X.active */
+      }
+    }
+  }
+
+  .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: var(--og-font-xs);
+  }
+
+  .sidebar-logout {
+    width: 100%;
+    padding: 0.5rem;
+    background: transparent;
+    color: var(--og-sidebar-text);
+    border: 1px solid var(--og-sidebar-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: var(--og-font-xs);
+
+    &:hover {
+      background: var(--og-sidebar-hover-bg);
+    }
+  }
+
+  /* Modo Compact - Solo iconos */
+  .og-layout.sidebar-compact {
+    .og-sidebar {
+      .og-sidebar-header {
+        padding: 0.5rem;
+        text-align: center;
+
+        &:empty {
+          padding: 0;
+          border: none;
+        }
+      }
+
+      .og-sidebar-footer {
+        padding: 0.5rem;
+        text-align: center;
+
+        &:empty {
+          padding: 0;
+          margin: 0;
+          border: none;
+        }
+      }
+
+      .og-menu-item {
+        padding: 0.75rem;
+        justify-content: center;
+        gap: 0;
+
+        .og-menu-title,
+        .og-menu-arrow {
+          display: none;
+        }
+
+        .og-menu-icon {
+          font-size: var(--og-font-lg);
+        }
+
+        &.active {
+          border-left: 2px solid var(--og-sidebar-active-border);
+          padding-left: calc(0.75rem - 2px);
+        }
+
+        &.og-has-submenu::after {
+          content: '▸';
+          position: absolute;
+          right: 2px;
+          bottom: 2px;
+          font-size: 0.45rem;
+          margin: 0;
+          opacity: 0.6;
+        }
+
+        &.open::after {
+          content: '▾';
+        }
+
+        &.level-1,
+        &.level-2,
+        &.level-3 {
+          padding-left: 0.75rem;
+        }
+      }
+
+      .og-submenu {
+        display: none;
+        background: var(--og-sidebar-hover-bg);
+        box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.05);
+
+        &.og-submenu {
+          display: none;
+        }
+
+        .og-menu-item {
+          padding: 0.6rem 0.75rem;
+          background: transparent;
+
+          &.active {
+            border-left: 2px solid var(--og-sidebar-active-border);
+            padding-left: calc(0.75rem - 2px);
+          }
+        }
+      }
+
+      .og-menu-item.open + .og-submenu {
+        display: block;
+      }
+
+      .sidebar-user .user-name {
+        display: none;
+      }
+
+      .sidebar-logout .logout-text {
+        display: none;
+      }
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .og-sidebar {
+      padding-top: 60px;
     }
   }
 }
-
-/* ==========================================================================
-   USUARIO Y LOGOUT
-   ========================================================================== */
-
-.onlygrow-active .sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
-}
-
-.onlygrow-active .sidebar-logout {
-  width: 100%;
-  padding: 0.75rem;
-  background: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  
-  &:hover {
-    background: #c0392b;
-  }
-}
-
-/* ==========================================================================
-   NIVELES DE MENÚ (para indentación)
-   ========================================================================== */
-
-.onlygrow-active .og-menu-item.level-1 { padding-left: 2rem; }
-.onlygrow-active .og-menu-item.level-2 { padding-left: 3rem; }
-.onlygrow-active .og-menu-item.level-3 { padding-left: 4rem; }
-
-/* ==========================================================================
-   ESTADOS RESPONSIVE
-   ========================================================================== */
-
-@media (max-width: 1024px) {
-  .onlygrow-active .og-sidebar {
-    padding-top: 60px; /* Para compensar el header en mobile */
-  }
-}
-
-/* ==========================================================================
-   ANIMACIONES
-   ========================================================================== */
-
-@keyframes og-menu-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.onlygrow-active .og-menu-item {
-  animation: og-menu-slide-in 0.2s ease-out;
-  animation-fill-mode: both;
-}
-
-/* Retrasar animación para items consecutivos */
-.onlygrow-active .og-menu-item:nth-child(1) { animation-delay: 0.05s; }
-.onlygrow-active .og-menu-item:nth-child(2) { animation-delay: 0.1s; }
-.onlygrow-active .og-menu-item:nth-child(3) { animation-delay: 0.15s; }
-.onlygrow-active .og-menu-item:nth-child(4) { animation-delay: 0.2s; }
-.onlygrow-active .og-menu-item:nth-child(5) { animation-delay: 0.25s; }
-.onlygrow-active .og-menu-item:nth-child(6) { animation-delay: 0.3s; }

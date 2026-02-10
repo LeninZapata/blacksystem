@@ -122,7 +122,7 @@ class ogTextareaExpander {
       : 'Ctrl+Enter para guardar.';
 
     return `
-      <div class="form-group">
+      <div class="og-form-group">
         <textarea 
           id="expanded-textarea" 
           class="form-input" 
