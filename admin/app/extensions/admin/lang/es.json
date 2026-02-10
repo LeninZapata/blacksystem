@@ -15,6 +15,7 @@
         "username": "Nombre de Usuario",
         "email": "Correo Electrónico",
         "role": "Rol",
+        "status": "Estado",
         "created": "Fecha de Creación"
       },
       "action": {

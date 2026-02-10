@@ -22,11 +22,11 @@
             "content": [
               {
                 "type": "html",
-                "content": "<div class='view-header'><h2>{i18n:automation.scale_rules.listado.header.title}</h2><p>{i18n:automation.scale_rules.listado.header.description}</p></div>"
+                "content": "<h4>{i18n:automation.scale_rules.listado.header.title}</h4>"
               },
               {
                 "type": "html",
-                "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/scale-rule-form', {title: '{i18n:automation.scale_rules.ogModal.new.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='scaleRule.refresh();ogToast.info(\"{i18n:automation.scale_rules.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>"
+                "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/scale-rule-form', {title: '{i18n:automation.scale_rules.ogModal.new.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='scaleRule.refresh();ogToast.info(\"{i18n:automation.scale_rules.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>"
               },
               {
                 "type": "component",
@@ -34,11 +34,31 @@
                 "config": {
                   "source": "api/adAutoScale",
                   "columns": [
-                    {"id": {"name": "i18n:automation.scale_rules.column.id", "width": "80px", "align": "center", "sortable": true}},
-                    {"name": {"name": "i18n:automation.scale_rules.column.name", "sortable": true}},
-                    {"ad_assets_id": {"name": "i18n:automation.scale_rules.column.product_ad_asset", "width": "200px", "align": "center", "sortable": true}},
-                    {"is_active": {"name": "i18n:automation.scale_rules.column.is_active", "width": "100px", "align": "center"}},
-                    {"dc": {"name": "i18n:automation.scale_rules.column.created", "format": "datetime", "width": "180px", "align": "center"}}
+                    {
+                      "id": {
+                        "name": "i18n:automation.scale_rules.column.id",
+                        "width": "30px",
+                        "align": "center",
+                        "sortable": true
+                      }
+                    },
+                    {
+                      "name": {
+                        "name": "i18n:automation.scale_rules.column.name",
+                        "format": "scale-rule-name-with-asset",
+                        "sortable": true,
+                        "width": "240px"
+                      }
+                    },
+                    {
+                      "is_active": {
+                        "name": "i18n:automation.scale_rules.column.status",
+                        "format": "scale-rule-status",
+                        "width": "120px",
+                        "align": "left",
+                        "sortable": false
+                      }
+                    }
                   ],
                   "actions": {
                     "edit": {

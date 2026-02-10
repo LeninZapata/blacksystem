@@ -1,7 +1,5 @@
 {
   "id": "workflow-form",
-  "title": "i18n:automation.workflow.form.title",
-  "description": "i18n:automation.workflow.form.description",
   "fields": [
     {
       "name": "name",

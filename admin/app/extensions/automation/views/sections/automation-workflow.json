@@ -6,12 +6,12 @@
   "content": [
     {
       "type": "html",
-      "content": "<div class='view-header'><h2>{i18n:automation.workflow.listado.header.title}</h2><p>{i18n:automation.workflow.listado.header.description}</p></div>",
+      "content": "<h4>{i18n:automation.workflow.listado.header.title}</h4>",
       "order": 0
     },
     {
       "type": "html",
-      "content": "<div class='view-toolbar'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/workflow-form', {title: '{i18n:automation.workflow.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){workflow.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='workflow.refresh();ogToast.info(\"{i18n:automation.workflow.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
+      "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/workflow-form', {title: '{i18n:automation.workflow.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){workflow.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='workflow.refresh();ogToast.info(\"{i18n:automation.workflow.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
       "order": 1
     },
     {
@@ -21,10 +21,9 @@
       "config": {
         "source": "api/workFlow",
         "columns": [
-          {"id": {"name": "i18n:automation.workflow.column.id", "width": "80px", "align": "center", "sortable": true}},
-          {"name": {"name": "i18n:automation.workflow.column.name", "sortable": true}},
-          {"description": {"name": "i18n:automation.workflow.column.description", "sortable": true}},
-          {"dc": {"name": "i18n:automation.workflow.column.created", "format": "datetime", "width": "180px", "align": "center"}}
+          {"id": {"name": "i18n:automation.workflow.column.id", "width": "30px", "align": "center", "sortable": true}},
+          {"name": {"name": "i18n:automation.workflow.column.name", "sortable": true, "width": "140px"}},
+          {"description": {"name": "i18n:automation.workflow.column.description", "sortable": true, "width": "280px"}}
         ],
         "actions": {
           "edit": {

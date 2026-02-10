@@ -60,6 +60,13 @@ class UserController extends ogController {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
     }
 
+    // Asegurar que status sea un valor válido (0 o 1)
+    if (!isset($data['status'])) {
+      $data['status'] = 1; // Por defecto activo
+    } else {
+      $data['status'] = (int)$data['status'];
+    }
+
     // Timestamps
     $data['dc'] = date('Y-m-d H:i:s');
     $data['tc'] = time();
@@ -101,6 +108,11 @@ class UserController extends ogController {
     // Convertir config a JSON si es array
     if (isset($data['config']) && is_array($data['config'])) {
       $data['config'] = json_encode($data['config'], JSON_UNESCAPED_UNICODE);
+    }
+
+    // Manejar status si se proporciona
+    if (isset($data['status'])) {
+      $data['status'] = (int)$data['status'];
     }
 
     // Timestamps

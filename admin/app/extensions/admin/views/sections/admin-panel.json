@@ -17,12 +17,12 @@
       "content": [
         {
           "type": "html",
-          "content": "<div class='view-header'><h2>👥 Gestión de Usuarios</h2><p>Administra usuarios del sistema y sus permisos</p></div>",
+          "content": "<h4>👥 Gestión de Usuarios</h4>",
           "order": 0
         },
         {
           "type": "html",
-          "content": "<div class='view-toolbar' style='display: flex; gap: 0.5rem; margin: 1rem 0;'><button class='btn btn-primary' onclick=\"ogModal.open('middle:user/forms/user-form', {title: '👤 Nuevo Usuario', width: '90%', maxWidth: '900px', showFooter: false, afterRender: function(formId){admin.openNew(formId);}})\">➕ Nuevo Usuario</button><button class='btn btn-secondary' onclick='admin.refresh();ogToast.info(\"i18n:admin.refresh.success\")'>🔄 Actualizar</button></div>"
+          "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('middle:user/forms/user-form', {title: '👤 Nuevo Usuario', width: '90%', maxWidth: '900px', showFooter: false, afterRender: function(formId){admin.openNew(formId);}})\">➕ Nuevo Usuario</button><button class='btn btn-secondary' onclick='admin.refresh();ogToast.info(\"i18n:admin.refresh.success\")'>🔄 Actualizar</button></div>"
         },
         {
           "type": "component",
@@ -33,7 +33,7 @@
               {
                 "id": {
                   "name": "i18n:admin.user.column.id",
-                  "width": "80px",
+                  "width": "25px",
                   "align": "center",
                   "sortable": true
                 }
@@ -41,29 +41,26 @@
               {
                 "user": {
                   "name": "i18n:admin.user.column.username",
-                  "width": "200px",
-                  "sortable": true
-                }
-              },
-              {
-                "email": {
-                  "name": "i18n:admin.user.column.email",
-                  "width": "250px"
-                }
-              },
-              {
-                "dc": {
-                  "name": "i18n:admin.user.column.created",
-                  "format": "datetime",
-                  "width": "180px",
-                  "align": "center"
+                  "format": "user-with-email",
+                  "sortable": true,
+                  "width": "120px"
                 }
               },
               {
                 "role": {
                   "name": "i18n:admin.user.column.role",
                   "format": "uppercase",
-                  "align": "center"
+                  "width": "80px",
+                  "align": "left"
+                }
+              },
+              {
+                "status": {
+                  "name": "i18n:admin.user.column.status",
+                  "format": "user-status",
+                  "width": "100px",
+                  "align": "left",
+                  "sortable": false
                 }
               }
             ],

@@ -351,7 +351,9 @@ class ogDbBuilder {
 
     if ($this->joins) {
       foreach ($this->joins as $j) {
-        $sql .= " {$j['type']} JOIN `{$j['table']}` ON `{$j['first']}` {$j['op']} `{$j['second']}`";
+        $firstCol = $this->formatJoinColumn($j['first']);
+        $secondCol = $this->formatJoinColumn($j['second']);
+        $sql .= " {$j['type']} JOIN `{$j['table']}` ON {$firstCol} {$j['op']} {$secondCol}";
       }
     }
 
@@ -432,6 +434,27 @@ class ogDbBuilder {
     return $sql;
   }
 
+
+  // Método auxiliar para formatear nombres de columna en JOINs
+  protected function formatJoinColumn($column) {
+    if ($column instanceof ogRawExpr) {
+      return (string)$column;
+    }
+
+    // Si ya tiene backticks, dejar tal cual
+    if (strpos($column, '`') !== false) {
+      return $column;
+    }
+
+    // Si tiene punto (tabla.columna), formatear cada parte
+    if (strpos($column, '.') !== false) {
+      $parts = explode('.', $column, 2);
+      return "`{$parts[0]}`.`{$parts[1]}`";
+    }
+
+    // Si es solo el nombre de columna de la tabla principal, agregar tabla
+    return "`{$this->table}`.`{$column}`";
+  }
 
   // Método auxiliar para formatear nombres de columna
   protected function formatColumnName($column) {

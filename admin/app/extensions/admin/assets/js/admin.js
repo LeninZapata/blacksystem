@@ -68,6 +68,7 @@ class admin {
       username: data.user,
       email: data.email,
       role: data.role,
+      status: data.status == 1 || data.status === true ? 'on' : '',
       preferences_theme: config.preferences?.theme || 'light',
       preferences_language: config.preferences?.language || 'es',
       preferences_notifications: config.preferences?.notifications ? 'on' : ''
@@ -137,6 +138,7 @@ class admin {
       email: formData.email,
       role: formData.role,
       pass: formData.password || undefined,
+      status: formData.status === 'on' || formData.status === true || formData.status === 1 ? 1 : 0,
       config: JSON.stringify(config)
     };
   }
@@ -233,6 +235,33 @@ class admin {
     datatable.refreshFirst();
   }
 
+  static initFormatters() {
+    const dataTable = ogComponent('datatable');
+    if (!dataTable) return;
+
+    // Formatter para el estado del usuario
+    dataTable.registerFormatter('user-status', (value, row) => {
+      const isActive = value == 1 || value === true;
+      const statusText = isActive ? __('core.status.active') : __('core.status.inactive');
+      const statusColor = isActive ? '#16a34a' : '#dc2626';
+      const statusBg = isActive ? '#dcfce7' : '#fee2e2';
+      return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
+    });
+
+    // Formatter para usuario con email debajo
+    dataTable.registerFormatter('user-with-email', (value, row) => {
+      const username = value ?? '';
+      const email = row.email ?? '';
+      
+      return `
+        <div>
+          <div style="font-weight: 500;">${username}</div>
+          <div style="font-size: 0.85em; color: var(--og-gray-600); margin-top: 2px;">${email}</div>
+        </div>
+      `;
+    });
+  }
+
   // Cargar select options
   static async loadRoles() {
     const { api } = this.getModules();
@@ -247,3 +276,6 @@ class admin {
 }
 
 window.admin = admin;
+
+// Registrar formatters al cargar el módulo
+admin.initFormatters();

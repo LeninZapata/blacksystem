@@ -99,6 +99,7 @@
         "name": "Nombre",
         "product_ad_asset": "Activo Publicitario",
         "status": "Estado",
+        "is_active": "Estado",
         "created": "Creado"
       },
       "form": {
@@ -316,6 +317,60 @@
         "positive_value": "Valor positivo (+): Incrementa el presupuesto",
         "negative_value": "Valor negativo (-): Decrementa el presupuesto",
         "example": "Ejemplo: +1.50 suma $1.50 al presupuesto actual"
+      }
+    },
+    "workflow": {
+      "listado": {
+        "title": "🔄 Flujos de Trabajo",
+        "header": {
+          "title": "🔄 Gestión de Flujos de Trabajo",
+          "description": "Administra los flujos de trabajo del sistema"
+        }
+      },
+      "column": {
+        "id": "ID",
+        "name": "Nombre",
+        "description": "Descripción",
+        "created": "Creado"
+      },
+      "form": {
+        "title": "Formulario de Flujo de Trabajo",
+        "description": "Completa los datos del flujo de trabajo"
+      },
+      "field": {
+        "name": "Nombre del Flujo",
+        "name_placeholder": "Ej: Workflow de Ventas de Infoproducto",
+        "description": "Descripción",
+        "description_placeholder": "Describe el propósito de este flujo de trabajo",
+        "file_path": "Ruta del Archivo",
+        "file_path_placeholder": "Ej: infoproduct-v2.php",
+        "status": "Activo"
+      },
+      "ogModal": {
+        "new": {
+          "title": "➕ Nuevo Flujo de Trabajo"
+        },
+        "edit": {
+          "title": "✏️ Editar Flujo de Trabajo"
+        }
+      },
+      "confirm": {
+        "delete": "¿Eliminar flujo de trabajo?"
+      },
+      "refresh": {
+        "success": "Lista actualizada"
+      },
+      "success": {
+        "created": "Flujo de trabajo creado correctamente",
+        "updated": "Flujo de trabajo actualizado correctamente",
+        "deleted": "Flujo de trabajo eliminado correctamente"
+      },
+      "error": {
+        "create_failed": "Error al crear flujo de trabajo",
+        "update_failed": "Error al actualizar flujo de trabajo",
+        "delete_failed": "Error al eliminar flujo de trabajo",
+        "load_failed": "Error al cargar flujo de trabajo",
+        "not_found": "Flujo de trabajo no encontrado"
       }
     }
   },

@@ -166,6 +166,39 @@ class scaleRule {
   static refresh() {
     ogComponent('datatable')?.refreshFirst();
   }
+
+  static initFormatters() {
+    const dataTable = ogComponent('datatable');
+    if (!dataTable) return;
+
+    // Formatter para el estado de la regla (is_active)
+    dataTable.registerFormatter('scale-rule-status', (value, row) => {
+      const isActive = value == 1 || value === true;
+      const statusText = isActive ? __('core.status.active') : __('core.status.inactive');
+      const statusColor = isActive ? '#16a34a' : '#dc2626';
+      const statusBg = isActive ? '#dcfce7' : '#fee2e2';
+      return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
+    });
+
+    // Formatter para nombre con activo publicitario
+    dataTable.registerFormatter('scale-rule-name-with-asset', (value, row) => {
+      const name = value ?? '';
+      const assetId = row.ad_assets_id ?? '';
+      const assetName = row.product_ad_asset_name || row.ad_asset_name || '';
+      
+      const assetText = assetName ? assetName : `Activo #${assetId}`;
+      
+      return `
+        <div>
+          <div style="font-weight: 500;">${name}</div>
+          <div style="font-size: 0.85em; color: var(--og-gray-600); margin-top: 2px;">${assetText}</div>
+        </div>
+      `;
+    });
+  }
 }
 
 window.scaleRule = scaleRule;
+
+// Registrar formatters al cargar el módulo
+scaleRule.initFormatters();

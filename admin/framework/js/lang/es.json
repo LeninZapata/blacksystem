@@ -24,6 +24,10 @@
       "inactive": "Inactivo"
     },
 
+    "field": {
+      "status": "✅ Activo"
+    },
+
     "api": {
       "error": "Error en la conexión",
       "success": "Operación exitosa",

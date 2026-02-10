@@ -71,22 +71,38 @@ class AdAutoScaleController extends ogController {
   }
 
   function list() {
-    $query = ogDb::t('ad_auto_scale');
+    // Construir query con LEFT JOIN especificando tabla.columna explícitamente
+    $query = ogDb::t('ad_auto_scale')
+      ->select([
+        'ad_auto_scale.id',
+        'ad_auto_scale.user_id',
+        'ad_auto_scale.name',
+        'ad_auto_scale.ad_assets_id',
+        'ad_auto_scale.config',
+        'ad_auto_scale.is_active',
+        'ad_auto_scale.status',
+        'ad_auto_scale.dc',
+        'ad_auto_scale.du',
+        'ad_auto_scale.tc',
+        'ad_auto_scale.tu',
+        'product_ad_assets.ad_asset_name as product_ad_asset_name'
+      ])
+      ->leftJoin('product_ad_assets', 'ad_auto_scale.ad_assets_id', '=', 'product_ad_assets.id');
 
     if (isset($GLOBALS['auth_user_id'])) {
-      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
+      $query = $query->where('ad_auto_scale.user_id', $GLOBALS['auth_user_id']);
     } else {
       ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }
 
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
-      $query = $query->where($key, $value);
+      $query = $query->where("ad_auto_scale.{$key}", $value);
     }
 
     $sort = ogRequest::query('sort', 'id');
     $order = ogRequest::query('order', 'DESC');
-    $query = $query->orderBy($sort, $order);
+    $query = $query->orderBy("ad_auto_scale.{$sort}", $order);
 
     $page = ogRequest::query('page', 1);
     $perPage = ogRequest::query('per_page', 50);

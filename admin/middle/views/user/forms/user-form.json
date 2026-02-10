@@ -1,7 +1,7 @@
 {
   "id": "user-form",
-  "title": "Gestión de Usuario",
-  "description": "Crear o editar usuario del sistema",
+  "title": "",
+  "description": "",
   "fields": [
     {
       "type": "grouper",
@@ -155,17 +155,26 @@
   ],
   "statusbar": [
     {
-      "type": "button",
-      "label": "💾 Guardar",
-      "action": "submit:admin.save",
-      "_onclick": "event.preventDefault(); admin.save(this.closest('form').id);"
+      "name": "status",
+      "type": "checkbox",
+      "label": "i18n:core.field.status",
+      "default": true,
+      "align": "left"
     },
     {
       "type": "button",
       "label": "❌ Cancelar",
       "style": "secondary",
       "_action": "call:ogComponent(\"modal\")?.closeAll",
-      "onclick": "ogComponent('modal').closeAll();"
+      "onclick": "ogComponent('modal').closeAll();",
+      "align": "right"
+    },
+    {
+      "type": "button",
+      "label": "💾 Guardar",
+      "action": "submit:admin.save",
+      "_onclick": "event.preventDefault(); admin.save(this.closest('form').id);",
+      "align": "right"
     }
   ]
 }
