@@ -2,10 +2,10 @@
 class AdAutoScaleHandler {
   private static $logMeta = ['module' => 'AdAutoScaleHandler', 'layer' => 'app/resources'];
 
-  // Ejecutar todas las reglas activas (CRON)
+  // Ejecutar todas las reglas activas (CRON HORARIO - solo "today")
   static function executeRules($params = []) {
     try {
-      ogLog::info('executeRules - Iniciando ejecución de reglas', [], self::$logMeta);
+      ogLog::info('executeRules - Iniciando ejecución de reglas HORARIAS (today)', [], self::$logMeta);
 
       $userId = $params['user_id'] ?? ($GLOBALS['auth_user_id'] ?? null);
 
@@ -24,6 +24,35 @@ class AdAutoScaleHandler {
 
     } catch (Exception $e) {
       ogLog::error('executeRules - Error', ['error' => $e->getMessage()], self::$logMeta);
+      return [
+        'success' => false,
+        'error' => $e->getMessage()
+      ];
+    }
+  }
+
+  // Ejecutar reglas históricas (CRON DIARIO - 2-3 AM)
+  static function executeDailyRules($params = []) {
+    try {
+      ogLog::info('executeDailyRules - Iniciando ejecución de reglas DIARIAS (históricas)', [], self::$logMeta);
+
+      $userId = $params['user_id'] ?? ($GLOBALS['auth_user_id'] ?? null);
+
+      $service = ogApp()->service('AdAutoScale');
+      $result = $service->processHistoricalRules($userId);
+
+      if ($result['success']) {
+        ogLog::success('executeDailyRules - Ejecución completada', [
+          'rules_processed' => $result['rules_processed'],
+          'actions_executed' => $result['actions_executed'],
+          'execution_time' => $result['execution_time']
+        ], self::$logMeta);
+      }
+
+      return $result;
+
+    } catch (Exception $e) {
+      ogLog::error('executeDailyRules - Error', ['error' => $e->getMessage()], self::$logMeta);
       return [
         'success' => false,
         'error' => $e->getMessage()
@@ -166,15 +195,30 @@ class AdAutoScaleHandler {
             continue;
           }
 
-          // Verificar si ya es hora de resetear
+          // Verificar si ya es hora de resetear (con 5 minutos de holgura)
           $resetTime = $asset['reset_time'] ?? '00:00:00';
           
-          if ($currentHour >= $resetTime) {
+          // Crear objeto DateTime para la hora de reset y restar 5 minutos
+          $resetTimeObj = DateTime::createFromFormat('H:i:s', $resetTime, new DateTimeZone($timezone));
+          if ($resetTimeObj !== false) {
+            $resetTimeObj->setDate(
+              (int)$currentTime->format('Y'),
+              (int)$currentTime->format('m'),
+              (int)$currentTime->format('d')
+            );
+            $resetTimeObj->modify('-5 minutes');
+            $resetTimeWithBuffer = $resetTimeObj->format('H:i:s');
+          } else {
+            $resetTimeWithBuffer = $resetTime; // Fallback si falla el parseo
+          }
+          
+          if ($currentHour >= $resetTimeWithBuffer) {
             ogLog::debug('resetDailyBudgets - Reseteando activo', [
               'asset_id' => $asset['id'],
               'ad_asset_id' => $asset['ad_asset_id'],
               'timezone' => $timezone,
-              'reset_time' => $resetTime,
+              'reset_time_configured' => $resetTime,
+              'reset_time_with_buffer' => $resetTimeWithBuffer,
               'current_hour' => $currentHour
             ], self::$logMeta);
 
@@ -192,7 +236,8 @@ class AdAutoScaleHandler {
           } else {
             ogLog::debug('resetDailyBudgets - Aún no es hora de resetear', [
               'asset_id' => $asset['id'],
-              'reset_time' => $resetTime,
+              'reset_time_configured' => $resetTime,
+              'reset_time_with_buffer' => $resetTimeWithBuffer,
               'current_hour' => $currentHour
             ], self::$logMeta);
           }
@@ -286,9 +331,18 @@ class AdAutoScaleHandler {
       }
 
       $budgetBefore = $currentBudgetData['budget'] ?? 0;
-      $budgetAfter = (float)$asset['base_daily_budget'];
+      
+      // 4. Determinar presupuesto según tipo de reset
+      $resetType = $asset['reset_type'] ?? 'fixed';
+      
+      if ($resetType === 'roas_based') {
+        $budgetAfter = self::calculateRoasBasedBudget($asset, $currentDate);
+      } else {
+        // Reset fijo tradicional
+        $budgetAfter = (float)$asset['base_daily_budget'];
+      }
 
-      // 4. Actualizar presupuesto en la plataforma
+      // 5. Actualizar presupuesto en la plataforma
       $updateResult = $provider->updateBudget(
         $asset['ad_asset_id'], 
         $asset['ad_asset_type'], 
@@ -305,7 +359,7 @@ class AdAutoScaleHandler {
 
       $executionTime = round((microtime(true) - $startTime) * 1000);
 
-      // 5. Guardar en historial
+      // 6. Guardar en historial
       ogDb::t('ad_budget_resets')->insert([
         'user_id' => $asset['user_id'],
         'product_ad_asset_id' => $asset['id'],
@@ -320,7 +374,7 @@ class AdAutoScaleHandler {
         'tc' => time()
       ]);
 
-      // 6. Actualizar last_reset_date en product_ad_assets
+      // 7. Actualizar last_reset_date en product_ad_assets
       ogDb::t('product_ad_assets')
         ->where('id', $asset['id'])
         ->update(['last_reset_date' => $currentDate]);
@@ -329,6 +383,7 @@ class AdAutoScaleHandler {
         'asset_id' => $asset['id'],
         'ad_asset_id' => $asset['ad_asset_id'],
         'timezone' => $timezone,
+        'reset_type' => $resetType,
         'budget_before' => $budgetBefore,
         'budget_after' => $budgetAfter,
         'execution_time_ms' => $executionTime
@@ -369,6 +424,124 @@ class AdAutoScaleHandler {
         'success' => false,
         'error' => $e->getMessage()
       ];
+    }
+  }
+
+  /**
+   * Calcular presupuesto basado en ROAS del día anterior
+   * Lógica: 
+   * - Ganancia día anterior = Ventas confirmadas - Gasto de inversión
+   * - Si ganancia > max_daily_budget → usar max_daily_budget
+   * - Si ganancia > 0 → usar ganancia
+   * - Si ganancia <= 0 → usar base_daily_budget (mínimo)
+   */
+  private static function calculateRoasBasedBudget($asset, $currentDate) {
+    $logMeta = ['module' => 'AdAutoScaleHandler', 'layer' => 'app/resources', 'method' => 'calculateRoasBasedBudget'];
+    
+    $productId = $asset['product_id'];
+    $adAssetId = $asset['ad_asset_id'];
+    $baseBudget = (float)$asset['base_daily_budget'];
+    $maxBudget = (float)($asset['max_daily_budget'] ?? $baseBudget);
+    
+    // Fecha del día anterior
+    $yesterday = date('Y-m-d', strtotime($currentDate . ' -1 day'));
+    
+    ogLog::info('calculateRoasBasedBudget - Iniciando cálculo', [
+      'product_id' => $productId,
+      'ad_asset_id' => $adAssetId,
+      'yesterday' => $yesterday,
+      'base_budget' => $baseBudget,
+      'max_budget' => $maxBudget
+    ], $logMeta);
+
+    try {
+      // 1. Obtener GASTO del día anterior
+      // Primero intentar de ad_metrics_daily (datos consolidados)
+      $sqlDaily = "
+        SELECT SUM(spend) as total_spend
+        FROM ad_metrics_daily
+        WHERE product_id = ?
+          AND ad_asset_id = ?
+          AND metric_date = ?
+      ";
+      
+      $dailySpend = ogDb::raw($sqlDaily, [$productId, $adAssetId, $yesterday]);
+      $spend = !empty($dailySpend) && $dailySpend[0]['total_spend'] !== null
+        ? (float)$dailySpend[0]['total_spend']
+        : 0;
+      
+      // Si no hay datos en daily, buscar en hourly (datos del día que aún no se consolidaron)
+      if ($spend <= 0) {
+        $sqlHourly = "
+          SELECT spend
+          FROM ad_metrics_hourly
+          WHERE product_id = ?
+            AND ad_asset_id = ?
+            AND query_date = ?
+            AND is_latest = 1
+        ";
+        
+        $hourlySpend = ogDb::raw($sqlHourly, [$productId, $adAssetId, $yesterday]);
+        $spend = !empty($hourlySpend) ? (float)$hourlySpend[0]['spend'] : 0;
+      }
+
+      // 2. Obtener VENTAS CONFIRMADAS del día anterior
+      $sqlSales = "
+        SELECT SUM(billed_amount) as total_sales
+        FROM sales
+        WHERE product_id = ?
+          AND DATE(payment_date) = ?
+          AND process_status = 'sale_confirmed'
+          AND status = 1
+      ";
+      
+      $salesData = ogDb::raw($sqlSales, [$productId, $yesterday]);
+      $sales = !empty($salesData) ? (float)($salesData[0]['total_sales'] ?? 0) : 0;
+
+      // 3. Calcular GANANCIA
+      $profit = $sales - $spend;
+
+      ogLog::info('calculateRoasBasedBudget - Métricas del día anterior', [
+        'yesterday' => $yesterday,
+        'spend' => $spend,
+        'sales' => $sales,
+        'profit' => $profit
+      ], $logMeta);
+
+      // 4. Aplicar lógica de presupuesto
+      $newBudget = $baseBudget; // Default: presupuesto base
+
+      if ($profit > 0) {
+        // Hay ganancia positiva
+        if ($profit > $maxBudget) {
+          // Ganancia supera el máximo → usar máximo
+          $newBudget = $maxBudget;
+          $reason = "Ganancia (\${$profit}) supera máximo → usando máximo (\${$maxBudget})";
+        } else {
+          // Ganancia dentro del rango → usar ganancia
+          $newBudget = round($profit, 2);
+          $reason = "Usando ganancia del día anterior (\${$profit})";
+        }
+      } else {
+        // Ganancia negativa o cero → usar base
+        $reason = "Ganancia negativa o cero (\${$profit}) → usando base (\${$baseBudget})";
+      }
+
+      ogLog::success('calculateRoasBasedBudget - Presupuesto calculado', [
+        'new_budget' => $newBudget,
+        'reason' => $reason
+      ], $logMeta);
+
+      return $newBudget;
+
+    } catch (Exception $e) {
+      ogLog::error('calculateRoasBasedBudget - Error en cálculo', [
+        'error' => $e->getMessage(),
+        'fallback' => $baseBudget
+      ], $logMeta);
+      
+      // En caso de error, retornar presupuesto base como fallback
+      return $baseBudget;
     }
   }
 

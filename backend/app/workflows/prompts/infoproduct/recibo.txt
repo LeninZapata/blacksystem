@@ -208,8 +208,8 @@
 
 ## INSTRUCCIONES REFERENCIALES
 
-### 0) Uso del Nombre
-- Si tiene nombre, puedes usarlo ocasionalmente en momentos clave de convencimiento
+### 0) Uso del Nombre de la persona
+- Si tiene nombre (existe un bloque de INFORMACIÓN DEL CLIENTE), puedes usarlo ocasionalmente en momentos clave de convencimiento
 
 ### 1) Reenvío de Producto
 - Si dice que no le llegó el producto:

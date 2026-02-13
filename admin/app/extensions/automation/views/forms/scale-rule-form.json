@@ -58,9 +58,32 @@
             {
               "value": "decrease_budget",
               "label": "i18n:automation.scale_rules.action_type.decrease_budget"
+            },
+            {
+              "value": "disable_product",
+              "label": "i18n:automation.scale_rules.action_type.disable_product"
             }
           ],
           "validation": "required"
+        },
+        {
+          "name": "product_id",
+          "label": "i18n:automation.scale_rules.field.product_to_disable",
+          "type": "select",
+          "required": true,
+          "source": "api/product?status=1&per_page=1000",
+          "sourceValue": "id",
+          "sourceLabel": "name",
+          "validation": "required",
+          "help": "i18n:automation.scale_rules.field.product_to_disable_help",
+          "condition": [
+            {
+              "field": "action_type",
+              "operator": "equals",
+              "value": "disable_product"
+            }
+          ],
+          "conditionContext": "repeatable"
         },
         {
           "name": "budget_fields_group",
@@ -202,9 +225,13 @@
       "label": "i18n:automation.scale_rules.field.condition_groups",
       "type": "repeatable",
       "addText": "i18n:automation.scale_rules.conditions.add_group",
-      "removeText": "i18n:core.delete",
-      "hasHeader": true,
+      "hasHeader": false,
       "accordion": true,
+      "sortable": true,
+      "accordionOpenFirst": true,
+      "accordionOpenAll": true,
+      "initialItems": 1,
+      "removeText": "❌",
       "headerTitle": "i18n:automation.scale_rules.conditions.group_header {index}",
       "fields": [
         {
@@ -212,8 +239,10 @@
           "label": "i18n:automation.scale_rules.field.conditions",
           "type": "repeatable",
           "addText": "i18n:automation.scale_rules.conditions.add",
+          "accordionOpenAll": true,
+          "initialItems": 1,
+          "accordionOpenFirst": true,
           "removeText": "❌",
-          "hasHeader": true,
           "sortable": true,
           "fields": [
             {
@@ -366,15 +395,9 @@
               ],
               "conditionContext": "repeatable"
             }
-          ],
-          "accordionOpenAll": true,
-          "initialItems": 1
+          ]
         }
-      ],
-      "accordionOpenFirst": true,
-      "accordionOpenAll": true,
-      "sortable": true,
-      "initialItems": 1
+      ]
     }
   ],
   "statusbar": [

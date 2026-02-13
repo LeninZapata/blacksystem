@@ -25,7 +25,7 @@ class PromptBuilder {
 
     $messages[] = [
       'role' => 'user',
-      'content' => self::buildCurrentMessage($aiText, $chat)
+      'content' => self::buildCurrentMessage($aiText, $chat, $bot)
     ];
 
     return $messages;
@@ -41,6 +41,29 @@ class PromptBuilder {
     $messages = $chat['messages'] ?? [];
 
     $prompt = "";
+
+    // Obtener información del cliente
+    $clientId = $chat['client_id'] ?? null;
+    $clientNumber = $chat['client_number'] ?? null;
+
+    if ($clientId) {
+      $client = ogDb::table('clients')->where('id', $clientId)->first();
+
+      if ($client) {
+        $clientName = $client['name'] ?? 'Sin nombre';
+        $countryCode = $client['country_code'] ?? 'EC';
+
+        $country = ogApp()->helper('country')::get($countryCode);
+        $countryName = $country['name'] ?? $countryCode;
+        $timezone = $country['timezone'] ?? 'N/A';
+
+        $prompt .= "### INFORMACIÓN DEL CLIENTE:\n\n";
+        $prompt .= "- **Nombre:** {$clientName}\n";
+        $prompt .= "- **Número:** {$clientNumber}\n";
+        $prompt .= "- **País:** {$countryName}\n";
+        $prompt .= "- **Zona Horaria:** {$timezone}\n\n";
+      }
+    }
 
     // Recolectar productos en conversación y ventas confirmadas
     $productosEnConversacion = [];
@@ -103,7 +126,7 @@ class PromptBuilder {
           $precioPagado = $venta['amount_paid'];
           $fecha = $venta['date'];
           $origin = $venta['origin'] ?? 'organic';
-          
+
           $originMap = [
             'ad' => 'Anuncio',
             'upsell' => 'Upsell',
@@ -238,10 +261,10 @@ class PromptBuilder {
 
           if ($prevAction === 'start_sale') {
             $tempSaleId = $prevMeta['sale_id'] ?? null;
-            
+
             if ($tempSaleId) {
               $confirmedDate = $saleConfirmedDates[$tempSaleId] ?? null;
-              
+
               if (!$confirmedDate || $confirmedDate > $fecha) {
                 $hasPendingSale = true;
                 $pendingSaleId = $tempSaleId;
@@ -287,11 +310,11 @@ class PromptBuilder {
           // Metadata específico para imágenes
           if ($format === 'image') {
             $imageAnalysis = json_decode($mensaje, true);
-            
+
             if ($imageAnalysis && is_array($imageAnalysis)) {
               $prompt .= "*Análisis IA de imagen:* " . ($imageAnalysis['resume'] ?? 'Sin descripción') . "\n";
               $prompt .= "*Es comprobante:* " . (($imageAnalysis['is_proof_payment'] ?? false) ? 'Sí' : 'No') . "\n";
-              
+
               if ($imageAnalysis['is_proof_payment'] ?? false) {
                 $prompt .= "*Monto válido:* " . (($imageAnalysis['valid_amount'] ?? false) ? 'Sí' : 'No') . "\n";
                 $prompt .= "*Monto encontrado:* " . ($imageAnalysis['amount_found'] ?? 'N/A') . "\n";
@@ -311,7 +334,7 @@ class PromptBuilder {
         // FORMATO DEL MENSAJE
         if ($format === 'image') {
           $imageAnalysis = json_decode($mensaje, true);
-          
+
           if ($imageAnalysis && is_array($imageAnalysis)) {
             $jsonCompact = json_encode($imageAnalysis, JSON_UNESCAPED_UNICODE);
             $prompt .= "Mensaje: [image: {$jsonCompact}]\n\n";
@@ -331,12 +354,16 @@ class PromptBuilder {
     return $prompt;
   }
 
-  private static function buildCurrentMessage($aiText, $chat) {
+  private static function buildCurrentMessage($aiText, $chat, $bot) {
     $lastActivity = $chat['last_activity'] ?? 'N/A';
-    
+
+    // Obtener hora correcta del país del bot
+    $countryCode = $bot['country_code'] ?? 'EC';
+    $currentTime = ogApp()->helper('country')::now($countryCode) ?? date('Y-m-d H:i:s');
+
     $prompt = "## INFORMACIÓN DINÁMICA DE LA CONVERSACIÓN:\n\n";
     $prompt .= "**Última actividad:** {$lastActivity}\n";
-    $prompt .= "**Hora actual:** " . date('Y-m-d H:i:s') . "\n\n";
+    $prompt .= "**Hora actual:** {$currentTime}\n\n";
     $prompt .= "---\n\n";
     $prompt .= "## ÚLTIMO MENSAJE DEL CLIENTE (RESPONDE A ESTO):\n\n";
     $prompt .= $aiText . "\n\n";

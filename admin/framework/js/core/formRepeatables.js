@@ -196,12 +196,15 @@ class ogFormRepeatables {
         </div>
       `;
     } else {
+      const dragHandle = sortable ? `<span class="og-repeatable-drag-handle" draggable="true">⋮⋮</span>` : '';
+      
       itemHtml = `
         <div class="og-repeatable-item" data-index="${newIndex}">
           <div class="og-repeatable-content">
             ${fieldsHtml}
           </div>
           <div class="og-repeatable-remove">
+            ${dragHandle}
             <button type="button" class="btn btn-danger btn-sm og-btn-repeatable-remove">${removeText}</button>
           </div>
         </div>
@@ -219,6 +222,7 @@ class ogFormRepeatables {
         const nestedPath = nestedContainer.dataset.path;
         const nestedSchema = JSON.parse(nestedContainer.dataset.fieldSchema || '[]');
         
+        // Leer TODAS las propiedades desde los data-attributes
         const nestedField = {
           fields: nestedSchema,
           columns: nestedContainer.dataset.columns,
@@ -228,7 +232,11 @@ class ogFormRepeatables {
           headerTitle: nestedContainer.dataset.headerTitle,
           removeText: nestedContainer.dataset.removeText,
           accordionSingle: nestedContainer.dataset.accordionSingle === 'true',
-          sortable: nestedContainer.dataset.sortable === 'true'
+          accordionOpenFirst: nestedContainer.dataset.accordionOpenFirst === 'true',
+          accordionOpenAll: nestedContainer.dataset.accordionOpenAll === 'true',
+          sortable: nestedContainer.dataset.sortable === 'true',
+          initialItems: nestedContainer.dataset.initialItems ? parseInt(nestedContainer.dataset.initialItems) : 0,
+          buttonPosition: nestedContainer.dataset.buttonPosition
         };
         
         this.initRepeatableContainer(nestedContainer, nestedField, nestedPath);

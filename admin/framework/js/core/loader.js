@@ -72,7 +72,7 @@ class ogLoader {
     }
 
     const validScripts = scripts.filter(url => {
-      if (!url || typeof url !== 'string') {
+      if (!url || typeof url !== 'string' || url.trim() === '') {
         ogLogger?.warn('core:loader', '⚠️ Script inválido encontrado:', url);
         return false;
       }
@@ -80,19 +80,17 @@ class ogLoader {
     });
 
     const validStyles = styles.filter(url => {
-      if (!url || typeof url !== 'string') {
+      if (!url || typeof url !== 'string' || url.trim() === '') {
         ogLogger?.warn('core:loader', '⚠️ Style inválido encontrado:', url);
         return false;
       }
       return true;
     });
 
-    const normalizedScripts = validScripts.map(url => this.normalizeUrl(url));
-    const normalizedStyles = validStyles.map(url => this.normalizeUrl(url));
-
+    // loadScript y loadStyle normalizan internamente, no normalizar aquí
     const promises = [
-      ...normalizedScripts.map(url => this.loadScript(url)),
-      ...normalizedStyles.map(url => this.loadStyle(url))
+      ...validScripts.map(url => this.loadScript(url)),
+      ...validStyles.map(url => this.loadStyle(url))
     ];
 
     return Promise.all(promises);

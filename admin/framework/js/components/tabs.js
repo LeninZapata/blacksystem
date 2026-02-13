@@ -1,6 +1,8 @@
 class ogTabs {
   static tabCache = new Map();
   static extensionContextMap = new Map(); // Guardar contexto por ID de tabs
+  static pendingCallbacks = new Map(); // Callbacks que esperan a que scripts se carguen
+  static loadedTabResources = new Set(); // Recursos ya cargados por tab (cachear)
 
   static async render(tabsData, container) {
     this.tabCache.clear();
@@ -42,7 +44,8 @@ class ogTabs {
 
     const firstTab = tabsData.tabs[0];
     if (firstTab) {
-      await this.loadTabContent(tabsData, firstTab.id, container);
+      // Cargar contenido pero NO ejecutar onLoad todavía (scripts no cargados)
+      await this.loadTabContent(tabsData, firstTab.id, container, true);
     }
 
     // Precargar todas las tabs si está habilitado
@@ -154,7 +157,7 @@ class ogTabs {
     }
   }
 
-  static async loadTabContent(tabsData, tabId, container) {
+  static async loadTabContent(tabsData, tabId, container, deferOnLoad = false) {
     // CAMBIAR: .tab-content → .og-tab-content
     const tabContent = container.querySelector('.og-tab-content');
     const tab = tabsData.tabs.find(t => t.id === tabId);
@@ -179,6 +182,11 @@ class ogTabs {
     tabContent.innerHTML = `<div class="og-tab-loading">${__('com.tabs.loading')}</div>`;
 
     try {
+      // Cargar scripts/styles específicos del tab si existen
+      if (isFirstLoad && (tab.scripts || tab.styles)) {
+        await this.loadTabResources(tab, tabsData.id);
+      }
+
       const renderedContent = this.renderContent(tab.content);
 
       const tempContainer = document.createElement('div');
@@ -192,7 +200,14 @@ class ogTabs {
       tabContent.appendChild(tempContainer);
 
       if (isFirstLoad && tab.onLoad) {
-        this.executeCallback(tab.onLoad);
+        if (deferOnLoad) {
+          // Guardar callback para ejecutar después de cargar scripts
+          const callbackKey = `${tabsData.id}-${tabId}`;
+          this.pendingCallbacks.set(callbackKey, tab.onLoad);
+        } else {
+          // Ejecutar inmediatamente (tabs secundarias)
+          this.executeCallback(tab.onLoad);
+        }
       }
 
     } catch (error) {
@@ -299,6 +314,67 @@ class ogTabs {
 
   static clearCache() {
     this.tabCache.clear();
+  }
+
+  static async loadTabResources(tab, tabsId) {
+    const resourceKey = `${tabsId}-${tab.id}`;
+    
+    // Si ya se cargaron los recursos de este tab, no recargar
+    if (this.loadedTabResources.has(resourceKey)) {
+      return;
+    }
+
+    const loader = ogModule('loader');
+    const config = window.ogFramework?.activeConfig || {};
+    const extensionContext = this.extensionContextMap.get(tabsId);
+
+    // Normalizar rutas igual que view.js
+    const normalizeResources = (resources = []) => {
+      return resources.map(path => {
+        if (!path) return path;
+
+        // Si ya tiene protocolo (http/https), NO modificar
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+          return path;
+        }
+
+        // Si ya empieza con extensionsPath completo, dejarlo
+        if (config.extensionsPath && path.startsWith(config.extensionsPath)) {
+          return path;
+        }
+
+        // Si empieza con 'extensions/', convertir a ruta completa
+        if (path.startsWith('extensions/')) {
+          const extensionsBase = config.extensionsPath || `${config.baseUrl}extensions/`;
+          return path.replace('extensions/', extensionsBase);
+        }
+
+        // Si NO empieza con 'extensions/', agregarlo
+        const extensionsBase = config.extensionsPath || `${config.baseUrl}extensions/`;
+        return `${extensionsBase}${path}`;
+      });
+    };
+
+    const normalizedScripts = normalizeResources(tab.scripts || []);
+    const normalizedStyles = normalizeResources(tab.styles || []);
+
+    // Cargar recursos del tab
+    if (normalizedScripts.length > 0 || normalizedStyles.length > 0) {
+      await loader.loadResources(normalizedScripts, normalizedStyles);
+      this.loadedTabResources.add(resourceKey);
+    }
+  }
+
+  static executePendingCallbacks() {
+    // Ejecutar todos los callbacks pendientes después de cargar scripts
+    this.pendingCallbacks.forEach((callback, key) => {
+      try {
+        this.executeCallback(callback);
+      } catch (error) {
+        ogLogger.error('com:tabs', `Error ejecutando callback pendiente ${key}:`, error);
+      }
+    });
+    this.pendingCallbacks.clear();
   }
 
   static executeCallback(callback) {

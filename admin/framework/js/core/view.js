@@ -312,6 +312,12 @@ class ogView {
 
   static async loadAndInitResources(viewData) {
     await this.loadViewResources(viewData);
+    
+    // Ejecutar callbacks pendientes de tabs después de cargar scripts
+    if (window.ogTabs && typeof window.ogTabs.executePendingCallbacks === 'function') {
+      window.ogTabs.executePendingCallbacks();
+    }
+    
     await new Promise(resolve => setTimeout(resolve, 1));
     await this.initViewComponents(viewData);
   }
@@ -327,7 +333,7 @@ class ogView {
           return resources.map(path => {
             if (!path) return path;
 
-            // Si ya tiene protocolo (http/https), dejarlo como está
+            // Si ya tiene protocolo (http/https), NO modificar
             if (path.startsWith('http://') || path.startsWith('https://')) {
               return path;
             }

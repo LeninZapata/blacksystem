@@ -17,6 +17,13 @@ class ogDate {
         $start->modify('-1 day')->setTime(0, 0, 0);
         $end->modify('-1 day')->setTime(23, 59, 59);
         break;
+      case 'yesterday_today':
+        $start->modify('-1 day')->setTime(0, 0, 0);
+        $end->setTime(23, 59, 59);
+        break;
+      case 'last_3_days':
+        $start->modify('-2 days')->setTime(0, 0, 0);
+        break;
       case 'last_7_days':
         $start->modify('-6 days')->setTime(0, 0, 0);
         break;

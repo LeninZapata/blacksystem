@@ -41,6 +41,7 @@ class ogLogger {
   static debug = (module, ...args) => this.print('debug', module, ...args);
   static info = (module, ...args) => this.print('info', module, ...args);
   static warn = (module, ...args) => this.print('warn', module, ...args);
+  static warning = (module, ...args) => this.print('warn', module, ...args);
   static success = (module, ...args) => this.print('success', module, ...args);
   static error = (module, ...args) => this.print('error', module, ...args);
   static log = (module, ...args) => this.print('log', module, ...args);

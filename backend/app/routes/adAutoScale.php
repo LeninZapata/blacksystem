@@ -3,11 +3,19 @@
 
 $router->group('/api/adAutoScale', function($router) {
 
-  // Ejecutar todas las reglas activas (CRON cada hora)
+  // Ejecutar reglas con time_range="today" (CRON HORARIO - cada hora)
   // GET /api/adAutoScale/execute
   $router->get('/execute', function() {
     ogResponse::json(
       ogApp()->handler('AdAutoScale')::executeRules([])
+    );
+  })->middleware(['throttle:10,1']);
+
+  // Ejecutar reglas históricas (CRON DIARIO - 2-3 AM)
+  // GET /api/adAutoScale/execute-daily
+  $router->get('/execute-daily', function() {
+    ogResponse::json(
+      ogApp()->handler('AdAutoScale')::executeDailyRules([])
     );
   })->middleware(['throttle:10,1']);
 

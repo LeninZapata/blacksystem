@@ -267,6 +267,12 @@
     min-width: 100px;
   }
 
+  .og-form-group{
+    & label.btn-group-item{
+      color: var(--og-btn-text);
+    }
+  }
+
 }
 
 @keyframes og-btn-processing-dots {

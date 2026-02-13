@@ -124,6 +124,8 @@
         "time_period": "Período de Tiempo",
         "time_period_help": "Frecuencia de ejecución de la regla",
         "budget_type": "Tipo de Presupuesto",
+        "product_to_disable": "Producto a Desactivar",
+        "product_to_disable_help": "Selecciona el producto que se desactivará cuando se cumplan las condiciones",
         "condition_groups": "Grupos de Condiciones",
         "conditions": "Condiciones",
         "metric": "Métrica",
@@ -147,7 +149,8 @@
       "action_type": {
         "pause": "Pausar",
         "increase_budget": "Aumentar Presupuesto",
-        "decrease_budget": "Disminuir Presupuesto"
+        "decrease_budget": "Disminuir Presupuesto",
+        "disable_product": "Desactivar Producto"
       },
       "time_period": {
         "everytime": "Cada vez que se cumplan las condiciones",
@@ -253,15 +256,23 @@
         "timezone": "Zona Horaria de la Cuenta Publicitaria",
         "timezone_help": "Zona horaria configurada en la cuenta publicitaria a la que pertenece este activo (campaign/adset/ad). Esto afecta cuándo se resetea el presupuesto diario.",
         "base_daily_budget": "Presupuesto Diario Base",
-        "base_daily_budget_help": "Presupuesto al que se reseteará automáticamente cada día (en USD)",
+        "base_daily_budget_help": "Presupuesto mínimo diario. En modo fijo, siempre se usa este valor. En modo ROAS, se usa cuando las ganancias son negativas o cero (en USD)",
+        "max_daily_budget": "Máximo Presupuesto",
+        "max_daily_budget_help": "Límite máximo del presupuesto diario basado en ROAS. El presupuesto será la ganancia del día anterior (ventas - gasto) o este máximo, lo que sea menor (en USD)",
         "reset_time": "Hora de Reset",
         "reset_time_help": "Hora local (según timezone de la cuenta) a la que resetear el presupuesto",
-        "auto_reset_budget": "Auto-Reset Activo"
+        "auto_reset_budget": "Auto reset presupuesto",
+        "reset_type": "Tipo de Reset",
+        "reset_type_help": "Fijo: usa siempre el presupuesto base. Basado en ROAS: calcula el presupuesto según ganancias del día anterior"
       },
       "asset_type": {
         "campaign": "Campaña",
         "adset": "Conjunto de Anuncios",
         "ad": "Anuncio"
+      },
+      "reset_type": {
+        "fixed": "Presupuesto fijo",
+        "roas_based": "Presupuesto basado en ROAS"
       },
       "ogModal": {
         "new": {

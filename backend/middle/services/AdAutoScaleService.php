@@ -82,7 +82,7 @@ class AdAutoScaleService {
 
       // Si no cumple condiciones, no ejecutar acciones
       if (!$conditionsEval['met']) {
-        // Guardar en historial
+        // Guardar en historial CON conditions_result completo
         $this->saveToHistory([
           'rule_id' => $ruleId,
           'user_id' => $userId,
@@ -94,7 +94,7 @@ class AdAutoScaleService {
           'time_range' => $metricsData['time_range'],
           'conditions_met' => 0,
           'conditions_logic' => $conditionsEval['logic_type'],
-          'conditions_result' => null, // ← No guardamos detalles si no cumplió
+          'conditions_result' => json_encode($conditionsEval['full_evaluation'] ?? [], JSON_UNESCAPED_UNICODE),
           'action_executed' => 0,
           'action_type' => null,
           'action_result' => json_encode(['message' => 'Condiciones no cumplidas']),
@@ -114,7 +114,7 @@ class AdAutoScaleService {
       // SÍ cumplió condiciones - Ejecutar acciones
       $actionResults = $this->executeActions($asset, $config['actions'] ?? [], $metricsData);
 
-      // Guardar en historial CON conditions_result
+      // Guardar en historial CON conditions_result completo
       $this->saveToHistory([
         'rule_id' => $ruleId,
         'user_id' => $userId,
@@ -126,7 +126,7 @@ class AdAutoScaleService {
         'time_range' => $metricsData['time_range'],
         'conditions_met' => 1,
         'conditions_logic' => $conditionsEval['logic_type'],
-        'conditions_result' => json_encode($conditionsEval['groups_met'], JSON_UNESCAPED_UNICODE), // ← NUEVO: detalles de grupos
+        'conditions_result' => json_encode($conditionsEval['full_evaluation'] ?? [], JSON_UNESCAPED_UNICODE),
         'action_executed' => $actionResults['executed'] ? 1 : 0,
         'action_type' => isset($actionResults['results'][0]) ? $actionResults['results'][0]['action'] : null,
         'action_result' => json_encode($actionResults['results'][0] ?? []),
@@ -158,11 +158,11 @@ class AdAutoScaleService {
   }
 
   
-  // Procesar todas las reglas activas (llamado por CRON)
+  // Procesar todas las reglas activas (llamado por CRON HORARIO - solo "today")
   public function processRules($userId = null) {
     $startTime = microtime(true);
     
-    ogLog::info('processRules - Iniciando', ['user_id' => $userId], self::$logMeta);
+    ogLog::info('processRules - Iniciando (HORARIO - solo today)', ['user_id' => $userId], self::$logMeta);
 
     try {
       // Query de reglas activas
@@ -175,10 +175,19 @@ class AdAutoScaleService {
         $query = $query->where('user_id', $userId);
       }
 
-      $rules = $query->get();
+      $allRules = $query->get();
+      
+      // Filtrar solo reglas con time_range = "today"
+      $rules = [];
+      foreach ($allRules as $rule) {
+        $config = is_string($rule['config']) ? json_decode($rule['config'], true) : $rule['config'];
+        if (!$this->isHistoricalRule($config)) {
+          $rules[] = $rule;
+        }
+      }
 
       if (empty($rules)) {
-        ogLog::info('processRules - No hay reglas activas', [], self::$logMeta);
+        ogLog::info('processRules - No hay reglas "today" para ejecutar', [], self::$logMeta);
         return [
           'success' => true,
           'rules_processed' => 0,
@@ -212,7 +221,7 @@ class AdAutoScaleService {
 
       $executionTime = round((microtime(true) - $startTime) * 1000, 2);
 
-      ogLog::success('processRules - Completado', [
+      ogLog::success('processRules - Completado (HORARIO)', [
         'rules_processed' => $rulesProcessed,
         'actions_executed' => $actionsExecuted,
         'execution_time' => $executionTime . 'ms'
@@ -228,6 +237,94 @@ class AdAutoScaleService {
 
     } catch (Exception $e) {
       ogLog::error('processRules - Error', ['error' => $e->getMessage()], self::$logMeta);
+      
+      return [
+        'success' => false,
+        'error' => $e->getMessage(),
+        'execution_time' => round((microtime(true) - $startTime) * 1000, 2) . 'ms'
+      ];
+    }
+  }
+
+  // Procesar reglas históricas (llamado por CRON DIARIO - 2-3 AM)
+  public function processHistoricalRules($userId = null) {
+    $startTime = microtime(true);
+    
+    ogLog::info('processHistoricalRules - Iniciando (DIARIO - rangos históricos)', ['user_id' => $userId], self::$logMeta);
+
+    try {
+      // Query de reglas activas
+      $query = ogDb::t('ad_auto_scale')
+        ->where('is_active', 1)
+        ->where('status', 1);
+
+      // Filtrar por usuario si se especifica
+      if ($userId) {
+        $query = $query->where('user_id', $userId);
+      }
+
+      $allRules = $query->get();
+      
+      // Filtrar solo reglas con time_range histórico (NO "today")
+      $rules = [];
+      foreach ($allRules as $rule) {
+        $config = is_string($rule['config']) ? json_decode($rule['config'], true) : $rule['config'];
+        if ($this->isHistoricalRule($config)) {
+          $rules[] = $rule;
+        }
+      }
+
+      if (empty($rules)) {
+        ogLog::info('processHistoricalRules - No hay reglas históricas para ejecutar', [], self::$logMeta);
+        return [
+          'success' => true,
+          'rules_processed' => 0,
+          'actions_executed' => 0,
+          'execution_time' => round((microtime(true) - $startTime) * 1000, 2) . 'ms'
+        ];
+      }
+
+      $rulesProcessed = 0;
+      $actionsExecuted = 0;
+      $results = [];
+
+      // Procesar cada regla
+      foreach ($rules as $rule) {
+        $result = $this->processRule($rule);
+        
+        $rulesProcessed++;
+        
+        if ($result['success'] && ($result['action_executed'] ?? false)) {
+          $actionsExecuted++;
+        }
+
+        $results[] = [
+          'rule_id' => $rule['id'],
+          'rule_name' => $rule['name'],
+          'success' => $result['success'],
+          'action_executed' => $result['action_executed'] ?? false,
+          'message' => $result['message'] ?? ($result['error'] ?? 'OK')
+        ];
+      }
+
+      $executionTime = round((microtime(true) - $startTime) * 1000, 2);
+
+      ogLog::success('processHistoricalRules - Completado (DIARIO)', [
+        'rules_processed' => $rulesProcessed,
+        'actions_executed' => $actionsExecuted,
+        'execution_time' => $executionTime . 'ms'
+      ], self::$logMeta);
+
+      return [
+        'success' => true,
+        'rules_processed' => $rulesProcessed,
+        'actions_executed' => $actionsExecuted,
+        'execution_time' => $executionTime . 'ms',
+        'results' => $results
+      ];
+
+    } catch (Exception $e) {
+      ogLog::error('processHistoricalRules - Error', ['error' => $e->getMessage()], self::$logMeta);
       
       return [
         'success' => false,
@@ -277,7 +374,16 @@ class AdAutoScaleService {
         ];
       }
 
-      // VALIDACIÓN 2: Mínimo de actividad (al menos 2 resultados/mensajes)
+      // VALIDACIÓN 2: Verificar días completos requeridos (solo para rangos históricos)
+      $requiredDays = $this->getRequiredDaysForTimeRange($timeRange);
+      if ($requiredDays > 0 && $adMetrics['days_available'] < $requiredDays) {
+        return [
+          'success' => false,
+          'error' => "Datos insuficientes: se requieren {$requiredDays} días completos, pero solo hay {$adMetrics['days_available']} días de métricas"
+        ];
+      }
+
+      // VALIDACIÓN 3: Mínimo de actividad (al menos 2 resultados/mensajes)
       if ($adMetrics['results'] < 2) {
         return [
           'success' => false,
@@ -339,12 +445,26 @@ class AdAutoScaleService {
       'results' => 0,
       'ctr' => 0,
       'cpc' => 0,
-      'cpm' => 0
+      'cpm' => 0,
+      'days_available' => 0
     ];
 
     // HISTÓRICO: días anteriores a hoy (ad_metrics_daily)
     if ($dateFrom < $today) {
       $historicTo = ($dateTo < $today) ? $dateTo : date('Y-m-d', strtotime($today . ' -1 day'));
+
+      // Contar días disponibles en el rango
+      $sqlCountDays = "
+        SELECT COUNT(DISTINCT metric_date) as days_count
+        FROM ad_metrics_daily
+        WHERE product_id = ?
+          AND ad_asset_id = ?
+          AND metric_date >= ?
+          AND metric_date <= ?
+      ";
+      
+      $daysCount = ogDb::raw($sqlCountDays, [$productId, $assetId, $dateFrom, $historicTo]);
+      $metrics['days_available'] = !empty($daysCount) ? (int)($daysCount[0]['days_count'] ?? 0) : 0;
 
       $sqlHistoric = "
         SELECT
@@ -398,6 +518,11 @@ class AdAutoScaleService {
         $metrics['reach'] += (int)($row['reach'] ?? 0);
         $metrics['clicks'] += (int)($row['clicks'] ?? 0);
         $metrics['results'] += (int)($row['results'] ?? 0);
+        
+        // Si incluye hoy, sumar 1 día al conteo
+        if ($metrics['spend'] > 0 || $metrics['results'] > 0 || $metrics['impressions'] > 0) {
+          $metrics['days_available']++;
+        }
       }
     }
 
@@ -493,7 +618,13 @@ class AdAutoScaleService {
       return [
         'met' => $evaluation['result'],
         'groups_met' => $groupsMet,
-        'logic_type' => $conditionsLogic
+        'logic_type' => $conditionsLogic,
+        'full_evaluation' => [
+          'result' => $evaluation['result'],
+          'details' => $evaluation['details'] ?? [],
+          'matched_rules' => $evaluation['matched_rules'] ?? [],
+          'groups_met' => $groupsMet
+        ]
       ];
 
     } elseif ($conditionsLogic === 'or_and_or') {
@@ -533,7 +664,13 @@ class AdAutoScaleService {
       return [
         'met' => $evaluation['result'],
         'groups_met' => $groupsMet,
-        'logic_type' => $conditionsLogic
+        'logic_type' => $conditionsLogic,
+        'full_evaluation' => [
+          'result' => $evaluation['result'],
+          'details' => $evaluation['details'] ?? [],
+          'matched_rules' => $evaluation['matched_rules'] ?? [],
+          'groups_met' => $groupsMet
+        ]
       ];
 
     } else {
@@ -541,7 +678,14 @@ class AdAutoScaleService {
       return [
         'met' => false,
         'groups_met' => [],
-        'logic_type' => $conditionsLogic
+        'logic_type' => $conditionsLogic,
+        'full_evaluation' => [
+          'result' => false,
+          'details' => [],
+          'matched_rules' => [],
+          'groups_met' => [],
+          'error' => 'Lógica desconocida'
+        ]
       ];
     }
   }
@@ -607,6 +751,9 @@ class AdAutoScaleService {
 
         case 'pause':
           return $this->pauseAsset($asset);
+
+        case 'disable_product':
+          return $this->disableProduct($action);
 
         default:
           return [
@@ -748,6 +895,69 @@ class AdAutoScaleService {
     return $result;
   }
 
+  // Desactivar producto
+  private function disableProduct($action) {
+    $productId = $action['product_id'] ?? null;
+
+    if (!$productId) {
+      return [
+        'success' => false,
+        'action' => 'disable_product',
+        'error' => 'product_id no especificado'
+      ];
+    }
+
+    try {
+      // Verificar que el producto existe
+      $product = ogDb::t('products')->find($productId);
+      if (!$product) {
+        return [
+          'success' => false,
+          'action' => 'disable_product',
+          'error' => "Producto {$productId} no encontrado"
+        ];
+      }
+
+      // Desactivar producto (status = 0)
+      $updated = ogDb::t('products')
+        ->where('id', $productId)
+        ->update(['status' => 0]);
+
+      if ($updated) {
+        ogLog::success('disableProduct - Producto desactivado', [
+          'product_id' => $productId,
+          'product_name' => $product['name'] ?? ''
+        ], self::$logMeta);
+
+        return [
+          'success' => true,
+          'action' => 'disable_product',
+          'product_id' => $productId,
+          'product_name' => $product['name'] ?? '',
+          'disabled' => true
+        ];
+      } else {
+        return [
+          'success' => false,
+          'action' => 'disable_product',
+          'error' => 'No se pudo actualizar el producto'
+        ];
+      }
+
+    } catch (Exception $e) {
+      ogLog::error('disableProduct - Error', [
+        'product_id' => $productId,
+        'error' => $e->getMessage()
+      ], self::$logMeta);
+
+      return [
+        'success' => false,
+        'action' => 'disable_product',
+        'error' => $e->getMessage()
+      ];
+    }
+  }
+
   // Obtener provider de ads
   private function getAdProvider($platform, $userId) {
     $basePath = ogCache::memoryGet('path_middle') . '/services/integrations/ads';
@@ -836,6 +1046,53 @@ class AdAutoScaleService {
     $counts = array_count_values($timeRanges);
     arsort($counts);
     return array_key_first($counts);
+  }
+
+  // Obtener días requeridos para un time_range
+  private function getRequiredDaysForTimeRange($timeRange) {
+    switch ($timeRange) {
+      case 'today':
+        return 0; // No requiere validación de días completos
+      
+      case 'yesterday':
+        return 1;
+      
+      case 'last_3d':
+        return 3;
+      
+      case 'last_7d':
+        return 7;
+      
+      case 'last_14d':
+        return 14;
+      
+      case 'last_30d':
+        return 30;
+      
+      case 'lifetime':
+        return 0; // Lifetime no requiere días exactos
+      
+      default:
+        return 0;
+    }
+  }
+
+  // Verificar si una regla usa rangos históricos (no "today")
+  private function isHistoricalRule($config) {
+    $conditionGroups = $config['condition_groups'] ?? [];
+
+    foreach ($conditionGroups as $group) {
+      $conditions = $group['conditions'] ?? [];
+      foreach ($conditions as $condition) {
+        $timeRange = $condition['time_range'] ?? 'today';
+        // Si alguna condición NO es 'today', es histórica
+        if ($timeRange !== 'today') {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   // Convertir time_range a fechas

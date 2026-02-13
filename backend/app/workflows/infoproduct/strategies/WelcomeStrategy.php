@@ -203,6 +203,10 @@ class WelcomeStrategy implements ConversationStrategyInterface {
   private function registerStartSale($bot, $person, $product, $clientId, $saleId) {
     ogApp()->loadHandler('chat');
 
+    // Obtener origin de la venta desde BD
+    $sale = ogDb::table('sales')->where('id', $saleId)->first();
+    $origin = $sale['origin'] ?? 'organic';
+
     $message = 'Nueva venta iniciada: ' . $product['name'];
     $metadata = [
       'action' => 'start_sale',
@@ -211,7 +215,8 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'product_name' => $product['name'],
       'price' => $product['price'],
       'description' => $product['description'] ?? '',
-      'instructions' => $product['config']['prompt'] ?? ''
+      'instructions' => $product['config']['prompt'] ?? '',
+      'origin' => $origin
     ];
 
     // ChatHandler ahora resuelve user_id automáticamente

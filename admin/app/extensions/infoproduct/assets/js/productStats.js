@@ -7,25 +7,9 @@ class productStats {
 
   static async init() {
     ogLogger.debug('ext:infoproduct', 'Inicializando estadísticas');
-    await this.loadChartJS();
     await this.registerChartModules();
     await this.loadAllCharts();
     this.syncRangeSelectors();
-  }
-
-  static async loadChartJS() {
-    if (window.Chart) return;
-
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-      script.onload = () => {
-        ogLogger.debug('ext:infoproduct', 'Chart.js cargado');
-        resolve();
-      };
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
   }
 
   static async registerChartModules() {

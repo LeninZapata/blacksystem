@@ -350,7 +350,9 @@ class ogFormInputs {
     const firstOption = selectEl.querySelector('option[value=""]');
     const placeholder = firstOption ? firstOption.cloneNode(true) : null;
 
-    const cacheKey = `${source}|${valueField}|${labelField}`;
+    // Extraer URL base sin query params para cache
+    const baseSource = this.getBaseUrl(source);
+    const cacheKey = `${baseSource}|${valueField}|${labelField}`;
     if (core?.selectCache?.has(cacheKey)) {
       const cachedData = core.selectCache.get(cacheKey);
 
@@ -405,6 +407,20 @@ class ogFormInputs {
     if (currentValue) {
       selectEl.value = currentValue;
     }
+  }
+
+  /**
+   * Extrae la URL base sin query params y normaliza slashes
+   * Ejemplo: 'api/productAdAsset?per_page=1000' -> '/api/productAdAsset'
+   */
+  static getBaseUrl(url) {
+    if (!url) return '';
+    
+    // Remover query params
+    const baseUrl = url.split('?')[0].split('#')[0];
+    
+    // Normalizar: agregar slash inicial si no existe
+    return baseUrl.startsWith('/') ? baseUrl : '/' + baseUrl;
   }
 }
 

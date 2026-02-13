@@ -1,40 +1,11 @@
-URgentes:
-☐ el bot llamo a la persona con el nombre de el mismo, algo paso revisar el prompt caso 099 318 6025
-del bot de dannes
 Backend (Aplicacion):
-☐ Cuando actualizo o activo un activo publicitario este no aparece en el a regla sino refresco la pagina
-creo que en activopublicitario debo limpiar el cache
-☐ GRAFICAS DE VENTAS POR DIA, MES, AÑO
-  ☐ grafica de productos vendidos
-  ☐ grafica de ingresos por producto
-  ☐ graficas de chats vs ventas
-  ☐ chat por dias | horas
-  ☐ ventas por dias | horas
-
 ☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
 hacer que se ejecute al otro dia en la mañana
-☐ Baja el tiempo de todos los seguimientos.......
 ☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
 ☐ Plantillas que se ejecutan a un triger, es decir si dice
 'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
-☐ Claude alucino con los servicios creo metodos que ya estan dentro de ellos, en la documentación esto debe estar claro
-y no debe haber confusión, ya que con ->service llegas hasta alli y puedes obtener solo llamando al servicio porque 
-este llama a las integraciones.
-☐ Revisa la api de la transportadora para ver como se mueve para adaptar al sistema actual...
-☐ Parecia que esto estaba arreglando https://i.imgur.com/Sb7eVJg.png es un problema en la grafica info->estadisticas->ventsa->rmk
-
-✔ Agregar api para CRON @done(30-01-2026 18:55)
-/api/adAutoScale/reset-budgets (CADA HORA)
+☐ CRON para actualizar e JSON de bot->product->activos->credenciales y todo eso
+  ya que hay cosas que se activa o desactivan en automatico
 FRONTEND:
-☐ Hay qu reutilizar el css al maximo hay extensiones que estan pasdo de css creo que porque la IA no tiene el contexto del sistema
-que hay en el framework de css, posiblemente hay que hacer que lo tiene la extesion y no tenga el framework hacerlo que lo tenga
-para que esto sea reutilizable a futuro y no se haga css brutales largos. 
-☐ Tienes que ver con la API de la transportador como se llama el ID producto para agreegar ese campo y que una..
-☐ 
-
-ESCALA:
-  ☐ tiene que ver porque se escala en detalle
-  ☐ arreglar el problema de disminucion de presupuesto porque en 0 en forma manual
-  ☐ agregar la regla de seteo de prepuesto, esto hay que cambiar la forma en que se resetea el presupuesto en el CRON
-  la regla esta basada en que comience el dia con el presupuesto del dia anterior ganado
-  ☐ agregar condicion de dismunución hasta menor que el ingreso para tener margen de ganancia
+☐ graficas de chats vs ventas
+☐ arreglar el problema de disminucion de presupuesto porque en 0 en forma manual

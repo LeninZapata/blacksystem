@@ -46,6 +46,14 @@
   --og-purple-600: #9333ea;
   --og-purple-700: #7e22ce;
   
+  /* Indigos */
+  --og-indigo-50: #eef2ff;
+  --og-indigo-100: #e0e7ff;
+  --og-indigo-200: #c7d2fe;
+  --og-indigo-500: #6366f1;
+  --og-indigo-600: #4f46e5;
+  --og-indigo-700: #4338ca;
+  
   /* Pinks */
   --og-pink-50: #fdf2f8;
   --og-pink-100: #fce7f3;
@@ -123,6 +131,13 @@
   .og-bg-purple-500 { background-color: var(--og-purple-500); }
   .og-bg-purple-600 { background-color: var(--og-purple-600); }
   
+  /* Indigos */
+  .og-bg-indigo-50 { background-color: var(--og-indigo-50); }
+  .og-bg-indigo-100 { background-color: var(--og-indigo-100); }
+  .og-bg-indigo-200 { background-color: var(--og-indigo-200); }
+  .og-bg-indigo-500 { background-color: var(--og-indigo-500); }
+  .og-bg-indigo-600 { background-color: var(--og-indigo-600); }
+  
   /* Pinks */
   .og-bg-pink-50 { background-color: var(--og-pink-50); }
   .og-bg-pink-100 { background-color: var(--og-pink-100); }
@@ -180,7 +195,12 @@
   
   /* Reds */
   .og-text-red-500 { color: var(--og-red-500); }
-  .og-text-red-600 { color: var(--og-red-600); }
+  .ogIndigos */
+  .og-text-indigo-500 { color: var(--og-indigo-500); }
+  .og-text-indigo-600 { color: var(--og-indigo-600); }
+  .og-text-indigo-700 { color: var(--og-indigo-700); }
+  
+  /* -text-red-600 { color: var(--og-red-600); }
   .og-text-red-700 { color: var(--og-red-700); }
   
   /* Purples */

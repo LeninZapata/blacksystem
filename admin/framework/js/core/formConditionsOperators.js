@@ -1,6 +1,8 @@
 class ogConditionsOperators {
   static checkOperator(fieldValue, operator, targetValue) {
     switch (operator) {
+      case '=':
+      case 'equals':
       case '==':
         return this.normalize(fieldValue) == this.normalize(targetValue);
 

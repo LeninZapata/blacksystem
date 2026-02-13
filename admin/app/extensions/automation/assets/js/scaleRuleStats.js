@@ -7,28 +7,16 @@ class scaleRuleStats {
 
   static async init() {
     ogLogger.debug('ext:automation', 'Inicializando estadísticas de escala');
-    await this.loadChartJS();
     await this.loadAssets();
-  }
-
-  static async loadChartJS() {
-    if (window.Chart) return;
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-      script.onload = () => resolve();
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
   }
 
   static async loadAssets() {
     try {
       const res = await ogApi.get('/api/productAdAsset?per_page=1000&is_active=1');
       const assets = res.success ? res.data : [];
-      
+
       this.assetsCache = assets;
-      
+
       const selector = document.getElementById('asset-selector');
       if (!selector) return;
 
@@ -98,7 +86,7 @@ class scaleRuleStats {
 
   static renderChart(data) {
     const container = document.getElementById('chart-budget-changes');
-    
+
     let html = `
       <div class="chart-card">
         <div class="chart-header">
@@ -131,7 +119,7 @@ class scaleRuleStats {
 
     const labels = data.map(item => this.formatTime(item.executed_at));
     const budgets = data.map(item => parseFloat(item.budget_after));
-    
+
     this.createChart('canvas-budget-chart', labels, budgets, data);
   }
 
@@ -157,8 +145,8 @@ class scaleRuleStats {
           fill: true,
           pointRadius: 6,
           pointHoverRadius: 8,
-          pointBackgroundColor: rawData.map(item => 
-            item.action_type === 'increase_budget' ? '#27ae60' : 
+          pointBackgroundColor: rawData.map(item =>
+            item.action_type === 'increase_budget' ? '#27ae60' :
             item.action_type === 'decrease_budget' ? '#e74c3c' : '#95a5a6'
           ),
           pointBorderColor: '#fff',
@@ -234,13 +222,18 @@ class scaleRuleStats {
 
       // Parsear conditions_result para mostrar qué grupo cumplió
       let conditionsHTML = '';
-      if (item.conditions_result) {
+      if (item.conditions_result && !isManual) {
         try {
           const conditionsResult = typeof item.conditions_result === 'string'
             ? JSON.parse(item.conditions_result)
             : item.conditions_result;
 
-          if (Array.isArray(conditionsResult) && conditionsResult.length > 0) {
+          // Nuevo formato: full_evaluation
+          if (conditionsResult.result !== undefined && conditionsResult.details) {
+            conditionsHTML = this.formatFullEvaluation(conditionsResult, item.conditions_logic);
+          }
+          // Formato antiguo: array de groups_met
+          else if (Array.isArray(conditionsResult) && conditionsResult.length > 0) {
             conditionsHTML = this.formatConditionsResult(conditionsResult);
           }
         } catch (e) {
@@ -372,7 +365,7 @@ class scaleRuleStats {
       return;
     }
 
-    budgetAdjust.open(adAssetId, adAssetType, this.currentAssetId); 
+    budgetAdjust.open(adAssetId, adAssetType, this.currentAssetId);
   }
 
   static getAssetData(assetId) {
@@ -400,7 +393,178 @@ class scaleRuleStats {
     return assetData;
   }
 
-    
+
+  /**
+   * Formatea el resultado completo de evaluación (nuevo formato)
+   * @param {Object} fullEval - Objeto con result, details, matched_rules, groups_met
+   * @param {String} logic - Tipo de lógica: 'and_or_and' o 'or_and_or'
+   */
+  static formatFullEvaluation(fullEval, logic) {
+    if (!fullEval || !fullEval.details) return '';
+
+    const result = fullEval.result;
+    const groupsMet = fullEval.groups_met || [];
+    const details = fullEval.details || [];
+    const matchedRules = fullEval.matched_rules || [];
+
+    let html = '<div class="conditions-details">';
+
+    // Header con resultado general
+    const headerIcon = result ? '✅' : '❌';
+    const headerClass = result ? 'success' : 'failed';
+    html += `<div class="conditions-header ${headerClass}">${headerIcon} Evaluación de condiciones</div>`;
+
+    // Explicar la lógica
+    const logicText = logic === 'and_or_and'
+      ? 'Se necesita cumplir <strong>AL MENOS UN GRUPO</strong> (cada grupo usa AND)'
+      : 'Se necesita cumplir <strong>TODOS LOS GRUPOS</strong> (cada grupo usa OR)';
+    html += `<div class="conditions-logic">📋 ${logicText}</div>`;
+
+    // Procesar cada grupo desde details
+    details.forEach((detail, idx) => {
+      const groupIndex = detail.index !== undefined ? detail.index : idx;
+      const groupResult = detail.result || false;
+      const groupDetails = detail.details || {};
+
+      // Determinar si el grupo fue evaluado completamente
+      const wasEvaluated = detail.condition !== undefined;
+
+      // Si no fue evaluado (lazy evaluation en OR)
+      if (!wasEvaluated && logic === 'and_or_and' && result) {
+        html += this.renderNotEvaluatedGroup(groupIndex, logic);
+        return; // skip
+      }
+
+      // Buscar métricas evaluadas en groups_met si lo cumplió
+      let metricsEvaluated = {};
+      if (groupResult) {
+        const matchedGroup = groupsMet.find(g => (g.group_index - 1) === groupIndex);
+        if (matchedGroup) {
+          metricsEvaluated = matchedGroup.metrics_evaluated || {};
+        }
+      }
+
+      // Si no cumplió, intentar extraer de groupDetails o detail.condition
+      if (!groupResult && Object.keys(metricsEvaluated).length === 0) {
+        metricsEvaluated = this.extractMetricsFromDetails(groupDetails, detail.condition);
+      }
+
+      const groupIcon = groupResult ? '✅' : '❌';
+      const groupClass = groupResult ? 'group-met' : 'group-not-met';
+      const groupLogic = logic === 'and_or_and' ? 'AND' : 'OR';
+
+      html += `<div class="condition-group ${groupClass}">`;
+      html += `<div class="group-header">`;
+      html += `<span class="group-icon">${groupIcon}</span>`;
+      html += `<span class="group-label">Grupo ${groupIndex + 1} (${groupLogic})</span>`;
+      html += `<span class="group-status">${groupResult ? 'CUMPLIDO' : 'NO CUMPLIDO'}</span>`;
+      html += `</div>`;
+
+      // Mostrar métricas evaluadas
+      if (Object.keys(metricsEvaluated).length > 0) {
+        html += '<div class="metrics-list">';
+
+        for (const [metricName, metricData] of Object.entries(metricsEvaluated)) {
+          const metricLabel = this.getMetricLabel(metricName);
+          const icon = metricData.met ? '✓' : '✗';
+          const metClass = metricData.met ? 'met' : 'not-met';
+
+          html += `
+            <div class="metric-item ${metClass}">
+              <span class="metric-icon">${icon}</span>
+              <span class="metric-name">${metricLabel}:</span>
+              <span class="metric-value">${this.formatMetricValue(metricName, metricData.value)}</span>
+              <span class="metric-operator">${this.getOperatorSymbol(metricData.operator)}</span>
+              <span class="metric-threshold">${this.formatMetricValue(metricName, metricData.threshold)}</span>
+            </div>`;
+        }
+
+        html += '</div>';
+      } else {
+        html += '<div class="metrics-empty">Sin detalles de métricas</div>';
+      }
+
+      html += '</div>';
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  /**
+   * Renderiza un grupo que no fue evaluado (lazy evaluation)
+   */
+  static renderNotEvaluatedGroup(groupIndex, logic) {
+    const groupLogic = logic === 'and_or_and' ? 'AND' : 'OR';
+
+    return `
+      <div class="condition-group group-not-evaluated">
+        <div class="group-header">
+          <span class="group-icon">⚪</span>
+          <span class="group-label">Grupo ${groupIndex + 1} (${groupLogic})</span>
+          <span class="group-status not-evaluated">NO EVALUADO</span>
+        </div>
+        <div class="metrics-empty">
+          <span class="not-evaluated-reason">
+            ℹ️ No se evaluó porque un grupo anterior ya cumplió la condición OR
+          </span>
+        </div>
+      </div>`;
+  }
+
+  /**
+   * Extrae métricas desde details cuando el grupo no cumplió
+   */
+  static extractMetricsFromDetails(groupDetails, condition) {
+    const metrics = {};
+
+    // Intentar extraer de groupDetails
+    if (Array.isArray(groupDetails)) {
+      groupDetails.forEach(detail => {
+        if (detail.details && detail.details.operator) {
+          const metricName = this.guessMetricName(detail.condition);
+          if (metricName) {
+            metrics[metricName] = {
+              value: detail.details.left,
+              operator: detail.details.operator,
+              threshold: detail.details.right,
+              met: detail.details.met || false
+            };
+          }
+        }
+      });
+    }
+
+    return metrics;
+  }
+
+  /**
+   * Intenta adivinar el nombre de métrica desde la condición
+   */
+  static guessMetricName(condition) {
+    if (!condition) return null;
+
+    // Buscar patrón {"var": "metric_name"}
+    const varMatch = JSON.stringify(condition).match(/"var"\s*:\s*"([^"]+)"/);
+    return varMatch ? varMatch[1] : null;
+  }
+
+  /**
+   * Convierte operador a símbolo visual
+   */
+  static getOperatorSymbol(operator) {
+    const symbols = {
+      '>=': '≥',
+      '<=': '≤',
+      '>': '>',
+      '<': '<',
+      '==': '=',
+      '!=': '≠'
+    };
+    return symbols[operator] || operator;
+  }
+
+
   static formatConditionsResult(groupsMet) {
     if (!Array.isArray(groupsMet) || groupsMet.length === 0) return '';
 
@@ -442,7 +606,7 @@ class scaleRuleStats {
     return html;
   }
 
-    
+
   /**
    * Obtiene label legible de métrica
    */
