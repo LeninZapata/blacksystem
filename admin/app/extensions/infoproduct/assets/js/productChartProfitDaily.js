@@ -76,7 +76,7 @@
             fill: false,
             pointRadius: 4,
             pointHoverRadius: 6,
-            yAxisID: 'y1'
+            yAxisID: 'y'
           },
           {
             type: 'line',
@@ -89,7 +89,7 @@
             fill: false,
             pointRadius: 4,
             pointHoverRadius: 6,
-            yAxisID: 'y1'
+            yAxisID: 'y'
           }
         ]
       },
@@ -132,6 +132,16 @@
                 const label = context.dataset.label || '';
                 const value = context.parsed.y;
                 return `${label}: $${value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              },
+              afterBody: function(context) {
+                if (context.length > 0) {
+                  const dataIndex = context[0].dataIndex;
+                  const dataPoint = data[dataIndex];
+                  if (dataPoint && dataPoint.roas !== undefined) {
+                    return `ROAS: ${dataPoint.roas}x`;
+                  }
+                }
+                return '';
               }
             }
           }
@@ -153,7 +163,7 @@
             position: 'left',
             title: {
               display: true,
-              text: 'Profit (USD)',
+              text: 'USD',
               font: {
                 size: 12,
                 weight: 'bold'
@@ -161,30 +171,6 @@
             },
             grid: {
               color: 'rgba(0, 0, 0, 0.05)'
-            },
-            ticks: {
-              callback: function(value) {
-                return '$' + value.toLocaleString('es-MX');
-              },
-              font: {
-                size: 11
-              }
-            }
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            title: {
-              display: true,
-              text: 'Ingreso / Gasto (USD)',
-              font: {
-                size: 12,
-                weight: 'bold'
-              }
-            },
-            grid: {
-              drawOnChartArea: false
             },
             ticks: {
               callback: function(value) {

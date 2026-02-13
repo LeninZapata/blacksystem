@@ -221,17 +221,21 @@ class productProfit {
         return;
       }
 
-      // Calcular resumen sumando datos por hora
+      // Calcular resumen
+      // Los datos ahora vienen acumulados tanto para hoy como para días históricos
+      // Tomamos el último valor que tiene el total hasta ese momento
       const data = response.data || [];
       let totalProfit = 0;
       let totalRevenue = 0;
       let totalSpend = 0;
 
-      data.forEach(item => {
-        totalProfit += parseFloat(item.profit || 0);
-        totalRevenue += parseFloat(item.revenue || 0);
-        totalSpend += parseFloat(item.spend || 0);
-      });
+      if (data.length > 0) {
+        // Los datos vienen acumulados, tomamos el último valor
+        const lastItem = data[data.length - 1];
+        totalProfit = parseFloat(lastItem.profit || 0);
+        totalRevenue = parseFloat(lastItem.revenue || 0);
+        totalSpend = parseFloat(lastItem.spend || 0);
+      }
 
       const avgRoas = totalSpend > 0 ? (totalRevenue / totalSpend).toFixed(2) : '0.00';
 

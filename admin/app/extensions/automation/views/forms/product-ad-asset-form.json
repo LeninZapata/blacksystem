@@ -106,7 +106,7 @@
       "condition": [
         {
           "field": "auto_reset_budget",
-          "operator": "=",
+          "operator": "==",
           "value": true
         }
       ]

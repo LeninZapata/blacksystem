@@ -13,6 +13,9 @@ class ProfitStatsHandler {
     $userId = $GLOBALS['auth_user_id'];
 
     try {
+      $today = date('Y-m-d');
+      $isToday = ($date === $today);
+
       // PASO 1: Obtener métricas de ads por hora
       $sqlAds = "
         SELECT
@@ -30,21 +33,35 @@ class ProfitStatsHandler {
       // JOIN con product_ad_assets si se filtra por bot o producto
       if ($botId || $productId) {
         $sqlAds .= "
-          INNER JOIN product_ad_assets paa ON h.ad_asset_id = paa.ad_asset_id
-          INNER JOIN products p ON paa.product_id = p.id
+          INNER JOIN (
+            SELECT DISTINCT paa.ad_asset_id, paa.product_id, p.bot_id
+            FROM product_ad_assets paa
+            INNER JOIN products p ON paa.product_id = p.id
+          ) paa ON h.ad_asset_id = paa.ad_asset_id
         ";
       }
 
       $sqlAds .= "
         WHERE h.user_id = ?
           AND h.query_date = ?
-          AND h.is_latest = 1
       ";
 
-      $params = [$userId, $date];
+      // Tomar el último snapshot de cada hora (tanto para hoy como días históricos)
+      // Esto asegura que obtengamos datos de todas las horas que han transcurrido
+      $sqlAds .= " AND h.id IN (
+        SELECT MAX(h2.id)
+        FROM ad_metrics_hourly h2
+        WHERE h2.user_id = ? 
+          AND h2.query_date = ?
+          AND h2.ad_asset_id = h.ad_asset_id
+          AND h2.query_hour = h.query_hour
+        GROUP BY h2.ad_asset_id, h2.query_hour
+      )";
+
+      $params = [$userId, $date, $userId, $date];
 
       if ($botId) {
-        $sqlAds .= " AND p.bot_id = ?";
+        $sqlAds .= " AND paa.bot_id = ?";
         $params[] = $botId;
       }
 
@@ -97,20 +114,33 @@ class ProfitStatsHandler {
       }
 
       // PASO 3: Combinar datos y calcular profit
+      // Acumular revenue progresivamente (tanto para hoy como para días históricos)
+      // El gasto (spend) ya viene acumulado de ad_metrics_hourly
       $results = [];
+      $accumulatedRevenue = 0;
+      $accumulatedPurchases = 0;
+      
       foreach ($adsData as $row) {
         $hour = (int)$row['hour'];
-        $spend = (float)$row['spend'];
+        $spend = (float)$row['spend']; // Ya viene acumulado de la tabla
         $salesInfo = $salesMap[$hour] ?? ['real_purchases' => 0, 'revenue' => 0];
-        $revenue = $salesInfo['revenue'];
+        
+        // Acumular revenue para mostrar datos progresivos
+        $accumulatedRevenue += $salesInfo['revenue'];
+        $accumulatedPurchases += $salesInfo['real_purchases'];
+        $revenue = $accumulatedRevenue;
+        $realPurchases = $accumulatedPurchases;
+        
         $profit = $revenue - $spend;
+        $roas = $spend > 0 ? round($revenue / $spend, 2) : 0;
 
         $results[] = [
           'hour' => $hour,
           'spend' => round($spend, 2),
           'revenue' => round($revenue, 2),
           'profit' => round($profit, 2),
-          'real_purchases' => $salesInfo['real_purchases'],
+          'roas' => $roas,
+          'real_purchases' => $realPurchases,
           'ad_purchases' => (int)$row['ad_purchases'],
           'impressions' => (int)$row['impressions'],
           'clicks' => (int)$row['clicks'],

@@ -40,26 +40,6 @@
             ]
           },
           {
-            "id": "tab-rendimiento",
-            "title": "📈 Rendimiento",
-            "scripts": [
-              "infoproduct/assets/js/productPerformance.js",
-              "infoproduct/assets/js/productChartPerformanceHourly.js",
-              "infoproduct/assets/js/productChartPerformanceDaily.js"
-            ],
-            "onLoad": "productPerformance.init()",
-            "content": [
-              {
-                "type": "html",
-                "content": "<div class='og-bg-gray-100 og-p-1 og-rounded-lg og-mb-1'><h3 class='og-mt-0 og-mb-2 og-text-gray-800'>🔍 Filtros</h3><form id='performance-filters-form' class='og-form-group'><div class='og-gap-md og-mb-2'><div class='og-mb-2'><label for='perf-filter-bot' class='og-mb-1'>🤖 Bot</label><select id='perf-filter-bot' class='form-control' onchange='productPerformance.onBotChange(this.value)'><option value=''>Cargando...</option></select></div><div><label for='perf-filter-product' class='og-mb-1'>📦 Producto</label><select id='perf-filter-product' class='form-control' onchange='productPerformance.onProductChange(this.value)'><option value=''>Todos los productos</option></select></div></div><div><label class='og-mb-1'>📅 Rango de Fechas</label><div class='btn-group og-flex og-wrap' role='group'><input type='radio' name='perf_date_range' id='perf-range-today' value='today' class='btn-group-input' checked><label for='perf-range-today' class='btn btn-group-item btn-sm'>Hoy</label><input type='radio' name='perf_date_range' id='perf-range-yesterday' value='yesterday' class='btn-group-input'><label for='perf-range-yesterday' class='btn btn-group-item btn-sm'>Ayer</label><input type='radio' name='perf_date_range' id='perf-range-yesterday-today' value='yesterday_today' class='btn-group-input'><label for='perf-range-yesterday-today' class='btn btn-group-item btn-sm'>Ayer y Hoy</label><input type='radio' name='perf_date_range' id='perf-range-3days' value='last_3_days' class='btn-group-input'><label for='perf-range-3days' class='btn btn-group-item btn-sm'>Hace 3 días</label><input type='radio' name='perf_date_range' id='perf-range-7days' value='last_7_days' class='btn-group-input'><label for='perf-range-7days' class='btn btn-group-item btn-sm'>Hace 7 días</label><input type='radio' name='perf_date_range' id='perf-range-15days' value='last_15_days' class='btn-group-input'><label for='perf-range-15days' class='btn btn-group-item btn-sm'>Hace 15 días</label><input type='radio' name='perf_date_range' id='perf-range-this-month' value='this_month' class='btn-group-input'><label for='perf-range-this-month' class='btn btn-group-item btn-sm'>Este mes</label><input type='radio' name='perf_date_range' id='perf-range-30days' value='last_30_days' class='btn-group-input'><label for='perf-range-30days' class='btn btn-group-item btn-sm'>Hace 30 días</label></div></div></form></div>"
-              },
-              {
-                "type": "html",
-                "content": "<div id='performance-charts-container' class=''><p class='og-text-center og-text-gray-500 og-p-4'>Selecciona los filtros para ver las estadísticas</p></div>"
-              }
-            ]
-          },
-          {
             "id": "tab-profit",
             "title": "💰 Profit",
             "scripts": [
@@ -76,6 +56,26 @@
               {
                 "type": "html",
                 "content": "<div id='profit-charts-container' class=''><p class='og-text-center og-text-gray-500 og-p-4'>Selecciona los filtros para ver las estadísticas</p></div>"
+              }
+            ]
+          },
+          {
+            "id": "tab-rendimiento",
+            "title": "📈 Rendimiento",
+            "scripts": [
+              "infoproduct/assets/js/productPerformance.js",
+              "infoproduct/assets/js/productChartPerformanceHourly.js",
+              "infoproduct/assets/js/productChartPerformanceDaily.js"
+            ],
+            "onLoad": "productPerformance.init()",
+            "content": [
+              {
+                "type": "html",
+                "content": "<div class='og-bg-gray-100 og-p-1 og-rounded-lg og-mb-1'><h3 class='og-mt-0 og-mb-2 og-text-gray-800'>🔍 Filtros</h3><form id='performance-filters-form' class='og-form-group'><div class='og-gap-md og-mb-2'><div class='og-mb-2'><label for='perf-filter-bot' class='og-mb-1'>🤖 Bot</label><select id='perf-filter-bot' class='form-control' onchange='productPerformance.onBotChange(this.value)'><option value=''>Cargando...</option></select></div><div><label for='perf-filter-product' class='og-mb-1'>📦 Producto</label><select id='perf-filter-product' class='form-control' onchange='productPerformance.onProductChange(this.value)'><option value=''>Todos los productos</option></select></div></div><div><label class='og-mb-1'>📅 Rango de Fechas</label><div class='btn-group og-flex og-wrap' role='group'><input type='radio' name='perf_date_range' id='perf-range-today' value='today' class='btn-group-input' checked><label for='perf-range-today' class='btn btn-group-item btn-sm'>Hoy</label><input type='radio' name='perf_date_range' id='perf-range-yesterday' value='yesterday' class='btn-group-input'><label for='perf-range-yesterday' class='btn btn-group-item btn-sm'>Ayer</label><input type='radio' name='perf_date_range' id='perf-range-yesterday-today' value='yesterday_today' class='btn-group-input'><label for='perf-range-yesterday-today' class='btn btn-group-item btn-sm'>Ayer y Hoy</label><input type='radio' name='perf_date_range' id='perf-range-3days' value='last_3_days' class='btn-group-input'><label for='perf-range-3days' class='btn btn-group-item btn-sm'>Hace 3 días</label><input type='radio' name='perf_date_range' id='perf-range-7days' value='last_7_days' class='btn-group-input'><label for='perf-range-7days' class='btn btn-group-item btn-sm'>Hace 7 días</label><input type='radio' name='perf_date_range' id='perf-range-15days' value='last_15_days' class='btn-group-input'><label for='perf-range-15days' class='btn btn-group-item btn-sm'>Hace 15 días</label><input type='radio' name='perf_date_range' id='perf-range-this-month' value='this_month' class='btn-group-input'><label for='perf-range-this-month' class='btn btn-group-item btn-sm'>Este mes</label><input type='radio' name='perf_date_range' id='perf-range-30days' value='last_30_days' class='btn-group-input'><label for='perf-range-30days' class='btn btn-group-item btn-sm'>Hace 30 días</label></div></div></form></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='performance-charts-container' class=''><p class='og-text-center og-text-gray-500 og-p-4'>Selecciona los filtros para ver las estadísticas</p></div>"
               }
             ]
           }

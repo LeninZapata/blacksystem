@@ -56,6 +56,13 @@ class ogFormData {
       return;
     }
 
+    // Pausar evaluaciones de condiciones mientras se llena el formulario
+    const conditions = ogModule('conditions');
+    if (conditions) {
+      conditions.pauseEvaluations();
+      ogLogger?.info('core:form', `⏸️ Condiciones pausadas para llenar formulario ${formId}`);
+    }
+
     if (!formEl.dataset.formData) {
       formEl.dataset.formData = JSON.stringify(data);
     }
@@ -138,6 +145,26 @@ class ogFormData {
       };
 
       fillRepeatableFields(schema.fields, formEl);
+      
+      // Si no hay repetibles para llenar, reanudar condiciones inmediatamente
+      if (repeatablesToFill === 0) {
+        const conditions = ogModule('conditions');
+        if (conditions) {
+          setTimeout(() => {
+            conditions.resumeEvaluations(formId);
+            ogLogger?.info('core:form', `▶️ Condiciones reanudadas (sin repetibles) para ${formId}`);
+          }, 150);
+        }
+      }
+    } else {
+      // Si se saltaron los repetibles, reanudar condiciones
+      const conditions = ogModule('conditions');
+      if (conditions) {
+        setTimeout(() => {
+          conditions.resumeEvaluations(formId);
+          ogLogger?.info('core:form', `▶️ Condiciones reanudadas (skip repetibles) para ${formId}`);
+        }, 150);
+      }
     }
   }
 
@@ -192,7 +219,10 @@ class ogFormData {
           const total = parseInt(formEl.dataset.repeatablesToFill);
           if (filled >= total) {
             if (conditions) {
-              setTimeout(() => conditions.resumeEvaluations(formEl.id), 100);
+              setTimeout(() => {
+                conditions.resumeEvaluations(formEl.id);
+                ogLogger?.info('core:form', `▶️ Condiciones reanudadas (repetibles completos) para ${formEl.id}`);
+              }, 100);
             }
           }
         }

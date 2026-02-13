@@ -34,7 +34,9 @@ class productAdAsset {
       timezone: data.timezone || 'America/Guayaquil',
       base_daily_budget: data.base_daily_budget || '',
       reset_time: data.reset_time || '00:00',
-      auto_reset_budget: data.auto_reset_budget == 1
+      auto_reset_budget: data.auto_reset_budget == 1,
+      reset_type: data.reset_type || 'fixed',
+      max_daily_budget: data.max_daily_budget || ''
     };
 
     ogModule('form').fill(formId, fillData);
@@ -69,7 +71,9 @@ class productAdAsset {
       timezone: formData.timezone || 'America/Guayaquil',
       base_daily_budget: formData.base_daily_budget || null,
       reset_time: formData.reset_time || '00:00:00',
-      auto_reset_budget: formData.auto_reset_budget ? 1 : 0
+      auto_reset_budget: formData.auto_reset_budget ? 1 : 0,
+      reset_type: formData.reset_type || 'fixed',
+      max_daily_budget: formData.max_daily_budget || null
     };
   }
 
