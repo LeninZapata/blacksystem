@@ -5,7 +5,7 @@
   --og-tabs-border: var(--og-gray-100);
   --og-tabs-bg: var(--og-gray-50);
   --og-tabs-btn-color: #6c757d;
-  --og-tabs-btn-active-color: var(--accent-primary);
+  --og-tabs-btn-active-color: var(--og-accent-primary);
   --og-tabs-btn-active-bg: #fff;
   --og-tabs-btn-hover-bg: #e9ecef;
   --og-tabs-gradient-width: 60px;
@@ -120,15 +120,26 @@
     font-size: var(--og-font-sm);
   }
 
+  /* Variante para og-view-container */
+  .og-view-container {
+    .og-tabs-header {
+      background: none;
+      border-radius: 0;
+    }
+
+    .og-tab-btn {
+      border-radius: 0.375rem 0.375rem 0 0;
+    }
+  }
+
   /* Responsive */
   @media (max-width: 768px) {
     .og-tab-btn {
       padding: 10px 16px;
-      font-size: var(--og-font-xs);
     }
 
     .og-tab-content {
-      padding: 15px 0;
+      padding: 0;
     }
   }
 }

@@ -78,12 +78,6 @@ $router->group('/api/sale', function($router) {
     ogResponse::json( ogApp()->handler('saleStats')::getSalesRevenueAndConversion($params) );
   })->middleware(['auth', 'throttle:100,1']);
 
-  // Estadísticas: Ventas Directas vs Remarketing - GET /api/sale/stats/direct-vs-remarketing?range=last_7_days
-  $router->get('/stats/direct-vs-remarketing', function() {
-    $range = ogRequest::query('range', 'last_7_days');
-    ogResponse::json( ogApp()->handler('saleStats')::getSalesDirectVsRemarketing(['range' => $range]) );
-  })->middleware(['throttle:100,1','auth']);
-
   // Estadísticas: Ventas por hora - GET /api/sale/stats/hourly?date=2026-02-10&bot_id=1&product_id=3
   $router->get('/stats/hourly', function() {
     $params = [

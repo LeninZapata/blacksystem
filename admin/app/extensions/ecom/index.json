@@ -1,7 +1,7 @@
 {
   "name": "ecom",
   "version": "1.0.0",
-  "enabled": true,
+  "enabled":false,
   "hasViews": true,
   "hasMenu": true,
   "hasHooks": false,

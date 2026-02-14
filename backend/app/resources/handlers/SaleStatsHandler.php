@@ -24,12 +24,12 @@ class SaleStatsHandler {
         DATE(payment_date) as date,
         SUM(billed_amount) as revenue,
         COUNT(*) as sales_count,
-        SUM(CASE WHEN tracking_funnel_id IS NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN billed_amount ELSE 0 END) as direct_revenue,
-        SUM(CASE WHEN tracking_funnel_id IS NOT NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN billed_amount ELSE 0 END) as remarketing_revenue,
-        SUM(CASE WHEN sale_type IN ('us', 'upsell') THEN billed_amount ELSE 0 END) as upsell_revenue,
-        COUNT(CASE WHEN tracking_funnel_id IS NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN 1 END) as direct_count,
-        COUNT(CASE WHEN tracking_funnel_id IS NOT NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN 1 END) as remarketing_count,
-        COUNT(CASE WHEN sale_type IN ('us', 'upsell') THEN 1 END) as upsell_count
+        SUM(CASE WHEN tracking_funnel_id IS NULL AND (origin != 'upsell' OR origin IS NULL) THEN billed_amount ELSE 0 END) as direct_revenue,
+        SUM(CASE WHEN tracking_funnel_id IS NOT NULL AND (origin != 'upsell' OR origin IS NULL) THEN billed_amount ELSE 0 END) as remarketing_revenue,
+        SUM(CASE WHEN origin = 'upsell' THEN billed_amount ELSE 0 END) as upsell_revenue,
+        COUNT(CASE WHEN tracking_funnel_id IS NULL AND (origin != 'upsell' OR origin IS NULL) THEN 1 END) as direct_count,
+        COUNT(CASE WHEN tracking_funnel_id IS NOT NULL AND (origin != 'upsell' OR origin IS NULL) THEN 1 END) as remarketing_count,
+        COUNT(CASE WHEN origin = 'upsell' THEN 1 END) as upsell_count
       FROM " . ogDb::t('sales', true) . "
       WHERE user_id = ?
         AND payment_date >= ? AND payment_date <= ?
@@ -55,7 +55,8 @@ class SaleStatsHandler {
 
     $revenueData = ogDb::raw($sqlRevenue, $revenueParams);
 
-    // Query: Conversión % por día
+    // Query: Conversión % por día (usando dc = fecha iniciada para medir desempeño del día)
+    // Cuenta TODAS las ventas iniciadas en el día (confirmadas, pendientes, canceladas)
     $sqlConversion = "
       SELECT
         DATE(dc) as date,
@@ -205,7 +206,7 @@ class SaleStatsHandler {
       ORDER BY date ASC
     ";
 
-    $revenueData = ogDb::raw($sql, [$userId, $dates['start'], $dates['end'] . ' 23:59:59']);
+    $revenueData = ogDb::raw($sql, [$userId, $dates['start'], $dates['end']]);
 
     // Query separada para conversión usando dc
     $sqlConversion = "
@@ -222,7 +223,7 @@ class SaleStatsHandler {
       ORDER BY date ASC
     ";
 
-    $conversionData = ogDb::raw($sqlConversion, [$userId, $dates['start'], $dates['end'] . ' 23:59:59']);
+    $conversionData = ogDb::raw($sqlConversion, [$userId, $dates['start'], $dates['end']]);
 
     // Combinar resultados
     $statsMap = [];
@@ -298,12 +299,12 @@ class SaleStatsHandler {
         HOUR(payment_date) as hour,
         COUNT(*) as sales_count,
         SUM(billed_amount) as revenue,
-        SUM(CASE WHEN tracking_funnel_id IS NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN billed_amount ELSE 0 END) as direct_revenue,
-        SUM(CASE WHEN tracking_funnel_id IS NOT NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN billed_amount ELSE 0 END) as remarketing_revenue,
-        SUM(CASE WHEN sale_type IN ('us', 'upsell') THEN billed_amount ELSE 0 END) as upsell_revenue,
-        COUNT(CASE WHEN tracking_funnel_id IS NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN 1 END) as direct_count,
-        COUNT(CASE WHEN tracking_funnel_id IS NOT NULL AND (sale_type IS NULL OR sale_type NOT IN ('us', 'upsell')) THEN 1 END) as remarketing_count,
-        COUNT(CASE WHEN sale_type IN ('us', 'upsell') THEN 1 END) as upsell_count
+        SUM(CASE WHEN tracking_funnel_id IS NULL AND (origin != 'upsell' OR origin IS NULL) THEN billed_amount ELSE 0 END) as direct_revenue,
+        SUM(CASE WHEN tracking_funnel_id IS NOT NULL AND (origin != 'upsell' OR origin IS NULL) THEN billed_amount ELSE 0 END) as remarketing_revenue,
+        SUM(CASE WHEN origin = 'upsell' THEN billed_amount ELSE 0 END) as upsell_revenue,
+        COUNT(CASE WHEN tracking_funnel_id IS NULL AND (origin != 'upsell' OR origin IS NULL) THEN 1 END) as direct_count,
+        COUNT(CASE WHEN tracking_funnel_id IS NOT NULL AND (origin != 'upsell' OR origin IS NULL) THEN 1 END) as remarketing_count,
+        COUNT(CASE WHEN origin = 'upsell' THEN 1 END) as upsell_count
       FROM " . ogDb::t('sales', true) . "
       WHERE user_id = ?
         AND bot_id = ?

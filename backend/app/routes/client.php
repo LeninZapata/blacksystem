@@ -45,10 +45,4 @@ $router->group('/api/client', function($router) {
     ogResponse::json( ogApp()->handler('client')::incrementPurchase($id, $amount) );
   })->middleware(['auth', 'json', 'throttle:100,1']);
 
-  // Estadísticas: Clientes nuevos por día - GET /api/client/stats/new-by-day?range=last_7_days
-  $router->get('/stats/new-by-day', function() {
-    $range = ogRequest::query('range', 'last_7_days');
-    ogResponse::json( ogApp()->handler('clientStats')::getNewClientsByDay(['range' => $range]) );
-  })->middleware(['auth', 'throttle:100,1']);
-
 });

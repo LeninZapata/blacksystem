@@ -29,7 +29,7 @@ class ChatStatsHandler {
       ORDER BY date ASC
     ";
 
-    $chatsData = ogDb::raw($sqlChats, [$userId, $dates['start'], $dates['end'] . ' 23:59:59' ]);
+    $chatsData = ogDb::raw($sqlChats, [$userId, $dates['start'], $dates['end']]);
 
     // Query: Seguimientos programados por día
     $sqlFollowups = "
@@ -44,7 +44,7 @@ class ChatStatsHandler {
       ORDER BY date ASC
     ";
 
-    $followupsData = ogDb::raw($sqlFollowups, [$userId, $dates['start'], $dates['end'] . ' 23:59:59' ]);
+    $followupsData = ogDb::raw($sqlFollowups, [$userId, $dates['start'], $dates['end']]);
 
     // Combinar resultados
     $statsMap = [];

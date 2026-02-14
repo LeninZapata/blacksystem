@@ -19,9 +19,12 @@
           display: true,
           position: 'left',
           beginAtZero: true,
+          ticks: {
+            precision: 0
+          },
           title: {
             display: true,
-            text: 'Chats Iniciados'
+            text: 'Chats / Clics'
           }
         },
         y1: {
@@ -29,12 +32,15 @@
           display: true,
           position: 'right',
           beginAtZero: true,
+          ticks: {
+            precision: 0
+          },
           grid: {
             drawOnChartArea: false,
           },
           title: {
             display: true,
-            text: 'Clics / Alcance'
+            text: 'Alcance'
           }
         },
         x: {
@@ -90,41 +96,42 @@
     // Crear gráfica
     const ctx = canvas.getContext('2d');
     config.chartInstance = new Chart(ctx, {
-      type: 'bar',
+      type: 'line',
       data: {
         labels: labels,
         datasets: [
           {
+            label: 'Alcance',
+            data: reach,
+            borderColor: 'rgba(168, 85, 247, 0.8)', // purple-500
+            backgroundColor: 'rgba(168, 85, 247, 0.15)',
+            borderWidth: 2,
+            fill: true,
+            yAxisID: 'y1',
+            order: 3,
+            tension: 0.4
+          },
+          {
             label: 'Chats Iniciados',
             data: chatsInitiated,
-            backgroundColor: 'rgba(34, 197, 94, 0.7)', // green-500
-            borderColor: 'rgba(34, 197, 94, 1)',
-            borderWidth: 1,
-            borderRadius: 4,
+            borderColor: 'rgba(34, 197, 94, 1)', // green-500
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            fill: false,
             yAxisID: 'y',
-            order: 2
+            order: 1,
+            tension: 0
           },
           {
             label: 'Clics en WhatsApp',
             data: whatsappClicks,
             borderColor: 'rgba(59, 130, 246, 1)', // blue-500
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 2,
-            type: 'line',
-            yAxisID: 'y1',
-            order: 1,
-            tension: 0.4
-          },
-          {
-            label: 'Alcance',
-            data: reach,
-            borderColor: 'rgba(168, 85, 247, 1)', // purple-500
-            backgroundColor: 'rgba(168, 85, 247, 0.1)',
-            borderWidth: 2,
-            type: 'line',
-            yAxisID: 'y1',
-            order: 1,
-            tension: 0.4
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            fill: false,
+            yAxisID: 'y',
+            order: 2,
+            tension: 0
           }
         ]
       },

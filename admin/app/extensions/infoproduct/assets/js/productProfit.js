@@ -8,7 +8,8 @@ class productProfit {
   static currentFilters = {
     botId: null,
     productId: null,
-    dateRange: 'today'
+    dateRange: 'today',
+    customDate: null
   };
 
   static bots = [];
@@ -71,11 +72,45 @@ class productProfit {
     rangeRadios.forEach(radio => {
       radio.addEventListener('change', async (e) => {
         if (e.target.checked) {
-          this.currentFilters.dateRange = e.target.value;
+          const value = e.target.value;
+          
+          // Mostrar/ocultar el input de fecha personalizada
+          const customDateContainer = document.getElementById('profit-custom-date-container');
+          if (value === 'custom_date') {
+            if (customDateContainer) {
+              customDateContainer.style.display = 'block';
+              // Establecer fecha de hoy por defecto si no hay fecha seleccionada
+              const customDateInput = document.getElementById('profit-custom-date-input');
+              if (customDateInput && !customDateInput.value) {
+                customDateInput.value = this.getLocalDateString(new Date());
+                this.currentFilters.customDate = customDateInput.value;
+              }
+            }
+          } else {
+            if (customDateContainer) {
+              customDateContainer.style.display = 'none';
+            }
+            this.currentFilters.customDate = null;
+          }
+          
+          this.currentFilters.dateRange = value;
           await this.loadStats();
         }
       });
     });
+    
+    // Listener para el input de fecha personalizada
+    const customDateInput = document.getElementById('profit-custom-date-input');
+    if (customDateInput) {
+      customDateInput.addEventListener('change', async (e) => {
+        this.currentFilters.customDate = e.target.value;
+        // Solo recargar si el radio de fecha personalizada está seleccionado
+        const customRadio = document.getElementById('profit-range-custom');
+        if (customRadio && customRadio.checked) {
+          await this.loadStats();
+        }
+      });
+    }
   }
 
   /**
@@ -171,10 +206,11 @@ class productProfit {
     }
 
     // Decidir si mostrar gráfica por hora o por día
-    if (dateRange === 'today' || dateRange === 'yesterday') {
+    // 'yesterday_today' usa gráfica diaria ya que abarca 2 días
+    if (dateRange === 'today' || dateRange === 'yesterday' || dateRange === 'custom_date') {
       await this.loadHourlyChart();
     } else {
-      // Para otros rangos, mostrar gráfica diaria con resumen
+      // Para otros rangos (incluyendo yesterday_today), mostrar gráfica diaria
       await this.loadDailyChart();
     }
   }
@@ -183,20 +219,23 @@ class productProfit {
    * Cargar y renderizar gráfica por hora
    */
   static async loadHourlyChart() {
-    const { botId, productId, dateRange } = this.currentFilters;
+    const { botId, productId, dateRange, customDate } = this.currentFilters;
     const container = document.getElementById('profit-charts-container');
     if (!container) return;
 
-    // Calcular fecha según rango
+    // Calcular fecha según rango usando fecha local del navegador
     const today = new Date();
     let targetDate;
     
     if (dateRange === 'today') {
-      targetDate = today.toISOString().split('T')[0];
+      targetDate = this.getLocalDateString(today);
     } else if (dateRange === 'yesterday') {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      targetDate = yesterday.toISOString().split('T')[0];
+      targetDate = this.getLocalDateString(yesterday);
+    } else if (dateRange === 'custom_date') {
+      // Usar la fecha personalizada seleccionada
+      targetDate = customDate || this.getLocalDateString(today);
     }
 
     try {
@@ -482,9 +521,20 @@ class productProfit {
       'last_7_days': 'Hace 7 días',
       'last_15_days': 'Hace 15 días',
       'this_month': 'Este mes',
-      'last_30_days': 'Hace 30 días'
+      'last_30_days': 'Hace 30 días',
+      'custom_date': 'Día específico'
     };
     return labels[range] || range;
+  }
+
+  /**
+   * Convertir Date a string en formato YYYY-MM-DD usando zona horaria local
+   */
+  static getLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
 

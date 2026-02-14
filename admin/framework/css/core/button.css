@@ -2,8 +2,8 @@
 
 .onlygrow-active {
   /* Variables de botones */
-  --og-btn-bg: var(--accent-primary, rgb(79, 129, 189));
-  --og-btn-border: var(--accent-primary-dark, rgb(56, 93, 138));
+  --og-btn-bg: var(--og-accent-primary, rgb(79, 129, 189));
+  --og-btn-border: var(--og-accent-primary-dark, rgb(56, 93, 138));
   --og-btn-text: #fff;
   --og-btn-padding-x: 1rem;
   --og-btn-padding-y: 0.5rem;
@@ -60,8 +60,8 @@
 
   /* Variantes de color */
   .btn-primary {
-    --og-btn-bg: var(--accent-primary, rgb(79, 129, 189));
-    --og-btn-border: var(--accent-primary-dark, rgb(56, 93, 138));
+    --og-btn-bg: var(--og-accent-primary, rgb(79, 129, 189));
+    --og-btn-border: var(--og-accent-primary-dark, rgb(56, 93, 138));
     --og-btn-text: #fff;
   }
 
@@ -111,10 +111,10 @@
   /* Variante outline */
   .btn-outline {
     --og-btn-bg: transparent;
-    --og-btn-text: var(--accent-primary, rgb(79, 129, 189));
+    --og-btn-text: var(--og-accent-primary, rgb(79, 129, 189));
     
     &:hover {
-      --og-btn-bg: var(--accent-primary, rgb(79, 129, 189));
+      --og-btn-bg: var(--og-accent-primary, rgb(79, 129, 189));
       --og-btn-text: #fff;
     }
   }
@@ -237,8 +237,8 @@
 
   /* Estado seleccionado - usa variables de btn-primary */
   .btn-group-input:checked + .btn-group-item {
-    --og-btn-bg: var(--accent-primary, rgb(79, 129, 189));
-    --og-btn-border: var(--accent-primary-dark, rgb(56, 93, 138));
+    --og-btn-bg: var(--og-accent-primary, rgb(79, 129, 189));
+    --og-btn-border: var(--og-accent-primary-dark, rgb(56, 93, 138));
     --og-btn-text: #fff;
   }
 
@@ -250,7 +250,6 @@
   /* Tamaño pequeño */
   .btn-group-item.btn-sm {
     padding: 0.375rem 0.75rem;
-    font-size: 0.75rem;
   }
 
   /* Tamaño grande */

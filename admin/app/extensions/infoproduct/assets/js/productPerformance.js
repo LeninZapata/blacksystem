@@ -3,7 +3,8 @@ class productPerformance {
   static currentFilters = {
     botId: null,
     productId: null,
-    dateRange: 'today'
+    dateRange: 'today',
+    customDate: null
   };
 
   static bots = [];
@@ -162,10 +163,44 @@ class productPerformance {
     dateInputs.forEach(input => {
       input.addEventListener('change', (e) => {
         if (e.target.checked) {
-          this.onDateRangeChange(e.target.value);
+          const value = e.target.value;
+          
+          // Mostrar/ocultar el input de fecha personalizada
+          const customDateContainer = document.getElementById('perf-custom-date-container');
+          if (value === 'custom_date') {
+            if (customDateContainer) {
+              customDateContainer.style.display = 'block';
+              // Establecer fecha de hoy por defecto si no hay fecha seleccionada
+              const customDateInput = document.getElementById('perf-custom-date-input');
+              if (customDateInput && !customDateInput.value) {
+                customDateInput.value = this.getLocalDateString(new Date());
+                this.currentFilters.customDate = customDateInput.value;
+              }
+            }
+          } else {
+            if (customDateContainer) {
+              customDateContainer.style.display = 'none';
+            }
+            this.currentFilters.customDate = null;
+          }
+          
+          this.onDateRangeChange(value);
         }
       });
     });
+    
+    // Listener para el input de fecha personalizada
+    const customDateInput = document.getElementById('perf-custom-date-input');
+    if (customDateInput) {
+      customDateInput.addEventListener('change', (e) => {
+        this.currentFilters.customDate = e.target.value;
+        // Solo recargar si el radio de fecha personalizada está seleccionado
+        const customRadio = document.getElementById('perf-range-custom');
+        if (customRadio && customRadio.checked) {
+          this.loadStats();
+        }
+      });
+    }
   }
 
   // Cargar estadísticas con los filtros actuales
@@ -191,8 +226,8 @@ class productPerformance {
       </div>
     `;
 
-    // Si es today o yesterday, mostrar gráfica horaria
-    if (dateRange === 'today' || dateRange === 'yesterday') {
+    // Si es today, yesterday o custom_date, mostrar gráfica horaria
+    if (dateRange === 'today' || dateRange === 'yesterday' || dateRange === 'custom_date') {
       await this.loadHourlyChart();
     } else {
       // Para otros rangos, mostrar gráfica diaria
@@ -202,20 +237,23 @@ class productPerformance {
 
   // Cargar y renderizar gráfica por hora
   static async loadHourlyChart() {
-    const { botId, productId, dateRange } = this.currentFilters;
+    const { botId, productId, dateRange, customDate } = this.currentFilters;
     const container = document.getElementById('performance-charts-container');
     if (!container) return;
 
-    // Calcular fecha según rango
+    // Calcular fecha según rango usando fecha local del navegador
     const today = new Date();
     let targetDate;
     
     if (dateRange === 'today') {
-      targetDate = today.toISOString().split('T')[0];
+      targetDate = this.getLocalDateString(today);
     } else if (dateRange === 'yesterday') {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      targetDate = yesterday.toISOString().split('T')[0];
+      targetDate = this.getLocalDateString(yesterday);
+    } else if (dateRange === 'custom_date') {
+      // Usar la fecha personalizada seleccionada
+      targetDate = customDate || this.getLocalDateString(today);
     }
 
     try {
@@ -272,6 +310,12 @@ class productPerformance {
             <div style="position: relative; height: 400px;">
               <canvas id="chartPerformanceHourly"></canvas>
             </div>
+          </div>
+
+          <!-- Nota informativa -->
+          <div class="alert alert-info alert-filled og-mb-3">
+            <strong>⏱️ Datos de Facebook Ads</strong>
+            Las métricas de rendimiento (Alcance, Chats, Clics) provienen directamente de Facebook Ads y se actualizan automáticamente cada hora en el sistema.
           </div>
 
           <!-- Grid de Resumen -->
@@ -386,6 +430,12 @@ class productPerformance {
             </div>
           </div>
 
+          <!-- Nota informativa -->
+          <div class="alert alert-info alert-filled og-mb-3">
+            <strong>⏱️ Datos de Facebook Ads</strong>
+            Las métricas de rendimiento (Alcance, Chats, Clics) provienen directamente de Facebook Ads y se actualizan automáticamente cada hora en el sistema.
+          </div>
+
           <!-- Grid de Resumen -->
           <div class="og-grid og-cols-4 og-gap-sm">
             <!-- Chats Iniciados -->
@@ -489,9 +539,18 @@ class productPerformance {
       'last_7_days': 'Hace 7 días',
       'last_15_days': 'Hace 15 días',
       'this_month': 'Este mes',
-      'last_30_days': 'Hace 30 días'
+      'last_30_days': 'Hace 30 días',
+      'custom_date': 'Día específico'
     };
     return labels[range] || range;
+  }
+
+  // Convertir Date a string en formato YYYY-MM-DD usando zona horaria local
+  static getLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
 

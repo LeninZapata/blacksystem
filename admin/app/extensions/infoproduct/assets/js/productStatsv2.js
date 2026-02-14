@@ -3,7 +3,8 @@ class productStatsv2 {
   static currentFilters = {
     botId: null,
     productId: null,
-    dateRange: 'today'
+    dateRange: 'today',
+    customDate: null
   };
 
   static bots = [];
@@ -157,10 +158,44 @@ class productStatsv2 {
     dateInputs.forEach(input => {
       input.addEventListener('change', (e) => {
         if (e.target.checked) {
-          this.onDateRangeChange(e.target.value);
+          const value = e.target.value;
+          
+          // Mostrar/ocultar el input de fecha personalizada
+          const customDateContainer = document.getElementById('custom-date-container');
+          if (value === 'custom_date') {
+            if (customDateContainer) {
+              customDateContainer.style.display = 'block';
+              // Establecer fecha de hoy por defecto si no hay fecha seleccionada
+              const customDateInput = document.getElementById('custom-date-input');
+              if (customDateInput && !customDateInput.value) {
+                customDateInput.value = this.getLocalDateString(new Date());
+                this.currentFilters.customDate = customDateInput.value;
+              }
+            }
+          } else {
+            if (customDateContainer) {
+              customDateContainer.style.display = 'none';
+            }
+            this.currentFilters.customDate = null;
+          }
+          
+          this.onDateRangeChange(value);
         }
       });
     });
+    
+    // Listener para el input de fecha personalizada
+    const customDateInput = document.getElementById('custom-date-input');
+    if (customDateInput) {
+      customDateInput.addEventListener('change', (e) => {
+        this.currentFilters.customDate = e.target.value;
+        // Solo recargar si el radio de fecha personalizada está seleccionado
+        const customRadio = document.getElementById('range-custom');
+        if (customRadio && customRadio.checked) {
+          this.loadStats();
+        }
+      });
+    }
   }
 
   // Cargar estadísticas con los filtros actuales
@@ -186,8 +221,8 @@ class productStatsv2 {
       </div>
     `;
 
-    // Si es today o yesterday, mostrar gráfica horaria
-    if (dateRange === 'today' || dateRange === 'yesterday') {
+    // Si es today, yesterday o custom_date, mostrar gráfica horaria
+    if (dateRange === 'today' || dateRange === 'yesterday' || dateRange === 'custom_date') {
       await this.loadHourlyChart();
     } else {
       // Para otros rangos, mostrar gráfica diaria con resumen
@@ -197,20 +232,23 @@ class productStatsv2 {
 
   // Cargar y renderizar gráfica de ventas por hora
   static async loadHourlyChart() {
-    const { botId, productId, dateRange } = this.currentFilters;
+    const { botId, productId, dateRange, customDate } = this.currentFilters;
     const container = document.getElementById('stats-charts-container-v2');
     if (!container) return;
 
-    // Calcular fecha según rango
+    // Calcular fecha según rango usando fecha local del navegador
     const today = new Date();
     let targetDate;
     
     if (dateRange === 'today') {
-      targetDate = today.toISOString().split('T')[0];
+      targetDate = this.getLocalDateString(today);
     } else if (dateRange === 'yesterday') {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      targetDate = yesterday.toISOString().split('T')[0];
+      targetDate = this.getLocalDateString(yesterday);
+    } else if (dateRange === 'custom_date') {
+      // Usar la fecha personalizada seleccionada
+      targetDate = customDate || this.getLocalDateString(today);
     }
 
     try {
@@ -235,6 +273,13 @@ class productStatsv2 {
         return;
       }
 
+      // Llamar también al endpoint de conversión para obtener total_sales y confirmed_sales
+      let conversionQueryParams = `range=${dateRange}&bot_id=${botId}`;
+      if (productId) {
+        conversionQueryParams += `&product_id=${productId}`;
+      }
+      const conversionResponse = await ogApi.get(`/api/sale/stats/revenue-conversion?${conversionQueryParams}`);
+      
       // Calcular resumen sumando datos por hora
       const data = response.data || [];
       let totalRevenue = 0;
@@ -244,8 +289,6 @@ class productStatsv2 {
       let directCount = 0;
       let remarketingCount = 0;
       let upsellCount = 0;
-      let totalConfirmed = 0;
-      let totalProspects = 0;
 
       data.forEach(item => {
         totalRevenue += parseFloat(item.revenue || 0);
@@ -255,11 +298,14 @@ class productStatsv2 {
         directCount += parseInt(item.direct_count || 0);
         remarketingCount += parseInt(item.remarketing_count || 0);
         upsellCount += parseInt(item.upsell_count || 0);
-        totalConfirmed += parseInt(item.sales_count || 0);
-        totalProspects += parseInt(item.sales_count || 0);
       });
 
+      // Obtener datos de conversión del summary
+      const totalConfirmed = conversionResponse?.summary?.total_confirmed || 0;
+      const totalProspects = conversionResponse?.summary?.total_prospects || 0;
+
       // Calcular porcentajes
+      const totalCount = directCount + remarketingCount + upsellCount;
       const directPercent = totalRevenue > 0 ? Math.round((directRevenue / totalRevenue) * 100) : 0;
       const remarketingPercent = totalRevenue > 0 ? Math.round((remarketingRevenue / totalRevenue) * 100) : 0;
       const upsellPercent = totalRevenue > 0 ? Math.round((upsellRevenue / totalRevenue) * 100) : 0;
@@ -289,7 +335,7 @@ class productStatsv2 {
           <div class="og-grid og-cols-5 og-gap-sm">
             <!-- Total Ingresos -->
             <div class="og-bg-white og-rounded-lg og-border og-border-gray-200 og-p-3">
-              <div class="og-text-xs og-text-gray-500 og-mb-1">TOTAL INGRESOS</div>
+              <div class="og-text-xs og-text-gray-500 og-mb-1">TOTAL INGRESOS (${totalCount})</div>
               <div class="og-text-2xl og-font-bold og-text-green-600">
                 $${totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
@@ -394,6 +440,7 @@ class productStatsv2 {
       const totalProspects = summary.total_prospects || 0;
 
       // Calcular porcentajes
+      const totalCount = directCount + remarketingCount + upsellCount;
       const directPercent = totalRevenue > 0 ? Math.round((directRevenue / totalRevenue) * 100) : 0;
       const remarketingPercent = totalRevenue > 0 ? Math.round((remarketingRevenue / totalRevenue) * 100) : 0;
       const upsellPercent = totalRevenue > 0 ? Math.round((upsellRevenue / totalRevenue) * 100) : 0;
@@ -420,7 +467,7 @@ class productStatsv2 {
           <div class="og-grid og-cols-5 og-gap-sm">
             <!-- Total Ingresos -->
             <div class="og-bg-white og-rounded-lg og-border og-border-gray-200 og-p-3">
-              <div class="og-text-xs og-text-gray-500 og-mb-1">TOTAL INGRESOS</div>
+              <div class="og-text-xs og-text-gray-500 og-mb-1">TOTAL INGRESOS (${totalCount})</div>
               <div class="og-text-2xl og-font-bold og-text-green-600">
                 $${totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
@@ -527,9 +574,18 @@ class productStatsv2 {
       'last_7_days': 'Hace 7 días',
       'last_15_days': 'Hace 15 días',
       'this_month': 'Este mes',
-      'last_30_days': 'Hace 30 días'
+      'last_30_days': 'Hace 30 días',
+      'custom_date': 'Día específico'
     };
     return labels[range] || range;
+  }
+
+  // Convertir Date a string en formato YYYY-MM-DD usando zona horaria local
+  static getLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
 

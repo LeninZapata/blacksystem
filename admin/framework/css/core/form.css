@@ -4,7 +4,7 @@
   /* Variables de formularios */
   --og-form-label-color: #333;
   --og-form-input-border: #bebebe;
-  --og-form-input-focus: var(--accent-primary);
+  --og-form-input-focus: var(--og-accent-primary);
   --og-form-input-bg: #fff;
   --og-form-hint-color: var(--og-gray-700);
   --og-form-error-color: #dc3545;
@@ -31,7 +31,7 @@
 
     label {
       display: block;
-      margin-bottom: 0.2rem;
+      margin-bottom: 0.5rem;
       font-weight: 400;
       font-size: var(--og-font-sm);
       color: var(--og-form-label-color);
@@ -441,6 +441,14 @@
 
       &:last-child {
         margin-bottom: 0;
+      }
+    }
+
+    & .og-form-group {
+      input,
+      select,
+      textarea {
+        padding: 0.3rem 0.5rem;
       }
     }
   }

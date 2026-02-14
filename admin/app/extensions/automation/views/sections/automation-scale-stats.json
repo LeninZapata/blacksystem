@@ -6,7 +6,7 @@
   "scripts": [
     "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
     "automation/assets/js/scaleRule.js",
-    "automation/assets/js/scaleRuleStats.js",
+    "automation/assets/js/scaleRuleStatsv2.js",
     "automation/assets/js/budgetAdjust.js"
   ],
   "content": [
@@ -76,25 +76,17 @@
             ]
           },
           {
-            "id": "tab-stats",
-            "title": "📊 Estadísticas",
-            "onLoad": "scaleRuleStats.init()",
+            "id": "tab-stats-v2",
+            "title": "📈 Movimientos de Escala",
+            "onLoad": "scaleRuleStatsv2.init()",
             "content": [
               {
                 "type": "html",
-                "content": "<div class='view-header'><h2>📊 Estadísticas de Escalado</h2><p>Visualiza cómo ha cambiado el presupuesto de tus activos publicitarios</p></div>"
+                "content": "<div class='og-bg-gray-100 og-px-2 og-p-1 og-rounded-lg og-mb-1'><h3 class='og-mt-0 og-mb-2 og-text-gray-800'>🔍 Filtros</h3><form id='scale-filters-v2-form' class='og-form-group'><div class='og-mb-2'><label for='filter-asset-v2' class='og-mb-1'>🎬 Activo Publicitario</label><select id='filter-asset-v2' class='form-control' onchange='scaleRuleStatsv2.onAssetChange(this.value)'><option value=''>Selecciona un activo...</option></select></div><div><label class='og-mb-1'>📅 Rango de Fechas</label><div class='btn-group og-flex og-wrap' role='group'><input type='radio' name='scale_date_range' id='scale-range-today' value='today' class='btn-group-input' checked><label for='scale-range-today' class='btn btn-group-item btn-sm'>Hoy</label><input type='radio' name='scale_date_range' id='scale-range-yesterday' value='yesterday' class='btn-group-input'><label for='scale-range-yesterday' class='btn btn-group-item btn-sm'>Ayer</label><input type='radio' name='scale_date_range' id='scale-range-yesterday-today' value='yesterday_today' class='btn-group-input'><label for='scale-range-yesterday-today' class='btn btn-group-item btn-sm'>Ayer y Hoy</label><input type='radio' name='scale_date_range' id='scale-range-3days' value='last_3_days' class='btn-group-input'><label for='scale-range-3days' class='btn btn-group-item btn-sm'>Hace 3 días</label><input type='radio' name='scale_date_range' id='scale-range-7days' value='last_7_days' class='btn-group-input'><label for='scale-range-7days' class='btn btn-group-item btn-sm'>Hace 7 días</label><input type='radio' name='scale_date_range' id='scale-range-15days' value='last_15_days' class='btn-group-input'><label for='scale-range-15days' class='btn btn-group-item btn-sm'>Hace 15 días</label><input type='radio' name='scale_date_range' id='scale-range-this-month' value='this_month' class='btn-group-input'><label for='scale-range-this-month' class='btn btn-group-item btn-sm'>Este mes</label><input type='radio' name='scale_date_range' id='scale-range-30days' value='last_30_days' class='btn-group-input'><label for='scale-range-30days' class='btn btn-group-item btn-sm'>Hace 30 días</label><input type='radio' name='scale_date_range' id='scale-range-custom' value='custom_date' class='btn-group-input'><label for='scale-range-custom' class='btn btn-group-item btn-sm'>Día específico</label></div><div id='scale-custom-date-container' style='display:none; margin-top: 0.75rem;'><label class='og-mb-1'>📅 Selecciona una fecha</label><input type='date' id='scale-custom-date-input' class='form-control' style='max-width: 200px;'></div></div></form></div>"
               },
               {
                 "type": "html",
-                "content": "<div class='stats-controls'><select id='asset-selector' class='form-control' onchange='scaleRuleStats.changeAsset(this.value)'><option value=''>Selecciona un activo...</option></select><select id='range-selector-scale' class='form-control' onchange='scaleRuleStats.changeRange(this.value)'><option value='today' selected>Hoy</option><option value='yesterday'>Ayer</option><option value='last_7_days'>Últimos 7 días</option><option value='last_15_days'>Últimos 15 días</option><option value='last_30_days'>Últimos 30 días</option><option value='this_month'>Este mes</option></select><button class='btn btn-primary' onclick='scaleRuleStats.openBudgetAdjustModal()' style='margin-left: 0.5rem;'>💰 Ajustar Presupuesto</button></div>"
-              },
-              {
-                "type": "html",
-                "content": "<div id='chart-budget-changes'></div>"
-              },
-              {
-                "type": "html",
-                "content": "<div id='timeline-budget-changes'></div>"
+                "content": "<div id='scale-stats-container-v2' class=''><p class='og-text-center og-text-gray-500 og-p-4'>Selecciona un activo publicitario para ver las estadísticas</p></div>"
               }
             ]
           }

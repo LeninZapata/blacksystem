@@ -22,26 +22,37 @@ class ogDate {
         $end->setTime(23, 59, 59);
         break;
       case 'last_3_days':
-        $start->modify('-2 days')->setTime(0, 0, 0);
+        // 3 días hacia atrás SIN incluir hoy
+        $start->modify('-3 days')->setTime(0, 0, 0);
+        $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'last_7_days':
-        $start->modify('-6 days')->setTime(0, 0, 0);
+        // 7 días hacia atrás SIN incluir hoy
+        $start->modify('-7 days')->setTime(0, 0, 0);
+        $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'last_10_days':
-        $start->modify('-9 days')->setTime(0, 0, 0);
+        // 10 días hacia atrás SIN incluir hoy
+        $start->modify('-10 days')->setTime(0, 0, 0);
+        $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'last_15_days':
-        $start->modify('-14 days')->setTime(0, 0, 0);
+        // 15 días hacia atrás SIN incluir hoy
+        $start->modify('-15 days')->setTime(0, 0, 0);
+        $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'this_week':
         $start->modify('monday this week')->setTime(0, 0, 0);
+        $end->setTime(23, 59, 59);
         break;
       case 'this_month':
         $start->modify('first day of this month')->setTime(0, 0, 0);
         $end->modify('last day of this month')->setTime(23, 59, 59);
         break;
       case 'last_30_days':
-        $start->modify('-29 days')->setTime(0, 0, 0);
+        // 30 días hacia atrás SIN incluir hoy
+        $start->modify('-30 days')->setTime(0, 0, 0);
+        $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'last_month':
         $start->modify('first day of last month')->setTime(0, 0, 0);
@@ -52,8 +63,8 @@ class ogDate {
     }
 
     return [
-      'start' => $start->format('Y-m-d'),
-      'end' => $end->format('Y-m-d')
+      'start' => $start->format('Y-m-d H:i:s'),
+      'end' => $end->format('Y-m-d H:i:s')
     ];
   }
 

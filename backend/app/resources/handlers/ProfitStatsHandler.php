@@ -189,13 +189,18 @@ class ProfitStatsHandler {
 
     try {
       $today = date('Y-m-d');
-      $needsToday = ($dates['end'] >= $today);
-      $historicEnd = $needsToday ? date('Y-m-d', strtotime($today . ' -1 day')) : $dates['end'];
+      
+      // Extraer solo la fecha (sin hora) para comparación correcta
+      $endDateOnly = substr($dates['end'], 0, 10); // Extrae 'YYYY-MM-DD' de 'YYYY-MM-DD HH:MM:SS'
+      $startDateOnly = substr($dates['start'], 0, 10);
+      
+      $needsToday = ($endDateOnly >= $today);
+      $historicEnd = $needsToday ? date('Y-m-d', strtotime($today . ' -1 day')) : $endDateOnly;
 
       $results = [];
 
       // PASO 1: Datos históricos desde ad_metrics_daily
-      if ($dates['start'] <= $historicEnd) {
+      if ($startDateOnly <= $historicEnd) {
         // Query 1: Métricas de ads
         $sqlAds = "
           SELECT
@@ -224,7 +229,7 @@ class ProfitStatsHandler {
             AND d.metric_date <= ?
         ";
 
-        $paramsAds = [$userId, $dates['start'], $historicEnd];
+        $paramsAds = [$userId, $startDateOnly, $historicEnd];
 
         if ($botId) {
           $sqlAds .= " AND p.bot_id = ?";
@@ -255,7 +260,7 @@ class ProfitStatsHandler {
             AND s.status = 1
         ";
 
-        $paramsSales = [$userId, $dates['start'], $historicEnd];
+        $paramsSales = [$userId, $startDateOnly, $historicEnd];
 
         if ($botId) {
           $sqlSales .= " AND s.bot_id = ?";

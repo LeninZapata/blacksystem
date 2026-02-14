@@ -43,14 +43,6 @@ $router->group('/api/adMetrics', function($router) {
     );
   })->middleware(['throttle:10,1']);
 
-  // Gastos publicitarios por día - GET /api/adMetrics/spend-by-day?range=last_7_days
-  $router->get('/spend-by-day', function() {
-    $range = ogRequest::query('range', 'last_7_days');
-    ogResponse::json(
-      ogApp()->handler('AdMetrics')::getAdSpendByDay(['range' => $range])
-    );
-  })->middleware(['throttle:100,1','auth']);
-
   // Gastos publicitarios por producto - GET /api/adMetrics/spend-by-product?range=last_7_days
   $router->get('/spend-by-product', function() {
     $range = ogRequest::query('range', 'last_7_days');

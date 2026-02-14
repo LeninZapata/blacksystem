@@ -177,5 +177,18 @@
     .og-menu-toggle {
       display: flex;
     }
+
+  }
+
+  @media (max-width: 768px) {
+    .og-header{
+      padding: .5rem;
+    }
+    .og-layout{
+      grid-template-rows: 40px;
+    }
+    .og-sidebar{
+      /*font-size: var(--og-font-lg);*/
+    }
   }
 }

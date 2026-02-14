@@ -29,7 +29,7 @@ class ClientStatsHandler {
       ORDER BY date ASC
     ";
 
-    $clientsData = ogDb::raw($sqlClients, [$userId, $dates['start'], $dates['end'] . ' 23:59:59' ]);
+    $clientsData = ogDb::raw($sqlClients, [$userId, $dates['start'], $dates['end']]);
 
     // Query: Clientes que hicieron compra confirmada
     $sqlConverted = "
@@ -47,7 +47,7 @@ class ClientStatsHandler {
       ORDER BY date ASC
     ";
 
-    $convertedData = ogDb::raw($sqlConverted, [$userId, $dates['start'], $dates['end'] . ' 23:59:59' ]);
+    $convertedData = ogDb::raw($sqlConverted, [$userId, $dates['start'], $dates['end']]);
 
     // Combinar resultados
     $statsMap = [];

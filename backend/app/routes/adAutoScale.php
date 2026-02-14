@@ -42,6 +42,17 @@ $router->group('/api/adAutoScale', function($router) {
     );
   })->middleware(['auth', 'throttle:100,1']);
 
+  // Obtener cambios de presupuesto agrupados por día
+  // GET /api/adAutoScale/stats/budget-changes-daily?asset_id=11&range=last_7_days
+  $router->get('/stats/budget-changes-daily', function() {
+    ogResponse::json(
+      ogApp()->handler('AdAutoScaleStats')::getBudgetChangesByDay([
+        'asset_id' => ogRequest::query('asset_id'),
+        'range' => ogRequest::query('range', 'last_7_days')
+      ])
+    );
+  })->middleware(['auth', 'throttle:100,1']);
+
   // Resetear presupuestos diarios (CRON cada hora)
   // GET /api/adAutoScale/reset-budgets
   $router->get('/reset-budgets', function() {

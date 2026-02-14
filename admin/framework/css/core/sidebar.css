@@ -7,7 +7,7 @@
   --og-sidebar-border: var(--og-gray-100); /*#e0e0e0*/;
   --og-sidebar-hover-bg: #f5f5f5;
   --og-sidebar-active-bg: #fafafa;
-  --og-sidebar-active-border: var(--accent-primary-dark, rgb(56, 93, 138));
+  --og-sidebar-active-border: var(--og-accent-primary-dark, rgb(56, 93, 138));
 
   .og-sidebar {
     display: flex;
@@ -111,7 +111,6 @@
 
   .og-menu-title {
     flex: 1;
-    font-size: var(--og-font-sm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
