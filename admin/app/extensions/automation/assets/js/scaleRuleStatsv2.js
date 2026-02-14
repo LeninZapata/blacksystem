@@ -60,6 +60,11 @@ class scaleRuleStatsv2 {
       const platformLabel = this.getPlatformLabel(asset.ad_platform);
       option.textContent = `${asset.ad_asset_name || asset.ad_asset_id} [${assetTypeLabel} - ${platformLabel}]`;
       
+      // Agregar dataset para el botón de ajuste de presupuesto
+      option.dataset.adAssetId = asset.ad_asset_id;
+      option.dataset.adAssetType = asset.ad_asset_type;
+      option.dataset.platform = asset.ad_platform;
+      
       selectAsset.appendChild(option);
     });
   }
@@ -1116,6 +1121,75 @@ class scaleRuleStatsv2 {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  // Abrir modal de ajuste de presupuesto
+  static openBudgetAdjustModal() {
+    if (!this.currentFilters.assetId) {
+      ogComponent('toast').warning('Debes seleccionar un activo publicitario primero');
+      return;
+    }
+
+    const selectElement = document.getElementById('filter-asset-v2');
+    if (!selectElement) {
+      ogComponent('toast').error('Error: No se encontró el selector de activos');
+      return;
+    }
+
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      ogComponent('toast').error('Error: No hay activo seleccionado');
+      return;
+    }
+
+    const adAssetId = selectedOption.dataset.adAssetId;
+    const adAssetType = selectedOption.dataset.adAssetType;
+
+    if (!adAssetId) {
+      ogComponent('toast').error('Error: El activo no tiene ID válido');
+      ogLogger.error('ext:automation', 'dataset.adAssetId está vacío', selectedOption);
+      return;
+    }
+
+    if (!adAssetType) {
+      ogComponent('toast').error('Error: El activo no tiene tipo válido');
+      ogLogger.error('ext:automation', 'dataset.adAssetType está vacío', selectedOption);
+      return;
+    }
+
+    // Llamar al modal de budgetAdjust
+    if (window.budgetAdjust && typeof window.budgetAdjust.open === 'function') {
+      budgetAdjust.open(adAssetId, adAssetType, this.currentFilters.assetId);
+    } else {
+      ogComponent('toast').error('Error: budgetAdjust no está disponible');
+      ogLogger.error('ext:automation', 'budgetAdjust no encontrado en window');
+    }
+  }
+
+  // Obtener datos del activo seleccionado
+  static getAssetData(assetId) {
+    const selectElement = document.getElementById('filter-asset-v2');
+    if (!selectElement) {
+      ogLogger.error('ext:automation', 'No se encontró el select #filter-asset-v2');
+      return null;
+    }
+
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+      ogLogger.error('ext:automation', 'No hay opción seleccionada');
+      return null;
+    }
+
+    const assetData = {
+      id: assetId,
+      ad_asset_id: selectedOption.dataset.adAssetId,
+      ad_asset_type: selectedOption.dataset.adAssetType || 'adset',
+      ad_platform: selectedOption.dataset.platform || 'facebook'
+    };
+
+    ogLogger.debug('ext:automation', 'Asset data extraído:', assetData);
+
+    return assetData;
   }
 }
 
