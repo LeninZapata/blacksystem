@@ -157,8 +157,20 @@ class scaleRuleStatsv2 {
       // Determinar el rango a usar
       let apiRange = dateRange;
       
-      // Si es fecha personalizada, convertir a formato de API
-      if (dateRange === 'custom_date' && customDate) {
+      // IMPORTANTE: Para "today" y "yesterday", enviar fecha específica del navegador
+      // para evitar problemas de zona horaria entre frontend y backend
+      if (dateRange === 'today') {
+        const today = this.getLocalDateString(new Date());
+        apiRange = `custom:${today}`;
+        ogLogger.debug('ext:automation', 'Filtro HOY convertido a fecha local:', today);
+      } else if (dateRange === 'yesterday') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = this.getLocalDateString(yesterday);
+        apiRange = `custom:${yesterdayStr}`;
+        ogLogger.debug('ext:automation', 'Filtro AYER convertido a fecha local:', yesterdayStr);
+      } else if (dateRange === 'custom_date' && customDate) {
+        // Si es fecha personalizada, convertir a formato de API
         apiRange = `custom:${customDate}`;
       }
 

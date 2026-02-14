@@ -151,12 +151,22 @@ class AdAutoScaleHandler {
     ogLog::info('resetDailyBudgets - Activos agrupados por timezone', [
       'total_assets' => count($assets),
       'timezones_count' => count($assetsByTimezone),
-      'timezones' => array_keys($assetsByTimezone)
+      'timezones' => array_keys($assetsByTimezone),
+      'assets_detail' => array_map(function($a) {
+        return [
+          'id' => $a['id'],
+          'ad_asset_id' => $a['ad_asset_id'],
+          'last_reset_date' => $a['last_reset_date'],
+          'auto_reset_budget' => $a['auto_reset_budget'],
+          'timezone' => $a['timezone']
+        ];
+      }, $assets)
     ], self::$logMeta);
 
     $resetCount = 0;
     $skipped = 0;
     $errors = [];
+    $debugInfo = []; // Para debug detallado
 
     // 3. Procesar cada timezone
     foreach ($assetsByTimezone as $timezone => $timezoneAssets) {
@@ -175,12 +185,29 @@ class AdAutoScaleHandler {
         ], self::$logMeta);
 
         foreach ($timezoneAssets as $asset) {
+          ogLog::debug('resetDailyBudgets - Evaluando activo', [
+            'asset_id' => $asset['id'],
+            'ad_asset_id' => $asset['ad_asset_id'],
+            'last_reset_date' => $asset['last_reset_date'],
+            'current_date' => $currentDate,
+            'dates_match' => ($asset['last_reset_date'] === $currentDate),
+            'reset_time' => $asset['reset_time'] ?? '00:00:00',
+            'current_hour' => $currentHour
+          ], self::$logMeta);
+
           // Validar si ya se reseteó hoy
           if ($asset['last_reset_date'] === $currentDate) {
             ogLog::debug('resetDailyBudgets - Ya se reseteó hoy', [
               'asset_id' => $asset['id'],
               'last_reset_date' => $asset['last_reset_date']
             ], self::$logMeta);
+            $debugInfo[] = [
+              'asset_id' => $asset['id'],
+              'ad_asset_id' => $asset['ad_asset_id'],
+              'reason' => 'already_reset_today',
+              'last_reset_date' => $asset['last_reset_date'],
+              'current_date' => $currentDate
+            ];
             $skipped++;
             continue;
           }
@@ -191,55 +218,68 @@ class AdAutoScaleHandler {
               'asset_id' => $asset['id'],
               'ad_asset_id' => $asset['ad_asset_id']
             ], self::$logMeta);
+            $debugInfo[] = [
+              'asset_id' => $asset['id'],
+              'ad_asset_id' => $asset['ad_asset_id'],
+              'reason' => 'no_base_budget',
+              'base_daily_budget' => $asset['base_daily_budget']
+            ];
             $skipped++;
             continue;
           }
 
-          // Verificar si ya es hora de resetear (con 5 minutos de holgura)
-          $resetTime = $asset['reset_time'] ?? '00:00:00';
+          // Si last_reset_date es anterior a hoy, debe resetear (ya pasó el día completo)
+          $shouldReset = false;
+          $resetReason = '';
           
-          // Crear objeto DateTime para la hora de reset y restar 5 minutos
-          $resetTimeObj = DateTime::createFromFormat('H:i:s', $resetTime, new DateTimeZone($timezone));
-          if ($resetTimeObj !== false) {
-            $resetTimeObj->setDate(
-              (int)$currentTime->format('Y'),
-              (int)$currentTime->format('m'),
-              (int)$currentTime->format('d')
-            );
-            $resetTimeObj->modify('-5 minutes');
-            $resetTimeWithBuffer = $resetTimeObj->format('H:i:s');
+          if ($asset['last_reset_date'] === null || $asset['last_reset_date'] < $currentDate) {
+            // Nunca se ha reseteado O ya pasó el día → debe resetear
+            $shouldReset = true;
+            $resetReason = $asset['last_reset_date'] === null 
+              ? 'first_reset' 
+              : 'previous_day';
           } else {
-            $resetTimeWithBuffer = $resetTime; // Fallback si falla el parseo
+            // last_reset_date == currentDate → Ya se verificó arriba, no debería llegar aquí
+            $shouldReset = false;
+            $resetReason = 'same_day';
           }
           
-          if ($currentHour >= $resetTimeWithBuffer) {
+          if ($shouldReset) {
             ogLog::debug('resetDailyBudgets - Reseteando activo', [
               'asset_id' => $asset['id'],
               'ad_asset_id' => $asset['ad_asset_id'],
               'timezone' => $timezone,
-              'reset_time_configured' => $resetTime,
-              'reset_time_with_buffer' => $resetTimeWithBuffer,
-              'current_hour' => $currentHour
+              'reset_reason' => $resetReason,
+              'last_reset_date' => $asset['last_reset_date'],
+              'current_date' => $currentDate,
+              'current_time' => $currentTime->format('Y-m-d H:i:s')
             ], self::$logMeta);
 
             $result = self::resetAssetBudget($asset, $timezone, $currentDate);
             
             if ($result['success']) {
+              $debugInfo[] = [
+                'asset_id' => $asset['id'],
+                'ad_asset_id' => $asset['ad_asset_id'],
+                'action' => 'reset_success',
+                'reset_reason' => $resetReason,
+                'budget_before' => $result['budget_before'] ?? null,
+                'budget_after' => $result['budget_after'] ?? null
+              ];
               $resetCount++;
             } else {
+              $debugInfo[] = [
+                'asset_id' => $asset['id'],
+                'ad_asset_id' => $asset['ad_asset_id'],
+                'action' => 'reset_error',
+                'error' => $result['error']
+              ];
               $errors[] = [
                 'asset_id' => $asset['id'],
                 'ad_asset_id' => $asset['ad_asset_id'],
                 'error' => $result['error']
               ];
             }
-          } else {
-            ogLog::debug('resetDailyBudgets - Aún no es hora de resetear', [
-              'asset_id' => $asset['id'],
-              'reset_time_configured' => $resetTime,
-              'reset_time_with_buffer' => $resetTimeWithBuffer,
-              'current_hour' => $currentHour
-            ], self::$logMeta);
           }
         }
 
@@ -269,7 +309,9 @@ class AdAutoScaleHandler {
       'resets_executed' => $resetCount,
       'skipped' => $skipped,
       'errors' => $errors,
-      'execution_time_ms' => $executionTime
+      'execution_time_ms' => $executionTime,
+      'debug' => $debugInfo,
+      'total_assets_found' => count($assets)
     ];
   }
 
