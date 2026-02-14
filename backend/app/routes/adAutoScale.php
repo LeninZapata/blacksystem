@@ -37,7 +37,8 @@ $router->group('/api/adAutoScale', function($router) {
     ogResponse::json(
       ogApp()->handler('AdAutoScaleStats')::getBudgetChanges([
         'asset_id' => ogRequest::query('asset_id'),
-        'range' => ogRequest::query('range', 'today')
+        'range' => ogRequest::query('range', 'today'),
+        'user_id' => ogRequest::query('user_id') // Solo para testing sin auth
       ])
     );
   })->middleware(['auth', 'throttle:100,1']);
@@ -48,7 +49,8 @@ $router->group('/api/adAutoScale', function($router) {
     ogResponse::json(
       ogApp()->handler('AdAutoScaleStats')::getBudgetChangesByDay([
         'asset_id' => ogRequest::query('asset_id'),
-        'range' => ogRequest::query('range', 'last_7_days')
+        'range' => ogRequest::query('range', 'last_7_days'),
+        'user_id' => ogRequest::query('user_id') // Solo para testing sin auth
       ])
     );
   })->middleware(['auth', 'throttle:100,1']);

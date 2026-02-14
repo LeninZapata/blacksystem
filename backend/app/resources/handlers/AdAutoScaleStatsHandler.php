@@ -9,6 +9,7 @@ class AdAutoScaleStatsHandler {
       $range = $params['range'] ?? 'today';
       
       $userId = ogCache::memoryGet('auth_user_id', $GLOBALS['auth_user_id'] ?? null);
+      $userId = $userId ?? ($params['user_id'] ?? null); // Fallback para testing
 
       if (!$userId) {
         return ogResponse::error('Usuario no autenticado');
@@ -174,6 +175,7 @@ class AdAutoScaleStatsHandler {
       $range = $params['range'] ?? 'last_7_days';
       
       $userId = ogCache::memoryGet('auth_user_id', $GLOBALS['auth_user_id'] ?? null);
+      $userId = $userId ?? ($params['user_id'] ?? null); // Fallback para testing
 
       if (!$userId) {
         return ogResponse::error('Usuario no autenticado');
