@@ -555,17 +555,22 @@ class AdAutoScaleHandler {
 
       if ($profit > 0) {
         // Hay ganancia positiva
-        if ($profit > $maxBudget) {
+        if ($profit < $baseBudget) {
+          // Ganancia positiva pero menor al base → usar base (respetar mínimo)
+          $newBudget = $baseBudget;
+          $reason = "Ganancia (\${$profit}) menor al base → usando base mínimo (\${$baseBudget})";
+        } elseif ($profit > $maxBudget) {
           // Ganancia supera el máximo → usar máximo
           $newBudget = $maxBudget;
           $reason = "Ganancia (\${$profit}) supera máximo → usando máximo (\${$maxBudget})";
         } else {
-          // Ganancia dentro del rango → usar ganancia
+          // Ganancia dentro del rango (entre base y máximo) → usar ganancia
           $newBudget = round($profit, 2);
           $reason = "Usando ganancia del día anterior (\${$profit})";
         }
       } else {
         // Ganancia negativa o cero → usar base
+        $newBudget = $baseBudget;
         $reason = "Ganancia negativa o cero (\${$profit}) → usando base (\${$baseBudget})";
       }
 

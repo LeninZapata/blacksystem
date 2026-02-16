@@ -252,4 +252,90 @@ class AdAutoScaleStatsHandler {
       return ogResponse::error($e->getMessage());
     }
   }
+
+  /**
+   * Obtener reseteos de presupuesto diario por activo
+   * Retorna el presupuesto después del reset de cada día
+   */
+  static function getBudgetResetsByDay($params) {
+    try {
+      $assetId = $params['asset_id'] ?? null;
+      $range = $params['range'] ?? 'last_7_days';
+      
+      $userId = ogCache::memoryGet('auth_user_id', $GLOBALS['auth_user_id'] ?? null);
+      $userId = $userId ?? ($params['user_id'] ?? null); // Fallback para testing
+
+      if (!$userId) {
+        return ogResponse::error('Usuario no autenticado');
+      }
+
+      if (!$assetId) {
+        return ogResponse::error('asset_id es requerido');
+      }
+
+      // Obtener fechas según rango
+      $dates = self::getDateRange($range);
+
+      // Consultar reseteos de presupuesto
+      // Si hay múltiples resets en un día, tomar el último (el que quedó al final del día)
+      $sql = "
+        SELECT 
+          r.reset_date as date,
+          r.budget_before,
+          r.budget_after,
+          r.reset_at,
+          r.status,
+          r.execution_time_ms
+        FROM ad_budget_resets r
+        INNER JOIN (
+          SELECT reset_date, MAX(reset_at) as max_reset_at
+          FROM ad_budget_resets
+          WHERE product_ad_asset_id = ?
+            AND user_id = ?
+            AND reset_date >= ?
+            AND reset_date <= ?
+            AND status = 'success'
+          GROUP BY reset_date
+        ) latest ON r.reset_date = latest.reset_date 
+                   AND r.reset_at = latest.max_reset_at
+        WHERE r.product_ad_asset_id = ?
+          AND r.user_id = ?
+          AND r.status = 'success'
+        ORDER BY r.reset_date ASC
+      ";
+
+      $results = ogDb::raw($sql, [
+        $assetId,
+        $userId,
+        $dates['from'],
+        $dates['to'],
+        $assetId,
+        $userId
+      ]);
+
+      // Formatear datos
+      $data = array_map(function($row) {
+        return [
+          'date' => $row['date'],
+          'budget_before' => round((float)$row['budget_before'], 2),
+          'budget_after' => round((float)$row['budget_after'], 2),
+          'budget_change' => round((float)$row['budget_after'] - (float)$row['budget_before'], 2),
+          'reset_at' => $row['reset_at'],
+          'execution_time_ms' => (int)$row['execution_time_ms']
+        ];
+      }, $results);
+
+      ogLog::info('getBudgetResetsByDay - Datos obtenidos', [
+        'asset_id' => $assetId,
+        'range' => $range,
+        'days' => count($data)
+      ], self::$logMeta);
+
+      return ogResponse::success($data);
+
+    } catch (Exception $e) {
+      ogLog::error('getBudgetResetsByDay - Error', ['error' => $e->getMessage()], self::$logMeta);
+      return ogResponse::error($e->getMessage());
+    }
+  }
 }

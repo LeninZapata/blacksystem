@@ -149,9 +149,90 @@ class ProfitStatsHandler {
         ];
       }
 
+      // PASO 3: Si no es hoy, obtener resumen consolidado de ad_metrics_daily
+      // Esto asegura que el resumen sea exacto (no basado en el último snapshot horario)
+      $summary = null;
+      
+      if (!$isToday) {
+        // Consultar ad_metrics_daily para el resumen exacto
+        $sqlDailySummary = "
+          SELECT
+            SUM(d.spend) as total_spend
+          FROM ad_metrics_daily d
+        ";
+
+        if ($botId || $productId) {
+          $sqlDailySummary .= "
+            INNER JOIN product_ad_assets paa ON d.ad_asset_id = paa.ad_asset_id
+            INNER JOIN products p ON paa.product_id = p.id
+          ";
+        }
+
+        $sqlDailySummary .= " WHERE d.user_id = ? AND d.metric_date = ?";
+        $paramsDailySummary = [$userId, $date];
+
+        if ($botId) {
+          $sqlDailySummary .= " AND p.bot_id = ?";
+          $paramsDailySummary[] = $botId;
+        }
+
+        if ($productId) {
+          $sqlDailySummary .= " AND paa.product_id = ?";
+          $paramsDailySummary[] = $productId;
+        }
+
+        $dailySummaryData = ogDb::raw($sqlDailySummary, $paramsDailySummary);
+
+        // Ventas del día para el resumen
+        $sqlDailySalesSummary = "
+          SELECT
+            COUNT(DISTINCT s.id) as real_purchases,
+            COALESCE(SUM(s.billed_amount), 0) as revenue
+          FROM sales s
+          WHERE s.user_id = ?
+            AND DATE(s.payment_date) = ?
+            AND s.context = 'whatsapp'
+            AND s.process_status = 'sale_confirmed'
+            AND s.status = 1
+        ";
+
+        $paramsDailySalesSummary = [$userId, $date];
+
+        if ($botId) {
+          $sqlDailySalesSummary .= " AND s.bot_id = ?";
+          $paramsDailySalesSummary[] = $botId;
+        }
+
+        if ($productId) {
+          $sqlDailySalesSummary .= " AND s.product_id = ?";
+          $paramsDailySalesSummary[] = $productId;
+        }
+
+        $dailySalesSummaryData = ogDb::raw($sqlDailySalesSummary, $paramsDailySalesSummary);
+
+        // Si hay datos consolidados en ad_metrics_daily, usarlos para el resumen
+        if (!empty($dailySummaryData) && $dailySummaryData[0]['total_spend'] !== null) {
+          $totalSpend = (float)$dailySummaryData[0]['total_spend'];
+          $salesSummary = !empty($dailySalesSummaryData) ? $dailySalesSummaryData[0] : ['real_purchases' => 0, 'revenue' => 0];
+          $totalRevenue = (float)$salesSummary['revenue'];
+          $totalProfit = $totalRevenue - $totalSpend;
+          $totalRoas = $totalSpend > 0 ? round($totalRevenue / $totalSpend, 2) : 0;
+
+          $summary = [
+            'total_spend' => round($totalSpend, 2),
+            'total_revenue' => round($totalRevenue, 2),
+            'total_profit' => round($totalProfit, 2),
+            'total_roas' => $totalRoas,
+            'total_purchases' => (int)$salesSummary['real_purchases'],
+            'source' => 'ad_metrics_daily' // Indica que viene de datos consolidados
+          ];
+        }
+      }
+
       return [
         'success' => true,
         'data' => $results,
+        'summary' => $summary, // Puede ser null si es hoy o si no hay datos consolidados
         'filters' => [
           'date' => $date,
           'bot_id' => $botId,
@@ -299,6 +380,104 @@ class ProfitStatsHandler {
             'revenue' => round($revenue, 2),
             'profit' => round($profit, 2),
             'real_purchases' => $salesInfo['real_purchases'],
+            'roas' => $spend > 0 ? round($revenue / $spend, 2) : 0
+          ];
+        }
+      }
+
+      // PASO 1.5: FALLBACK para AYER si no hay datos en ad_metrics_daily
+      // Si consultamos ayer y no hay datos (porque el cron de las 2am aún no corrió), 
+      // usar ad_metrics_hourly como fallback
+      $yesterday = date('Y-m-d', strtotime('-1 day'));
+      $isYesterdayOnly = ($startDateOnly === $yesterday && $endDateOnly === $yesterday);
+      
+      if ($isYesterdayOnly && !isset($results[$yesterday])) {
+        // No hay datos de ayer en ad_metrics_daily, intentar fallback a hourly
+        $sqlYesterdayAds = "
+          SELECT
+            SUM(h.spend) as spend,
+            SUM(h.purchase) as ad_purchases,
+            SUM(h.purchase_value) as ad_purchase_value
+          FROM ad_metrics_hourly h
+        ";
+
+        if ($botId || $productId) {
+          $sqlYesterdayAds .= "
+            INNER JOIN product_ad_assets paa ON h.ad_asset_id = paa.ad_asset_id
+            INNER JOIN products p ON paa.product_id = p.id
+          ";
+        }
+
+        // Tomar el último snapshot de cada hora de ayer
+        $sqlYesterdayAds .= "
+          WHERE h.user_id = ?
+            AND h.query_date = ?
+            AND h.id IN (
+              SELECT MAX(h2.id)
+              FROM ad_metrics_hourly h2
+              WHERE h2.user_id = ? 
+                AND h2.query_date = ?
+                AND h2.ad_asset_id = h.ad_asset_id
+                AND h2.query_hour = h.query_hour
+              GROUP BY h2.ad_asset_id, h2.query_hour
+            )
+        ";
+
+        $paramsYesterdayAds = [$userId, $yesterday, $userId, $yesterday];
+
+        if ($botId) {
+          $sqlYesterdayAds .= " AND p.bot_id = ?";
+          $paramsYesterdayAds[] = $botId;
+        }
+
+        if ($productId) {
+          $sqlYesterdayAds .= " AND paa.product_id = ?";
+          $paramsYesterdayAds[] = $productId;
+        }
+
+        $yesterdayAdsData = ogDb::raw($sqlYesterdayAds, $paramsYesterdayAds);
+
+        // Ventas de ayer
+        $sqlYesterdaySales = "
+          SELECT
+            COUNT(DISTINCT s.id) as real_purchases,
+            COALESCE(SUM(s.billed_amount), 0) as revenue
+          FROM sales s
+          WHERE s.user_id = ?
+            AND DATE(s.payment_date) = ?
+            AND s.context = 'whatsapp'
+            AND s.process_status = 'sale_confirmed'
+            AND s.status = 1
+        ";
+
+        $paramsYesterdaySales = [$userId, $yesterday];
+
+        if ($botId) {
+          $sqlYesterdaySales .= " AND s.bot_id = ?";
+          $paramsYesterdaySales[] = $botId;
+        }
+
+        if ($productId) {
+          $sqlYesterdaySales .= " AND s.product_id = ?";
+          $paramsYesterdaySales[] = $productId;
+        }
+
+        $yesterdaySalesData = ogDb::raw($sqlYesterdaySales, $paramsYesterdaySales);
+
+        if (!empty($yesterdayAdsData)) {
+          $adsRow = $yesterdayAdsData[0];
+          $salesRow = !empty($yesterdaySalesData) ? $yesterdaySalesData[0] : ['real_purchases' => 0, 'revenue' => 0];
+          
+          $spend = (float)$adsRow['spend'];
+          $revenue = (float)$salesRow['revenue'];
+          $profit = $revenue - $spend;
+
+          $results[$yesterday] = [
+            'date' => $yesterday,
+            'spend' => round($spend, 2),
+            'revenue' => round($revenue, 2),
+            'profit' => round($profit, 2),
+            'real_purchases' => (int)$salesRow['real_purchases'],
             'roas' => $spend > 0 ? round($revenue / $spend, 2) : 0
           ];
         }

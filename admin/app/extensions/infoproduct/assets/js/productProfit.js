@@ -206,11 +206,12 @@ class productProfit {
     }
 
     // Decidir si mostrar gráfica por hora o por día
-    // 'yesterday_today' usa gráfica diaria ya que abarca 2 días
+    // HOY y AYER usan gráfica horaria (hoy con is_latest=1, ayer con último snapshot de cada hora)
+    // Días anteriores y rangos múltiples usan gráfica diaria (datos consolidados)
     if (dateRange === 'today' || dateRange === 'yesterday' || dateRange === 'custom_date') {
       await this.loadHourlyChart();
     } else {
-      // Para otros rangos (incluyendo yesterday_today), mostrar gráfica diaria
+      // Para rangos de múltiples días, usar gráfica diaria
       await this.loadDailyChart();
     }
   }
@@ -261,15 +262,19 @@ class productProfit {
       }
 
       // Calcular resumen
-      // Los datos ahora vienen acumulados tanto para hoy como para días históricos
-      // Tomamos el último valor que tiene el total hasta ese momento
       const data = response.data || [];
       let totalProfit = 0;
       let totalRevenue = 0;
       let totalSpend = 0;
 
-      if (data.length > 0) {
-        // Los datos vienen acumulados, tomamos el último valor
+      // Si el backend envía un resumen consolidado (para días históricos), usarlo
+      // Esto asegura que usemos los datos completos de ad_metrics_daily
+      if (response.summary) {
+        totalProfit = parseFloat(response.summary.total_profit || 0);
+        totalRevenue = parseFloat(response.summary.total_revenue || 0);
+        totalSpend = parseFloat(response.summary.total_spend || 0);
+      } else if (data.length > 0) {
+        // Para HOY, los datos vienen acumulados, tomamos el último valor
         const lastItem = data[data.length - 1];
         totalProfit = parseFloat(lastItem.profit || 0);
         totalRevenue = parseFloat(lastItem.revenue || 0);

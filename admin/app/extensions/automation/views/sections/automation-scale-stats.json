@@ -2,12 +2,16 @@
   "id": "automationScaleRules",
   "title": "{i18n:automation.scale_rules.listado.title}",
   "type": "content",
-  "styles": ["automation/assets/css/scaleRuleStats.css"],
+  "styles": [
+    "automation/assets/css/scaleRuleStats.css",
+    "automation/assets/css/scaleRuleStatsCond.css"
+  ],
   "scripts": [
     "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
     "automation/assets/js/scaleRule.js",
     "automation/assets/js/scaleRuleStatsv2.js",
-    "automation/assets/js/budgetAdjust.js"
+    "automation/assets/js/budgetAdjust.js",
+    "automation/assets/js/budgetResetStats.js"
   ],
   "content": [
     {
@@ -77,7 +81,7 @@
           },
           {
             "id": "tab-stats-v2",
-            "title": "📈 Movimientos de Escala",
+            "title": "📈 Mov. Escala",
             "onLoad": "scaleRuleStatsv2.init()",
             "content": [
               {
@@ -87,6 +91,21 @@
               {
                 "type": "html",
                 "content": "<div id='scale-stats-container-v2' class=''><p class='og-text-center og-text-gray-500 og-p-4'>Selecciona un activo publicitario para ver las estadísticas</p></div>"
+              }
+            ]
+          },
+          {
+            "id": "tab-budget-resets",
+            "title": "🔄 Mov. Reseteo Presup.",
+            "onLoad": "budgetResetStats.init()",
+            "content": [
+              {
+                "type": "html",
+                "content": "<div class='og-bg-gray-100 og-px-2 og-p-1 og-rounded-lg og-mb-1'><h3 class='og-mt-0 og-mb-2 og-text-gray-800'>🔍 Filtros</h3><form id='budget-reset-filters-form' class='og-form-group'><div class='og-mb-2'><label for='filter-asset-reset' class='og-mb-1'>🎬 Activo Publicitario</label><div class='og-flex og-gap-sm og-items-end'><select id='filter-asset-reset' class='form-control' onchange='budgetResetStats.onAssetChange(this.value)' style='flex: 1;'><option value=''>Selecciona un activo...</option></select></div></div><div><label class='og-mb-1'>📅 Rango de Fechas</label><div class='btn-group og-flex og-wrap' role='group'><input type='radio' name='reset_date_range' id='reset-range-yesterday-today' value='yesterday_today' class='btn-group-input' checked><label for='reset-range-yesterday-today' class='btn btn-group-item btn-sm'>Ayer y Hoy</label><input type='radio' name='reset_date_range' id='reset-range-3days' value='last_3_days' class='btn-group-input'><label for='reset-range-3days' class='btn btn-group-item btn-sm'>Hace 3 días</label><input type='radio' name='reset_date_range' id='reset-range-7days' value='last_7_days' class='btn-group-input'><label for='reset-range-7days' class='btn btn-group-item btn-sm'>Hace 7 días</label><input type='radio' name='reset_date_range' id='reset-range-15days' value='last_15_days' class='btn-group-input'><label for='reset-range-15days' class='btn btn-group-item btn-sm'>Hace 15 días</label><input type='radio' name='reset_date_range' id='reset-range-this-month' value='this_month' class='btn-group-input'><label for='reset-range-this-month' class='btn btn-group-item btn-sm'>Este mes</label><input type='radio' name='reset_date_range' id='reset-range-30days' value='last_30_days' class='btn-group-input'><label for='reset-range-30days' class='btn btn-group-item btn-sm'>Hace 30 días</label><input type='radio' name='reset_date_range' id='reset-range-custom' value='custom_date' class='btn-group-input'><label for='reset-range-custom' class='btn btn-group-item btn-sm'>Día específico</label></div><div id='reset-custom-date-container' style='display:none; margin-top: 0.75rem;'><label class='og-mb-1'>📅 Selecciona una fecha</label><input type='date' id='reset-custom-date-input' class='form-control' style='max-width: 200px;'></div></div></form></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='budget-reset-stats-container' class=''><p class='og-text-center og-text-gray-500 og-p-4'>Selecciona un activo publicitario para ver los reseteos de presupuesto</p></div>"
               }
             ]
           }

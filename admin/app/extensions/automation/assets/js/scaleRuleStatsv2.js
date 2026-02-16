@@ -742,10 +742,15 @@ class scaleRuleStatsv2 {
       // Icono según tipo
       const icon = isIncrease ? '📈' : isDecrease ? '📉' : isPause ? '⏸️' : '⚙️';
 
-      // Cambio de presupuesto
-      const budgetBefore = parseFloat(item.budget_before || 0);
-      const budgetAfter = parseFloat(item.budget_after || 0);
-      const budgetChange = parseFloat(item.budget_change || 0);
+      // Parsear métricas primero (necesario para obtener presupuestos en cambios manuales)
+      const metrics = item.metrics_snapshot ? 
+        (typeof item.metrics_snapshot === 'string' ? JSON.parse(item.metrics_snapshot) : item.metrics_snapshot) 
+        : {};
+
+      // Cambio de presupuesto - Intentar desde item directo, luego desde metrics_snapshot
+      const budgetBefore = parseFloat(item.budget_before || metrics.budget_before || 0);
+      const budgetAfter = parseFloat(item.budget_after || metrics.budget_after || 0);
+      const budgetChange = parseFloat(item.budget_change || metrics.adjustment_amount || (budgetAfter - budgetBefore));
 
       // Debug: Log para ver qué está llegando
       if (index === 0) {
@@ -754,14 +759,12 @@ class scaleRuleStatsv2 {
           has_conditions_result: !!item.conditions_result,
           conditions_result_type: typeof item.conditions_result,
           conditions_result: item.conditions_result,
-          has_metrics: !!item.metrics_snapshot
+          has_metrics: !!item.metrics_snapshot,
+          budgetBefore: budgetBefore,
+          budgetAfter: budgetAfter,
+          budgetChange: budgetChange
         });
       }
-
-      // Parsear métricas
-      const metrics = item.metrics_snapshot ? 
-        (typeof item.metrics_snapshot === 'string' ? JSON.parse(item.metrics_snapshot) : item.metrics_snapshot) 
-        : {};
 
       html += `
         <div class="timeline-item ${colorClass}">
@@ -863,18 +866,45 @@ class scaleRuleStatsv2 {
 
       // Mostrar cada grupo de condiciones
       if (Array.isArray(details)) {
+        const totalGroups = details.length;
+        
         details.forEach((group, idx) => {
-          // Determinar si el grupo se cumplió
-          const groupMet = group.result === true;
-          const groupIcon = groupMet ? '✅' : '❌';
+          // Determinar si el grupo se cumplió revisando todas las condiciones individuales
+          // Si todas tienen result=true, el grupo está cumplido
+          let groupMet = group.result === true;
+          
+          // También verificar contando condiciones cumplidas
+          if (group.details && Array.isArray(group.details)) {
+            const totalConditions = group.details.length;
+            const metConditions = group.details.filter(c => c.result === true).length;
+            
+            // Si todas las condiciones se cumplieron, el grupo está cumplido
+            if (metConditions === totalConditions && totalConditions > 0) {
+              groupMet = true;
+            }
+          }
+          
+          // Detectar operador lógico del grupo (AND o OR)
+          let groupOperator = 'AND'; // Default
+          if (group.condition && typeof group.condition === 'object') {
+            const keys = Object.keys(group.condition);
+            if (keys.length > 0) {
+              const op = keys[0].toLowerCase();
+              if (op === 'or') groupOperator = 'OR';
+              else if (op === 'and') groupOperator = 'AND';
+            }
+          }
+          
+          // Agregar clase has-next-group si no es el último grupo
+          const hasNextGroup = idx < totalGroups - 1;
           
           html += `
-            <div class="condition-group ${groupMet ? 'met' : 'not-met'}">
+            <div class="condition-group ${groupMet ? 'met' : 'not-met'} ${hasNextGroup ? 'has-next-group' : ''}">
               <div class="group-title">
-                <span class="group-icon">${groupIcon}</span>
                 <span>Grupo ${idx + 1}</span>
+                <span class="group-label">${groupOperator}</span>
               </div>
-              ${this.renderGroupConditions(group, metrics)}
+              ${this.renderGroupConditions(group, metrics, groupOperator)}
             </div>
           `;
         });
@@ -890,14 +920,14 @@ class scaleRuleStatsv2 {
   }
 
   // Renderizar condiciones de un grupo
-  static renderGroupConditions(group, metrics) {
+  static renderGroupConditions(group, metrics, groupOperator = 'AND') {
     if (!group || !group.details) return '';
 
     let html = '<div class="conditions-list">';
 
     // Si details es un array de condiciones
     if (Array.isArray(group.details)) {
-      group.details.forEach(cond => {
+      group.details.forEach((cond, index) => {
         if (cond.details && cond.details.operator) {
           const d = cond.details;
           const metricKey = this.extractMetricName(cond.condition);
@@ -918,8 +948,12 @@ class scaleRuleStatsv2 {
           const formattedCurrent = this.formatMetricValue(metricKey, currentValue);
           const formattedThreshold = this.formatMetricValue(metricKey, threshold);
           
+          // Determinar si esta condición debe mostrar operador después (excepto la última)
+          const showOperator = index < group.details.length - 1;
+          const operatorClass = showOperator ? 'with-operator' : '';
+          
           html += `
-            <div class="condition-item ${cond.result ? 'met' : 'not-met'}">
+            <div class="condition-item ${cond.result ? 'met' : 'not-met'} ${operatorClass}" ${showOperator ? `data-operator="${groupOperator}"` : ''}>
               <span class="cond-icon">${cond.result ? '✓' : '✗'}</span>
               <span class="cond-text">${metricName}: ${formattedCurrent} ${operator} ${formattedThreshold}</span>
             </div>
