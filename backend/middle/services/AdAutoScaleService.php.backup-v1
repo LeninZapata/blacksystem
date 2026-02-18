@@ -39,8 +39,18 @@ class AdAutoScaleService {
         ? json_decode($rule['config'], true)
         : $rule['config'];
 
-      // Obtener bloques de condiciones (solo V2)
+      // V2: condition_blocks (nuevo formato)
       $conditionBlocks = $config['condition_blocks'] ?? [];
+
+      // V1: Retrocompatibilidad - convertir al vuelo
+      if (empty($conditionBlocks) && isset($config['condition_groups'])) {
+        $conditionBlocks = [[
+          'block_name' => 'Bloque Principal',
+          'conditions_logic' => $config['conditions_logic'] ?? 'and_or_and',
+          'condition_groups' => $config['condition_groups'],
+          'actions' => $config['actions'] ?? []
+        ]];
+      }
 
       if (empty($conditionBlocks)) {
         ogLog::warning('processRule - Sin bloques de condiciones', [
@@ -85,44 +95,34 @@ class AdAutoScaleService {
         ];
       }
 
-      // Evaluar bloques secuencialmente - guardar TODOS los resultados
+      // Evaluar condiciones con ogLogic - AHORA RETORNA ARRAY
       $blockExecuted = false;
-      $blockExecutedIndex = null;
-      $blockExecutedName = null;
+      $blockIndex = null;
+      $blockName = null;
+      $conditionsEval = null;
       $actionResults = null;
-      $blocksEvaluated = [];
 
       // Iterar bloques hasta que UNO cumpla (break)
       foreach ($conditionBlocks as $idx => $block) {
-        $blockName = $block['block_name'] ?? "Bloque " . ($idx + 1);
-        
         ogLog::debug('processRule - Evaluando bloque', [
           'rule_id' => $ruleId,
           'block_index' => $idx,
-          'block_name' => $blockName
+          'block_name' => $block['block_name'] ?? "Bloque " . ($idx + 1)
         ], self::$logMeta);
 
         // Evaluar condiciones del bloque
         $conditionsEval = $this->evaluateConditions($metricsData, $block);
 
-        // Guardar evaluación de este bloque
-        $blocksEvaluated[] = [
-          'index' => $idx,
-          'name' => $blockName,
-          'met' => $conditionsEval['met'],
-          'evaluation' => $conditionsEval['full_evaluation'] ?? []
-        ];
-
         if ($conditionsEval['met']) {
           // Bloque cumplió - ejecutar sus acciones
-          $blockExecutedIndex = $idx;
-          $blockExecutedName = $blockName;
+          $blockIndex = $idx;
+          $blockName = $block['block_name'] ?? "Bloque " . ($idx + 1);
           $blockExecuted = true;
 
           ogLog::info('processRule - Bloque cumplió condiciones', [
             'rule_id' => $ruleId,
-            'block_index' => $blockExecutedIndex,
-            'block_name' => $blockExecutedName
+            'block_index' => $blockIndex,
+            'block_name' => $blockName
           ], self::$logMeta);
 
           // Ejecutar acciones del bloque
@@ -132,23 +132,10 @@ class AdAutoScaleService {
         }
       }
 
-      // Marcar bloques no evaluados como null (después del break)
-      if ($blockExecuted) {
-        for ($i = $blockExecutedIndex + 1; $i < count($conditionBlocks); $i++) {
-          $blocksEvaluated[] = [
-            'index' => $i,
-            'name' => $conditionBlocks[$i]['block_name'] ?? "Bloque " . ($i + 1),
-            'met' => null,
-            'evaluation' => null
-          ];
-        }
-      }
-
       ogLog::debug('processRule - Evaluación completa', [
         'rule_id' => $ruleId,
         'block_executed' => $blockExecuted,
-        'block_index' => $blockExecutedIndex,
-        'blocks_evaluated_count' => count($blocksEvaluated)
+        'block_index' => $blockIndex
       ], self::$logMeta);
 
       // Si no cumplió ningún bloque
@@ -162,13 +149,13 @@ class AdAutoScaleService {
           'ad_platform' => $asset['ad_platform'],
           'ad_asset_type' => $asset['ad_asset_type'],
           'metrics_snapshot' => json_encode($metricsData['metrics']),
-          'time_range' => implode(',', $metricsData['time_ranges']),
+          'time_range' => $metricsData['time_range'],
           'conditions_met' => 0,
-          'conditions_logic' => 'none',
+          'conditions_logic' => 'none', // No se cumplió ningún bloque
           'conditions_result' => json_encode([
             'result' => false,
             'message' => 'Ningún bloque cumplió condiciones',
-            'blocks_evaluated' => $blocksEvaluated
+            'blocks_evaluated' => count($conditionBlocks)
           ], JSON_UNESCAPED_UNICODE),
           'action_executed' => 0,
           'action_type' => null,
@@ -182,13 +169,11 @@ class AdAutoScaleService {
           'rule_name' => $ruleName,
           'conditions_met' => false,
           'action_executed' => false,
-          'message' => 'Condiciones no cumplidas',
-          'blocks_evaluated' => $blocksEvaluated,
-          'metrics' => $metricsData['metrics']
+          'message' => 'Condiciones no cumplidas'
         ];
       }
 
-      // SÍ cumplió un bloque - Guardar con información completa
+      // SÍ cumplió un bloque - Guardar con información del bloque
       $this->saveToHistory([
         'rule_id' => $ruleId,
         'user_id' => $userId,
@@ -196,23 +181,20 @@ class AdAutoScaleService {
         'product_id' => $asset['product_id'],
         'ad_platform' => $asset['ad_platform'],
         'ad_asset_type' => $asset['ad_asset_type'],
-        'ad_asset_id' => $asset['ad_asset_id'],
         'metrics_snapshot' => json_encode($metricsData['metrics']),
-        'time_range' => implode(',', $metricsData['time_ranges']),
+        'time_range' => $metricsData['time_range'],
         'conditions_met' => 1,
-        'conditions_logic' => $blocksEvaluated[$blockExecutedIndex]['evaluation']['logic_type'] ?? 'unknown',
+        'conditions_logic' => $conditionsEval['logic_type'],
         'conditions_result' => json_encode([
-          'result' => true,
-          'blocks_evaluated' => $blocksEvaluated,
-          'block_executed' => [
-            'index' => $blockExecutedIndex,
-            'name' => $blockExecutedName
-          ]
+          'block' => [
+            'index' => $blockIndex,
+            'name' => $blockName
+          ],
+          'evaluation' => $conditionsEval['full_evaluation'] ?? []
         ], JSON_UNESCAPED_UNICODE),
         'action_executed' => $actionResults['executed'] ? 1 : 0,
         'action_type' => isset($actionResults['results'][0]) ? $actionResults['results'][0]['action'] : null,
         'action_result' => json_encode($actionResults['results'][0] ?? []),
-        'success' => isset($actionResults['results'][0]['success']) ? ($actionResults['results'][0]['success'] ? 1 : 0) : 0,
         'execution_source' => 'cron'
       ]);
 
@@ -298,9 +280,7 @@ class AdAutoScaleService {
           'rule_name' => $rule['name'],
           'success' => $result['success'],
           'action_executed' => $result['action_executed'] ?? false,
-          'message' => $result['message'] ?? ($result['error'] ?? 'OK'),
-          'blocks_evaluated' => $result['blocks_evaluated'] ?? null,
-          'metrics' => $result['metrics'] ?? null
+          'message' => $result['message'] ?? ($result['error'] ?? 'OK')
         ];
       }
 
@@ -388,9 +368,7 @@ class AdAutoScaleService {
           'rule_name' => $rule['name'],
           'success' => $result['success'],
           'action_executed' => $result['action_executed'] ?? false,
-          'message' => $result['message'] ?? ($result['error'] ?? 'OK'),
-          'blocks_evaluated' => $result['blocks_evaluated'] ?? null,
-          'metrics' => $result['metrics'] ?? null
+          'message' => $result['message'] ?? ($result['error'] ?? 'OK')
         ];
       }
 
@@ -446,20 +424,67 @@ class AdAutoScaleService {
       $productId = $asset['product_id'];
       $assetId = $asset['ad_asset_id'];
 
-      // Obtener todos los time_ranges únicos de las condiciones
-      $timeRanges = $this->getAllTimeRanges($config);
-      
-      // Obtener métricas para cada time_range
-      $metricsData = $this->getMetricsForAllTimeRanges($asset, $timeRanges);
-      
-      if (!$metricsData['success']) {
-        return $metricsData;
+      // Determinar rango de fechas más común en las condiciones
+      $timeRange = $this->getMostCommonTimeRange($config);
+      $dates = $this->getDateRangeFromTimeRange($timeRange);
+
+      // Obtener métricas de ads
+      $adMetrics = $this->getAdMetrics($asset, $dates['from'], $dates['to']);
+
+      // VALIDACIÓN 1: Verificar que haya datos en el período
+      if ($adMetrics['spend'] <= 0 && $adMetrics['results'] <= 0 && $adMetrics['impressions'] <= 0) {
+        return [
+          'success' => false,
+          'error' => "Sin datos de métricas para el rango {$timeRange} ({$dates['from']} - {$dates['to']})"
+        ];
       }
+
+      // VALIDACIÓN 2: Verificar días completos requeridos (solo para rangos históricos)
+      $requiredDays = $this->getRequiredDaysForTimeRange($timeRange);
+      if ($requiredDays > 0 && $adMetrics['days_available'] < $requiredDays) {
+        return [
+          'success' => false,
+          'error' => "Datos insuficientes: se requieren {$requiredDays} días completos, pero solo hay {$adMetrics['days_available']} días de métricas"
+        ];
+      }
+
+      // VALIDACIÓN 3: Mínimo de actividad (al menos 2 resultados/mensajes)
+      if ($adMetrics['results'] < 2) {
+        return [
+          'success' => false,
+          'error' => "Actividad insuficiente: {$adMetrics['results']} resultados (mínimo requerido: 2)"
+        ];
+      }
+
+      // Calcular ROAS personalizado
+      $roas = $this->calculateROAS($productId, $assetId, $dates['from'], $dates['to'], $adMetrics['spend']);
+
+      // Calcular métricas derivadas
+      $metrics = [
+        'roas' => $roas,
+        'cost_per_result' => $adMetrics['results'] > 0 ? $adMetrics['spend'] / $adMetrics['results'] : 0,
+        'frequency' => $adMetrics['reach'] > 0 ? $adMetrics['impressions'] / $adMetrics['reach'] : 0,
+        'spend' => $adMetrics['spend'],
+        'results' => $adMetrics['results'],
+        'impressions' => $adMetrics['impressions'],
+        'reach' => $adMetrics['reach'],
+        'clicks' => $adMetrics['clicks'],
+        'ctr' => $adMetrics['ctr'],
+        'cpc' => $adMetrics['cpc'],
+        'cpm' => $adMetrics['cpm']
+      ];
+
+      // Redondear
+      $metrics['roas'] = round($metrics['roas'], 2);
+      $metrics['cost_per_result'] = round($metrics['cost_per_result'], 2);
+      $metrics['frequency'] = round($metrics['frequency'], 2);
 
       return [
         'success' => true,
-        'metrics' => $metricsData['metrics'],
-        'time_ranges' => $metricsData['time_ranges']
+        'metrics' => $metrics,
+        'time_range' => $timeRange,
+        'date_from' => $dates['from'],
+        'date_to' => $dates['to']
       ];
 
     } catch (Exception $e) {
@@ -531,31 +556,26 @@ class AdAutoScaleService {
       }
     }
 
-    // HOY: datos actuales (tomar último snapshot de cada hora)
+    // HOY: datos actuales (ad_metrics_hourly con is_latest = 1)
     if ($dateTo >= $today) {
       $sqlToday = "
         SELECT
-          SUM(h.spend) as spend,
-          SUM(h.impressions) as impressions,
-          SUM(h.reach) as reach,
-          SUM(h.clicks) as clicks,
-          SUM(h.results) as results
-        FROM ad_metrics_hourly h
-        WHERE h.product_id = ?
-          AND h.ad_asset_id = ?
-          AND h.query_date = ?
-          AND h.id IN (
-            SELECT MAX(h2.id)
-            FROM ad_metrics_hourly h2
-            WHERE h2.product_id = ?
-              AND h2.ad_asset_id = ?
-              AND h2.query_date = ?
-              AND h2.query_hour = h.query_hour
-            GROUP BY h2.ad_asset_id, h2.query_hour
-          )
+          spend,
+          impressions,
+          reach,
+          clicks,
+          results,
+          ctr,
+          cpc,
+          cpm
+        FROM ad_metrics_hourly
+        WHERE product_id = ?
+          AND ad_asset_id = ?
+          AND query_date = ?
+          AND is_latest = 1
       ";
 
-      $todayData = ogDb::raw($sqlToday, [$productId, $assetId, $today, $productId, $assetId, $today]);
+      $todayData = ogDb::raw($sqlToday, [$productId, $assetId, $today]);
       if (!empty($todayData)) {
         $row = $todayData[0];
         $metrics['spend'] += (float)($row['spend'] ?? 0);
@@ -584,10 +604,12 @@ class AdAutoScaleService {
   }
 
   // Calcular ROAS personalizado
-  // Calcular revenue (ingresos totales)
-  private function calculateRevenue($productId, $dateFrom, $dateTo) {
+  private function calculateROAS($productId, $assetId, $dateFrom, $dateTo, $adSpend) {
+    if ($adSpend <= 0) return 0;
+
+    // Sumar SOLO ventas confirmadas del producto en el período
     $sql = "
-      SELECT SUM(billed_amount) as total_revenue
+      SELECT SUM(amount) as total_sales
       FROM sales
       WHERE product_id = ?
         AND payment_date >= ?
@@ -597,154 +619,9 @@ class AdAutoScaleService {
     ";
 
     $result = ogDb::raw($sql, [$productId, $dateFrom, $dateTo . ' 23:59:59']);
-    return !empty($result) ? (float)($result[0]['total_revenue'] ?? 0) : 0;
-  }
+    $totalSales = !empty($result) ? (float)($result[0]['total_sales'] ?? 0) : 0;
 
-  // Calcular ROAS (mantener por compatibilidad)
-  private function calculateROAS($productId, $assetId, $dateFrom, $dateTo, $adSpend) {
-    if ($adSpend <= 0) return 0;
-    $revenue = $this->calculateRevenue($productId, $dateFrom, $dateTo);
-    return $revenue / $adSpend;
-  }
-
-  // Calcular métricas de cambio temporal (1h, 2h, 3h)
-  private function calculateTemporalChanges($asset) {
-    $productId = $asset['product_id'];
-    $assetId = $asset['ad_asset_id'];
-    $today = date('Y-m-d');
-    $currentHour = (int)date('H');
-    
-    $metrics = [];
-    
-    // Calcular para 1h, 2h, 3h
-    foreach ([1, 2, 3] as $hours) {
-      $hoursAgo = $currentHour - $hours;
-      
-      // Si las horas atrás son negativas, no hay datos suficientes
-      if ($hoursAgo < 0) {
-        $metrics["roas_change_{$hours}h"] = 0;
-        $metrics["profit_change_{$hours}h"] = 0;
-        continue;
-      }
-      
-      // Métricas actuales (hasta la hora actual)
-      $current = $this->getMetricsUpToHour($asset, $today, $currentHour);
-      
-      // Métricas de hace N horas (hasta esa hora)
-      $past = $this->getMetricsUpToHour($asset, $today, $hoursAgo);
-      
-      // Calcular cambios
-      $roasChange = $current['roas'] - $past['roas'];
-      $profitChange = $current['profit'] - $past['profit'];
-      
-      $metrics["roas_change_{$hours}h"] = round($roasChange, 2);
-      $metrics["profit_change_{$hours}h"] = round($profitChange, 2);
-    }
-    
-    return $metrics;
-  }
-
-  // Obtener métricas de tiempo (current_hour, current_day_of_week)
-  private function getTimeMetrics($asset) {
-    try {
-      // Obtener timezone del bot (usando el mismo patrón que resetDailyBudgets)
-      $productId = $asset['product_id'];
-      
-      // Obtener bot asociado al producto
-      $product = ogDb::t('products')
-        ->select('bot_id')
-        ->where('id', $productId)
-        ->first();
-      
-      if (!$product || !$product['bot_id']) {
-        // Si no hay bot, usar timezone de servidor
-        $timezone = date_default_timezone_get();
-      } else {
-        $bot = ogDb::t('bots')
-          ->select('country_code')
-          ->where('id', $product['bot_id'])
-          ->first();
-        
-        if (!$bot || !$bot['country_code']) {
-          $timezone = date_default_timezone_get();
-        } else {
-          // Obtener timezone usando ogCountry helper
-          $countryInfo = ogCountry::get($bot['country_code']);
-          $timezone = $countryInfo['timezone'] ?? date_default_timezone_get();
-        }
-      }
-      
-      // Crear DateTime con la zona horaria del bot
-      $datetime = new DateTime('now', new DateTimeZone($timezone));
-      
-      // Obtener hora (0-23)
-      $currentHour = (int)$datetime->format('H');
-      
-      // Obtener día de la semana (1=Lunes, 7=Domingo) - formato ISO-8601
-      $currentDayOfWeek = (int)$datetime->format('N');
-      
-      return [
-        'current_hour' => $currentHour,
-        'current_day_of_week' => $currentDayOfWeek
-      ];
-      
-    } catch (Exception $e) {
-      ogLog::error('getTimeMetrics - Error', [
-        'error' => $e->getMessage(),
-        'asset' => $asset
-      ], self::$logMeta);
-      
-      // En caso de error, usar valores por defecto del servidor
-      return [
-        'current_hour' => (int)date('H'),
-        'current_day_of_week' => (int)date('N')
-      ];
-    }
-  }
-
-  // Obtener métricas acumuladas hasta una hora específica
-  private function getMetricsUpToHour($asset, $date, $hour) {
-    $productId = $asset['product_id'];
-    $assetId = $asset['ad_asset_id'];
-    
-    // Obtener el último snapshot de cada hora hasta la hora indicada
-    $sql = "
-      SELECT 
-        SUM(h.spend) as spend,
-        SUM(h.results) as results
-      FROM ad_metrics_hourly h
-      WHERE h.product_id = ?
-        AND h.ad_asset_id = ?
-        AND h.query_date = ?
-        AND h.query_hour <= ?
-        AND h.id IN (
-          SELECT MAX(h2.id)
-          FROM ad_metrics_hourly h2
-          WHERE h2.product_id = ?
-            AND h2.ad_asset_id = ?
-            AND h2.query_date = ?
-            AND h2.query_hour = h.query_hour
-          GROUP BY h2.query_hour
-        )
-    ";
-    
-    $result = ogDb::raw($sql, [$productId, $assetId, $date, $hour, $productId, $assetId, $date]);
-    
-    $spend = !empty($result) ? (float)($result[0]['spend'] ?? 0) : 0;
-    $results = !empty($result) ? (int)($result[0]['results'] ?? 0) : 0;
-    
-    // Calcular revenue y profit hasta esa hora
-    $dateTimeEnd = $date . ' ' . str_pad($hour, 2, '0', STR_PAD_LEFT) . ':59:59';
-    $revenue = $this->calculateRevenue($productId, $date . ' 00:00:00', $dateTimeEnd);
-    $roas = $spend > 0 ? $revenue / $spend : 0;
-    $profit = $revenue - $spend;
-    
-    return [
-      'spend' => $spend,
-      'revenue' => $revenue,
-      'roas' => $roas,
-      'profit' => $profit
-    ];
+    return $totalSales / $adSpend;
   }
 
   // Evaluar condiciones con ogLogic
@@ -883,39 +760,17 @@ class AdAutoScaleService {
   private function buildGroupConditions($conditions) {
     $logicConditions = [];
 
-    // Métricas que NO requieren time_range suffix
-    $timeMetrics = ['current_hour', 'current_day_of_week'];
-
     foreach ($conditions as $condition) {
       $metric = $condition['metric'] ?? null;
       $operator = $condition['operator'] ?? null;
-      $timeRange = $condition['time_range'] ?? 'today';
+      $value = $condition['value'] ?? null;
 
-      if (!$metric || !$operator) continue;
-
-      // Determinar qué campo leer para el valor
-      if ($metric === 'current_hour') {
-        $value = $condition['value_hour'] ?? null;
-      } elseif ($metric === 'current_day_of_week') {
-        $value = $condition['value_day'] ?? null;
-      } else {
-        $value = $condition['value'] ?? null;
-      }
-
-      if ($value === null) continue;
-
-      // Si es una métrica de tiempo, NO agregar sufijo time_range
-      if (in_array($metric, $timeMetrics)) {
-        $varName = $metric;
-      } else {
-        // Construir nombre de variable con time_range: metric_timerange
-        $varName = $metric . '_' . $timeRange;
-      }
+      if (!$metric || !$operator || $value === null) continue;
 
       // Construir condición ogLogic
       $logicConditions[] = [
         $operator => [
-          ['var' => $varName],
+          ['var' => $metric],
           (float)$value
         ]
       ];
@@ -954,25 +809,11 @@ class AdAutoScaleService {
     $assetId = $asset['ad_asset_id'];
     $assetType = $asset['ad_asset_type'];
 
-    // Verificar cooldown period antes de ejecutar
-    $timePeriod = $action['time_period'] ?? 'everytime';
-    if (!$this->canExecuteAction($asset, $action, $timePeriod)) {
-      return [
-        'success' => false,
-        'action' => $actionType,
-        'message' => 'Acción en período de cooldown',
-        'skipped' => true
-      ];
-    }
-
     try {
       switch ($actionType) {
         case 'increase_budget':
         case 'decrease_budget':
           return $this->adjustBudget($asset, $action, $actionType);
-
-        case 'adjust_to_spend':
-          return $this->adjustToSpend($asset, $action, $metrics);
 
         case 'pause':
           return $this->pauseAsset($asset);
@@ -1000,73 +841,6 @@ class AdAutoScaleService {
         'action' => $actionType,
         'error' => $e->getMessage()
       ];
-    }
-  }
-
-  // Verificar si se puede ejecutar acción según cooldown
-  private function canExecuteAction($asset, $action, $timePeriod) {
-    // everytime siempre se ejecuta
-    if ($timePeriod === 'everytime') {
-      return true;
-    }
-
-    $assetId = $asset['ad_asset_id'];
-    $actionType = $action['action_type'];
-    $ruleId = $asset['rule_id'] ?? 0; // Necesitamos el rule_id del contexto
-
-    // Obtener última ejecución exitosa de esta acción para este activo
-    // Intentar con columna 'success' si existe, sino usar action_executed
-    $query = ogDb::t('ad_auto_scale_history')
-      ->select('executed_at')
-      ->where('ad_asset_id', $assetId)
-      ->where('action_executed', 1)
-      ->where('action_type', $actionType);
-
-    // Intentar filtrar por success = 1 si la columna existe
-    try {
-      $lastExecution = $query->where('success', 1)
-        ->orderBy('id', 'DESC')
-        ->first();
-    } catch (Exception $e) {
-      // Si falla (columna no existe), buscar cualquier acción ejecutada
-      $lastExecution = ogDb::t('ad_auto_scale_history')
-        ->select('executed_at')
-        ->where('ad_asset_id', $assetId)
-        ->where('action_executed', 1)
-        ->where('action_type', $actionType)
-        ->orderBy('id', 'DESC')
-        ->first();
-    }
-
-    if (!$lastExecution) {
-      // Primera ejecución, permitir
-      return true;
-    }
-
-    $lastExecutedAt = strtotime($lastExecution['executed_at']);
-    $now = time();
-    $elapsedHours = ($now - $lastExecutedAt) / 3600;
-
-    // Verificar según el period
-    switch ($timePeriod) {
-      case 'once':
-        // Si ya se ejecutó una vez, no ejecutar de nuevo
-        return false;
-
-      case 'daily':
-        // Verificar que haya pasado al menos 24 horas
-        return $elapsedHours >= 24;
-
-      case 'every_3h':
-        // Verificar que hayan pasado al menos 3 horas
-        return $elapsedHours >= 3;
-
-      case 'every_6h':
-        // Verificar que hayan pasado al menos 6 horas
-        return $elapsedHours >= 6;
-
-      default:
-        return true;
     }
   }
 
@@ -1155,104 +929,6 @@ class AdAutoScaleService {
       'action' => $actionType,
       'budget_before' => $budget,
       'budget_after' => $newBudget,
-      'change' => round($newBudget - $budget, 2),
-      'changed' => true
-    ];
-  }
-
-  // Ajustar presupuesto al gasto actual
-  private function adjustToSpend($asset, $action, $metrics) {
-    $platform = $asset['ad_platform'];
-    $assetId = $asset['ad_asset_id'];
-    $userId = $asset['user_id'];
-
-    // Obtener gasto actual desde las métricas (spend_today)
-    $currentSpend = isset($metrics['spend_today']) ? (float)$metrics['spend_today'] : 0;
-
-    if ($currentSpend <= 0) {
-      return [
-        'success' => false,
-        'action' => 'adjust_to_spend',
-        'error' => 'No hay gasto registrado hoy para este activo'
-      ];
-    }
-
-    // Obtener tipo y valor de ajuste
-    $adjustmentType = $action['adjustment_type'] ?? 'add'; // add o subtract
-    $adjustmentValue = (float)($action['adjustment_value'] ?? 0);
-
-    // Calcular nuevo presupuesto
-    if ($adjustmentType === 'subtract') {
-      $newBudget = $currentSpend - $adjustmentValue;
-    } else {
-      $newBudget = $currentSpend + $adjustmentValue;
-    }
-
-    // El presupuesto no puede ser menor a 1
-    $newBudget = max($newBudget, 1);
-
-    // Obtener presupuesto actual del provider para comparar
-    $provider = $this->getAdProvider($platform, $userId);
-    if (!$provider) {
-      return [
-        'success' => false,
-        'action' => 'adjust_to_spend',
-        'error' => "Provider no disponible para {$platform}"
-      ];
-    }
-
-    $currentBudget = $provider->getBudget($assetId, $asset['ad_asset_type']);
-    if (!$currentBudget['success']) {
-      return [
-        'success' => false,
-        'action' => 'adjust_to_spend',
-        'error' => 'No se pudo obtener presupuesto actual'
-      ];
-    }
-
-    $budget = $currentBudget['budget'];
-
-    // Si no hay cambio significativo, no hacer nada
-    if (abs($newBudget - $budget) < 0.01) {
-      return [
-        'success' => true,
-        'action' => 'adjust_to_spend',
-        'message' => 'Presupuesto ya está ajustado al gasto',
-        'budget_before' => $budget,
-        'budget_after' => $newBudget,
-        'current_spend' => $currentSpend,
-        'changed' => false
-      ];
-    }
-
-    // Actualizar presupuesto (siempre daily para adjust_to_spend)
-    $updateResult = $provider->updateBudget($assetId, $asset['ad_asset_type'], $newBudget, 'daily');
-
-    if (!$updateResult['success']) {
-      return [
-        'success' => false,
-        'action' => 'adjust_to_spend',
-        'error' => $updateResult['error'] ?? 'Error al actualizar presupuesto'
-      ];
-    }
-
-    ogLog::success('adjustToSpend - Presupuesto ajustado al gasto', [
-      'asset_id' => $assetId,
-      'platform' => $platform,
-      'current_spend' => $currentSpend,
-      'adjustment_type' => $adjustmentType,
-      'adjustment_value' => $adjustmentValue,
-      'budget_before' => $budget,
-      'budget_after' => $newBudget,
-      'change' => $newBudget - $budget
-    ], self::$logMeta);
-
-    return [
-      'success' => true,
-      'action' => 'adjust_to_spend',
-      'budget_before' => $budget,
-      'budget_after' => $newBudget,
-      'current_spend' => $currentSpend,
       'change' => round($newBudget - $budget, 2),
       'changed' => true
     ];
@@ -1416,11 +1092,20 @@ class AdAutoScaleService {
   }
 
   // Obtener rango más común de tiempo
-  // Obtener todos los time_ranges únicos
-  private function getAllTimeRanges($config) {
+  private function getMostCommonTimeRange($config) {
     $timeRanges = [];
+    
+    // V2: condition_blocks
     $conditionBlocks = $config['condition_blocks'] ?? [];
+    
+    // V1: Retrocompatibilidad
+    if (empty($conditionBlocks) && isset($config['condition_groups'])) {
+      $conditionBlocks = [[
+        'condition_groups' => $config['condition_groups']
+      ]];
+    }
 
+    // Recorrer todos los bloques y sus grupos
     foreach ($conditionBlocks as $block) {
       $conditionGroups = $block['condition_groups'] ?? [];
       
@@ -1428,87 +1113,19 @@ class AdAutoScaleService {
         $conditions = $group['conditions'] ?? [];
         foreach ($conditions as $condition) {
           $timeRange = $condition['time_range'] ?? null;
-          if ($timeRange && !in_array($timeRange, $timeRanges)) {
+          if ($timeRange) {
             $timeRanges[] = $timeRange;
           }
         }
       }
     }
 
-    return !empty($timeRanges) ? $timeRanges : ['today'];
-  }
+    if (empty($timeRanges)) return 'today';
 
-  // Obtener métricas para todos los time_ranges
-  private function getMetricsForAllTimeRanges($asset, $timeRanges) {
-    $productId = $asset['product_id'];
-    $assetId = $asset['ad_asset_id'];
-    $allMetrics = [];
-    
-    foreach ($timeRanges as $timeRange) {
-      $dates = $this->getDateRangeFromTimeRange($timeRange);
-      $adMetrics = $this->getAdMetrics($asset, $dates['from'], $dates['to']);
-      
-      // VALIDACIÓN 1: Verificar que haya datos
-      if ($adMetrics['spend'] <= 0 && $adMetrics['results'] <= 0 && $adMetrics['impressions'] <= 0) {
-        return [
-          'success' => false,
-          'error' => "Sin datos de métricas para el rango {$timeRange} ({$dates['from']} - {$dates['to']})"
-        ];
-      }
-      
-      // VALIDACIÓN 2: Días completos requeridos
-      $requiredDays = $this->getRequiredDaysForTimeRange($timeRange);
-      if ($requiredDays > 0 && $adMetrics['days_available'] < $requiredDays) {
-        return [
-          'success' => false,
-          'error' => "Datos insuficientes para {$timeRange}: se requieren {$requiredDays} días, hay {$adMetrics['days_available']}"
-        ];
-      }
-      
-      // VALIDACIÓN 3: Mínimo de actividad
-      if ($adMetrics['results'] < 2) {
-        return [
-          'success' => false,
-          'error' => "Actividad insuficiente en {$timeRange}: {$adMetrics['results']} resultados (mínimo: 2)"
-        ];
-      }
-      
-      // Calcular ROAS y revenue personalizado
-      $revenue = $this->calculateRevenue($productId, $dates['from'], $dates['to']);
-      $roas = $adMetrics['spend'] > 0 ? $revenue / $adMetrics['spend'] : 0;
-      $profit = $revenue - $adMetrics['spend'];
-      
-      // Almacenar métricas con sufijo de time_range
-      $suffix = '_' . $timeRange;
-      $allMetrics['roas' . $suffix] = round($roas, 2);
-      $allMetrics['profit' . $suffix] = round($profit, 2);
-      $allMetrics['cost_per_result' . $suffix] = round($adMetrics['results'] > 0 ? $adMetrics['spend'] / $adMetrics['results'] : 0, 2);
-      $allMetrics['frequency' . $suffix] = round($adMetrics['reach'] > 0 ? $adMetrics['impressions'] / $adMetrics['reach'] : 0, 2);
-      $allMetrics['spend' . $suffix] = $adMetrics['spend'];
-      $allMetrics['results' . $suffix] = $adMetrics['results'];
-      $allMetrics['impressions' . $suffix] = $adMetrics['impressions'];
-      $allMetrics['reach' . $suffix] = $adMetrics['reach'];
-      $allMetrics['clicks' . $suffix] = $adMetrics['clicks'];
-      $allMetrics['ctr' . $suffix] = $adMetrics['ctr'];
-      $allMetrics['cpc' . $suffix] = $adMetrics['cpc'];
-      $allMetrics['cpm' . $suffix] = $adMetrics['cpm'];
-    }
-    
-    // Agregar métricas de cambio temporal (1h, 2h, 3h) solo si es 'today'
-    if (in_array('today', $timeRanges)) {
-      $temporalMetrics = $this->calculateTemporalChanges($asset);
-      $allMetrics = array_merge($allMetrics, $temporalMetrics);
-    }
-    
-    // Agregar métricas de tiempo (current_hour, current_day_of_week)
-    $timeMetrics = $this->getTimeMetrics($asset);
-    $allMetrics = array_merge($allMetrics, $timeMetrics);
-    
-    return [
-      'success' => true,
-      'metrics' => $allMetrics,
-      'time_ranges' => $timeRanges
-    ];
+    // Retornar el más común (o el primero)
+    $counts = array_count_values($timeRanges);
+    arsort($counts);
+    return array_key_first($counts);
   }
 
   // Obtener días requeridos para un time_range
@@ -1542,8 +1159,17 @@ class AdAutoScaleService {
 
   // Verificar si una regla usa rangos históricos (no "today")
   private function isHistoricalRule($config) {
+    // V2: condition_blocks
     $conditionBlocks = $config['condition_blocks'] ?? [];
+    
+    // V1: Retrocompatibilidad
+    if (empty($conditionBlocks) && isset($config['condition_groups'])) {
+      $conditionBlocks = [[
+        'condition_groups' => $config['condition_groups']
+      ]];
+    }
 
+    // Recorrer todos los bloques
     foreach ($conditionBlocks as $block) {
       $conditionGroups = $block['condition_groups'] ?? [];
       

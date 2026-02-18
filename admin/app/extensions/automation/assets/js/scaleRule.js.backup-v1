@@ -13,19 +13,6 @@ class scaleRule {
 
     setTimeout(() => {
       ogModule('conditions')?.init(formId);
-      scaleRulePreview?.init(formId);
-      
-      // Disparar evento 'form:filled' manualmente para formularios nuevos
-      // (sin datos previos, por lo que no pasa por el proceso de fill)
-      setTimeout(() => {
-        if (formEl) {
-          const event = new CustomEvent('form:filled', {
-            detail: { formId: formId },
-            bubbles: true
-          });
-          formEl.dispatchEvent(event);
-        }
-      }, 200);
     }, 100);
   }
 
@@ -42,7 +29,6 @@ class scaleRule {
 
     setTimeout(() => {
       ogModule('conditions')?.init(formId);
-      scaleRulePreview?.init(formId);
     }, 100);
   }
 
@@ -52,9 +38,22 @@ class scaleRule {
     const fillData = {
       name: data.name,
       product_ad_asset_id: data.ad_assets_id,
-      is_active: data.is_active == 1,
-      condition_blocks: config.condition_blocks || []
+      is_active: data.is_active == 1
     };
+
+    // V2: condition_blocks (nuevo formato)
+    if (config.condition_blocks && Array.isArray(config.condition_blocks)) {
+      fillData.condition_blocks = config.condition_blocks;
+    }
+    // V1: retrocompatibilidad (convertir al vuelo)
+    else if (config.condition_groups && Array.isArray(config.condition_groups)) {
+      fillData.condition_blocks = [{
+        block_name: 'Bloque Principal',
+        conditions_logic: config.conditions_logic || 'and_or_and',
+        condition_groups: config.condition_groups,
+        actions: config.actions || []
+      }];
+    }
 
     ogModule('form').fill(formId, fillData);
   }

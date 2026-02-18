@@ -1,8 +1,13 @@
+URGENTE:
+☐ La hora del reseteo del presupuesto es por bot y no por activo publicitario
+  porque tengo DIGAMOS DE mi cuenta de ecuador  manejo la publicidad en otros paises entonces
+  el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
 RAPIDO:
 ✔ En profit la fecha de hoy eesta mal esta que muestra de ayer el filtro @done(14-02-2026 09:49)
 ✔ EN la grafica de escala esta que muestra la de ayer @done(14-02-2026 09:49)
 ✔ algo paso no se reseteo el presupuesto hoy, continuo con el presupuesto de ayer, revisar eso @CRITICAL @done(14-02-2026 10:28)
 ☐ el componente de los permisos no funciona tan bien revisa eso por tabs
+
 Backend (Aplicacion):
 ☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
 hacer que se ejecute al otro dia en la mañana

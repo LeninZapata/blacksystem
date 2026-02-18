@@ -56,14 +56,23 @@ class AdAutoScaleStatsHandler {
 
       // Formatear datos - extraer desde action_result, incluir conditions y metrics
       $data = array_map(function($row) {
-        // Decodificar action_result (aquí está budget_before/after)
+        // Decodificar action_result (aquí está budget_before/after para registros AUTO)
         $actionResult = is_string($row['action_result']) 
           ? json_decode($row['action_result'], true) 
           : $row['action_result'];
 
-        $budgetBefore = $actionResult['budget_before'] ?? 0;
-        $budgetAfter = $actionResult['budget_after'] ?? 0;
-        $adjustmentAmount = $actionResult['change'] ?? ($budgetAfter - $budgetBefore);
+        // Decodificar metrics_snapshot primero (para registros MANUAL)
+        $metricsSnapshot = null;
+        if (!empty($row['metrics_snapshot'])) {
+          $metricsSnapshot = is_string($row['metrics_snapshot']) 
+            ? json_decode($row['metrics_snapshot'], true) 
+            : $row['metrics_snapshot'];
+        }
+
+        // Priorizar metrics_snapshot (MANUAL) sobre action_result (AUTO)
+        $budgetBefore = $metricsSnapshot['budget_before'] ?? $actionResult['budget_before'] ?? 0;
+        $budgetAfter = $metricsSnapshot['budget_after'] ?? $actionResult['budget_after'] ?? 0;
+        $adjustmentAmount = $metricsSnapshot['adjustment_amount'] ?? $actionResult['change'] ?? ($budgetAfter - $budgetBefore);
 
         // Decodificar conditions_result
         $conditionsResult = null;
@@ -81,14 +90,6 @@ class AdAutoScaleStatsHandler {
               'keys' => array_keys($conditionsResult)
             ], self::$logMeta);
           }
-        }
-
-        // Decodificar metrics_snapshot
-        $metricsSnapshot = null;
-        if (!empty($row['metrics_snapshot'])) {
-          $metricsSnapshot = is_string($row['metrics_snapshot']) 
-            ? json_decode($row['metrics_snapshot'], true) 
-            : $row['metrics_snapshot'];
         }
 
         return [

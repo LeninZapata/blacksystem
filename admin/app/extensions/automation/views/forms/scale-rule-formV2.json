@@ -1,0 +1,690 @@
+{
+  "id": "scale-rule-form-v2",
+  "fields": [
+    {
+      "type": "group",
+      "columns": 2,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "name",
+          "label": "i18n:automation.scale_rules.field.name",
+          "type": "text",
+          "required": true,
+          "placeholder": "i18n:automation.scale_rules.field.name_placeholder",
+          "validation": "required|min:3|max:200"
+        },
+        {
+          "name": "product_ad_asset_id",
+          "label": "i18n:automation.scale_rules.field.product_ad_asset",
+          "type": "select",
+          "required": true,
+          "source": "api/productAdAsset?per_page=1000&is_active=1",
+          "sourceValue": "id",
+          "sourceLabel": "ad_asset_name",
+          "validation": "required",
+          "help": "i18n:automation.scale_rules.field.product_ad_asset_help"
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "content": "<div class='alert alert-success alert-border'><strong>🧩 Bloques de Reglas</strong>Cada bloque es un conjunto de condiciones (IF) con sus respectivas acciones (THEN). Puedes crear múltiples bloques independientes. Los bloques se evalúan secuencialmente y el PRIMERO que cumpla sus condiciones ejecutará sus acciones y detendrá la evaluación.</div>"
+    },
+    {
+      "type": "html",
+      "content": "<div id='scale-rule-preview-container' style='margin-bottom: 1.5rem;'></div>"
+    },
+    {
+      "name": "condition_blocks",
+      "label": "i18n:automation.scale_rules.field.condition_blocks",
+      "type": "repeatable",
+      "addText": "i18n:automation.scale_rules.blocks.add",
+      "removeText": "i18n:core.delete",
+      "hasHeader": true,
+      "accordion": true,
+      "accordionOpenFirst": true,
+      "sortable": true,
+      "initialItems": 1,
+      "headerTitle": "i18n:automation.scale_rules.blocks.header {index}",
+      "fields": [
+        {
+          "name": "block_name",
+          "label": "i18n:automation.scale_rules.field.block_name",
+          "type": "text",
+          "placeholder": "i18n:automation.scale_rules.field.block_name_placeholder",
+          "help": "i18n:automation.scale_rules.field.block_name_help"
+        },
+        {
+          "type": "html",
+          "content": "<div class='alert alert-warning alert-filled'><strong>🎯 SI se cumplen estas condiciones...</strong></div>"
+        },
+        {
+          "name": "conditions_logic",
+          "label": "i18n:automation.scale_rules.field.conditions_logic",
+          "type": "select",
+          "required": true,
+          "defaultValue": "and_or_and",
+          "options": [
+            {
+              "value": "and_or_and",
+              "label": "(AND) or (AND)"
+            },
+            {
+              "value": "or_and_or",
+              "label": "(OR) and (OR)"
+            }
+          ],
+          "help": "i18n:automation.scale_rules.field.conditions_logic_help",
+          "validation": "required"
+        },
+        {
+          "name": "condition_groups",
+          "label": "i18n:automation.scale_rules.field.condition_groups",
+          "type": "repeatable",
+          "addText": "i18n:automation.scale_rules.conditions.add_group",
+          "removeText": "❌",
+          "hasHeader": false,
+          "accordion": true,
+          "sortable": true,
+          "accordionOpenFirst": true,
+          "accordionOpenAll": true,
+          "initialItems": 1,
+          "headerTitle": "i18n:automation.scale_rules.conditions.group_header {index}",
+          "fields": [
+            {
+              "name": "conditions",
+              "label": "i18n:automation.scale_rules.field.conditions",
+              "type": "repeatable",
+              "addText": "i18n:automation.scale_rules.conditions.add",
+              "accordionOpenAll": true,
+              "initialItems": 1,
+              "accordionOpenFirst": true,
+              "removeText": "❌",
+              "sortable": true,
+              "fields": [
+                {
+                  "type": "group",
+                  "columns": 4,
+                  "gap": "small",
+                  "fields": [
+                    {
+                      "name": "metric",
+                      "label": "i18n:automation.scale_rules.field.metric",
+                      "type": "select",
+                      "required": true,
+                      "options": [
+                        {
+                          "value": "",
+                          "label": "i18n:core.form.select.placeholder"
+                        },
+                        {
+                          "value": "roas",
+                          "label": "i18n:automation.scale_rules.metric.roas"
+                        },
+                        {
+                          "value": "profit",
+                          "label": "i18n:automation.scale_rules.metric.profit"
+                        },
+                        {
+                          "value": "results",
+                          "label": "i18n:automation.scale_rules.metric.results"
+                        },
+                        {
+                          "value": "cost_per_result",
+                          "label": "i18n:automation.scale_rules.metric.cost_per_result"
+                        },
+                        {
+                          "value": "spend",
+                          "label": "i18n:automation.scale_rules.metric.spend"
+                        },
+                        {
+                          "value": "impressions",
+                          "label": "i18n:automation.scale_rules.metric.impressions"
+                        },
+                        {
+                          "value": "frequency",
+                          "label": "i18n:automation.scale_rules.metric.frequency"
+                        },
+                        {
+                          "value": "roas_change_1h",
+                          "label": "i18n:automation.scale_rules.metric.roas_change_1h"
+                        },
+                        {
+                          "value": "roas_change_2h",
+                          "label": "i18n:automation.scale_rules.metric.roas_change_2h"
+                        },
+                        {
+                          "value": "roas_change_3h",
+                          "label": "i18n:automation.scale_rules.metric.roas_change_3h"
+                        },
+                        {
+                          "value": "profit_change_1h",
+                          "label": "i18n:automation.scale_rules.metric.profit_change_1h"
+                        },
+                        {
+                          "value": "profit_change_2h",
+                          "label": "i18n:automation.scale_rules.metric.profit_change_2h"
+                        },
+                        {
+                          "value": "profit_change_3h",
+                          "label": "i18n:automation.scale_rules.metric.profit_change_3h"
+                        },
+                        {
+                          "value": "current_hour",
+                          "label": "i18n:automation.scale_rules.metric.current_hour"
+                        },
+                        {
+                          "value": "current_day_of_week",
+                          "label": "i18n:automation.scale_rules.metric.current_day_of_week"
+                        }
+                      ],
+                      "validation": "required"
+                    },
+                    {
+                      "name": "time_range",
+                      "label": "i18n:automation.scale_rules.field.time_range",
+                      "type": "select",
+                      "required": true,
+                      "options": [
+                        {
+                          "value": "today",
+                          "label": "i18n:automation.scale_rules.time_range.today"
+                        },
+                        {
+                          "value": "yesterday",
+                          "label": "i18n:automation.scale_rules.time_range.yesterday"
+                        },
+                        {
+                          "value": "last_3d",
+                          "label": "i18n:automation.scale_rules.time_range.last_3d"
+                        },
+                        {
+                          "value": "last_7d",
+                          "label": "i18n:automation.scale_rules.time_range.last_7d"
+                        },
+                        {
+                          "value": "last_14d",
+                          "label": "i18n:automation.scale_rules.time_range.last_14d"
+                        },
+                        {
+                          "value": "last_30d",
+                          "label": "i18n:automation.scale_rules.time_range.last_30d"
+                        },
+                        {
+                          "value": "lifetime",
+                          "label": "i18n:automation.scale_rules.time_range.lifetime"
+                        }
+                      ],
+                      "validation": "required",
+                      "condition": [
+                        {
+                          "field": "metric",
+                          "operator": "not-any",
+                          "value": "current_hour,current_day_of_week"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    },
+                    {
+                      "name": "operator",
+                      "label": "i18n:automation.scale_rules.field.operator",
+                      "type": "select",
+                      "required": true,
+                      "options": [
+                        {
+                          "value": ">",
+                          "label": ">"
+                        },
+                        {
+                          "value": "<",
+                          "label": "<"
+                        },
+                        {
+                          "value": ">=",
+                          "label": "≥"
+                        },
+                        {
+                          "value": "<=",
+                          "label": "≤"
+                        },
+                        {
+                          "value": "==",
+                          "label": "="
+                        },
+                        {
+                          "value": "is_within",
+                          "label": "i18n:automation.scale_rules.operator.is_within"
+                        }
+                      ],
+                      "validation": "required"
+                    },
+                    {
+                      "name": "value",
+                      "label": "i18n:automation.scale_rules.field.value",
+                      "type": "number",
+                      "required": true,
+                      "placeholder": "0",
+                      "step": 0.01,
+                      "validation": "required",
+                      "condition": [
+                        {
+                          "field": "metric",
+                          "operator": "not-any",
+                          "value": "current_hour,current_day_of_week"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    },
+                    {
+                      "name": "value_hour",
+                      "label": "i18n:automation.scale_rules.field.value_hour",
+                      "type": "number",
+                      "required": true,
+                      "placeholder": "15",
+                      "min": 0,
+                      "max": 23,
+                      "step": 1,
+                      "validation": "required|min:0|max:23",
+                      "help": "i18n:automation.scale_rules.field.value_hour_help",
+                      "condition": [
+                        {
+                          "field": "metric",
+                          "operator": "equals",
+                          "value": "current_hour"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    },
+                    {
+                      "name": "value_day",
+                      "label": "i18n:automation.scale_rules.field.value_day",
+                      "type": "select",
+                      "required": true,
+                      "options": [
+                        {
+                          "value": "1",
+                          "label": "i18n:automation.scale_rules.day_of_week.monday"
+                        },
+                        {
+                          "value": "2",
+                          "label": "i18n:automation.scale_rules.day_of_week.tuesday"
+                        },
+                        {
+                          "value": "3",
+                          "label": "i18n:automation.scale_rules.day_of_week.wednesday"
+                        },
+                        {
+                          "value": "4",
+                          "label": "i18n:automation.scale_rules.day_of_week.thursday"
+                        },
+                        {
+                          "value": "5",
+                          "label": "i18n:automation.scale_rules.day_of_week.friday"
+                        },
+                        {
+                          "value": "6",
+                          "label": "i18n:automation.scale_rules.day_of_week.saturday"
+                        },
+                        {
+                          "value": "7",
+                          "label": "i18n:automation.scale_rules.day_of_week.sunday"
+                        }
+                      ],
+                      "validation": "required",
+                      "help": "i18n:automation.scale_rules.field.value_day_help",
+                      "condition": [
+                        {
+                          "field": "metric",
+                          "operator": "equals",
+                          "value": "current_day_of_week"
+                        }
+                      ],
+                      "conditionContext": "repeatable"
+                    }
+                  ]
+                },
+                {
+                  "name": "value_suffix",
+                  "label": "i18n:automation.scale_rules.field.value_suffix",
+                  "type": "select",
+                  "options": [
+                    {
+                      "value": "",
+                      "label": "i18n:automation.scale_rules.suffix.none"
+                    },
+                    {
+                      "value": "percent",
+                      "label": "i18n:automation.scale_rules.suffix.percent"
+                    },
+                    {
+                      "value": "currency",
+                      "label": "$"
+                    }
+                  ],
+                  "condition": [
+                    {
+                      "field": "metric",
+                      "operator": "any",
+                      "value": "roas,cost_per_result,spend"
+                    }
+                  ],
+                  "conditionContext": "repeatable"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "html",
+          "content": "<div class='alert alert-info alert-filled'><strong>⚡ ENTONCES ejecutar estas acciones...</strong></div>"
+        },
+        {
+          "name": "actions",
+          "label": "i18n:automation.scale_rules.field.actions",
+          "type": "repeatable",
+          "addText": "i18n:automation.scale_rules.actions.add",
+          "removeText": "i18n:core.delete",
+          "hasHeader": true,
+          "accordion": true,
+          "sortable": true,
+          "accordionOpenAll": false,
+          "accordionOpenFirst": true,
+          "initialItems": 1,
+          "headerTitle": "i18n:automation.scale_rules.actions.header {index}",
+          "fields": [
+            {
+              "name": "action_type",
+              "label": "i18n:automation.scale_rules.field.action_type",
+              "type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "",
+                  "label": "i18n:core.form.select.placeholder"
+                },
+                {
+                  "value": "pause",
+                  "label": "i18n:automation.scale_rules.action_type.pause"
+                },
+                {
+                  "value": "increase_budget",
+                  "label": "i18n:automation.scale_rules.action_type.increase_budget"
+                },
+                {
+                  "value": "decrease_budget",
+                  "label": "i18n:automation.scale_rules.action_type.decrease_budget"
+                },
+                {
+                  "value": "adjust_to_spend",
+                  "label": "i18n:automation.scale_rules.action_type.adjust_to_spend"
+                },
+                {
+                  "value": "disable_product",
+                  "label": "i18n:automation.scale_rules.action_type.disable_product"
+                }
+              ],
+              "validation": "required"
+            },
+            {
+              "name": "product_id",
+              "label": "i18n:automation.scale_rules.field.product_to_disable",
+              "type": "select",
+              "required": true,
+              "source": "api/product?status=1&per_page=1000",
+              "sourceValue": "id",
+              "sourceLabel": "name",
+              "validation": "required",
+              "help": "i18n:automation.scale_rules.field.product_to_disable_help",
+              "condition": [
+                {
+                  "field": "action_type",
+                  "operator": "equals",
+                  "value": "disable_product"
+                }
+              ],
+              "conditionContext": "repeatable"
+            },
+            {
+              "name": "budget_fields_group",
+              "type": "group",
+              "columns": 4,
+              "gap": "normal",
+              "condition": [
+                {
+                  "field": "action_type",
+                  "operator": "any",
+                  "value": "increase_budget,decrease_budget"
+                }
+              ],
+              "conditionContext": "repeatable",
+              "fields": [
+                {
+                  "name": "change_by",
+                  "label": "i18n:automation.scale_rules.field.change_by",
+                  "type": "number",
+                  "required": true,
+                  "placeholder": "20",
+                  "min": 0,
+                  "step": 1,
+                  "validation": "required|min:0"
+                },
+                {
+                  "name": "change_type",
+                  "label": "i18n:automation.scale_rules.field.change_type",
+                  "type": "select",
+                  "required": true,
+                  "options": [
+                    {
+                      "value": "percent",
+                      "label": "%"
+                    },
+                    {
+                      "value": "fixed",
+                      "label": "$"
+                    }
+                  ],
+                  "validation": "required"
+                },
+                {
+                  "name": "until_limit",
+                  "label": "i18n:automation.scale_rules.field.until_limit",
+                  "type": "number",
+                  "required": true,
+                  "placeholder": "500",
+                  "min": 0,
+                  "step": 0.01,
+                  "validation": "required|min:0",
+                  "help": "i18n:automation.scale_rules.field.until_limit_help"
+                },
+                {
+                  "name": "until_currency",
+                  "label": "i18n:automation.scale_rules.field.currency",
+                  "type": "select",
+                  "required": true,
+                  "options": [
+                    {
+                      "value": "USD",
+                      "label": "$"
+                    }
+                  ],
+                  "defaultValue": "USD"
+                }
+              ]
+            },
+            {
+              "name": "adjust_to_spend_fields_group",
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "condition": [
+                {
+                  "field": "action_type",
+                  "operator": "equals",
+                  "value": "adjust_to_spend"
+                }
+              ],
+              "conditionContext": "repeatable",
+              "fields": [
+                {
+                  "name": "adjustment_type",
+                  "label": "i18n:automation.scale_rules.field.adjustment_type",
+                  "type": "select",
+                  "required": true,
+                  "options": [
+                    {
+                      "value": "add",
+                      "label": "i18n:automation.scale_rules.adjustment_type.add"
+                    },
+                    {
+                      "value": "subtract",
+                      "label": "i18n:automation.scale_rules.adjustment_type.subtract"
+                    }
+                  ],
+                  "validation": "required",
+                  "help": "i18n:automation.scale_rules.field.adjustment_type_help"
+                },
+                {
+                  "name": "adjustment_value",
+                  "label": "i18n:automation.scale_rules.field.adjustment_value",
+                  "type": "number",
+                  "required": true,
+                  "placeholder": "1",
+                  "min": 0,
+                  "step": 0.01,
+                  "validation": "required|min:0",
+                  "help": "i18n:automation.scale_rules.field.adjustment_value_help"
+                }
+              ]
+            },
+            {
+              "name": "period_fields_group",
+              "type": "group",
+              "columns": 2,
+              "gap": "normal",
+              "condition": [
+                {
+                  "field": "action_type",
+                  "operator": "any",
+                  "value": "increase_budget,decrease_budget"
+                }
+              ],
+              "conditionContext": "repeatable",
+              "fields": [
+                {
+                  "name": "time_period",
+                  "label": "i18n:automation.scale_rules.field.time_period",
+                  "type": "select",
+                  "required": true,
+                  "options": [
+                    {
+                      "value": "everytime",
+                      "label": "i18n:automation.scale_rules.time_period.everytime"
+                    },
+                    {
+                      "value": "once",
+                      "label": "i18n:automation.scale_rules.time_period.once"
+                    },
+                    {
+                      "value": "daily",
+                      "label": "i18n:automation.scale_rules.time_period.daily"
+                    },
+                    {
+                      "value": "every_3h",
+                      "label": "i18n:automation.scale_rules.time_period.every_3h"
+                    },
+                    {
+                      "value": "every_6h",
+                      "label": "i18n:automation.scale_rules.time_period.every_6h"
+                    }
+                  ],
+                  "validation": "required",
+                  "help": "i18n:automation.scale_rules.field.time_period_help"
+                },
+                {
+                  "name": "budget_type",
+                  "label": "i18n:automation.scale_rules.field.budget_type",
+                  "type": "select",
+                  "required": true,
+                  "options": [
+                    {
+                      "value": "daily",
+                      "label": "i18n:automation.scale_rules.budget_type.daily"
+                    },
+                    {
+                      "value": "lifetime",
+                      "label": "i18n:automation.scale_rules.budget_type.lifetime"
+                    }
+                  ],
+                  "validation": "required"
+                }
+              ]
+            },
+            {
+              "name": "period_fields_group_adjust",
+              "type": "group",
+              "columns": 1,
+              "gap": "normal",
+              "condition": [
+                {
+                  "field": "action_type",
+                  "operator": "equals",
+                  "value": "adjust_to_spend"
+                }
+              ],
+              "conditionContext": "repeatable",
+              "fields": [
+                {
+                  "name": "time_period",
+                  "label": "i18n:automation.scale_rules.field.time_period",
+                  "type": "select",
+                  "required": true,
+                  "options": [
+                    {
+                      "value": "everytime",
+                      "label": "i18n:automation.scale_rules.time_period.everytime"
+                    },
+                    {
+                      "value": "every_3h",
+                      "label": "i18n:automation.scale_rules.time_period.every_3h"
+                    },
+                    {
+                      "value": "every_6h",
+                      "label": "i18n:automation.scale_rules.time_period.every_6h"
+                    }
+                  ],
+                  "validation": "required",
+                  "help": "i18n:automation.scale_rules.field.time_period_adjust_help"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "is_active",
+      "type": "checkbox",
+      "label": "i18n:automation.scale_rules.field.is_active",
+      "default": true,
+      "align": "left"
+    },
+    {
+      "name": "cancel",
+      "type": "button",
+      "label": "i18n:core.cancel",
+      "action": "call:ogModal.closeAll",
+      "style": "secondary",
+      "align": "right"
+    },
+    {
+      "name": "submit",
+      "type": "button",
+      "label": "i18n:core.save",
+      "action": "submit:scaleRule.save",
+      "align": "right"
+    }
+  ]
+}

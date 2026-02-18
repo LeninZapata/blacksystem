@@ -8,11 +8,17 @@ class scaleRuleStatsv2 {
 
   static assets = [];
   static chart = null;
+  static eventsAttached = false; // Bandera para evitar múltiples adjuntos
 
   static async init() {
     ogLogger.debug('ext:automation', 'Inicializando Movimientos de Escala V2');
     await this.loadAssets();
-    this.attachEventListeners();
+    
+    // Solo adjuntar eventos una vez
+    if (!this.eventsAttached) {
+      this.attachEventListeners();
+      this.eventsAttached = true;
+    }
   }
 
   // Cargar lista de activos publicitarios desde API
@@ -83,51 +89,48 @@ class scaleRuleStatsv2 {
     this.loadStats();
   }
 
-  // Attachar event listeners
+  // Attachar event listeners usando delegación de eventos
   static attachEventListeners() {
-    // Listener para cambios en el radio button group de fechas
-    const dateInputs = document.querySelectorAll('input[name="scale_date_range"]');
-    dateInputs.forEach(input => {
-      input.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          const value = e.target.value;
-          
-          // Mostrar/ocultar el input de fecha personalizada
-          const customDateContainer = document.getElementById('scale-custom-date-container');
-          if (value === 'custom_date') {
-            if (customDateContainer) {
-              customDateContainer.style.display = 'block';
-              // Establecer fecha de hoy por defecto si no hay fecha seleccionada
-              const customDateInput = document.getElementById('scale-custom-date-input');
-              if (customDateInput && !customDateInput.value) {
-                customDateInput.value = this.getLocalDateString(new Date());
-                this.currentFilters.customDate = customDateInput.value;
-              }
+    // Usar delegación de eventos para que funcione incluso si los elementos se recargan
+    document.addEventListener('change', (e) => {
+      // Listener para cambios en el radio button group de fechas
+      if (e.target.name === 'scale_date_range' && e.target.checked) {
+        const value = e.target.value;
+        
+        // Mostrar/ocultar el input de fecha personalizada
+        const customDateContainer = document.getElementById('scale-custom-date-container');
+        if (value === 'custom_date') {
+          if (customDateContainer) {
+            customDateContainer.style.display = 'block';
+            // Establecer fecha de hoy por defecto si no hay fecha seleccionada
+            const customDateInput = document.getElementById('scale-custom-date-input');
+            if (customDateInput && !customDateInput.value) {
+              customDateInput.value = this.getLocalDateString(new Date());
+              this.currentFilters.customDate = customDateInput.value;
             }
-          } else {
-            if (customDateContainer) {
-              customDateContainer.style.display = 'none';
-            }
-            this.currentFilters.customDate = null;
           }
-          
-          this.onDateRangeChange(value);
+        } else {
+          if (customDateContainer) {
+            customDateContainer.style.display = 'none';
+          }
+          this.currentFilters.customDate = null;
         }
-      });
-    });
-    
-    // Listener para el input de fecha personalizada
-    const customDateInput = document.getElementById('scale-custom-date-input');
-    if (customDateInput) {
-      customDateInput.addEventListener('change', (e) => {
+        
+        this.onDateRangeChange(value);
+      }
+      
+      // Listener para el input de fecha personalizada
+      if (e.target.id === 'scale-custom-date-input') {
         this.currentFilters.customDate = e.target.value;
         // Solo recargar si el radio de fecha personalizada está seleccionado
         const customRadio = document.getElementById('scale-range-custom');
         if (customRadio && customRadio.checked) {
           this.loadStats();
         }
-      });
-    }
+      }
+    });
+    
+    ogLogger.debug('ext:automation', 'Event listeners adjuntados con delegación de eventos');
   }
 
   // Cargar estadísticas con los filtros actuales
@@ -199,7 +202,7 @@ class scaleRuleStatsv2 {
         return;
       }
 
-      const data = response.data || [];
+      let data = response.data || [];
 
       if (data.length === 0) {
         container.innerHTML = `
@@ -211,6 +214,12 @@ class scaleRuleStatsv2 {
           </div>
         `;
         return;
+      }
+
+      // Normalizar SOLO datos horarios (tienen budget_before/after)
+      // Los datos diarios tienen estructura diferente (final_budget)
+      if (useHourlyChart) {
+        data = this.normalizeBudgetData(data);
       }
 
       // Renderizar gráfica y resumen según el tipo
@@ -676,6 +685,41 @@ class scaleRuleStatsv2 {
     return labels[actionType] || actionType;
   }
 
+  // Normalizar datos de presupuesto (para manejar registros AUTO y MANUAL)
+  static normalizeBudgetData(data) {
+    return data.map(item => {
+      // Si ya tiene los campos a nivel raíz, retornar el item tal cual
+      if (item.budget_before !== undefined && item.budget_after !== undefined) {
+        return item;
+      }
+
+      // Parsear metrics_snapshot si es necesario
+      let metrics = item.metrics_snapshot;
+      if (typeof metrics === 'string') {
+        try {
+          metrics = JSON.parse(metrics);
+        } catch (e) {
+          ogLogger.warn('ext:automation', 'Error parseando metrics_snapshot:', e);
+          metrics = {};
+        }
+      }
+
+      // Extraer valores de budget desde metrics_snapshot
+      const budgetBefore = parseFloat(metrics.budget_before || item.budget_before || 0);
+      const budgetAfter = parseFloat(metrics.budget_after || item.budget_after || 0);
+      const budgetChange = parseFloat(metrics.adjustment_amount || item.budget_change || (budgetAfter - budgetBefore));
+
+      // Retornar item con campos normalizados
+      return {
+        ...item,
+        budget_before: budgetBefore,
+        budget_after: budgetAfter,
+        budget_change: budgetChange,
+        metrics_snapshot: metrics // Guardar versión parseada
+      };
+    });
+  }
+
   // Formatear tiempo (solo hora)
   static formatTime(datetime) {
     const date = new Date(datetime);
@@ -830,7 +874,8 @@ class scaleRuleStatsv2 {
                   return '<div class="no-conditions">Condiciones inválidas (no es objeto)</div>';
                 }
                 
-                if (!conditionsObj.details) {
+                // V2: blocks_evaluated, V1: details
+                if (!conditionsObj.blocks_evaluated && !conditionsObj.details) {
                   return '<div class="no-conditions">Sin detalles de condiciones</div>';
                 }
                 
@@ -848,75 +893,179 @@ class scaleRuleStatsv2 {
 
   // Renderizar condiciones evaluadas
   static renderConditions(item, metrics) {
-    // Esta función asume que ya se validó que item.conditions_result existe y tiene details
+    // Esta función asume que ya se validó que item.conditions_result existe
     try {
       const conditions = typeof item.conditions_result === 'string' 
         ? JSON.parse(item.conditions_result) 
         : item.conditions_result;
 
-      if (!conditions || !conditions.details) {
-        ogLogger.warn('ext:automation', 'renderConditions llamado sin details válido');
+      if (!conditions) {
+        ogLogger.warn('ext:automation', 'renderConditions llamado sin conditions válido');
         return '<div class="no-conditions">Sin detalles de condiciones</div>';
       }
 
-      const details = conditions.details;
-
-      let html = '<div class="conditions-wrapper">';
-      html += '<div class="conditions-header">🎯 Condiciones</div>';
-
-      // Mostrar cada grupo de condiciones
-      if (Array.isArray(details)) {
-        const totalGroups = details.length;
-        
-        details.forEach((group, idx) => {
-          // Determinar si el grupo se cumplió revisando todas las condiciones individuales
-          // Si todas tienen result=true, el grupo está cumplido
-          let groupMet = group.result === true;
-          
-          // También verificar contando condiciones cumplidas
-          if (group.details && Array.isArray(group.details)) {
-            const totalConditions = group.details.length;
-            const metConditions = group.details.filter(c => c.result === true).length;
-            
-            // Si todas las condiciones se cumplieron, el grupo está cumplido
-            if (metConditions === totalConditions && totalConditions > 0) {
-              groupMet = true;
-            }
-          }
-          
-          // Detectar operador lógico del grupo (AND o OR)
-          let groupOperator = 'AND'; // Default
-          if (group.condition && typeof group.condition === 'object') {
-            const keys = Object.keys(group.condition);
-            if (keys.length > 0) {
-              const op = keys[0].toLowerCase();
-              if (op === 'or') groupOperator = 'OR';
-              else if (op === 'and') groupOperator = 'AND';
-            }
-          }
-          
-          // Agregar clase has-next-group si no es el último grupo
-          const hasNextGroup = idx < totalGroups - 1;
-          
-          html += `
-            <div class="condition-group ${groupMet ? 'met' : 'not-met'} ${hasNextGroup ? 'has-next-group' : ''}">
-              <div class="group-title">
-                <span>Grupo ${idx + 1}</span>
-                <span class="group-label">${groupOperator}</span>
-              </div>
-              ${this.renderGroupConditions(group, metrics, groupOperator)}
-            </div>
-          `;
-        });
+      // V2: Detectar bloques
+      if (conditions.blocks_evaluated && Array.isArray(conditions.blocks_evaluated)) {
+        return this.renderBlocksV2(conditions, metrics);
       }
 
-      html += '</div>';
-      return html;
+      // V1: Compatibilidad (aunque ya no debería usarse)
+      if (conditions.details && Array.isArray(conditions.details)) {
+        return this.renderConditionsV1(conditions, metrics);
+      }
+
+      return '<div class="no-conditions">Sin detalles de condiciones</div>';
 
     } catch (error) {
       ogLogger.error('ext:automation', 'Error parseando condiciones:', error);
       return `<div class="error-conditions">Error: ${error.message}</div>`;
     }
+  }
+
+  // Renderizar bloques V2
+  static renderBlocksV2(conditions, metrics) {
+    const blocks = conditions.blocks_evaluated;
+    const blockExecuted = conditions.block_executed;
+
+    let html = '<div class="conditions-wrapper">';
+    html += '<div class="conditions-header">🧩 Bloques de Reglas</div>';
+
+    blocks.forEach((block, blockIdx) => {
+      const isExecuted = blockExecuted && blockExecuted.index === block.index;
+      const blockMet = block.met === true;
+      const blockNotEvaluated = block.met === null;
+      
+      // Clases del bloque
+      let blockClasses = ['condition-block'];
+      if (isExecuted) blockClasses.push('executed');
+      if (blockMet) blockClasses.push('met');
+      if (!blockMet && block.met === false) blockClasses.push('not-met');
+      if (blockNotEvaluated) blockClasses.push('not-evaluated');
+
+      html += `
+        <div class="${blockClasses.join(' ')}">
+          <div class="block-header">
+            <span class="block-icon">${blockNotEvaluated ? '⏸️' : (blockMet ? '✅' : '❌')}</span>
+            <span class="block-title">${block.name || `Bloque ${block.index + 1}`}</span>
+            ${isExecuted ? '<span class="block-badge">⚡ Ejecutado</span>' : ''}
+            ${blockNotEvaluated ? '<span class="block-badge-skipped">Omitido</span>' : ''}
+          </div>
+      `;
+
+      // Si el bloque no fue evaluado (null), mostrar mensaje
+      if (blockNotEvaluated) {
+        html += '<div class="block-skipped-message">No se evaluó (bloque anterior cumplió condiciones)</div>';
+      }
+      // Si el bloque fue evaluado, mostrar sus grupos de condiciones
+      else if (block.evaluation && block.evaluation.details) {
+        html += this.renderBlockGroups(block.evaluation.details, metrics, block.evaluation.logic_type);
+      }
+
+      html += '</div>';
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  // Renderizar grupos de condiciones dentro de un bloque
+  static renderBlockGroups(details, metrics, logicType = 'and_or_and') {
+    if (!Array.isArray(details) || details.length === 0) {
+      return '<div class="no-conditions">Sin condiciones</div>';
+    }
+
+    let html = '<div class="block-groups">';
+    const totalGroups = details.length;
+
+    details.forEach((group, idx) => {
+      let groupMet = group.result === true;
+      
+      // También verificar contando condiciones cumplidas
+      if (group.details && Array.isArray(group.details)) {
+        const totalConditions = group.details.length;
+        const metConditions = group.details.filter(c => c.result === true).length;
+        
+        if (metConditions === totalConditions && totalConditions > 0) {
+          groupMet = true;
+        }
+      }
+      
+      // Detectar operador lógico del grupo (AND o OR)
+      let groupOperator = 'AND'; // Default
+      if (group.condition && typeof group.condition === 'object') {
+        const keys = Object.keys(group.condition);
+        if (keys.length > 0) {
+          const op = keys[0].toLowerCase();
+          if (op === 'or') groupOperator = 'OR';
+          else if (op === 'and') groupOperator = 'AND';
+        }
+      }
+      
+      const hasNextGroup = idx < totalGroups - 1;
+      
+      html += `
+        <div class="condition-group ${groupMet ? 'met' : 'not-met'} ${hasNextGroup ? 'has-next-group' : ''}">
+          <div class="group-title">
+            <span>Grupo ${idx + 1}</span>
+            <span class="group-label">${groupOperator}</span>
+          </div>
+          ${this.renderGroupConditions(group, metrics, groupOperator)}
+        </div>
+      `;
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  // Renderizar V1 (legacy - por si acaso)
+  static renderConditionsV1(conditions, metrics) {
+    const details = conditions.details;
+
+    let html = '<div class="conditions-wrapper">';
+    html += '<div class="conditions-header">🎯 Condiciones</div>';
+
+    if (Array.isArray(details)) {
+      const totalGroups = details.length;
+      
+      details.forEach((group, idx) => {
+        let groupMet = group.result === true;
+        
+        if (group.details && Array.isArray(group.details)) {
+          const totalConditions = group.details.length;
+          const metConditions = group.details.filter(c => c.result === true).length;
+          
+          if (metConditions === totalConditions && totalConditions > 0) {
+            groupMet = true;
+          }
+        }
+        
+        let groupOperator = 'AND';
+        if (group.condition && typeof group.condition === 'object') {
+          const keys = Object.keys(group.condition);
+          if (keys.length > 0) {
+            const op = keys[0].toLowerCase();
+            if (op === 'or') groupOperator = 'OR';
+            else if (op === 'and') groupOperator = 'AND';
+          }
+        }
+        
+        const hasNextGroup = idx < totalGroups - 1;
+        
+        html += `
+          <div class="condition-group ${groupMet ? 'met' : 'not-met'} ${hasNextGroup ? 'has-next-group' : ''}">
+            <div class="group-title">
+              <span>Grupo ${idx + 1}</span>
+              <span class="group-label">${groupOperator}</span>
+            </div>
+            ${this.renderGroupConditions(group, metrics, groupOperator)}
+          </div>
+        `;
+      });
+    }
+
+    html += '</div>';
+    return html;
   }
 
   // Renderizar condiciones de un grupo

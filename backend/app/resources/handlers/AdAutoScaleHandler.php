@@ -120,14 +120,37 @@ class AdAutoScaleHandler {
     $startTime = microtime(true);
     ogLog::info('resetDailyBudgets - Iniciando proceso', [], self::$logMeta);
 
-    // 1. Obtener todos los activos que tienen auto_reset activo
-    $assets = ogDb::t('product_ad_assets')
-      ->where('is_active', 1)
-      ->where('auto_reset_budget', 1)
-      ->where('status', 1)
-      ->whereNotNull('credential_id')
-      ->whereNotNull('base_daily_budget')
-      ->get();
+    // 1. Obtener todos los activos con auto_reset, incluyendo datos del bot para timezone correcto
+    $sql = "
+      SELECT 
+        pa.id,
+        pa.product_id,
+        pa.user_id,
+        pa.ad_platform,
+        pa.ad_asset_type,
+        pa.ad_asset_id,
+        pa.ad_asset_name,
+        pa.base_daily_budget,
+        pa.last_reset_date,
+        pa.reset_time,
+        pa.reset_type,
+        pa.max_daily_budget,
+        pa.credential_id,
+        p.bot_id,
+        b.country_code,
+        b.name as bot_name
+      FROM product_ad_assets pa
+      INNER JOIN products p ON pa.product_id = p.id
+      INNER JOIN bots b ON p.bot_id = b.id
+      WHERE pa.is_active = 1
+        AND pa.auto_reset_budget = 1
+        AND pa.status = 1
+        AND pa.credential_id IS NOT NULL
+        AND pa.base_daily_budget IS NOT NULL
+        AND b.status = 1
+    ";
+
+    $assets = ogDb::raw($sql);
 
     if (empty($assets)) {
       ogLog::warning('resetDailyBudgets - No hay activos con auto_reset activo', [], self::$logMeta);
@@ -138,17 +161,27 @@ class AdAutoScaleHandler {
       ];
     }
 
-    // 2. Agrupar activos por timezone
+    // 2. Agrupar activos por timezone del BOT (no del activo publicitario)
+    // Cargar helper de country bajo demanda
+    ogApp()->loadHelper('country');
+    
     $assetsByTimezone = [];
     foreach ($assets as $asset) {
-      $timezone = $asset['timezone'] ?? 'America/Guayaquil';
+      // Obtener timezone según el país del bot
+      $countryData = ogCountry::get($asset['country_code']);
+      $timezone = $countryData ? $countryData['timezone'] : 'America/Guayaquil';
+      
+      // Agregar timezone al asset para uso posterior
+      $asset['bot_timezone'] = $timezone;
+      $asset['bot_country_code'] = $asset['country_code'];
+      
       if (!isset($assetsByTimezone[$timezone])) {
         $assetsByTimezone[$timezone] = [];
       }
       $assetsByTimezone[$timezone][] = $asset;
     }
 
-    ogLog::info('resetDailyBudgets - Activos agrupados por timezone', [
+    ogLog::info('resetDailyBudgets - Activos agrupados por timezone del BOT', [
       'total_assets' => count($assets),
       'timezones_count' => count($assetsByTimezone),
       'timezones' => array_keys($assetsByTimezone),
@@ -156,9 +189,10 @@ class AdAutoScaleHandler {
         return [
           'id' => $a['id'],
           'ad_asset_id' => $a['ad_asset_id'],
-          'last_reset_date' => $a['last_reset_date'],
-          'auto_reset_budget' => $a['auto_reset_budget'],
-          'timezone' => $a['timezone']
+          'bot_name' => $a['bot_name'],
+          'bot_country' => $a['country_code'],
+          'bot_timezone' => $a['bot_timezone'],
+          'last_reset_date' => $a['last_reset_date']
         ];
       }, $assets)
     ], self::$logMeta);
@@ -188,6 +222,9 @@ class AdAutoScaleHandler {
           ogLog::debug('resetDailyBudgets - Evaluando activo', [
             'asset_id' => $asset['id'],
             'ad_asset_id' => $asset['ad_asset_id'],
+            'bot_name' => $asset['bot_name'],
+            'bot_country' => $asset['bot_country_code'],
+            'bot_timezone' => $timezone,
             'last_reset_date' => $asset['last_reset_date'],
             'current_date' => $currentDate,
             'dates_match' => ($asset['last_reset_date'] === $currentDate),
@@ -204,6 +241,8 @@ class AdAutoScaleHandler {
             $debugInfo[] = [
               'asset_id' => $asset['id'],
               'ad_asset_id' => $asset['ad_asset_id'],
+              'bot_name' => $asset['bot_name'],
+              'bot_country' => $asset['bot_country_code'],
               'reason' => 'already_reset_today',
               'last_reset_date' => $asset['last_reset_date'],
               'current_date' => $currentDate
@@ -221,6 +260,8 @@ class AdAutoScaleHandler {
             $debugInfo[] = [
               'asset_id' => $asset['id'],
               'ad_asset_id' => $asset['ad_asset_id'],
+              'bot_name' => $asset['bot_name'],
+              'bot_country' => $asset['bot_country_code'],
               'reason' => 'no_base_budget',
               'base_daily_budget' => $asset['base_daily_budget']
             ];
@@ -261,8 +302,11 @@ class AdAutoScaleHandler {
               $debugInfo[] = [
                 'asset_id' => $asset['id'],
                 'ad_asset_id' => $asset['ad_asset_id'],
+                'bot_name' => $asset['bot_name'],
+                'bot_country' => $asset['bot_country_code'],
                 'action' => 'reset_success',
                 'reset_reason' => $resetReason,
+                'timezone' => $timezone,
                 'budget_before' => $result['budget_before'] ?? null,
                 'budget_after' => $result['budget_after'] ?? null
               ];
@@ -271,12 +315,16 @@ class AdAutoScaleHandler {
               $debugInfo[] = [
                 'asset_id' => $asset['id'],
                 'ad_asset_id' => $asset['ad_asset_id'],
+                'bot_name' => $asset['bot_name'],
+                'bot_country' => $asset['bot_country_code'],
                 'action' => 'reset_error',
                 'error' => $result['error']
               ];
               $errors[] = [
                 'asset_id' => $asset['id'],
                 'ad_asset_id' => $asset['ad_asset_id'],
+                'bot_name' => $asset['bot_name'],
+                'bot_country' => $asset['bot_country_code'],
                 'error' => $result['error']
               ];
             }

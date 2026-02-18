@@ -13,6 +13,7 @@ const budgetResetStats = {
   customDate: null,
   assets: [],
   chart: null,
+  eventsAttached: false, // Bandera para evitar múltiples adjuntos
   
   // ========================================
   // INICIALIZACIÓN
@@ -24,7 +25,12 @@ const budgetResetStats = {
   init() {
     console.log('budgetResetStats.init()');
     this.loadAssets();
-    this.attachEventListeners();
+    
+    // Solo adjuntar eventos una vez
+    if (!this.eventsAttached) {
+      this.attachEventListeners();
+      this.eventsAttached = true;
+    }
   },
   
   /**
@@ -108,24 +114,23 @@ const budgetResetStats = {
   },
   
   /**
-   * Adjuntar eventos
+   * Adjuntar eventos usando delegación de eventos
    */
   attachEventListeners() {
-    // Radio buttons de rango de fechas
-    const rangeRadios = document.querySelectorAll('input[name="reset_date_range"]');
-    rangeRadios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
+    // Usar delegación de eventos en document para que funcione incluso si los elementos se recargan
+    document.addEventListener('change', (e) => {
+      // Radio buttons de rango de fechas
+      if (e.target.name === 'reset_date_range') {
         this.onRangeChange(e.target.value);
-      });
+      }
+      
+      // Input de fecha personalizada
+      if (e.target.id === 'reset-custom-date-input') {
+        this.onCustomDateChange(e.target.value);
+      }
     });
     
-    // Input de fecha personalizada
-    const customDateInput = document.getElementById('reset-custom-date-input');
-    if (customDateInput) {
-      customDateInput.addEventListener('change', (e) => {
-        this.onCustomDateChange(e.target.value);
-      });
-    }
+    console.log('budgetResetStats: Event listeners adjuntados con delegación de eventos');
   },
   
   // ========================================

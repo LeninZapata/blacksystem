@@ -9,6 +9,7 @@
   "scripts": [
     "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
     "automation/assets/js/scaleRule.js",
+    "automation/assets/js/scaleRulePreview.js",
     "automation/assets/js/scaleRuleStatsv2.js",
     "automation/assets/js/budgetAdjust.js",
     "automation/assets/js/budgetResetStats.js"
@@ -31,7 +32,7 @@
               },
               {
                 "type": "html",
-                "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/scale-rule-form', {title: '{i18n:automation.scale_rules.ogModal.new.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='scaleRule.refresh();ogToast.info(\"{i18n:automation.scale_rules.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>"
+                "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('automation|forms/scale-rule-formV2', {title: '{i18n:automation.scale_rules.ogModal.new.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='scaleRule.refresh();ogToast.info(\"{i18n:automation.scale_rules.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>"
               },
               {
                 "type": "component",
@@ -68,7 +69,7 @@
                   "actions": {
                     "edit": {
                       "name": "i18n:core.edit",
-                      "onclick": "ogModal.open('automation|forms/scale-rule-form', {title: '{i18n:automation.scale_rules.ogModal.edit.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openEdit(formId, {id});}})"
+                      "onclick": "ogModal.open('automation|forms/scale-rule-formV2', {title: '{i18n:automation.scale_rules.ogModal.edit.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openEdit(formId, {id});}})"
                     },
                     "delete": {
                       "name": "i18n:core.delete",

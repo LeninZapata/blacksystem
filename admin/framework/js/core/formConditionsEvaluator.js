@@ -35,6 +35,17 @@ class ogConditionsEvaluator {
     requestAnimationFrame(() => {
       if (formId) {
         this.evaluate(formId);
+        
+        // Disparar evento personalizado cuando el formulario está completamente cargado y evaluado
+        const formEl = document.getElementById(formId);
+        if (formEl) {
+          const event = new CustomEvent('form:filled', {
+            detail: { formId: formId },
+            bubbles: true
+          });
+          formEl.dispatchEvent(event);
+          ogLogger?.debug('core:form', `🎯 Evento 'form:filled' disparado para ${formId}`);
+        }
       }
     });
   }

@@ -114,6 +114,10 @@
         "is_active": "Regla Activa",
         "level": "Nivel de Aplicación",
         "level_help": "Selecciona en qué nivel de Facebook Ads se aplicará esta regla",
+        "condition_blocks": "Bloques de Condiciones",
+        "block_name": "Nombre del Bloque (Opcional)",
+        "block_name_placeholder": "Ej: Escalar cuando ROAS > 3",
+        "block_name_help": "Nombre descriptivo para identificar este bloque de reglas",
         "actions": "Acciones",
         "action_type": "Tipo de Acción",
         "change_by": "Cambiar por",
@@ -123,9 +127,18 @@
         "currency": "Moneda",
         "time_period": "Período de Tiempo",
         "time_period_help": "Frecuencia de ejecución de la regla",
+        "time_period_adjust_help": "Frecuencia de ejecución de la regla (cooldown)",
         "budget_type": "Tipo de Presupuesto",
         "product_to_disable": "Producto a Desactivar",
         "product_to_disable_help": "Selecciona el producto que se desactivará cuando se cumplan las condiciones",
+        "adjustment_type": "Tipo de Ajuste",
+        "adjustment_type_help": "Agregar o restar del gasto actual",
+        "adjustment_value": "Valor de Ajuste",
+        "adjustment_value_help": "Cantidad en USD a agregar o restar del gasto actual",
+        "value_hour": "Hora (0-23)",
+        "value_hour_help": "Hora en formato 24h: 0=medianoche, 12=mediodía, 15=3pm, 18=6pm, 23=11pm. Usa la zona horaria del bot/país",
+        "value_day": "Selecciona el Día",
+        "value_day_help": "Día de la semana en zona horaria del bot. Usa esto para ejecutar reglas solo en días específicos (ej: solo Lunes a Viernes, o solo Fines de Semana)",
         "condition_groups": "Grupos de Condiciones",
         "conditions": "Condiciones",
         "metric": "Métrica",
@@ -142,6 +155,10 @@
         "adset": "Conjunto de Anuncios",
         "ad": "Anuncio"
       },
+      "blocks": {
+        "add": "➕ Agregar Bloque de Reglas",
+        "header": "Bloque IF"
+      },
       "actions": {
         "add": "➕ Agregar Acción",
         "header": "Acción"
@@ -150,12 +167,19 @@
         "pause": "Pausar",
         "increase_budget": "Aumentar Presupuesto",
         "decrease_budget": "Disminuir Presupuesto",
+        "adjust_to_spend": "Ajustar Presupuesto al Gasto Actual",
         "disable_product": "Desactivar Producto"
+      },
+      "adjustment_type": {
+        "add": "Agregar (+)",
+        "subtract": "Restar (-)"
       },
       "time_period": {
         "everytime": "Cada vez que se cumplan las condiciones",
         "once": "Una sola vez",
-        "daily": "Diariamente"
+        "daily": "Diariamente",
+        "every_3h": "Cada 3 horas",
+        "every_6h": "Cada 6 horas"
       },
       "budget_type": {
         "daily": "Diario",
@@ -167,12 +191,30 @@
         "add": "➕ AND"
       },
       "metric": {
+        "roas": "ROAS (sistema)",
+        "profit": "Profit (Ganancia)",
         "results": "Resultados (Conversiones FB)",
         "cost_per_result": "Costo por Resultado",
         "spend": "Gasto",
         "impressions": "Impresiones",
         "frequency": "Frecuencia",
-        "roas": "ROAS (sistema)"
+        "roas_change_1h": "Cambio ROAS (última hora)",
+        "roas_change_2h": "Cambio ROAS (últimas 2 horas)",
+        "roas_change_3h": "Cambio ROAS (últimas 3 horas)",
+        "profit_change_1h": "Cambio Profit (última hora)",
+        "profit_change_2h": "Cambio Profit (últimas 2 horas)",
+        "profit_change_3h": "Cambio Profit (últimas 3 horas)",
+        "current_hour": "🕐 Hora Actual del Bot",
+        "current_day_of_week": "🗓️ Día de la Semana Actual"
+      },
+      "day_of_week": {
+        "monday": "Lunes",
+        "tuesday": "Martes",
+        "wednesday": "Miércoles",
+        "thursday": "Jueves",
+        "friday": "Viernes",
+        "saturday": "Sábado",
+        "sunday": "Domingo"
       },
       "time_range": {
         "today": "Hoy",
@@ -391,6 +433,11 @@
     "edit": "Editar",
     "save": "Guardar",
     "cancel": "Cancelar",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "form": {
+      "select": {
+        "placeholder": "Selecciona una opción..."
+      }
+    }
   }
 }
