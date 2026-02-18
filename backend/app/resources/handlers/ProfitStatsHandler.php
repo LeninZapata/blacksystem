@@ -149,84 +149,28 @@ class ProfitStatsHandler {
         ];
       }
 
-      // PASO 3: Si no es hoy, obtener resumen consolidado de ad_metrics_daily
-      // Esto asegura que el resumen sea exacto (no basado en el último snapshot horario)
+      // PASO 3: Calcular resumen desde los datos horarios
+      // No usamos ad_metrics_daily porque puede tener datos parciales si el CRON
+      // corrió antes de que terminara el día. Los datos horarios son más confiables.
       $summary = null;
       
-      if (!$isToday) {
-        // Consultar ad_metrics_daily para el resumen exacto
-        $sqlDailySummary = "
-          SELECT
-            SUM(d.spend) as total_spend
-          FROM ad_metrics_daily d
-        ";
-
-        if ($botId || $productId) {
-          $sqlDailySummary .= "
-            INNER JOIN product_ad_assets paa ON d.ad_asset_id = paa.ad_asset_id
-            INNER JOIN products p ON paa.product_id = p.id
-          ";
+      if (!empty($results)) {
+        // Buscar el registro con mayor spend (última hora con datos acumulados)
+        $lastRecord = $results[0];
+        foreach ($results as $record) {
+          if ($record['spend'] > $lastRecord['spend']) {
+            $lastRecord = $record;
+          }
         }
-
-        $sqlDailySummary .= " WHERE d.user_id = ? AND d.metric_date = ?";
-        $paramsDailySummary = [$userId, $date];
-
-        if ($botId) {
-          $sqlDailySummary .= " AND p.bot_id = ?";
-          $paramsDailySummary[] = $botId;
-        }
-
-        if ($productId) {
-          $sqlDailySummary .= " AND paa.product_id = ?";
-          $paramsDailySummary[] = $productId;
-        }
-
-        $dailySummaryData = ogDb::raw($sqlDailySummary, $paramsDailySummary);
-
-        // Ventas del día para el resumen
-        $sqlDailySalesSummary = "
-          SELECT
-            COUNT(DISTINCT s.id) as real_purchases,
-            COALESCE(SUM(s.billed_amount), 0) as revenue
-          FROM sales s
-          WHERE s.user_id = ?
-            AND DATE(s.payment_date) = ?
-            AND s.context = 'whatsapp'
-            AND s.process_status = 'sale_confirmed'
-            AND s.status = 1
-        ";
-
-        $paramsDailySalesSummary = [$userId, $date];
-
-        if ($botId) {
-          $sqlDailySalesSummary .= " AND s.bot_id = ?";
-          $paramsDailySalesSummary[] = $botId;
-        }
-
-        if ($productId) {
-          $sqlDailySalesSummary .= " AND s.product_id = ?";
-          $paramsDailySalesSummary[] = $productId;
-        }
-
-        $dailySalesSummaryData = ogDb::raw($sqlDailySalesSummary, $paramsDailySalesSummary);
-
-        // Si hay datos consolidados en ad_metrics_daily, usarlos para el resumen
-        if (!empty($dailySummaryData) && $dailySummaryData[0]['total_spend'] !== null) {
-          $totalSpend = (float)$dailySummaryData[0]['total_spend'];
-          $salesSummary = !empty($dailySalesSummaryData) ? $dailySalesSummaryData[0] : ['real_purchases' => 0, 'revenue' => 0];
-          $totalRevenue = (float)$salesSummary['revenue'];
-          $totalProfit = $totalRevenue - $totalSpend;
-          $totalRoas = $totalSpend > 0 ? round($totalRevenue / $totalSpend, 2) : 0;
-
-          $summary = [
-            'total_spend' => round($totalSpend, 2),
-            'total_revenue' => round($totalRevenue, 2),
-            'total_profit' => round($totalProfit, 2),
-            'total_roas' => $totalRoas,
-            'total_purchases' => (int)$salesSummary['real_purchases'],
-            'source' => 'ad_metrics_daily' // Indica que viene de datos consolidados
-          ];
-        }
+        
+        $summary = [
+          'total_spend' => $lastRecord['spend'],
+          'total_revenue' => $lastRecord['revenue'],
+          'total_profit' => $lastRecord['profit'],
+          'total_roas' => $lastRecord['roas'],
+          'total_purchases' => $lastRecord['real_purchases'],
+          'source' => 'ad_metrics_hourly' // Calculado desde datos horarios
+        ];
       }
 
       return [

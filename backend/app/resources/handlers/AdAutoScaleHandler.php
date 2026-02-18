@@ -150,7 +150,7 @@ class AdAutoScaleHandler {
         AND b.status = 1
     ";
 
-    $assets = ogDb::raw($sql);
+    $assets = ogDb::raw($sql, []);
 
     if (empty($assets)) {
       ogLog::warning('resetDailyBudgets - No hay activos con auto_reset activo', [], self::$logMeta);
@@ -166,7 +166,7 @@ class AdAutoScaleHandler {
     ogApp()->loadHelper('country');
     
     $assetsByTimezone = [];
-    foreach ($assets as $asset) {
+    foreach ($assets as &$asset) {
       // Obtener timezone según el país del bot
       $countryData = ogCountry::get($asset['country_code']);
       $timezone = $countryData ? $countryData['timezone'] : 'America/Guayaquil';
@@ -180,6 +180,7 @@ class AdAutoScaleHandler {
       }
       $assetsByTimezone[$timezone][] = $asset;
     }
+    unset($asset); // Limpiar referencia
 
     ogLog::info('resetDailyBudgets - Activos agrupados por timezone del BOT', [
       'total_assets' => count($assets),
@@ -568,7 +569,11 @@ class AdAutoScaleHandler {
           WHERE product_id = ?
             AND ad_asset_id = ?
             AND query_date = ?
-            AND is_latest = 1
+          ORDER BY 
+            CASE WHEN api_response_time = 0 THEN 0 ELSE 1 END ASC,
+            spend DESC,
+            query_hour DESC
+          LIMIT 1
         ";
         
         $hourlySpend = ogDb::raw($sqlHourly, [$productId, $adAssetId, $yesterday]);
@@ -576,16 +581,24 @@ class AdAutoScaleHandler {
       }
 
       // 2. Obtener VENTAS CONFIRMADAS del día anterior
+      // Incluye: Ventas del producto + Upsells relacionados (parent_sale_id)
       $sqlSales = "
         SELECT SUM(billed_amount) as total_sales
         FROM sales
-        WHERE product_id = ?
-          AND DATE(payment_date) = ?
+        WHERE status = 1
           AND process_status = 'sale_confirmed'
-          AND status = 1
+          AND DATE(payment_date) = ?
+          AND (
+            product_id = ?
+            OR parent_sale_id IN (
+              SELECT id FROM sales 
+              WHERE product_id = ? 
+                AND status = 1
+            )
+          )
       ";
       
-      $salesData = ogDb::raw($sqlSales, [$productId, $yesterday]);
+      $salesData = ogDb::raw($sqlSales, [$yesterday, $productId, $productId]);
       $sales = !empty($salesData) ? (float)($salesData[0]['total_sales'] ?? 0) : 0;
 
       // 3. Calcular GANANCIA

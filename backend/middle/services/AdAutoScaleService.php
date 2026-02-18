@@ -424,19 +424,23 @@ class AdAutoScaleService {
   // Guardar en historial
   private function saveToHistory($data) {
     try {
+      ogLog::debug('saveToHistory - Intentando guardar', $data, self::$logMeta);
       $data['executed_at'] = date('Y-m-d H:i:s');
       $data['dc'] = date('Y-m-d H:i:s');
       $data['tc'] = time();
 
-      ogDb::t('ad_auto_scale_history')->insert($data);
+      $idInsert = ogDb::t('ad_auto_scale_history')->insert($data);
 
       ogLog::debug('saveToHistory - Registro guardado', [
         'rule_id' => $data['rule_id'],
-        'action_executed' => $data['action_executed']
+        'action_executed' => $data['action_executed'],
+        'id_insert' => $idInsert
       ], self::$logMeta);
 
     } catch (Exception $e) {
-      ogLog::error('saveToHistory - Error', ['error' => $e->getMessage()], self::$logMeta);
+      ogLog::error('saveToHistory - Error', ['error' => $e->getMessage(), 'data' => $data], self::$logMeta);
+      // Puedes descomentar la siguiente línea para lanzar el error y detener la ejecución si lo deseas
+      // throw $e;
     }
   }
 

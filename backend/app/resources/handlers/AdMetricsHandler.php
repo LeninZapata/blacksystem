@@ -396,6 +396,13 @@ class adMetricsHandler {
               }
 
               // 6. Guardar métricas por activo (solo si no existen)
+              // ESTRATEGIA: 
+              // - Si hay datos de Facebook API (metricsResult['by_asset']), usarlos para insertar diario y horario
+              // - Si no hay datos de Facebook pero SÍ hay registro diario, copiar del diario al horario
+              
+              // PASO 1: Intentar con datos de Facebook API
+              $processedAssets = []; // Tracking de qué assets procesamos
+              
               if (!empty($metricsResult['by_asset'])) {
                 foreach ($metricsResult['by_asset'] as $assetData) {
                   if (!$assetData['success'] || !$assetData['has_data']) {
@@ -406,6 +413,8 @@ class adMetricsHandler {
                   $assetType = $assetData['asset_type'];
                   $platform = $assetData['provider'];
                   $metrics = $assetData['metrics'];
+                  
+                  $processedAssets[] = $assetId;
 
                   // Buscar info del activo en productAssets
                   $assetInfo = null;
@@ -416,70 +425,231 @@ class adMetricsHandler {
                     }
                   }
 
-                  // 6.1 VERIFICAR SI YA EXISTE este registro (idempotencia)
-                  $existing = ogDb::t('ad_metrics_daily')
+                  // 6.1 VERIFICAR SI YA EXISTE registro diario (idempotencia)
+                  $existingDaily = ogDb::t('ad_metrics_daily')
                     ->where('product_id', $productId)
                     ->where('ad_asset_id', $assetId)
                     ->where('metric_date', $yesterdayDate)
                     ->first();
 
-                  if ($existing) {
-                    ogLog::debug('saveDailyMetrics - Registro ya existe, omitiendo', [
+                  if (!$existingDaily) {
+                    // 6.2 Insertar nuevo registro diario SOLO si no existe
+                    $insertData = [
+                      'user_id' => $product['user_id'],
+                      'product_id' => $productId,
+                      'ad_platform' => $platform,
+                      'ad_asset_type' => $assetType,
+                      'ad_asset_id' => $assetId,
+                      'ad_asset_name' => $assetInfo['ad_asset_name'] ?? null,
+                      'spend' => $metrics['spend'] ?? 0,
+                      'impressions' => $metrics['impressions'] ?? 0,
+                      'reach' => $metrics['reach'] ?? 0,
+                      'clicks' => $metrics['clicks'] ?? 0,
+                      'link_clicks' => $metrics['link_clicks'] ?? 0,
+                      'page_views' => $metrics['page_views'] ?? 0,
+                      'view_content' => $metrics['view_content'] ?? 0,
+                      'add_to_cart' => $metrics['add_to_cart'] ?? 0,
+                      'initiate_checkout' => $metrics['initiate_checkout'] ?? 0,
+                      'add_payment_info' => $metrics['add_payment_info'] ?? 0,
+                      'purchase' => $metrics['purchase'] ?? 0,
+                      'lead' => $metrics['lead'] ?? 0,
+                      'purchase_value' => $metrics['purchase_value'] ?? 0,
+                      'conversions' => $metrics['conversions'] ?? 0,
+                      'results' => $metrics['results'] ?? 0,
+                      'cpm' => $metrics['cpm'] ?? null,
+                      'cpc' => $metrics['cpc'] ?? null,
+                      'ctr' => $metrics['ctr'] ?? null,
+                      'conversion_rate' => $metrics['conversion_rate'] ?? null,
+                      'metric_date' => $yesterdayDate,
+                      'generated_at' => date('Y-m-d H:i:s'),
+                      'data_source' => 'api_direct',
+                      'dc' => date('Y-m-d H:i:s'),
+                      'tc' => time()
+                    ];
+
+                    ogDb::t('ad_metrics_daily')->insert($insertData);
+                    $assetsSaved++;
+
+                    ogLog::success('saveDailyMetrics - Métrica diaria guardada', [
+                      'product_id' => $productId,
+                      'asset_id' => $assetId,
+                      'date' => $yesterdayDate,
+                      'timezone' => $timezone,
+                      'spend' => $metrics['spend'],
+                      'impressions' => $metrics['impressions']
+                    ], $logMeta);
+                  } else {
+                    ogLog::debug('saveDailyMetrics - Registro diario ya existe, omitiendo', [
                       'product_id' => $productId,
                       'asset_id' => $assetId,
                       'date' => $yesterdayDate,
                       'timezone' => $timezone
                     ], $logMeta);
                     $assetsSkipped++;
-                    continue;
                   }
 
-                  // 6.2 Insertar nuevo registro SOLO si no existe
-                  $insertData = [
-                    'user_id' => $product['user_id'],
-                    'product_id' => $productId,
-                    'ad_platform' => $platform,
-                    'ad_asset_type' => $assetType,
-                    'ad_asset_id' => $assetId,
-                    'ad_asset_name' => $assetInfo['ad_asset_name'] ?? null,
-                    'spend' => $metrics['spend'] ?? 0,
-                    'impressions' => $metrics['impressions'] ?? 0,
-                    'reach' => $metrics['reach'] ?? 0,
-                    'clicks' => $metrics['clicks'] ?? 0,
-                    'link_clicks' => $metrics['link_clicks'] ?? 0,
-                    'page_views' => $metrics['page_views'] ?? 0,
-                    'view_content' => $metrics['view_content'] ?? 0,
-                    'add_to_cart' => $metrics['add_to_cart'] ?? 0,
-                    'initiate_checkout' => $metrics['initiate_checkout'] ?? 0,
-                    'add_payment_info' => $metrics['add_payment_info'] ?? 0,
-                    'purchase' => $metrics['purchase'] ?? 0,
-                    'lead' => $metrics['lead'] ?? 0,
-                    'purchase_value' => $metrics['purchase_value'] ?? 0,
-                    'conversions' => $metrics['conversions'] ?? 0,
-                    'results' => $metrics['results'] ?? 0,
-                    'cpm' => $metrics['cpm'] ?? null,
-                    'cpc' => $metrics['cpc'] ?? null,
-                    'ctr' => $metrics['ctr'] ?? null,
-                    'conversion_rate' => $metrics['conversion_rate'] ?? null,
-                    'metric_date' => $yesterdayDate,
-                    'generated_at' => date('Y-m-d H:i:s'),
-                    'data_source' => 'api_direct',
-                    'dc' => date('Y-m-d H:i:s'),
-                    'tc' => time()
-                  ];
+                  // 6.3 IMPORTANTE: Insertar snapshot horario final (23:59:59)
+                  // Se ejecuta SIEMPRE (incluso si el diario ya existía)
+                  // para tener el valor final del día en la tabla horaria
+                  // Esto soluciona el problema de que el CRON de 30min solo llegue hasta 23:30
+                  
+                  // Verificar si ya existe el snapshot horario final (idempotencia)
+                  // Identificador: query_hour=23 + api_response_time=0 (el snapshot usa 0, el CRON regular usa NULL)
+                  $existingHourly = ogDb::raw(
+                    "SELECT id FROM ad_metrics_hourly 
+                     WHERE product_id = ? 
+                       AND ad_asset_id = ? 
+                       AND query_date = ?
+                       AND query_hour = 23
+                       AND api_response_time = 0
+                     LIMIT 1",
+                    [$productId, $assetId, $yesterdayDate]
+                  );
 
-                  ogDb::t('ad_metrics_daily')->insert($insertData);
-                  $assetsSaved++;
+                  if (empty($existingHourly)) {
+                    $insertHourlyData = [
+                      'user_id' => $product['user_id'],
+                      'product_id' => $productId,
+                      'ad_platform' => $platform,
+                      'ad_asset_type' => $assetType,
+                      'ad_asset_id' => $assetId,
+                      'ad_asset_name' => $assetInfo['ad_asset_name'] ?? null,
+                      'spend' => $metrics['spend'] ?? 0,
+                      'impressions' => $metrics['impressions'] ?? 0,
+                      'reach' => $metrics['reach'] ?? 0,
+                      'clicks' => $metrics['clicks'] ?? 0,
+                      'link_clicks' => $metrics['link_clicks'] ?? 0,
+                      'page_views' => $metrics['page_views'] ?? 0,
+                      'view_content' => $metrics['view_content'] ?? 0,
+                      'add_to_cart' => $metrics['add_to_cart'] ?? 0,
+                      'initiate_checkout' => $metrics['initiate_checkout'] ?? 0,
+                      'add_payment_info' => $metrics['add_payment_info'] ?? 0,
+                      'purchase' => $metrics['purchase'] ?? 0,
+                      'lead' => $metrics['lead'] ?? 0,
+                      'purchase_value' => $metrics['purchase_value'] ?? 0,
+                      'conversions' => $metrics['conversions'] ?? 0,
+                      'results' => $metrics['results'] ?? 0,
+                      'cpm' => $metrics['cpm'] ?? null,
+                      'cpc' => $metrics['cpc'] ?? null,
+                      'ctr' => $metrics['ctr'] ?? null,
+                      'conversion_rate' => $metrics['conversion_rate'] ?? null,
+                      'query_date' => $yesterdayDate,
+                      'query_hour' => 23,
+                      'api_response_time' => 0, // 0 identifica que es snapshot final (CRON usa NULL)
+                      'api_status' => 'success',
+                      'is_latest' => 0, // Histórico, no es el último
+                      'dc' => date('Y-m-d H:i:s'),
+                      'tc' => time()
+                    ];
 
-                  ogLog::success('saveDailyMetrics - Métrica diaria guardada', [
+                    ogDb::t('ad_metrics_hourly')->insert($insertHourlyData);
+
+                    ogLog::success('saveDailyMetrics - Snapshot horario final insertado (hora 23)', [
+                      'product_id' => $productId,
+                      'asset_id' => $assetId,
+                      'date' => $yesterdayDate,
+                      'hour' => 23,
+                      'spend' => $metrics['spend']
+                    ], $logMeta);
+                  } else {
+                    ogLog::debug('saveDailyMetrics - Snapshot horario final ya existe', [
+                      'product_id' => $productId,
+                      'asset_id' => $assetId,
+                      'date' => $yesterdayDate,
+                      'hour' => 23
+                    ], $logMeta);
+                  }
+                }
+              }
+
+              // PASO 2: Para assets que tienen registro diario pero no fueron procesados
+              // (Facebook no devolvió datos porque ya pasó tiempo), copiar del diario al horario
+              foreach ($productAssets as $asset) {
+                $assetId = $asset['ad_asset_id'];
+                
+                // Si ya fue procesado en PASO 1, skip
+                if (in_array($assetId, $processedAssets)) {
+                  continue;
+                }
+                
+                // Buscar si tiene registro diario
+                $existingDaily = ogDb::t('ad_metrics_daily')
+                  ->where('product_id', $productId)
+                  ->where('ad_asset_id', $assetId)
+                  ->where('metric_date', $yesterdayDate)
+                  ->first();
+                
+                if (!$existingDaily) {
+                  // No tiene datos de ayer, skip
+                  continue;
+                }
+                
+                // Verificar si ya existe el snapshot horario final (idempotencia)
+                // Identificador: query_hour=23 + api_response_time=0
+                $existingHourly = ogDb::raw(
+                  "SELECT id FROM ad_metrics_hourly 
+                   WHERE product_id = ? 
+                     AND ad_asset_id = ? 
+                     AND query_date = ?
+                     AND query_hour = 23
+                     AND api_response_time = 0
+                   LIMIT 1",
+                  [$productId, $assetId, $yesterdayDate]
+                );
+                
+                if (!empty($existingHourly)) {
+                  ogLog::debug('saveDailyMetrics - Snapshot horario ya existe (desde diario)', [
                     'product_id' => $productId,
                     'asset_id' => $assetId,
-                    'date' => $yesterdayDate,
-                    'timezone' => $timezone,
-                    'spend' => $metrics['spend'],
-                    'impressions' => $metrics['impressions']
+                    'date' => $yesterdayDate
                   ], $logMeta);
+                  continue;
                 }
+                
+                // Copiar datos del registro diario al horario
+                $insertHourlyData = [
+                  'user_id' => $existingDaily['user_id'],
+                  'product_id' => $existingDaily['product_id'],
+                  'ad_platform' => $existingDaily['ad_platform'],
+                  'ad_asset_type' => $existingDaily['ad_asset_type'],
+                  'ad_asset_id' => $existingDaily['ad_asset_id'],
+                  'ad_asset_name' => $existingDaily['ad_asset_name'],
+                  'spend' => $existingDaily['spend'],
+                  'impressions' => $existingDaily['impressions'],
+                  'reach' => $existingDaily['reach'],
+                  'clicks' => $existingDaily['clicks'],
+                  'link_clicks' => $existingDaily['link_clicks'],
+                  'page_views' => $existingDaily['page_views'],
+                  'view_content' => $existingDaily['view_content'],
+                  'add_to_cart' => $existingDaily['add_to_cart'],
+                  'initiate_checkout' => $existingDaily['initiate_checkout'],
+                  'add_payment_info' => $existingDaily['add_payment_info'],
+                  'purchase' => $existingDaily['purchase'],
+                  'lead' => $existingDaily['lead'],
+                  'purchase_value' => $existingDaily['purchase_value'],
+                  'conversions' => $existingDaily['conversions'],
+                  'results' => $existingDaily['results'],
+                  'cpm' => $existingDaily['cpm'],
+                  'cpc' => $existingDaily['cpc'],
+                  'ctr' => $existingDaily['ctr'],
+                  'conversion_rate' => $existingDaily['conversion_rate'],
+                  'query_date' => $yesterdayDate,
+                  'query_hour' => 23,
+                  'api_response_time' => 0, // 0 identifica que es snapshot final
+                  'api_status' => 'success',
+                  'is_latest' => 0,
+                  'dc' => date('Y-m-d H:i:s'),
+                  'tc' => time()
+                ];
+                
+                ogDb::t('ad_metrics_hourly')->insert($insertHourlyData);
+                
+                ogLog::success('saveDailyMetrics - Snapshot horario insertado desde diario', [
+                  'product_id' => $productId,
+                  'asset_id' => $assetId,
+                  'date' => $yesterdayDate,
+                  'spend' => $existingDaily['spend']
+                ], $logMeta);
               }
 
             } catch (Exception $e) {

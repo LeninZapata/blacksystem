@@ -267,18 +267,23 @@ class productProfit {
       let totalRevenue = 0;
       let totalSpend = 0;
 
-      // Si el backend envía un resumen consolidado (para días históricos), usarlo
-      // Esto asegura que usemos los datos completos de ad_metrics_daily
+      // El backend siempre envía un summary calculado desde datos horarios
       if (response.summary) {
         totalProfit = parseFloat(response.summary.total_profit || 0);
         totalRevenue = parseFloat(response.summary.total_revenue || 0);
         totalSpend = parseFloat(response.summary.total_spend || 0);
       } else if (data.length > 0) {
-        // Para HOY, los datos vienen acumulados, tomamos el último valor
-        const lastItem = data[data.length - 1];
-        totalProfit = parseFloat(lastItem.profit || 0);
-        totalRevenue = parseFloat(lastItem.revenue || 0);
-        totalSpend = parseFloat(lastItem.spend || 0);
+        // Fallback: Buscar el registro con mayor spend (última hora con datos acumulados)
+        let maxSpendItem = data[0];
+        data.forEach(item => {
+          if (parseFloat(item.spend || 0) > parseFloat(maxSpendItem.spend || 0)) {
+            maxSpendItem = item;
+          }
+        });
+        
+        totalProfit = parseFloat(maxSpendItem.profit || 0);
+        totalRevenue = parseFloat(maxSpendItem.revenue || 0);
+        totalSpend = parseFloat(maxSpendItem.spend || 0);
       }
 
       const avgRoas = totalSpend > 0 ? (totalRevenue / totalSpend).toFixed(2) : '0.00';
