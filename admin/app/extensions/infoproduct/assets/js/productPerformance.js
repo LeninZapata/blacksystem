@@ -82,7 +82,7 @@ class productPerformance {
     }
 
     try {
-      const response = await ogApi.get(`/api/product?bot_id=${botId}`);
+      const response = await ogApi.get(`/api/product?bot_id=${botId}&status=1`);
       
       if (response && response.success !== false) {
         this.products = Array.isArray(response) ? response : (response.data || []);

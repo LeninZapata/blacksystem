@@ -27,7 +27,7 @@
           "type": "select",
           "required": true,
           "validation": "required",
-          "source": "/api/bot",
+          "source": "/api/bot?status=1",
           "sourceValue": "id",
           "sourceLabel": "name",
           "options": [

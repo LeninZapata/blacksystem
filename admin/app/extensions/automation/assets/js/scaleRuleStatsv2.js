@@ -24,7 +24,7 @@ class scaleRuleStatsv2 {
   // Cargar lista de activos publicitarios desde API
   static async loadAssets() {
     try {
-      const response = await ogApi.get('/api/productAdAsset?per_page=1000&is_active=1');
+      const response = await ogApi.get('/api/productAdAsset?per_page=1000&is_active=1&status=1');
       
       if (response && response.success !== false) {
         this.assets = Array.isArray(response) ? response : (response.data || []);

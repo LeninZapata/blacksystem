@@ -19,7 +19,7 @@
           "label": "i18n:automation.scale_rules.field.product_ad_asset",
           "type": "select",
           "required": true,
-          "source": "api/productAdAsset?per_page=1000&is_active=1",
+          "source": "api/productAdAsset?per_page=1000&is_active=1&status=1",
           "sourceValue": "id",
           "sourceLabel": "ad_asset_name",
           "validation": "required",

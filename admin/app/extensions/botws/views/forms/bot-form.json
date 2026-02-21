@@ -51,7 +51,7 @@
               "type": "select",
               "required": true,
               "validation": "required",
-              "source": "/api/workFlow",
+              "source": "/api/workFlow?status=1",
               "sourceValue": "id",
               "sourceLabel": "name",
               "options": [
@@ -73,7 +73,7 @@
                   "type": "select",
                   "required": true,
                   "validation": "required",
-                  "source": "/api/credential?type=ai-agent",
+                  "source": "/api/credential?type=ai-agent&status=1",
                   "sourceValue": "id",
                   "sourceLabel": "name",
                   "options": [
@@ -110,7 +110,7 @@
                   "type": "select",
                   "required": true,
                   "validation": "required",
-                  "source": "/api/credential?type=chat&_ctx=chat",
+                  "source": "/api/credential?type=chat&status=1&_ctx=chat",
                   "sourceValue": "id",
                   "sourceLabel": "name",
                   "options": [
