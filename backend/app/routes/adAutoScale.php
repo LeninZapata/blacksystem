@@ -84,4 +84,13 @@ $router->group('/api/adAutoScale', function($router) {
     );
   })->middleware(['auth', 'json', 'throttle:20,1']);
 
+  // Clonar una regla de escala
+  // POST /api/adAutoScale/clone
+  $router->post('/clone', function() {
+    $data = ogRequest::data();
+    ogResponse::json(
+      ogApp()->handler('AdAutoScale')::clone($data)
+    );
+  })->middleware(['auth', 'json', 'throttle:20,1']);
+
 });

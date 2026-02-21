@@ -1,9 +1,11 @@
 class infoproductProduct {
   static apis = {
-    product: '/api/product'
+    product: '/api/product',
+    clone: '/api/product/clone'
   };
 
   static currentId = null;
+  static currentProductName = null;
   static context = 'infoproductws';
 
   // Inicializar formatters personalizados
@@ -90,6 +92,79 @@ class infoproductProduct {
       'config.templates': messagesData.templates || [],
       context: data.context || this.context
     });
+  }
+
+  // Abrir formulario de clonación
+  static openClone(formId, productId, productName) {
+    if (!productId) {
+      ogToast.error(__('infoproduct.products.error.no_id'));
+      return;
+    }
+
+    this.currentId = productId;
+    this.currentProductName = productName || 'Infoproducto';
+
+    const formEl = document.getElementById(formId);
+    const realId = formEl?.getAttribute('data-real-id') || formId;
+    ogForm.clearAllErrors(realId);
+
+    // Actualizar el nombre en el header del modal
+    setTimeout(() => {
+      const nameElement = document.getElementById('infoproduct-clone-name');
+      if (nameElement) {
+        nameElement.textContent = `"${this.currentProductName}"`;
+      }
+    }, 100);
+
+    ogLogger?.info('ext:infoproduct', `Preparando clonación de infoproducto ${productId}`);
+  }
+
+  // Clonar infoproducto
+  static async clone(formId, formData) {
+    if (!this.currentId) {
+      ogToast.error(__('infoproduct.products.error.no_product_selected'));
+      return false;
+    }
+
+    const validation = ogForm.validate(formId);
+    if (!validation.success) {
+      return ogToast.error(validation.message || __('infoproduct.products.error.validation_failed'));
+    }
+
+    if (!validation.data.target_user_id) {
+      ogToast.error(__('infoproduct.products.error.no_user_selected'));
+      return false;
+    }
+
+    ogLogger?.info('ext:infoproduct', `Clonando infoproducto ${this.currentId} para usuario ${validation.data.target_user_id}`);
+
+    try {
+      const res = await ogApi.post(this.apis.clone, {
+        product_id: this.currentId,
+        target_user_id: parseInt(validation.data.target_user_id)
+      });
+
+      if (res.success === false) {
+        ogToast.error(res.error || __('infoproduct.products.error.clone_failed'));
+        return null;
+      }
+
+      ogToast.success(__('infoproduct.products.success.cloned', {name: this.currentProductName}));
+      setTimeout(() => {
+        ogModal.closeAll();
+        this.refresh();
+        
+        // Limpiar variables
+        this.currentId = null;
+        this.currentProductName = null;
+      }, 100);
+
+      return res.data || res;
+    } catch (error) {
+      ogLogger?.error('ext:infoproduct', 'Error al clonar infoproducto:', error);
+      ogToast.error(__('infoproduct.products.error.clone_failed'));
+      return null;
+    }
   }
 
   static async save(formId) {

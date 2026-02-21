@@ -189,20 +189,45 @@ class scaleRulePreview {
 
     // Determinar el valor según el tipo de métrica
     if (condition.metric === 'current_hour') {
-      const hour = condition.value_hour || 0;
-      value = `${hour}:00h`;
+      // Usar condition.value en lugar de condition.value_hour
+      const hour = condition.value || condition.value_hour || 0;
+      // Formatear como hora (ej: "10:00" en vez de "10.00")
+      const hourStr = String(hour).padStart(2, '0');
+      value = `${hourStr}:00`;
     } else if (condition.metric === 'current_day_of_week') {
       value = this.getDayOfWeekLabel(condition.value_day);
     } else {
-      const numValue = condition.value || 0;
+      // Obtener el valor numérico (puede ser negativo)
+      let numValue = condition.value;
+      
+      // Si el valor es undefined o null, usar 0
+      if (numValue === undefined || numValue === null || numValue === '') {
+        numValue = 0;
+      }
+      
       const suffix = condition.value_suffix || '';
+      
+      // Detectar si la métrica es de tipo moneda (profit, spend, cost_per_result)
+      // Incluir variantes con sufijos de tiempo (_today, _yesterday, etc.)
+      const metricBase = condition.metric.replace(/_today|_yesterday|_last_3d|_last_7d|_last_14d|_last_30d|_lifetime$/, '');
+      const isCurrencyMetric = metricBase.includes('profit') || 
+                               metricBase.includes('spend') ||
+                               metricBase.includes('cost_per_result') ||
+                               metricBase === 'profit_change_1h' ||
+                               metricBase === 'profit_change_2h' ||
+                               metricBase === 'profit_change_3h';
       
       if (suffix === 'percent') {
         value = `${numValue}%`;
-      } else if (suffix === 'currency') {
+      } else if (suffix === 'currency' || isCurrencyMetric) {
         value = `$${numValue}`;
       } else {
-        value = numValue;
+        // Para ROAS y otros números, mostrar con 2 decimales si es decimal
+        if (typeof numValue === 'number' && !Number.isInteger(numValue)) {
+          value = numValue.toFixed(2);
+        } else {
+          value = numValue;
+        }
       }
       
       // Agregar rango de tiempo si aplica
@@ -306,6 +331,16 @@ class scaleRulePreview {
       'current_hour': 'Hora',
       'current_day_of_week': 'Día'
     };
+    
+    // Si la métrica no está en el mapa, intentar sin el sufijo _today, _yesterday, etc.
+    if (!labels[metric]) {
+      // Remover sufijos de time_range
+      const metricBase = metric.replace(/_today|_yesterday|_last_3d|_last_7d|_last_14d|_last_30d|_lifetime$/, '');
+      if (labels[metricBase]) {
+        return labels[metricBase];
+      }
+    }
+    
     return labels[metric] || metric;
   }
 

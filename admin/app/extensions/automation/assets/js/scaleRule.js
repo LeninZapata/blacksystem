@@ -165,6 +165,58 @@ class scaleRule {
     ogComponent('datatable')?.refreshFirst();
   }
 
+  static openClone(formId, ruleId) {
+    this.currentCloneId = ruleId;
+
+    setTimeout(async () => {
+      const rule = await this.get(ruleId);
+      if (rule) {
+        const nameElement = document.getElementById('scale-rule-clone-name');
+        if (nameElement) {
+          nameElement.textContent = rule.name;
+        }
+      }
+    }, 100);
+  }
+
+  static async clone(formId) {
+    const validation = ogModule('form').validate(formId);
+    if (!validation.success) {
+      ogComponent('toast').error(validation.message);
+      return;
+    }
+
+    if (!this.currentCloneId) {
+      ogComponent('toast').error(__('automation.scale_rules.error.no_rule_selected'));
+      return;
+    }
+
+    const body = {
+      rule_id: this.currentCloneId,
+      target_user_id: parseInt(validation.data.target_user_id)
+    };
+
+    try {
+      const res = await ogModule('api').post('/api/adAutoScale/clone', body);
+      
+      if (res.success === false) {
+        ogComponent('toast').error(res.error || __('automation.scale_rules.error.clone_failed'));
+        return;
+      }
+
+      ogComponent('toast').success(__('automation.scale_rules.success.cloned'));
+      
+      setTimeout(() => {
+        ogModule('modal').closeAll();
+        this.refresh();
+      }, 100);
+
+    } catch (error) {
+      ogLogger.error('ext:automation:scaleRule', 'Error clonando regla:', error);
+      ogComponent('toast').error(__('automation.scale_rules.error.clone_failed'));
+    }
+  }
+
   static initFormatters() {
     const dataTable = ogComponent('datatable');
     if (!dataTable) return;

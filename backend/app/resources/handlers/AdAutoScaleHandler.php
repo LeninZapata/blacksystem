@@ -785,4 +785,71 @@ class AdAutoScaleHandler {
     }
   }
 
+  /**
+   * Clonar una regla de escala para otro usuario
+   */
+  static function clone($params) {
+    $ruleId = $params['rule_id'] ?? null;
+    $targetUserId = $params['target_user_id'] ?? null;
+
+    if (!$ruleId) {
+      return ['success' => false, 'error' => __('automation.scale_rules.error.no_id')];
+    }
+
+    if (!$targetUserId) {
+      return ['success' => false, 'error' => __('automation.scale_rules.error.no_user_selected')];
+    }
+
+    try {
+      $rule = ogDb::t('ad_auto_scale')->find($ruleId);
+      if (!$rule) {
+        return ['success' => false, 'error' => __('automation.scale_rules.error.no_rule_selected')];
+      }
+
+      // Verificar que el usuario destino existe
+      $targetUser = ogDb::t('users')->find($targetUserId);
+      if (!$targetUser) {
+        return ['success' => false, 'error' => __('automation.scale_rules.error.user_not_found')];
+      }
+
+      // Preparar datos de la regla clonada
+      $clonedData = [
+        'user_id' => $targetUserId,
+        'name' => $rule['name'] . ' (Copy)',
+        'ad_assets_id' => $rule['ad_assets_id'],
+        'config' => $rule['config'],
+        'is_active' => 0, // Desactivado por defecto
+        'status' => 1,
+        'dc' => date('Y-m-d H:i:s'),
+        'tc' => time()
+      ];
+
+      $newId = ogDb::t('ad_auto_scale')->insert($clonedData);
+
+      if ($newId) {
+        ogLog::success('clone - Regla clonada exitosamente', [
+          'original_id' => $ruleId,
+          'new_id' => $newId,
+          'target_user_id' => $targetUserId
+        ], self::$logMeta);
+
+        return [
+          'success' => true,
+          'id' => $newId,
+          'message' => __('automation.scale_rules.success.cloned')
+        ];
+      }
+
+      return ['success' => false, 'error' => __('automation.scale_rules.error.clone_failed')];
+
+    } catch (Exception $e) {
+      ogLog::error('clone - Error', [
+        'rule_id' => $ruleId,
+        'error' => $e->getMessage()
+      ], self::$logMeta);
+
+      return ['success' => false, 'error' => __('automation.scale_rules.error.clone_failed')];
+    }
+  }
+
 }

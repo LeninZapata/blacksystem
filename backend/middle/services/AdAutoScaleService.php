@@ -535,31 +535,24 @@ class AdAutoScaleService {
       }
     }
 
-    // HOY: datos actuales (tomar último snapshot de cada hora)
+    // HOY: tomar ÚLTIMO snapshot (ya tiene valores acumulados del día)
     if ($dateTo >= $today) {
       $sqlToday = "
         SELECT
-          SUM(h.spend) as spend,
-          SUM(h.impressions) as impressions,
-          SUM(h.reach) as reach,
-          SUM(h.clicks) as clicks,
-          SUM(h.results) as results
+          h.spend,
+          h.impressions,
+          h.reach,
+          h.clicks,
+          h.results
         FROM ad_metrics_hourly h
         WHERE h.product_id = ?
           AND h.ad_asset_id = ?
           AND h.query_date = ?
-          AND h.id IN (
-            SELECT MAX(h2.id)
-            FROM ad_metrics_hourly h2
-            WHERE h2.product_id = ?
-              AND h2.ad_asset_id = ?
-              AND h2.query_date = ?
-              AND h2.query_hour = h.query_hour
-            GROUP BY h2.ad_asset_id, h2.query_hour
-          )
+        ORDER BY h.query_hour DESC, h.id DESC
+        LIMIT 1
       ";
 
-      $todayData = ogDb::raw($sqlToday, [$productId, $assetId, $today, $productId, $assetId, $today]);
+      $todayData = ogDb::raw($sqlToday, [$productId, $assetId, $today]);
       if (!empty($todayData)) {
         $row = $todayData[0];
         $metrics['spend'] += (float)($row['spend'] ?? 0);
@@ -673,6 +666,7 @@ class AdAutoScaleService {
           $timezone = date_default_timezone_get();
         } else {
           // Obtener timezone usando ogCountry helper
+          ogApp()->loadHelper('country');
           $countryInfo = ogCountry::get($bot['country_code']);
           $timezone = $countryInfo['timezone'] ?? date_default_timezone_get();
         }
@@ -711,28 +705,21 @@ class AdAutoScaleService {
     $productId = $asset['product_id'];
     $assetId = $asset['ad_asset_id'];
     
-    // Obtener el último snapshot de cada hora hasta la hora indicada
+    // Tomar ÚLTIMO snapshot de la hora especificada (ya tiene acumulado)
     $sql = "
       SELECT 
-        SUM(h.spend) as spend,
-        SUM(h.results) as results
+        h.spend,
+        h.results
       FROM ad_metrics_hourly h
       WHERE h.product_id = ?
         AND h.ad_asset_id = ?
         AND h.query_date = ?
         AND h.query_hour <= ?
-        AND h.id IN (
-          SELECT MAX(h2.id)
-          FROM ad_metrics_hourly h2
-          WHERE h2.product_id = ?
-            AND h2.ad_asset_id = ?
-            AND h2.query_date = ?
-            AND h2.query_hour = h.query_hour
-          GROUP BY h2.query_hour
-        )
+      ORDER BY h.query_hour DESC, h.id DESC
+      LIMIT 1
     ";
     
-    $result = ogDb::raw($sql, [$productId, $assetId, $date, $hour, $productId, $assetId, $date]);
+    $result = ogDb::raw($sql, [$productId, $assetId, $date, $hour]);
     
     $spend = !empty($result) ? (float)($result[0]['spend'] ?? 0) : 0;
     $results = !empty($result) ? (int)($result[0]['results'] ?? 0) : 0;
@@ -814,6 +801,7 @@ class AdAutoScaleService {
         'logic_type' => $conditionsLogic,
         'full_evaluation' => [
           'result' => $evaluation['result'],
+          'logic_type' => $conditionsLogic,
           'details' => $evaluation['details'] ?? [],
           'matched_rules' => $evaluation['matched_rules'] ?? [],
           'groups_met' => $groupsMet
@@ -860,6 +848,7 @@ class AdAutoScaleService {
         'logic_type' => $conditionsLogic,
         'full_evaluation' => [
           'result' => $evaluation['result'],
+          'logic_type' => $conditionsLogic,
           'details' => $evaluation['details'] ?? [],
           'matched_rules' => $evaluation['matched_rules'] ?? [],
           'groups_met' => $groupsMet
@@ -889,6 +878,12 @@ class AdAutoScaleService {
 
     // Métricas que NO requieren time_range suffix
     $timeMetrics = ['current_hour', 'current_day_of_week'];
+    
+    // Métricas de cambio temporal que YA son específicas de hoy (no necesitan sufijo)
+    $temporalChangeMetrics = [
+      'roas_change_1h', 'roas_change_2h', 'roas_change_3h',
+      'profit_change_1h', 'profit_change_2h', 'profit_change_3h'
+    ];
 
     foreach ($conditions as $condition) {
       $metric = $condition['metric'] ?? null;
@@ -908,11 +903,15 @@ class AdAutoScaleService {
 
       if ($value === null) continue;
 
-      // Si es una métrica de tiempo, NO agregar sufijo time_range
+      // Determinar el nombre de la variable
       if (in_array($metric, $timeMetrics)) {
+        // Métricas de tiempo: sin sufijo
+        $varName = $metric;
+      } elseif (in_array($metric, $temporalChangeMetrics)) {
+        // Métricas de cambio temporal: sin sufijo (ya son específicas de hoy)
         $varName = $metric;
       } else {
-        // Construir nombre de variable con time_range: metric_timerange
+        // Resto de métricas: agregar sufijo time_range
         $varName = $metric . '_' . $timeRange;
       }
 
@@ -1170,8 +1169,11 @@ class AdAutoScaleService {
     $assetId = $asset['ad_asset_id'];
     $userId = $asset['user_id'];
 
+    // Normalizar métricas: pueden venir como $metricsData completo o como array plano
+    $metricsValues = isset($metrics['metrics']) ? $metrics['metrics'] : $metrics;
+
     // Obtener gasto actual desde las métricas (spend_today)
-    $currentSpend = isset($metrics['spend_today']) ? (float)$metrics['spend_today'] : 0;
+    $currentSpend = isset($metricsValues['spend_today']) ? (float)$metricsValues['spend_today'] : 0;
 
     if ($currentSpend <= 0) {
       return [

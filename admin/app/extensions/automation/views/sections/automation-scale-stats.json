@@ -71,6 +71,10 @@
                       "name": "i18n:core.edit",
                       "onclick": "ogModal.open('automation|forms/scale-rule-formV2', {title: '{i18n:automation.scale_rules.ogModal.edit.title}', width: '95%', maxWidth: '1400px', showFooter: false, afterRender: function(formId){scaleRule.openEdit(formId, {id});}})"
                     },
+                    "clone": {
+                      "name": "i18n:automation.scale_rules.action.clone",
+                      "onclick": "ogModal.open('automation|forms/scale-rule-clone-form', {title: '{i18n:automation.scale_rules.ogModal.clone.title}', width: '90%', maxWidth: '600px', showFooter: false, afterRender: function(formId){scaleRule.openClone(formId, {id});}})"
+                    },
                     "delete": {
                       "name": "i18n:core.delete",
                       "onclick": "if(confirm('{i18n:automation.scale_rules.confirm.delete}')) scaleRule.delete({id}).then(r => r && scaleRule.refresh())"

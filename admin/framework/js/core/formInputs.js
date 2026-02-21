@@ -104,7 +104,12 @@ class ogFormInputs {
 
     if (field.type === 'html') {
       const htmlId = path ? `data-field-name="${path}"` : '';
-      return `<div class="og-form-html-wrapper" ${htmlId}>${field.content || ''}</div>`;
+      let processedContent = field.content || '';
+      
+      // Procesar traducciones usando el método centralizado de formCore
+      processedContent = core?.processI18nInString(processedContent) || processedContent;
+      
+      return `<div class="og-form-html-wrapper" ${htmlId}>${processedContent}</div>`;
     }
 
     const label = core?.t(field.label) || path;

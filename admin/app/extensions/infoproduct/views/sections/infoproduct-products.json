@@ -57,8 +57,14 @@
             "name": "i18n:core.edit",
             "onclick": "ogModal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.ogModal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openEdit(formId, {id});}})"
           },
+          "clone": {
+            "name": "i18n:infoproduct.products.action.clone",
+            "role": "admin",
+            "onclick": "ogModal.open('infoproduct|forms/infoproduct-clone-form', {title: '{i18n:infoproduct.products.ogModal.clone.title}', width: '90%', maxWidth: '500px', showFooter: false, afterRender: function(formId){infoproductProduct.openClone(formId, {id}, '{name}');}})"
+          },
           "delete": {
             "name": "i18n:core.delete",
+            "role": "admin",
             "onclick": "if(confirm('{i18n:infoproduct.products.confirm.delete}')) infoproductProduct.delete({id}).then(r => r && infoproductProduct.refresh())"
           }
         }

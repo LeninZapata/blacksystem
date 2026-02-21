@@ -3,10 +3,14 @@ class ogFormRender {
     const core = ogModule('formCore');
     const realId = schema.id.split('-')[0];
     
+    // Procesar título y descripción para soportar tanto i18n:key como {i18n:key}
+    const title = schema.title ? core?.processI18nInString(core?.t(schema.title)) : '';
+    const description = schema.description ? core?.processI18nInString(core?.t(schema.description)) : '';
+    
     return `
       <div class="og-form-container">
-        ${schema.title ? `<h2>${core?.t(schema.title)}</h2>` : ''}
-        ${schema.description ? `<p class="og-form-desc">${core?.t(schema.description)}</p>` : ''}
+        ${title ? `<h2>${title}</h2>` : ''}
+        ${description ? `<p class="og-form-desc">${description}</p>` : ''}
 
         <form id="${schema.id}" data-form-id="${schema.id}" data-real-id="${realId}" method="post">
           ${schema.toolbar ? this.renderToolbar(schema.toolbar) : ''}

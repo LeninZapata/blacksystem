@@ -174,27 +174,28 @@ class ProductController extends ogController {
     }
   }
 
-  // Clonar producto con nuevo user_id y bot_id
-  function clone($id) {
-    $userId = ogRequest::query('user_id');
-    $botId = ogRequest::query('bot_id');
+  // Clonar producto a otro usuario (sin bot, desactivado)
+  function clone() {
+    $data = ogRequest::data();
+    $productId = $data['product_id'] ?? null;
+    $targetUserId = $data['target_user_id'] ?? null;
 
-    if (!$userId || !$botId) {
-      ogResponse::json(['success' => false, 'error' => 'user_id y bot_id son obligatorios'], 400);
+    if (!$productId || !$targetUserId) {
+      ogResponse::json(['success' => false, 'error' => 'product_id y target_user_id son obligatorios'], 400);
     }
 
-    $original = ogDb::t('products')->find($id);
+    $original = ogDb::t('products')->find($productId);
     if (!$original) ogResponse::notFound(__('product.not_found'));
 
     $cloneData = [
-      'user_id' => $userId,
-      'bot_id' => $botId,
-      'name' => $original['name'] . ' (Copia)',
+      'user_id' => $targetUserId,
+      'bot_id' => null,
+      'name' => $original['name'] . ' (Copy)',
       'description' => $original['description'],
       'config' => $original['config'],
       'context' => $original['context'],
       'price' => $original['price'],
-      'status' => $original['status'] ?? 1,
+      'status' => 0,
       'dc' => date('Y-m-d H:i:s'),
       'ta' => time()
     ];
@@ -202,13 +203,13 @@ class ProductController extends ogController {
     try {
       $newId = ogDb::t('products')->insert($cloneData);
 
-      if ($newId && isset($cloneData['context'])) {
-        $cloneData['id'] = $newId;
-        ogApp()->loadHandler('product');
-        ProductHandler::handleByContext($cloneData, 'create');
-      }
-
-      ogLog::success('clone - Producto clonado', ['original_id' => $id, 'new_id' => $newId, 'user_id' => $userId, 'bot_id' => $botId], $this->logMeta);
+      ogLog::success('clone - Producto clonado', [
+        'original_id' => $productId, 
+        'new_id' => $newId, 
+        'original_user_id' => $original['user_id'],
+        'target_user_id' => $targetUserId
+      ], $this->logMeta);
+      
       ogResponse::success(['id' => $newId], __('product.clone.success'));
 
     } catch (Exception $e) {

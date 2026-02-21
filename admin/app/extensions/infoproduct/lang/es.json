@@ -19,7 +19,31 @@
         },
         "edit": {
           "title": "Editar Infoproducto"
+        },
+        "clone": {
+          "title": "📋 Clonar Infoproducto"
         }
+      },
+      "action": {
+        "clone": "📋 Clonar"
+      },
+      "clone": {
+        "title": "Clonar Infoproducto",
+        "description": "Selecciona el usuario al que se clonará el infoproducto",
+        "header": "Clonar Infoproducto",
+        "info": {
+          "title": "Información:",
+          "name": "El infoproducto clonado se creará con el nombre \"[Nombre] (Copy)\"",
+          "status": "El infoproducto clonado estará desactivado por defecto",
+          "bot": "No se asignará ningún bot al infoproducto clonado",
+          "config": "Deberás configurar el infoproducto después de clonarlo"
+        },
+        "field": {
+          "user": "Usuario Destino",
+          "user_placeholder": "Selecciona el usuario...",
+          "user_help": "El infoproducto será clonado para este usuario"
+        },
+        "submit": "📋 Clonar Infoproducto"
       },
       "form": {
         "title": "Formulario de Infoproducto",
@@ -246,7 +270,8 @@
       "success": {
         "created": "Infoproducto creado exitosamente",
         "updated": "Infoproducto actualizado exitosamente",
-        "deleted": "Infoproducto eliminado exitosamente"
+        "deleted": "Infoproducto eliminado exitosamente",
+        "cloned": "Infoproducto clonado exitosamente"
       },
       "error": {
         "user_not_found": "Error: No se encontró el usuario actual",
@@ -255,7 +280,12 @@
         "update_failed": "Error al actualizar el infoproducto",
         "delete_failed": "Error al eliminar el infoproducto",
         "same_product_upsell": "No se puede seleccionar el mismo producto como upsell",
-        "duplicate_upsell_products": "No puede haber productos upsell repetidos"
+        "duplicate_upsell_products": "No puede haber productos upsell repetidos",
+        "clone_failed": "Error al clonar el infoproducto",
+        "no_id": "ID de infoproducto no proporcionado",
+        "no_product_selected": "No se ha seleccionado un infoproducto para clonar",
+        "no_user_selected": "Debes seleccionar un usuario destino",
+        "validation_failed": "Error de validación en el formulario"
       },
       "refresh": {
         "success": "Lista actualizada"

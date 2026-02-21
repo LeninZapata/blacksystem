@@ -76,6 +76,28 @@ class ogFormCore {
     return i18n?.t(key) || key;
   }
 
+  static processI18nInString(str) {
+    const i18n = ogModule('i18n');
+
+    if (!str || typeof str !== 'string') return str;
+
+    // Reemplazar {i18n:key} o {i18n:key|param1:value1|param2:value2}
+    return str.replace(/\{i18n:([^}]+)\}/g, (match, content) => {
+      const parts = content.split('|');
+      const key = parts[0];
+      const params = {};
+
+      for (let i = 1; i < parts.length; i++) {
+        const [paramKey, paramValue] = parts[i].split(':');
+        if (paramKey && paramValue) {
+          params[paramKey] = paramValue;
+        }
+      }
+
+      return i18n ? i18n.t(key, params) : key;
+    });
+  }
+
   static async load(formName, container = null, data = null, isCore = null, afterRender = null) {
     const cache = ogModule('cache');
     const hook = ogModule('hook');

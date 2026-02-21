@@ -41,7 +41,7 @@ class AdAutoScaleStatsHandler {
         WHERE h.ad_assets_id = ?
           AND h.user_id = ?
           AND h.action_executed = 1
-          AND h.action_type IN ('increase_budget', 'decrease_budget', 'pause')
+          AND h.action_type IN ('increase_budget', 'decrease_budget', 'pause', 'adjust_to_spend')
           AND h.executed_at >= ?
           AND h.executed_at <= ?
         ORDER BY h.executed_at ASC

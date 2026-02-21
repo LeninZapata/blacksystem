@@ -458,6 +458,7 @@ class scaleRuleStatsv2 {
     const pointColors = data.map(item => {
       if (item.action_type === 'increase_budget') return '#27ae60'; // Verde
       if (item.action_type === 'decrease_budget') return '#e74c3c'; // Rojo
+      if (item.action_type === 'adjust_to_spend') return parseFloat(item.budget_change) >= 0 ? '#27ae60' : '#e67e22'; // Verde o Naranja
       return '#95a5a6'; // Gris para pause
     });
 
@@ -680,7 +681,8 @@ class scaleRuleStatsv2 {
     const labels = {
       'increase_budget': 'Aumento de Presupuesto',
       'decrease_budget': 'Disminución de Presupuesto',
-      'pause': 'Pausa de Activo'
+      'pause': 'Pausa de Activo',
+      'adjust_to_spend': 'Ajuste al Gasto'
     };
     return labels[actionType] || actionType;
   }
@@ -776,15 +778,17 @@ class scaleRuleStatsv2 {
       const isIncrease = item.action_type === 'increase_budget';
       const isDecrease = item.action_type === 'decrease_budget';
       const isPause = item.action_type === 'pause';
+      const isAdjustToSpend = item.action_type === 'adjust_to_spend';
       
       // Determinar clase de color
       let colorClass = 'neutral';
       if (isIncrease) colorClass = 'increase';
       else if (isDecrease) colorClass = 'decrease';
       else if (isPause) colorClass = 'pause';
+      else if (isAdjustToSpend) colorClass = (parseFloat(item.budget_change) >= 0 ? 'increase' : 'decrease');
 
       // Icono según tipo
-      const icon = isIncrease ? '📈' : isDecrease ? '📉' : isPause ? '⏸️' : '⚙️';
+      const icon = isIncrease ? '📈' : isDecrease ? '📉' : isPause ? '⏸️' : isAdjustToSpend ? '🎯' : '⚙️';
 
       // Parsear métricas primero (necesario para obtener presupuestos en cambios manuales)
       const metrics = item.metrics_snapshot ? 
@@ -1083,8 +1087,8 @@ class scaleRuleStatsv2 {
           const metricName = this.getMetricLabel(metricKey);
           const operator = this.getOperatorSymbol(d.operator);
           
-          // Obtener valor actual desde metrics_snapshot
-          const currentValue = metrics && metrics[metricKey] !== undefined ? metrics[metricKey] : d.left;
+          // Obtener valor actual desde metrics_snapshot (intentar con y sin sufijos)
+          const currentValue = this.getMetricValue(metrics, metricKey, d.left);
           
           // Extraer threshold desde la condición original
           let threshold = d.right;
@@ -1113,6 +1117,24 @@ class scaleRuleStatsv2 {
 
     html += '</div>';
     return html;
+  }
+
+  // Helper: Obtener valor de métrica intentando con y sin sufijos
+  static getMetricValue(metrics, metricKey, fallback) {
+    if (!metrics) return fallback;
+    
+    // Intentar primero con el nombre completo
+    if (metrics[metricKey] !== undefined) {
+      return metrics[metricKey];
+    }
+    
+    // Intentar sin sufijo de tiempo
+    const metricBase = metricKey.replace(/_today|_yesterday|_last_3d|_last_7d|_last_14d|_last_30d|_lifetime$/, '');
+    if (metricBase !== metricKey && metrics[metricBase] !== undefined) {
+      return metrics[metricBase];
+    }
+    
+    return fallback;
   }
 
   // Extraer nombre de métrica desde la condición
@@ -1189,6 +1211,7 @@ class scaleRuleStatsv2 {
   static getMetricLabel(metric) {
     const labels = {
       'roas': 'ROAS',
+      'profit': 'Ganancia',
       'cost_per_result': 'Costo/Resultado',
       'frequency': 'Frecuencia',
       'spend': 'Gasto',
@@ -1198,8 +1221,25 @@ class scaleRuleStatsv2 {
       'ctr': 'CTR',
       'cpc': 'CPC',
       'cpm': 'CPM',
-      'clicks': 'Clicks'
+      'clicks': 'Clicks',
+      'roas_change_1h': 'Cambio ROAS (1h)',
+      'roas_change_2h': 'Cambio ROAS (2h)',
+      'roas_change_3h': 'Cambio ROAS (3h)',
+      'profit_change_1h': 'Cambio Ganancia (1h)',
+      'profit_change_2h': 'Cambio Ganancia (2h)',
+      'profit_change_3h': 'Cambio Ganancia (3h)',
+      'current_hour': 'Hora',
+      'current_day_of_week': 'Día'
     };
+    
+    // Si la métrica no está en el mapa, intentar sin sufijos de tiempo
+    if (!labels[metric]) {
+      const metricBase = metric.replace(/_today|_yesterday|_last_3d|_last_7d|_last_14d|_last_30d|_lifetime$/, '');
+      if (labels[metricBase]) {
+        return labels[metricBase];
+      }
+    }
+    
     return labels[metric] || metric;
   }
 
@@ -1227,28 +1267,46 @@ class scaleRuleStatsv2 {
 
   // Formatear valor de métrica
   static formatMetricValue(metric, value) {
-    if (value === null || value === undefined) return '-';
+    if (value === null || value === undefined || value === '') return '-';
 
-    // Métricas monetarias
-    if (['spend', 'cost_per_result', 'cpc', 'cpm'].includes(metric)) {
+    // Remover sufijos de tiempo para identificar el tipo de métrica
+    const metricBase = metric.replace(/_today|_yesterday|_last_3d|_last_7d|_last_14d|_last_30d|_lifetime$/, '');
+
+    // Hora actual - formato HH:00
+    if (metricBase === 'current_hour') {
+      const hourStr = String(value).split('.')[0].padStart(2, '0');
+      return `${hourStr}:00`;
+    }
+
+    // Día de la semana
+    if (metricBase === 'current_day_of_week') {
+      const days = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+      return days[parseInt(value)] || value;
+    }
+
+    // Métricas monetarias (incluye profit y cambios de profit)
+    const monetaryMetrics = ['spend', 'cost_per_result', 'cpc', 'cpm', 'profit', 'profit_change_1h', 'profit_change_2h', 'profit_change_3h'];
+    if (monetaryMetrics.includes(metricBase)) {
       return '$' + parseFloat(value).toFixed(2);
     }
 
     // Porcentajes
-    if (['ctr'].includes(metric)) {
+    if (['ctr'].includes(metricBase)) {
       return parseFloat(value).toFixed(2) + '%';
     }
 
-    // ROAS y frecuencia
-    if (['roas', 'frequency'].includes(metric)) {
-      return parseFloat(value).toFixed(2) + 'x';
+    // ROAS y frecuencia (incluye cambios de ROAS)
+    const roasMetrics = ['roas', 'frequency', 'roas_change_1h', 'roas_change_2h', 'roas_change_3h'];
+    if (roasMetrics.includes(metricBase)) {
+      return parseFloat(value).toFixed(2);
     }
 
     // Enteros
-    if (['results', 'impressions', 'reach', 'clicks'].includes(metric)) {
+    if (['results', 'impressions', 'reach', 'clicks'].includes(metricBase)) {
       return parseInt(value).toLocaleString();
     }
 
+    // Default: 2 decimales
     return parseFloat(value).toFixed(2);
   }
 

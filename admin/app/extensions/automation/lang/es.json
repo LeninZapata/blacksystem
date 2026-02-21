@@ -239,7 +239,31 @@
         },
         "edit": {
           "title": "✏️ Editar Regla de Escalado"
+        },
+        "clone": {
+          "title": "⚙️ Clonar Regla de Escalado"
         }
+      },
+      "action": {
+        "clone": "⚙️ Clonar"
+      },
+      "clone": {
+        "title": "Clonar Regla de Escalado",
+        "description": "Selecciona el usuario al que se clonará la regla",
+        "header": "Clonar Regla de Escalado",
+        "info": {
+          "title": "Información:",
+          "name": "La regla clonada se creará con el nombre \"[Nombre] (Copy)\"",
+          "status": "La regla clonada estará desactivada por defecto",
+          "asset": "El activo publicitario se mantendrá igual",
+          "config": "La configuración completa de condiciones y acciones se copiará"
+        },
+        "field": {
+          "user": "👤 Usuario Destino",
+          "user_placeholder": "Selecciona el usuario...",
+          "user_help": "La regla será clonada para este usuario"
+        },
+        "submit": "⚙️ Clonar Regla"
       },
       "confirm": {
         "delete": "¿Eliminar regla de escalado?"
@@ -250,14 +274,20 @@
       "success": {
         "created": "Regla creada correctamente",
         "updated": "Regla actualizada correctamente",
-        "deleted": "Regla eliminada correctamente"
+        "deleted": "Regla eliminada correctamente",
+        "cloned": "Regla clonada exitosamente"
       },
       "error": {
         "create_failed": "Error al crear regla",
         "update_failed": "Error al actualizar regla",
         "delete_failed": "Error al eliminar regla",
         "load_failed": "Error al cargar regla",
-        "not_found": "Regla no encontrada"
+        "not_found": "Regla no encontrada",
+        "clone_failed": "Error al clonar la regla",
+        "no_id": "ID de regla no proporcionado",
+        "no_rule_selected": "No se ha seleccionado una regla para clonar",
+        "no_user_selected": "Debes seleccionar un usuario destino",
+        "user_not_found": "Usuario destino no encontrado"
       }
     },
     "product_ad_assets": {
