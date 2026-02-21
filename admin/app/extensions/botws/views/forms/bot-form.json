@@ -110,7 +110,7 @@
                   "type": "select",
                   "required": true,
                   "validation": "required",
-                  "source": "/api/credential?type=chat",
+                  "source": "/api/credential?type=chat&_ctx=chat",
                   "sourceValue": "id",
                   "sourceLabel": "name",
                   "options": [

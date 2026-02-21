@@ -298,11 +298,16 @@ class ogFormData {
         }
       });
     } else if (input.tagName === 'SELECT') {
-      if (input.dataset.source && !isFilling) {
-        input.addEventListener('select:afterLoad', function handler() {
-          input.value = value;
-          input.removeEventListener('select:afterLoad', handler);
-        }, { once: true });
+      if (input.dataset.source) {
+        // Intentar inmediatamente (funciona si las opciones ya cargaron de caché)
+        input.value = String(value);
+        // Si el select aún no tiene opciones (carga asíncrona pendiente), esperar al evento
+        if (input.value !== String(value)) {
+          input.addEventListener('select:afterLoad', function handler() {
+            input.value = value;
+            input.removeEventListener('select:afterLoad', handler);
+          }, { once: true });
+        }
       } else {
         input.value = value;
       }

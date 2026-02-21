@@ -337,13 +337,14 @@ class ogFormCore {
   static clearSelectCache(source) {
     if (!this.selectCache) return 0;
 
-    // Normalizar URL: extraer base y agregar slash inicial
+    // Normalizar URL del input: quitar query params y agregar slash inicial
     const baseSource = this.normalizeUrlForCache(source);
 
     const keysToDelete = [];
     this.selectCache.forEach((value, key) => {
-      // La clave tiene formato: "url|valueField|labelField"
-      const keyUrl = key.split('|')[0];
+      // La clave tiene formato: "url_completa|valueField|labelField"
+      // Normalizar también la URL de la key para comparar solo la base
+      const keyUrl = this.normalizeUrlForCache(key.split('|')[0]);
       if (keyUrl === baseSource) {
         keysToDelete.push(key);
       }

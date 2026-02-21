@@ -355,9 +355,9 @@ class ogFormInputs {
     const firstOption = selectEl.querySelector('option[value=""]');
     const placeholder = firstOption ? firstOption.cloneNode(true) : null;
 
-    // Extraer URL base sin query params para cache
+    // Usar URL completa (con query params) como cache key para evitar colisiones entre selects con mismo endpoint pero distinto filtro
     const baseSource = this.getBaseUrl(source);
-    const cacheKey = `${baseSource}|${valueField}|${labelField}`;
+    const cacheKey = `${source}|${valueField}|${labelField}`;
     if (core?.selectCache?.has(cacheKey)) {
       const cachedData = core.selectCache.get(cacheKey);
 

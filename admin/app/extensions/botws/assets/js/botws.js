@@ -30,7 +30,7 @@ class botws {
     this.currentId = null;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
-    ogModule('form').clearAllErrors(realId);
+    window.ogForm.clearAllErrors(realId);
   }
 
   // Abrir form con datos
@@ -40,7 +40,7 @@ class botws {
     const realId = formEl?.getAttribute('data-real-id') || formId;
     ogLogger.debug('ext:botws', 'openEdit - realId:', realId);
 
-    ogModule('form').clearAllErrors(realId);
+    window.ogForm.clearAllErrors(realId);
     const data = await this.get(id);
     ogLogger.debug('ext:botws', 'openEdit - data:', data);
     if (!data) return;
@@ -72,8 +72,8 @@ class botws {
       ? configData.apis.chat.map(id => ({ credential_id: String(id) }))
       : [];
 
-    // Llenar todos los campos (ogModule('form').fill maneja automáticamente los selects asíncronos)
-    ogModule('form').fill(formId, {
+    // Llenar todos los campos
+    window.ogForm.fill(formId, {
       name: data.name,
       number: data.number || '',
       country_code: data.country_code || '',
@@ -92,28 +92,23 @@ class botws {
   // ============================================
 
   static async save(formId) {
-    const validation = ogModule('form').validate(formId);
-    if (!validation.success) return ogComponent('toast').error(validation.message);
-
-    const formEl = document.getElementById(formId);
-    const realId = formEl?.getAttribute('data-real-id') || formId;
+    const validation = window.ogForm.validate(formId);
+    if (!validation.success) return ogToast.error(validation.message);
 
     const body = this.buildBody(validation.data);
+    if (!body) return;
 
     const result = this.currentId
       ? await this.update(this.currentId, body)
       : await this.create(body);
 
     if (result) {
-      // Limpiar cache del select de bots
-      ogModule('form').clearSelectCache('/api/bot');
-
-      ogComponent('toast').success(this.currentId
+      ogToast.success(this.currentId
         ? __('botws.bot.success.updated')
         : __('botws.bot.success.created')
       );
       setTimeout(() => {
-        ogComponent('modal').closeAll();
+        window.ogModal.closeAll();
         this.refresh();
       }, 100);
     }
@@ -155,12 +150,12 @@ class botws {
     // ✅ Validación: Al menos 1 agent y 1 chat requerido
     const totalAgents = aiTasks.conversation.length + aiTasks.image.length + aiTasks.audio.length;
     if (totalAgents === 0) {
-      ogComponent('toast').error(__('botws.bot.error.agent_required'));
+      ogToast.error(__('botws.bot.error.agent_required'));
       return null;
     }
 
     if (chatCredentials.length === 0) {
-      ogComponent('toast').error(__('botws.bot.error.chat_required'));
+      ogToast.error(__('botws.bot.error.chat_required'));
       return null;
     }
 
@@ -197,22 +192,22 @@ class botws {
     if (!data) return null;
 
     try {
-      const res = await ogModule('api').post(this.apis.bot, data);
+      const res = await ogApi.post(this.apis.bot, data);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       ogLogger.error('ext:botws', error);
-      ogComponent('toast').error(__('botws.bot.error.create_failed'));
+      ogToast.error(__('botws.bot.error.create_failed'));
       return null;
     }
   }
 
   static async get(id) {
     try {
-      const res = await ogModule('api').get(`${this.apis.bot}/${id}`);
+      const res = await ogApi.get(`${this.apis.bot}/${id}`);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       ogLogger.error('ext:botws', error);
-      ogComponent('toast').error(__('botws.bot.error.load_failed'));
+      ogToast.error(__('botws.bot.error.load_failed'));
       return null;
     }
   }
@@ -221,39 +216,39 @@ class botws {
     if (!data) return null;
 
     try {
-      const res = await ogModule('api').put(`${this.apis.bot}/${id}`, {...data, id});
+      const res = await ogApi.put(`${this.apis.bot}/${id}`, {...data, id});
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       ogLogger.error('ext:botws', error);
-      ogComponent('toast').error(__('botws.bot.error.update_failed'));
+      ogToast.error(__('botws.bot.error.update_failed'));
       return null;
     }
   }
 
   static async delete(id) {
     try {
-      const res = await ogModule('api').delete(`${this.apis.bot}/${id}`);
+      const res = await ogApi.delete(`${this.apis.bot}/${id}`);
 
       if (res.success === false) {
-        ogComponent('toast').error(__('botws.bot.error.delete_failed'));
+        ogToast.error(__('botws.bot.error.delete_failed'));
         return null;
       }
 
-      ogComponent('toast').success(__('botws.bot.success.deleted'));
+      ogToast.success(__('botws.bot.success.deleted'));
       setTimeout(() => {
         this.refresh();
       }, 100);
       return res.data || res;
     } catch (error) {
       ogLogger.error('ext:botws', error);
-      ogComponent('toast').error(__('botws.bot.error.delete_failed'));
+      ogToast.error(__('botws.bot.error.delete_failed'));
       return null;
     }
   }
 
   static async list() {
     try {
-      const res = await ogModule('api').get(this.apis.bot);
+      const res = await ogApi.get(this.apis.bot);
       return res.success === false ? null : (res.data || res);
     } catch (error) {
       ogLogger.error('ext:botws', error);

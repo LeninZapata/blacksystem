@@ -91,8 +91,11 @@ class CredentialController extends ogController {
       ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }*/
 
+    // Solo aplicar filtros de columnas conocidas (evitar SQL errors con params de caché como _ctx)
+    $allowedFilters = ['type', 'status', 'name', 'user_id'];
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
+      if (!in_array($key, $allowedFilters)) continue;
       $query = $query->where($key, $value);
     }
 
