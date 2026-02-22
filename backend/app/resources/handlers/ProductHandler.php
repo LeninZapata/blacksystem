@@ -24,13 +24,13 @@ class ProductHandler {
       // Si cambió el bot (solo en update)
       if ($action === 'update' && $oldBotId && $oldBotId !== $currentBotId) {
         // Regenerar activators del bot antiguo (sin este producto)
-        $oldBot = ogDb::t('products')->find($oldBotId);
+        $oldBot = ogDb::t('bots')->find($oldBotId);
         if ($oldBot) {
           self::generateActivatorsFile($oldBot['number'], $oldBotId, 'update');
         }
 
         // Regenerar activators del bot nuevo (con este producto)
-        $newBot = ogDb::t('products')->find($currentBotId);
+        $newBot = ogDb::t('bots')->find($currentBotId);
         if ($newBot) {
           self::generateActivatorsFile($newBot['number'], $currentBotId, 'update');
         }
@@ -284,7 +284,7 @@ class ProductHandler {
     if (!$botId && !$botNumber) return false;
 
     if (!$botNumber) {
-      $bot = ogDb::t('products')->find($botId);
+      $bot = ogDb::t('bots')->find($botId);
       if (!$bot || !isset($bot['number'])) {
         ogLog::error('generateActivatorsFile - Bot no encontrado', ['bot_id' => $botId], self::$logMeta);
         return false;

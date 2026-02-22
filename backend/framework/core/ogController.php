@@ -29,15 +29,15 @@ class ogController {
     $this->resource = $resourceName;
 
     // Cargar handlers personalizados si existen: app → middle → framework
-    $handlerFile = ogApp()->getPath() . "/resources/handlers/{$resourceName}Handler.php";
+    $handlerFile = ogApp()->getPath() . "/resources/handlers/" . ucfirst($resourceName) . "Handler.php";
     if (file_exists($handlerFile)) {
       require_once $handlerFile;
     } else {
-      $handlerFile = OG_FRAMEWORK_PATH . "/../middle/resources/handlers/{$resourceName}Handler.php";
+      $handlerFile = OG_FRAMEWORK_PATH . "/../middle/resources/handlers/" . ucfirst($resourceName) . "Handler.php";
       if (file_exists($handlerFile)) {
         require_once $handlerFile;
       } else {
-        $handlerFile = OG_FRAMEWORK_PATH . "/resources/handlers/og{$resourceName}Handler.php";
+        $handlerFile = OG_FRAMEWORK_PATH . "/resources/handlers/og" . ucfirst($resourceName) . "Handler.php";
         if (file_exists($handlerFile)) require_once $handlerFile;
       }
     }

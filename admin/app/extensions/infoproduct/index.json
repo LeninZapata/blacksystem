@@ -22,6 +22,12 @@
         "title": "Estadísticas",
         "view": "sections/infoproduct-stats",
         "order": 3
+      },
+      {
+        "id": "infoproduct-herramientas",
+        "title": "Herramientas",
+        "view": "sections/infoproduct-herramientas",
+        "order": 4
       }
     ]
   }

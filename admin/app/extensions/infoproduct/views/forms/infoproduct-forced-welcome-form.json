@@ -1,0 +1,53 @@
+{
+  "id": "infoproduct-forced-welcome-form",
+  "fields": [
+    {
+      "name": "bot_id",
+      "label": "🤖 Bot de WhatsApp",
+      "type": "select",
+      "required": true,
+      "source": "/api/bot?status=1",
+      "sourceValue": "id",
+      "sourceLabel": "name",
+      "options": [
+        { "value": "", "label": "Selecciona un bot..." }
+      ],
+      "help": "Se usará el código de país del bot para validar el número de teléfono"
+    },
+    {
+      "name": "product_id",
+      "label": "📦 Producto",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "", "label": "Primero selecciona un bot..." }
+      ],
+      "help": "Muestra los productos activos del bot seleccionado"
+    },
+    {
+      "type": "html",
+      "content": "<div class='alert alert-warning alert-with-desc'><strong>📞 Número de Teléfono</strong><div class='alert-desc'>Puedes ingresar el número en cualquier formato. Ejemplos válidos: <code>+593 978745575</code>, <code>0978745575</code>, <code>978745575</code>, <code>+(593) 97 8745575</code></div></div>"
+    },
+    {
+      "name": "phone",
+      "label": "Número de teléfono",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ej: 0978745575",
+      "help": "El número se normalizará al formato internacional automáticamente"
+    },
+    {
+      "type": "html",
+      "content": "<div id='fw-phone-preview' class='alert alert-success alert-filled og-flex og-gap-sm' style='display:none;'>✅ <div><div class='og-text-green-700' style='font-size:0.75rem; font-weight:500;'>Número normalizado</div><code id='fw-phone-normalized' class='og-text-green-600' style='font-weight:700;'>--</code></div></div><div id='fw-phone-error' class='alert alert-danger alert-filled og-flex og-gap-sm' style='display:none;'>❌ <span id='fw-phone-error-msg'>Número inválido</span></div>"
+    }
+  ],
+  "statusbar": [
+    {
+      "name": "execute",
+      "type": "button",
+      "label": "▶️ Ejecutar",
+      "action": "call:infoproductForcedWelcome.execute",
+      "align": "right"
+    }
+  ]
+}

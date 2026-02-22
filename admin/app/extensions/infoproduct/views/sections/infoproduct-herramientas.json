@@ -1,0 +1,31 @@
+{
+  "id": "infoproduct-herramientas",
+  "title": "Herramientas de Infoproductos",
+  "type": "content",
+  "scripts": [
+    "infoproduct/assets/js/infoproductForcedWelcome.js"
+  ],
+  "content": [
+    {
+      "type": "component",
+      "component": "tabs",
+      "config": {
+        "id": "herramientas-tabs",
+        "preloadAllTabs": false,
+        "tabs": [
+          {
+            "id": "tab-bienvenida-forzada",
+            "title": "📨 Bienvenida Forzada",
+            "onLoad": "infoproductForcedWelcome.init()",
+            "content": [
+              {
+                "type": "form",
+                "form_json": "infoproduct|forms/infoproduct-forced-welcome-form"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

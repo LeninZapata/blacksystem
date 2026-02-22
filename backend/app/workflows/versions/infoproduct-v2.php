@@ -502,6 +502,80 @@ class InfoproductV2Handler {
   }
 
   // ========================================
+  // ✅ BIENVENIDA FORZADA (sin webhook real)
+  // ========================================
+
+  /**
+   * Ejecuta el flujo de bienvenida directamente, sin pasar por detección
+   * de anuncios ni validación de webhook. Se llama desde el endpoint
+   * POST /api/product/force-welcome.
+   *
+   * @param array $bot       Datos del bot cargados desde DB
+   * @param array $person    ['number' => '593...', 'name' => 'unknown', 'platform' => 'forced']
+   * @param int   $productId ID del producto al que dar la bienvenida
+   */
+  public function forceWelcome(array $bot, array $person, int $productId): void {
+    ogLog::info("forceWelcome - INICIO", [
+      'bot_id'     => $bot['id'],
+      'product_id' => $productId,
+      'phone'      => $person['number'],
+    ], $this->logMeta);
+
+    // ── Cargar bot completo desde JSON (con credenciales resueltas) ────────
+    // Igual que handle() hace con BotHandler::getDataFile($botNumber)
+    $botNumber = $bot['number'] ?? null;
+    if (!$botNumber) {
+      ogLog::throwError("forceWelcome - Bot sin número", $bot, $this->logMeta);
+    }
+
+    ogApp()->loadHandler('bot');
+    $botData = BotHandler::getDataFile($botNumber);
+
+    if (!$botData) {
+      ogLog::throwError("forceWelcome - data file no encontrado: {$botNumber}", [], $this->logMeta);
+    }
+
+    // Merge igual que handle(): datos DB + datos JSON (con credenciales resueltas)
+    $bot = array_merge($bot, $botData);
+
+    // Establecer user_id globalmente
+    $userId = $bot['user_id'] ?? null;
+    if ($userId) {
+      ogApp()->handler('chat')::setUserId($userId);
+      ogApp()->handler('followup')::setUserId($userId);
+    }
+
+    ogApp()->helper('cache')::memorySet('current_bot', $bot);
+    $bot['prompt_recibo']         = $this->prompt_recibo;
+    $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
+
+    // Configurar provider (usa evolutionapi por defecto igual que $forcedProvider)
+    $this->configureChatProvider($bot, $this->forcedProvider ?? self::PROVIDER_EVOLUTION);
+
+    // Construir welcomeCheck mínimo con el product_id dado
+    $welcomeCheck = [
+      'is_welcome'            => true,
+      'product_id'            => $productId,
+      'source'                => 'forced',
+      'is_welcome_diff_product' => false,
+    ];
+
+    // Contexto marcado como bienvenida forzada (CreateSaleAction lo usa)
+    $context = ['force_welcome' => 1];
+
+    // Mensaje mínimo (WelcomeStrategy solo lo pasa a handleNewProductWelcome que no lo usa)
+    $message = ['type' => 'TEXT', 'text' => ''];
+
+    $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
+
+    ogLog::info("forceWelcome - FIN", [
+      'bot_id'     => $bot['id'],
+      'product_id' => $productId,
+      'phone'      => $person['number'],
+    ], $this->logMeta);
+  }
+
+  // ========================================
   // ✅ MÉTODOS DE SELECCIÓN DE PROVIDER
   // ========================================
 

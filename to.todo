@@ -25,6 +25,9 @@ IA que me ayude agruparlos, porque ejemplo un grupo puede ser el inicio de chat 
 ver lo que paso dentro de ese grupo, creo que si se puede tal vez dandole un ID que recorra todo el proceso
 entonces este lo puede agrupar y yo revisar, esto seria genial prque actualmente lo lista por order y 
 tiene un medio secuencia pero no agrupa esto me ayudaria identificar problemas en el proceso, por ejemplo si el cliente se queja de que no le llego el mensaje de upsell, yo puedo revisar ese grupo y ver que paso ahi, o si se queja de que no le llego el mensaje de bienvenida, yo puedo revisar ese grupo y ver que paso ahi, esto me ayudaria a identificar problemas en el proceso y solucionarlos mas rapido
+☐ En lo que tiene que ver la bienvenida forzada tanto en el router como en js hay paisees quemados
+aunque cubren la mayoria que se usara hay que ver si se crea un apartado de paises activos para que hasta
+el bot select de pais sean cargados alli
 FRONTEND:
 ☐ El listado de producto hay que ponerle el pais porque se va a comenzar a vender en otros paises.
 ☐ graficas de chats vs ventas

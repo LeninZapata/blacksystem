@@ -238,9 +238,14 @@ class ogFramework {
       throw new Exception("Handler not found: {$name}");
     }
 
-    require_once $result['file'];
+    // Guard: si la clase ya existe (cargada por otra ruta, symlink, etc.)
+    // no intentar redeclararla con require_once para evitar
+    // "Cannot declare class X, because the name is already in use"
     if (!class_exists($result['class'])) {
-      throw new Exception("Handler class not found: {$result['class']}");
+      require_once $result['file'];
+      if (!class_exists($result['class'])) {
+        throw new Exception("Handler class not found: {$result['class']}");
+      }
     }
 
     return true;

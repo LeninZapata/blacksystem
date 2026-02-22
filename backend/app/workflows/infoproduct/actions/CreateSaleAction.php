@@ -24,8 +24,9 @@ class CreateSaleAction {
     $isUpsell = ($context['type'] ?? null) === 'upsell';
     $parentSaleId = $dataSale['parent_sale_id'] ?? null;
 
-    // Solo verificar duplicados si NO es upsell
-    if (!$isUpsell) {
+    // Solo verificar duplicados si NO es upsell y NO es bienvenida forzada
+    $isForcedWelcome = ($context['force_welcome'] ?? 0) === 1;
+    if (!$isUpsell && !$isForcedWelcome) {
       $existingSale = ogDb::table('sales')
         ->where('number', $from)
         ->where('bot_id', $bot['id'])
@@ -83,7 +84,7 @@ class CreateSaleAction {
       'source_app' => $context['source_app'] ?? null,
       'source_url' => $context['ad_data']['source_url'] ?? null,
       'device' => $device,
-      'force_welcome' => 0,
+      'force_welcome' => $context['force_welcome'] ?? 0,
       'origin' => $origin,
       'parent_sale_id' => $parentSaleId
     ];
