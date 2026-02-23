@@ -645,6 +645,10 @@
                       "label": "i18n:automation.scale_rules.time_period.everytime"
                     },
                     {
+                      "value": "every_2h",
+                      "label": "i18n:automation.scale_rules.time_period.every_2h"
+                    },
+                    {
                       "value": "every_3h",
                       "label": "i18n:automation.scale_rules.time_period.every_3h"
                     },

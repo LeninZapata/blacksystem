@@ -178,6 +178,7 @@
         "everytime": "Cada vez que se cumplan las condiciones",
         "once": "Una sola vez",
         "daily": "Diariamente",
+        "every_2h": "Cada 2 horas",
         "every_3h": "Cada 3 horas",
         "every_6h": "Cada 6 horas"
       },

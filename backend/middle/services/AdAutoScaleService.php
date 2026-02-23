@@ -609,13 +609,39 @@ class AdAutoScaleService {
     $productId = $asset['product_id'];
     $assetId = $asset['ad_asset_id'];
     $today = date('Y-m-d');
-    $currentHour = (int)date('H');
     
     $metrics = [];
-    
+
+    // Usar el snapshot MÁS RECIENTE disponible en BD como ancla,
+    // NO date('H'), porque el cron de save-all y execute corren al mismo minuto
+    // y puede haber condición de carrera donde el snapshot actual no exista aún.
+    $latestRow = ogDb::raw("
+      SELECT query_hour
+      FROM ad_metrics_hourly
+      WHERE product_id = ?
+        AND ad_asset_id = ?
+        AND query_date = ?
+      ORDER BY query_hour DESC, id DESC
+      LIMIT 1
+    ", [$productId, $assetId, $today]);
+
+    if (empty($latestRow)) {
+      // Sin datos hoy aún
+      foreach ([1, 2, 3] as $hours) {
+        $metrics["roas_change_{$hours}h"] = 0;
+        $metrics["profit_change_{$hours}h"] = 0;
+      }
+      return $metrics;
+    }
+
+    $latestHour = (int)$latestRow[0]['query_hour'];
+
+    // Métricas actuales (último snapshot real disponible)
+    $current = $this->getMetricsUpToHour($asset, $today, $latestHour);
+
     // Calcular para 1h, 2h, 3h
     foreach ([1, 2, 3] as $hours) {
-      $hoursAgo = $currentHour - $hours;
+      $hoursAgo = $latestHour - $hours;
       
       // Si las horas atrás son negativas, no hay datos suficientes
       if ($hoursAgo < 0) {
@@ -624,10 +650,7 @@ class AdAutoScaleService {
         continue;
       }
       
-      // Métricas actuales (hasta la hora actual)
-      $current = $this->getMetricsUpToHour($asset, $today, $currentHour);
-      
-      // Métricas de hace N horas (hasta esa hora)
+      // Métricas de hace N horas (usando snapshot real de esa hora)
       $past = $this->getMetricsUpToHour($asset, $today, $hoursAgo);
       
       // Calcular cambios
@@ -1059,6 +1082,10 @@ class AdAutoScaleService {
       case 'daily':
         // Verificar que haya pasado al menos 24 horas
         return $elapsedHours >= 24;
+
+      case 'every_2h':
+        // Verificar que hayan pasado al menos 2 horas
+        return $elapsedHours >= 2;
 
       case 'every_3h':
         // Verificar que hayan pasado al menos 3 horas

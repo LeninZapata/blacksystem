@@ -6,9 +6,17 @@ RAPIDO:
 ✔ En profit la fecha de hoy eesta mal esta que muestra de ayer el filtro @done(14-02-2026 09:49)
 ✔ EN la grafica de escala esta que muestra la de ayer @done(14-02-2026 09:49)
 ✔ algo paso no se reseteo el presupuesto hoy, continuo con el presupuesto de ayer, revisar eso @CRITICAL @done(14-02-2026 10:28)
+☐ Revisa el buffer +593 99 133 7353 este caso envio el recibo luego puso otra palabra mas y este lo tomo como si no hubiera pagado aun 
+luego d enviarle el link esto debemos replicarlo para poder solucionarlo..
 ☐ el componente de los permisos no funciona tan bien revisa eso por tabs
-
+☐ Hay una regla que se llama "🔥 Escalar Temprano ROAS Alto" esto esta tomando un metrica de Resutlado > 1 el detalle que ese
+resultado es el de facebook, hay que agregar una metrica llamada SALES_CONFIMED para que esa sea la metrica que debe evaluar aqui https://i.imgur.com/6mIxXyH.png
+☐ En este caso SELECT * FROM `sales` WHERE `number` like '%593992903767%'; di 2 veces la bienvenida forzada, entonces se crearon 2 ventas
+esto NO debe ocurrir porque si es una bievenida forzada del mismo producto que ya existe simplemente debe actualizar la fecha pero no crear un 
+nuevo registro de VENTA. @critical este envia 2veces el seguimiento tambien y esto si es mas grave...
 Backend (Aplicacion):
+☐ Hacer pruebas con el endpoint de archive para encontrar la logica de como enviar a archivo ese chat
+☐ Revisar si por ejemplo falla el ESCRIBIENDO... este no haga que parece el proceso de envio del mensaje... que sean temas apartes
 ☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
 hacer que se ejecute al otro dia en la mañana
 ☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
