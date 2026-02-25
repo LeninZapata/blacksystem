@@ -69,11 +69,11 @@ class ogFormData {
     
     formEl.dataset.hasFillData = 'true';
 
-    // Contar repetibles a llenar
+    // Contar repetibles a llenar (solo si tienen al menos 1 item)
     const countRepeatables = (fields) => {
       let count = 0;
       fields?.forEach(field => {
-        if (field.type === 'repeatable' && data[field.name]) {
+        if (field.type === 'repeatable' && Array.isArray(data[field.name]) && data[field.name].length > 0) {
           count++;
         } else if (field.type === 'group' && field.fields) {
           count += countRepeatables(field.fields);
@@ -130,7 +130,7 @@ class ogFormData {
     if (!skipRepeatables) {
       const fillRepeatableFields = (fields, targetContainer) => {
         fields?.forEach(field => {
-          if (field.type === 'repeatable' && data[field.name]) {
+          if (field.type === 'repeatable' && Array.isArray(data[field.name]) && data[field.name].length > 0) {
             setTimeout(() => {
               this.fillRepeatable(targetContainer, field, data, '');
             }, 100);

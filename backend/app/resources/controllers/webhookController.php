@@ -7,6 +7,7 @@ class WebhookController {
     try {
       $rawData = ogRequest::data();
       ogLog::info('whatsapp - Webhook recibido', [], $this->logMeta);
+      // ogLog::info('whatsapp - Webhook recibido RAW', $rawData, $this->logMeta);
 
       // Cargar servicio ogChatApi bajo demanda
       $chatapi = ogApp()->service('chatApi');

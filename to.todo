@@ -6,6 +6,14 @@ RAPIDO:
 ✔ En profit la fecha de hoy eesta mal esta que muestra de ayer el filtro @done(14-02-2026 09:49)
 ✔ EN la grafica de escala esta que muestra la de ayer @done(14-02-2026 09:49)
 ✔ algo paso no se reseteo el presupuesto hoy, continuo con el presupuesto de ayer, revisar eso @CRITICAL @done(14-02-2026 10:28)
+☐ Yo respondo en vez del bot y este esta que me autoresponde! @CRITICAL
+☐ Revisa si el buffer VALE y si sivale aumentale el tiempo
+☐ Agregar a las escala que solo escale apartir de una hora generar porque ejemplo dannes comenzo a escachar 
+el 23/02/2026 desde las 00:01 porque tuvo ventas a las 12 de la noche en adelante, entonces tambien se vio que 
+facebook comenzo a dar alcance en la madrugada y creo que es dinero perdido, entonces creo que las reglas podria
+ejecutar desde las 06am o 7am, entonces puedes decir arriba que se ejecuten desde 3am, 5am, 6am.. o todo el dia... 
+con eso puedes ser versatil......
+☐ Revisar el tema del webhoook de facebook como primario para poder ejecutar la bienvenida sin problema
 ☐ Revisa el buffer +593 99 133 7353 este caso envio el recibo luego puso otra palabra mas y este lo tomo como si no hubiera pagado aun 
 luego d enviarle el link esto debemos replicarlo para poder solucionarlo..
 ☐ el componente de los permisos no funciona tan bien revisa eso por tabs

@@ -32,7 +32,6 @@
   /* Contenedor principal */
   .og-modal-container {
     background: white;
-    border-radius: 8px;
     box-shadow: 0 10px 30px var(--og-modal-shadow);
     max-height: 90vh;
     display: flex;

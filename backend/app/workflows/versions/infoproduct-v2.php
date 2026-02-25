@@ -100,6 +100,15 @@ class InfoproductV2Handler {
     $context = $standard['context'] ?? [];
     $botNumber = $bot['number'] ?? null;
 
+    // FILTRO: Ignorar mensajes enviados por el propio bot/agente (fromMe=true)
+    if ($person['is_me'] ?? false) {
+      ogLog::info("handle - Mensaje propio (fromMe=true), ignorando", [
+        'number' => $person['number'] ?? 'N/A',
+        'message_type' => $message['type'] ?? 'unknown'
+      ], $this->logMeta);
+      return;
+    }
+
     // ✅ 1. DETECTAR ORIGEN DEL WEBHOOK
     $webhookProvider = $standard['webhook']['provider'] ?? 'evolution';
     $webhookSource = $standard['webhook']['source'] ?? 'unknown';
