@@ -2,24 +2,194 @@ class chat {
 
   static apis = { client: '/api/client' };
 
-  // Variable configurable: cuántos contactos cargar por página
-  static perPage = 30;
+  // ─── Config pública (editable) ─────────────────────────────────────────────
+  static perPage                = 30;   // contactos por página
+  static heartbeatInterval      = 20;   // segundos entre polls de mensajes del chat activo
+  static heartbeatMaxPolls      = 20;   // máximo de polls por sesión de chat abierto
+  static clientHeartbeatInterval = 20;  // segundos entre polls de la lista de contactos
+  static clientHeartbeatMaxPolls = 50;  // máximo de polls de la lista de contactos
 
+  // ─── Estado interno ────────────────────────────────────────────────────────
   static _page          = 1;
   static _total         = 0;
   static _activeNum     = null;
   static _activeId      = null;
   static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
 
+  static _heartbeatTimer  = null;
+  static _heartbeatCount  = 0;
+  static _lastMsgId       = null; // ID del último mensaje conocido en el chat activo
+
+  static _clientHeartbeatTimer = null;
+  static _clientHeartbeatCount = 0;
+  static _clientsKnown         = new Map(); // clientId → { last_message_at, unread_count }
+
   // ─── Inicialización ────────────────────────────────────────────────────────
 
   static init() {
-    this._page         = 1;
-    this._total        = 0;
-    this._activeNum    = null;
-    this._activeId     = null;
-    this._activeBotNum = null;
+    this._stopHeartbeat();
+    this._stopClientHeartbeat();
+    this._page            = 1;
+    this._total           = 0;
+    this._activeNum       = null;
+    this._activeId        = null;
+    this._activeBotNum    = null;
+    this._lastMsgId       = null;
+    this._clientsKnown    = new Map();
     this.loadClients(true);
+    this._startClientHeartbeat();
+  }
+
+  // ─── Heartbeat de lista de contactos ───────────────────────────────────────
+
+  static _startClientHeartbeat() {
+    this._stopClientHeartbeat();
+    this._clientHeartbeatCount = 0;
+    this._clientHeartbeatTimer = setInterval(async () => {
+      if (this._clientHeartbeatCount >= this.clientHeartbeatMaxPolls) { this._stopClientHeartbeat(); return; }
+      this._clientHeartbeatCount++;
+      await this._syncClients();
+    }, this.clientHeartbeatInterval * 1000);
+  }
+
+  static _stopClientHeartbeat() {
+    if (this._clientHeartbeatTimer) {
+      clearInterval(this._clientHeartbeatTimer);
+      this._clientHeartbeatTimer = null;
+    }
+  }
+
+  // Fetch silencioso: detecta nuevos mensajes / nuevos contactos e inyecta en DOM
+  static async _syncClients() {
+    try {
+      const url  = `${this.apis.client}?sort=last_message_at&order=DESC&per_page=${this.perPage}&page=1`;
+      const json = await ogModule('api').get(url);
+      if (!json.success) return;
+
+      const items = json.data?.data ?? [];
+      const list  = document.getElementById('bsChatList');
+      if (!list) return;
+
+      items.forEach(c => {
+        const cId    = String(c.id ?? '');
+        const known  = this._clientsKnown.get(cId);
+        const el     = list.querySelector(`.bs-chat-item[data-client-id="${cId}"]`);
+
+        if (!known) {
+          // Cliente nuevo: inyectar al tope de la lista
+          const node = this._itemNode(c);
+          list.insertBefore(node, list.firstChild);
+          this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
+          return;
+        }
+
+        const dateChanged   = known.last_message_at !== c.last_message_at;
+        const unreadChanged = String(known.unread_count) !== String(c.unread_count);
+
+        if (!dateChanged && !unreadChanged) return;
+
+        // Actualizar estado conocido
+        this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
+
+        if (dateChanged && el) {
+          // Nuevo mensaje: reemplazar elemento y moverlo al tope
+          const isActive = el.classList.contains('active');
+          const newNode  = this._itemNode(c);
+          if (isActive) newNode.classList.add('active');
+          el.remove();
+          list.insertBefore(newNode, list.firstChild);
+          return;
+        }
+
+        // Solo cambió unread (sin nueva fecha): actualizar badge in-place
+        if (unreadChanged && el) {
+          const unread   = parseInt(c.unread_count ?? 0);
+          const right    = el.querySelector('.bs-chat-item-right');
+          const oldBadge = el.querySelector('.bs-chat-unread-badge');
+          oldBadge?.remove();
+          if (unread > 0) {
+            right?.insertAdjacentHTML('beforeend', `<span class="bs-chat-unread-badge">${unread > 99 ? '99+' : unread}</span>`);
+            el.classList.add('unread');
+          } else {
+            el.classList.remove('unread');
+          }
+        }
+      });
+    } catch (_) { /* silencioso */ }
+  }
+
+  // Botón manual de actualizar: recarga toda la lista como al inicio
+  static refreshClients() {
+    const btn = document.querySelector('.bs-chat-refresh-btn');
+    if (btn) btn.classList.add('spinning');
+    this._clientsKnown = new Map();
+    this.loadClients(true).finally(() => {
+      if (btn) btn.classList.remove('spinning');
+    });
+  }
+
+  // ─── Heartbeat ─────────────────────────────────────────────────────────────
+
+  static _startHeartbeat(clientId) {
+    this._stopHeartbeat();
+    this._heartbeatCount = 0;
+    this._heartbeatTimer = setInterval(async () => {
+      if (clientId !== this._activeId)         { this._stopHeartbeat(); return; }
+      if (this._heartbeatCount >= this.heartbeatMaxPolls) { this._stopHeartbeat(); return; }
+      this._heartbeatCount++;
+      await this._syncMessages(clientId);
+    }, this.heartbeatInterval * 1000);
+  }
+
+  static _stopHeartbeat() {
+    if (this._heartbeatTimer) {
+      clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
+    }
+  }
+
+  // Fetch silencioso: obtiene todos los mensajes, detecta nuevos (id > _lastMsgId),
+  // actualiza cache, quita burbujas optimistas y hace append de los nuevos.
+  static async _syncMessages(clientId) {
+    if (!clientId) return;
+    try {
+      const url     = `/api/chat?client_id=${clientId}&sort=tc&order=ASC&per_page=500`;
+      const json    = await ogModule('api').get(url);
+      if (!json.success || clientId !== this._activeId) return;
+
+      const allMsgs = json.data ?? [];
+      const lastId  = this._lastMsgId;
+      const newMsgs = lastId !== null
+        ? allMsgs.filter(m => (m.id ?? 0) > lastId)
+        : [];
+
+      // Actualizar cache siempre
+      ogCache.setMemory(this._cacheMsgs(clientId), allMsgs, 10 * 60 * 1000);
+
+      // Avanzar el puntero
+      if (allMsgs.length > 0) {
+        this._lastMsgId = allMsgs[allMsgs.length - 1].id ?? lastId;
+      }
+
+      if (newMsgs.length === 0) return;
+
+      // Quitar burbuja(s) optimistas (si existen)
+      document.querySelectorAll('.bs-msg-optimistic').forEach(el => el.remove());
+
+      // Append nuevos mensajes sin recargar el chat
+      const main = document.getElementById('bsChatMain');
+      if (main) {
+        newMsgs.forEach(m => main.insertAdjacentHTML('beforeend', this._msgHtml(m)));
+        main.scrollTop = main.scrollHeight;
+      }
+
+      // Si llegó mensaje del cliente (type P), invalidar cache de ventana open_chat
+      if (newMsgs.some(m => m.type === 'P')) {
+        ogCache.delete(this._cacheOpen(clientId));
+        const botId = allMsgs.find(m => m.bot_id)?.bot_id ?? null;
+        if (botId) this._loadOpenChatBar(clientId, botId);
+      }
+    } catch (_) { /* silencioso */ }
   }
 
   // ─── Carga de clientes ─────────────────────────────────────────────────────
@@ -62,6 +232,9 @@ class chat {
 
       // Insertar items ANTES del botón para que siempre quede al final
       items.forEach(c => {
+        const cId = String(c.id ?? '');
+        // Registrar en el mapa de conocidos
+        this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
         if (btnMore) list.insertBefore(this._itemNode(c), btnMore);
         else         list.insertAdjacentHTML('beforeend', this._itemHtml(c));
       });
@@ -128,6 +301,7 @@ class chat {
 
     this._showHeaderLoading(number, name);
     this.loadMessages(clientId);
+    this._startHeartbeat(clientId); // inicia polls cada N segundos (máx heartbeatMaxPolls veces)
   }
 
   static _showHeaderLoading(number, name) {
@@ -169,25 +343,32 @@ class chat {
     if (!clientId || !botId) return;
     try {
       // Intentar desde caché primero (5 min, solo memoria)
-      let expiry = ogCache.getMemory(this._cacheOpen(clientId));
+      let cached = ogCache.getMemory(this._cacheOpen(clientId));
 
-      if (!expiry) {
-        const json = await ogModule('api').get(`/api/client/${clientId}/open-chat/${botId}`);
-        expiry = json?.data?.expiry ?? null;
-        if (expiry) ogCache.setMemory(this._cacheOpen(clientId), expiry, 5 * 60 * 1000);
+      if (!cached) {
+        const json   = await ogModule('api').get(`/api/client/${clientId}/open-chat/${botId}`);
+        const expiry = json?.data?.expiry    ?? null;
+        const srvNow = json?.data?.server_now ?? null;
+        if (expiry) {
+          cached = { expiry, server_now: srvNow };
+          ogCache.setMemory(this._cacheOpen(clientId), cached, 5 * 60 * 1000);
+        }
       }
 
       const wrap = document.getElementById('bsChatOpenBarWrap');
       const bar  = document.getElementById('bsChatOpenBar');
-      if (!wrap || !bar || !expiry) return;
+      if (!wrap || !bar || !cached?.expiry) return;
 
-      const now        = Date.now();
-      const expiryMs   = new Date(expiry.replace(' ', 'T')).getTime();
-      const windowMs   = 72 * 3600 * 1000;
-      const remaining  = Math.max(0, expiryMs - now);
-      const pctLeft    = Math.min(100, Math.round(remaining / windowMs * 100));
+      const { expiry, server_now } = cached;
+
+      // Calcular remaining usando server_now: ambas fechas están en la misma zona del servidor
+      // → la diferencia es exacta sin importar la timezone del browser
+      const toMs      = s => new Date(s.replace(' ', 'T')).getTime();
+      const remaining = Math.max(0, toMs(expiry) - (server_now ? toMs(server_now) : Date.now()));
+      const windowMs    = 72 * 3600 * 1000;
+      const pctLeft     = Math.min(100, Math.round(remaining / windowMs * 100));
       const pctConsumed = 100 - pctLeft;
-      const label      = window.bsDate ? bsDate.timeRemaining(expiry) : '';
+      const label       = window.bsDate ? bsDate.timeRemaining(expiry) : '';
 
       bar.style.width = pctConsumed + '%';
       wrap.style.display = 'flex';
@@ -203,6 +384,9 @@ class chat {
     const botNumber = msgs.length > 0 ? (msgs[0].bot_number ?? null) : null;
     const botId     = msgs.length > 0 ? (msgs[0].bot_id     ?? null) : null;
     this._activeBotNum = botNumber;
+
+    // Actualizar puntero de último mensaje conocido
+    this._lastMsgId = msgs.length > 0 ? (msgs[msgs.length - 1].id ?? null) : null;
 
     const activeEl = document.querySelector('.bs-chat-item.active');
     const name = activeEl ? activeEl.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
@@ -252,7 +436,7 @@ class chat {
     }
   }
 
-  static _msgHtml(m) {
+  static _msgHtml(m, opts = {}) {
     const type    = m.type ?? 'P';   // S, B, P
     const format  = m.format ?? 'text';
     const text    = m.message ?? '';
@@ -295,9 +479,11 @@ class chat {
       content = `<span>${(display ?? '').toString().replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
     }
 
-    const typeClass = type === 'B' ? 'bs-msg-b' : (type === 'S' ? 'bs-msg-s' : 'bs-msg-p');
+    const typeClass    = type === 'B' ? 'bs-msg-b' : (type === 'S' ? 'bs-msg-s' : 'bs-msg-p');
+    const optimistic   = opts?.optimistic ? ' bs-msg-optimistic' : '';
+    const msgIdAttr    = m.id ? ` data-msg-id="${m.id}"` : '';
 
-    return `<div class="bs-msg ${typeClass}">
+    return `<div class="bs-msg ${typeClass}${optimistic}"${msgIdAttr}>
       <div class="bs-msg-bubble">
         ${content}
         <span class="bs-msg-time">${relTime}</span>
@@ -329,22 +515,34 @@ class chat {
     input.disabled = true;
     if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
 
+    const clientIdAtSend = this._activeId;
+
+    // ── Burbuja optimista: aparece al instante sin esperar la red ──
+    const nowStr  = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const fakeMsg = { type: 'B', format: 'text', message, dc: nowStr };
+    const main    = document.getElementById('bsChatMain');
+    if (main) {
+      main.insertAdjacentHTML('beforeend', this._msgHtml(fakeMsg, { optimistic: true }));
+      main.scrollTop = main.scrollHeight;
+    }
+
     try {
       const json = await ogModule('api').post('/api/chat/manual-send', {
         bot_number:    this._activeBotNum,
         client_number: this._activeNum,
-        client_id:     this._activeId,
+        client_id:     clientIdAtSend,
         message
       });
 
       if (!json.success) throw new Error(json.error ?? 'Error al enviar');
 
       input.value = '';
-      // Invalidar caché de mensajes para que recargue con el nuevo mensaje
-      ogCache.delete(this._cacheMsgs(this._activeId));
-      await this.loadMessages(this._activeId);
+      // Fetch silencioso: reemplaza la burbuja optimista con el mensaje real de la BD
+      await this._syncMessages(clientIdAtSend);
 
     } catch (e) {
+      // Quitar la burbuja optimista si el envío falló
+      document.querySelector('.bs-msg-optimistic')?.remove();
       alert('Error: ' + e.message);
     } finally {
       input.disabled = false;

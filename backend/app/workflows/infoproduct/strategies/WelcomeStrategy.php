@@ -222,12 +222,26 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     $expiry = date('Y-m-d H:i:s', strtotime('+72 hours'));
     $now    = date('Y-m-d H:i:s');
-    ogDb::raw(
-      "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc)
-       VALUES (?, ?, 'open_chat', ?, ?, ?)
-       ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value), tc = VALUES(tc)",
-      [$clientId, $botId, $expiry, $now, time()]
+
+    // Welcome siempre impone 72h — siempre mayor que cualquier +24h de mensaje
+    // Usamos SELECT+UPDATE/INSERT explícito para no depender de UNIQUE constraint
+    $existingMeta   = ogDb::raw(
+      "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
+      [$clientId, $botId]
     );
+    $existingExpiry = $existingMeta[0]['meta_value'] ?? null;
+
+    if ($existingExpiry) {
+      ogDb::raw(
+        "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat'",
+        [$expiry, time(), $clientId, $botId]
+      );
+    } else {
+      ogDb::raw(
+        "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'open_chat', ?, ?, ?)",
+        [$clientId, $botId, $expiry, $now, time()]
+      );
+    }
     ogLog::info("WelcomeStrategy - Ventana open_chat abierta +72h", [
       'client_id' => $clientId, 'bot_id' => $botId, 'expires_at' => $expiry
     ], $this->logMeta);

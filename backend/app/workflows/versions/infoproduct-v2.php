@@ -35,7 +35,7 @@ class InfoproductV2Handler {
    * - Testing Facebook: private $forcedProvider = 'whatsapp-cloud-api';
    * - Producción: private $forcedProvider = null;
    */
-  private $forcedProvider = 'whatsapp-cloud-api'; // DEBUG: cambiar aqui para produccion
+  private $forcedProvider = null; // null = usa config del bot (producción). Ver constantes PROVIDER_* arriba.
 
   /**
    * Límite de horas para usar WhatsApp Cloud API (Facebook)
@@ -160,25 +160,28 @@ class InfoproductV2Handler {
     ogLog::info("handle - Resultado de welcome detection", [ 'welcome_check' => $welcomeCheck ], $this->logMeta);
 
     if ( ($welcomeCheck['is_welcome'] && !$hasConversation['exists']) || ($welcomeCheck['is_welcome_diff_product'] && $hasConversation['exists']) ) {
-      // ✅ 3. CONFIGURAR PROVIDER PARA WELCOME
-      $selectedProvider = $this->forcedProvider ?? self::PROVIDER_FACEBOOK;
+      // Provider real del bot (para filtrar el webhook — siempre del config)
+      $botProvider      = $bot['config']['apis']['chat'][0]['config']['type_value'] ?? self::PROVIDER_EVOLUTION;
+      // Provider de envío (puede ser forzado para testing)
+      $selectedProvider = $this->forcedProvider ?? $botProvider;
 
       ogLog::info("handle - Welcome detectado", [
         'product_id' => $welcomeCheck['product_id'],
-        'selected_provider' => $selectedProvider,
+        'bot_provider' => $botProvider,
+        'send_provider' => $selectedProvider,
         'has_active_conversation' => $hasConversation['exists']
       ], $this->logMeta);
 
-      // Verificar si debe procesarse según webhook provider
-      if (!$this->shouldProcessWebhook($webhookProvider, $selectedProvider)) {
+      // Verificar si debe procesarse según el provider REAL del bot (no el forzado)
+      if (!$this->shouldProcessWebhook($webhookProvider, $botProvider)) {
         ogLog::info("handle - Welcome descartado (webhook incorrecto)", [
           'webhook_source' => $webhookSource,
-          'selected_provider' => $selectedProvider
+          'bot_provider' => $botProvider
         ], $this->logMeta);
         return;
       }
 
-      // Configurar provider ANTES de ejecutar welcome
+      // Configurar provider de envío (aquí sí puede ser el forzado)
       $this->configureChatProvider($bot, $selectedProvider);
 
       $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
@@ -189,19 +192,22 @@ class InfoproductV2Handler {
     if ( $hasConversation['exists'] ?? false ) {
       $chat = $hasConversation['chat'];
 
-      // Determinar provider correcto según tiempo
+      // Determinar provider real del bot (para filtro de webhook)
       $correctProvider = $this->selectChatProvider($chat, $bot);
+      // Provider de envio: puede ser forzado para testing
+      $sendProvider = $this->forcedProvider ?? $correctProvider;
 
-      // Verificar si debe procesarse este webhook
+      // Verificar si debe procesarse este webhook (siempre con provider real del bot)
       if (!$this->shouldProcessWebhook($webhookProvider, $correctProvider)) {
         return; // Descartar webhook duplicado
       }
 
-      // Configurar servicio con el provider correcto
-      $this->configureChatProvider($bot, $correctProvider);
+      // Configurar servicio con el provider de envio
+      $this->configureChatProvider($bot, $sendProvider);
 
-      ogLog::info("handle - No es welcome ➜ Continuar conversación", [
-        'provider' => $correctProvider,
+      ogLog::info("handle - No es welcome ➞ Continuar conversación", [
+        'bot_provider'  => $correctProvider,
+        'send_provider' => $sendProvider,
         'webhook_provider' => $webhookProvider
       ], $this->logMeta);
 
@@ -589,23 +595,18 @@ class InfoproductV2Handler {
   // ========================================
 
   /**
-   * Seleccionar provider de ChatAPI según configuración y tiempo
+   * Seleccionar provider de ChatAPI según configuración del bot
+   * Devuelve siempre el provider real del bot (para filtro de webhook).
+   * El forcedProvider se aplica solo al configurar el envio en el caller.
    */
   private function selectChatProvider($chat, $bot) {
-    // Provider forzado para testing — null = usar config del bot
-    if ($this->forcedProvider !== null) {
-      ogLog::info("selectChatProvider - Provider forzado", [
-        'forced_provider' => $this->forcedProvider
-      ], $this->logMeta);
-      return $this->forcedProvider;
-    }
-
-    // Usar el primer provider de chat configurado en el bot
+    // Provider real del bot desde config (para filtro de webhook)
     $botProvider = $bot['config']['apis']['chat'][0]['config']['type_value'] ?? self::PROVIDER_EVOLUTION;
 
-    ogLog::info("selectChatProvider - Provider desde config del bot", [
-      'provider' => $botProvider,
-      'bot_id'   => $bot['id'] ?? null
+    ogLog::info("selectChatProvider - Provider resuelto", [
+      'bot_provider'    => $botProvider,
+      'forced_provider' => $this->forcedProvider,
+      'bot_id'          => $bot['id'] ?? null
     ], $this->logMeta);
 
     // NOTA: Para WhatsApp Cloud API existe ventana de conversación gratuita:

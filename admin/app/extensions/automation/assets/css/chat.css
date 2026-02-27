@@ -30,6 +30,37 @@
     border-bottom: 1px solid var(--og-gray-200);
     background: var(--og-layout-content-bg);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bs-chat-refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--og-gray-400);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.2rem 0.35rem;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+  }
+
+  .bs-chat-refresh-btn:hover {
+    color: var(--og-accent-primary);
+    background: var(--og-blue-50);
+  }
+
+  .bs-chat-refresh-btn.spinning {
+    animation: bsChatSpin 0.6s linear infinite;
+  }
+
+  @keyframes bsChatSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
   }
 
   .bs-chat-list {
@@ -296,6 +327,11 @@
   }
 
   /* ── Burbujas de mensajes ────────────────────────────────────────────────────────── */
+  .bs-msg.bs-msg-optimistic .bs-msg-bubble {
+    opacity: 0.55;
+    transition: opacity 0.3s ease;
+  }
+
   .bs-msg {
     display: flex;
     width: 100%;
