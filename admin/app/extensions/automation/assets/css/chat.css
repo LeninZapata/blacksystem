@@ -1,0 +1,116 @@
+/* chat.css - Layout del panel de chats */
+
+.onlygrow-active {
+
+  /* ── Contenedor principal ──────────────────────────────────────────────── */
+  .bs-chat {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    height: calc(100vh - var(--og-layout-header-height) - 110px);
+    border: 1px solid var(--og-gray-200);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--og-layout-content-bg);
+  }
+
+  /* ── Sidebar (lista de contactos) ─────────────────────────────────────── */
+  .bs-chat-sidebar {
+    border-right: 1px solid var(--og-gray-200);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--og-gray-50);
+  }
+
+  .bs-chat-sidebar-header {
+    padding: 0.875rem 1rem;
+    font-weight: 600;
+    font-size: var(--og-font-sm);
+    color: var(--og-gray-700);
+    border-bottom: 1px solid var(--og-gray-200);
+    background: var(--og-layout-content-bg);
+    flex-shrink: 0;
+  }
+
+  .bs-chat-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* ── Item de contacto ─────────────────────────────────────────────────── */
+  .bs-chat-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--og-gray-100);
+    border-left: 3px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+  }
+
+  .bs-chat-item:hover {
+    background: var(--og-blue-50);
+  }
+
+  .bs-chat-item.active {
+    background: var(--og-blue-100);
+    border-left-color: var(--og-accent-primary);
+  }
+
+  .bs-chat-item-number {
+    font-size: var(--og-font-sm);
+    font-weight: 600;
+    color: var(--og-gray-800);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bs-chat-item-name {
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-500);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Botón "Cargar más" ───────────────────────────────────────────────── */
+  .bs-chat-loadmore {
+    padding: 0.625rem 1rem;
+    border-top: 1px solid var(--og-gray-200);
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .bs-chat-loadmore .btn {
+    width: 100%;
+    font-size: var(--og-font-xs);
+  }
+
+  /* ── Panel principal (mensajes / placeholder) ─────────────────────────── */
+  .bs-chat-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--og-gray-50);
+    overflow: hidden;
+  }
+
+  .bs-chat-empty-state {
+    text-align: center;
+    color: var(--og-gray-400);
+    font-size: var(--og-font-sm);
+  }
+
+  .bs-chat-empty-state .icon {
+    display: block;
+    font-size: 2.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Mensajes utilitarios dentro del listado ──────────────────────────── */
+  .bs-chat-loading,
+  .bs-chat-empty-msg {
+    padding: 1rem;
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-400);
+    text-align: center;
+  }
+}

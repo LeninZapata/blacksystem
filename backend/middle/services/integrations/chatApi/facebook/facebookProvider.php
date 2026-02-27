@@ -22,6 +22,11 @@ class facebookProvider extends baseChatApiProvider {
     return 'whatsapp-cloud-api';
   }
 
+  // Facebook usa números limpios sin sufijo @s.whatsapp.net
+  protected function formatNumber(string $number): string {
+    return preg_replace('/[^0-9]/', '', $number);
+  }
+
   // Validación específica de Facebook (no sobrescribe validateConfig)
   private function validateFacebookConfig(): void {
     if (empty($this->apiKey)) {
@@ -33,76 +38,88 @@ class facebookProvider extends baseChatApiProvider {
     }
   }
 
-  function sendMessage(string $number, string $message, string $url = ''): array {
+  // Helper interno: POST al Graph API
+  private function postToGraph(array $payload): array {
+    $endpoint = "https://graph.facebook.com/v21.0/{$this->phoneNumberId}/messages";
+    $http = ogApp()->helper('http');
 
+    $response = $http::post($endpoint, $payload, [
+      'headers' => [
+        'Authorization: Bearer ' . $this->apiKey,
+        'Content-Type: application/json'
+      ]
+    ]);
+
+    if (!$response['success']) {
+      return $this->errorResponse($response['error'] ?? 'HTTP error al llamar Graph API');
+    }
+
+    $data = $response['data'];
+
+    if (isset($data['messages'][0]['id'])) {
+      return $this->successResponse([
+        'message_id' => $data['messages'][0]['id'],
+        'timestamp'  => time()
+      ]);
+    }
+
+    return $this->errorResponse('Graph API - respuesta inesperada: ' . json_encode($data));
+  }
+
+  function sendMessage(string $number, string $message, string $url = ''): array {
     $number = $this->formatNumber($number);
     $mediaType = $this->detectMediaType($url);
 
-    // URL base de Graph API
-    $endpoint = "https://graph.facebook.com/v21.0/{$this->phoneNumberId}/messages";
-
-    // Payload base
     $payload = [
       'messaging_product' => 'whatsapp',
-      'recipient_type' => 'individual',
-      'to' => $number
+      'recipient_type'    => 'individual',
+      'to'                => $number
     ];
 
     if ($mediaType === 'text') {
-      // Mensaje de texto simple
       $payload['type'] = 'text';
       $payload['text'] = ['body' => $message];
+    } elseif ($mediaType === 'audio') {
+      $payload['type']  = 'audio';
+      $payload['audio'] = ['link' => $url];
+    } elseif ($mediaType === 'image') {
+      $payload['type']  = 'image';
+      $payload['image'] = ['link' => $url, 'caption' => $message ?: null];
+    } elseif ($mediaType === 'video') {
+      $payload['type']  = 'video';
+      $payload['video'] = ['link' => $url, 'caption' => $message ?: null];
     } else {
-      // Media (image, video, document, audio)
-      $payload['type'] = $mediaType;
-
-      if ($mediaType === 'audio') {
-        $payload['audio'] = ['link' => $url];
-      } elseif ($mediaType === 'image') {
-        $payload['image'] = [
-          'link' => $url,
-          'caption' => $message ?: null
-        ];
-      } elseif ($mediaType === 'video') {
-        $payload['video'] = [
-          'link' => $url,
-          'caption' => $message ?: null
-        ];
-      } elseif ($mediaType === 'document') {
-        $payload['document'] = [
-          'link' => $url,
-          'caption' => $message ?: null,
-          'filename' => $this->extractFilename($url)
-        ];
-      }
+      $payload['type']     = 'document';
+      $payload['document'] = [
+        'link'     => $url,
+        'caption'  => $message ?: null,
+        'filename' => $this->extractFilename($url)
+      ];
     }
 
     try {
-      $http = ogApp()->helper('http');
-      $response = $http::post($endpoint, $payload, [
-        'headers' => [
-          'Authorization: Bearer ' . $this->apiKey,
-          'Content-Type: application/json'
-        ]
-      ]);
+      return $this->postToGraph($payload);
+    } catch (Exception $e) {
+      return $this->errorResponse($e->getMessage());
+    }
+  }
 
-      if (!$response['success']) {
-        return $this->errorResponse(
-          $response['error'] ?? __('services.facebook.send_message.http_error')
-        );
-      }
+  // Enviar mensaje interactivo (botones, listas)
+  // $interactive: el objeto completo del campo "interactive" del payload de Facebook
+  // Ej: ['type'=>'button','body'=>['text'=>'...'],'action'=>['buttons'=>[...]]]
+  function sendInteractive(string $number, array $interactive): array {
+    $number = $this->formatNumber($number);
 
-      $data = $response['data'];
+    $payload = [
+      'messaging_product' => 'whatsapp',
+      'recipient_type'    => 'individual',
+      'to'                => $number,
+      'type'              => 'interactive',
+      'interactive'       => $interactive
+    ];
 
-      if (isset($data['messages'][0]['id'])) {
-        return $this->successResponse([
-          'message_id' => $data['messages'][0]['id'],
-          'timestamp' => time()
-        ]);
-      }
-
-      return $this->errorResponse(__('services.facebook.send_message.unexpected_response'));
-
+    try {
+      return $this->postToGraph($payload);
     } catch (Exception $e) {
       return $this->errorResponse($e->getMessage());
     }

@@ -9,15 +9,40 @@ class WebhookController {
       ogLog::info('whatsapp - Webhook recibido', [], $this->logMeta);
       // ogLog::info('whatsapp - Webhook recibido RAW', $rawData, $this->logMeta);
 
-      // Cargar servicio ogChatApi bajo demanda
+      // Cargar servicio chatApi bajo demanda
       $chatapi = ogApp()->service('chatApi');
-      $result = $chatapi->detectAndNormalize($rawData);
 
-      if (!$result) {
+      // PASO 1: Detectar provider desde la estructura del webhook
+      $detectedProvider = $chatapi->detect($rawData);
+      if (!$detectedProvider) {
         ogResponse::json(['success' => false, 'error' => 'Provider no detectado'], 400);
-      } ogLog::info('whatsapp - Provider detectado', ['provider' => $result['provider']], $this->logMeta);
+      }
+      ogLog::info('whatsapp - Provider detectado', ['provider' => $detectedProvider], $this->logMeta);
 
-      $detectedProvider = $result['provider'];
+      // PASO 2: Extraer número del bot desde el payload crudo (sin normalizar)
+      $botNumber = $chatapi->extractSenderFromRaw($rawData, $detectedProvider);
+      if (!$botNumber) {
+        ogResponse::json(['success' => false, 'error' => 'Sender no encontrado en el payload'], 400);
+      }
+
+      // PASO 3: Cargar el bot
+      ogApp()->loadHandler('bot');
+      $bot = BotHandler::getDataFile($botNumber);
+      if (!$bot) {
+        ogResponse::json(['success' => false, 'error' => "Bot no encontrado: {$botNumber}"], 404);
+      }
+      ogLog::info('whatsapp - Bot encontrado', ['bot_number' => $bot['number'], 'bot_name' => $bot['name'] ?? null], $this->logMeta);
+
+      // PASO 4: Configurar el servicio con los datos del bot
+      // (debe ocurrir ANTES de normalizar para que la descarga de media tenga acceso al access_token)
+      $chatapi->setConfig($bot, $detectedProvider);
+
+      // PASO 5: Normalizar + estandarizar ahora que setConfig ya fue llamado
+      $result = $chatapi->normalizeRaw($rawData, $detectedProvider);
+      if (!$result) {
+        ogResponse::json(['success' => false, 'error' => 'Error al normalizar webhook'], 400);
+      }
+
       $normalized = $result['normalized'];
       $standard = $result['standard'];
 
@@ -26,7 +51,6 @@ class WebhookController {
       $message = $standard['message'];
       $context = $standard['context'];
       $webhookData = $standard['webhook'];
-
 
       // FILTRO: Ignorar eventos de status (sent, delivered, read)
       if ($message['type'] === 'STATUS') {
@@ -41,21 +65,10 @@ class WebhookController {
           'ignored' => true
         ]);
       }
-      if (!$sender['number']) {
-        ogResponse::json(['success' => false, 'error' => 'Sender no encontrado'], 400);
-      }
 
       if (!$person['number']) {
         ogResponse::json(['success' => false, 'error' => 'Person no encontrado'], 400);
       }
-
-      // Cargar BotHandler bajo demanda
-      ogApp()->loadHandler('bot');
-      $bot = BotHandler::getDataFile($sender['number']);
-
-      if (!$bot) {
-        ogResponse::json(['success' => false, 'error' => "Bot no encontrado: {$sender['number']}"], 404);
-      } ogLog::info('whatsapp - Bot encontrado', ['bot_number' => $bot['number'], 'bot_name' => $bot['name'] ?? null ], $this->logMeta);
 
       // Enriquecer el standard con datos del bot
       $standard['sender']['user_id'] = $bot['user_id'] ?? null;
@@ -71,13 +84,11 @@ class WebhookController {
         'country_code' => $bot['country_code'] ?? null
       ];
 
-      $chatapi->setConfig($bot, $detectedProvider);
-
-      $workflowData = BotHandler::getWorkflowFile($sender['number']);
+      $workflowData = BotHandler::getWorkflowFile($botNumber);
       $workflowFile = $workflowData['file_path'] ?? null;
 
       if (!$workflowFile) {
-        ogLog::error('whatsapp - Workflow no configurado', [ 'bot_number' => $sender['number'] ], $this->logMeta);
+        ogLog::error('whatsapp - Workflow no configurado', [ 'bot_number' => $botNumber ], $this->logMeta);
         ogResponse::json(['success' => false, 'error' => 'Workflow no configurado'], 400);
       }
 

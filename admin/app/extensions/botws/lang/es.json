@@ -60,6 +60,11 @@
           "credential_chat": {
             "label": "API de Chat"
           },
+          "phone_number_id": {
+            "label": "Phone Number ID",
+            "placeholder": "Ej: 1107672142420396",
+            "hint": "Requerido para WhatsApp Cloud API. Obtén este ID en Meta Business Manager."
+          },
           "task": {
             "label": "Tarea",
             "conversation": "Conversación",

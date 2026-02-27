@@ -50,7 +50,7 @@ class InfoproductV2Handler {
   // ========================================
   private $actionDispatcher;
   private $maxConversationDays = 2;
-  private $bufferDelay = OG_IS_DEV ? 3 : 8;
+  private $bufferDelay = OG_IS_DEV ? 3 : 9;
   private $appPath;
 
   // Prompts personalizados

@@ -33,7 +33,7 @@
       "name": "personality",
       "label": "i18n:botws.bot.form.field.personality",
       "type": "textarea",
-      "validation": "max:550",
+      "validation": "max:1550",
       "placeholder": "i18n:botws.bot.form.field.personality.placeholder",
       "rows": 8
     },
@@ -116,6 +116,13 @@
                   "options": [
                     {"value": "", "label": "i18n:core.form.select.placeholder"}
                   ]
+                },
+                {
+                  "name": "phone_number_id",
+                  "label": "i18n:botws.bot.form.field.phone_number_id.label",
+                  "type": "text",
+                  "placeholder": "i18n:botws.bot.form.field.phone_number_id.placeholder",
+                  "hint": "i18n:botws.bot.form.field.phone_number_id.hint"
                 }
               ]
             }

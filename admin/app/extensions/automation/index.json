@@ -12,6 +12,12 @@
     "order": 40,
     "items": [
       {
+        "id": "automation-chats",
+        "title": "Chats",
+        "view": "sections/automation-chats",
+        "order": 0
+      },
+      {
         "id": "automation-bots",
         "title": "Bots Whatsapp",
         "view": "botws|sections/botws-listado",

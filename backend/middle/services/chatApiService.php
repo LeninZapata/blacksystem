@@ -41,36 +41,53 @@ class chatApiService {
     return self::$botData;
   }
 
-  // Detectar provider desde webhook y normalizar
-  static function detectAndNormalize($rawData) {
-    // Extraer primer elemento si viene como array
+  // Detectar provider desde la estructura del webhook (sin normalizar)
+  static function detect($rawData) {
     $data = is_array($rawData) && isset($rawData[0]) ? $rawData[0] : $rawData;
-    ogLog::info('webhook desde evolution', $data, self::$logMeta);
-
-    // Detectar provider basado en estructura del webhook
-    $provider = null;
 
     // Evolution API - Formato directo (producción)
     if (isset($data['event']) && isset($data['instance']) && isset($data['sender'])) {
-      $provider = 'evolutionapi';
+      return 'evolutionapi';
     }
     // Evolution API - Formato envuelto en body (desarrollo/n8n)
-    elseif (isset($data['body']['event']) && isset($data['body']['instance'])) {
-      $provider = 'evolutionapi';
+    if (isset($data['body']['event']) && isset($data['body']['instance'])) {
+      return 'evolutionapi';
     }
     // Facebook/WhatsApp Cloud API
-    elseif (isset($data['object']) && $data['object'] === 'whatsapp_business_account') {
-      $provider = 'whatsapp-cloud-api';
+    if (isset($data['object']) && $data['object'] === 'whatsapp_business_account') {
+      return 'whatsapp-cloud-api';
     }
 
-    if (!$provider) {
-      ogLog::warning('detectAndNormalize - Provider no detectado', ['data_keys' => array_keys($data)], self::$logMeta);
-      return null;
+    ogLog::warning('detect - Provider no detectado', ['data_keys' => array_keys($data)], self::$logMeta);
+    return null;
+  }
+
+  // Extraer número del bot desde el payload crudo (sin normalización completa)
+  // Necesario para encontrar el bot ANTES de normalizar (y antes de setConfig)
+  static function extractSenderFromRaw($rawData, $provider) {
+    $data = is_array($rawData) && isset($rawData[0]) ? $rawData[0] : $rawData;
+
+    switch ($provider) {
+      case 'evolutionapi':
+        // Formato directo: sender está en root
+        $sender = $data['sender'] ?? $data['body']['sender'] ?? null;
+        if (!$sender) return null;
+        // Limpiar sufijo WhatsApp: "573001234567@s.whatsapp.net" → "573001234567"
+        return str_ireplace('@s.whatsapp.net', '', (string)$sender);
+
+      case 'whatsapp-cloud-api':
+        // El número del bot está en metadata.display_phone_number
+        $displayPhone = $data['entry'][0]['changes'][0]['value']['metadata']['display_phone_number'] ?? null;
+        // Limpiar posible "+" inicial
+        return $displayPhone ? ltrim($displayPhone, '+') : null;
+
+      default:
+        return null;
     }
+  }
 
-    ogLog::info('detectAndNormalize - Provider detectado', ['provider' => $provider], self::$logMeta);
-
-    // Normalizar según provider
+  // Normalizar + estandarizar con provider ya conocido (llamar DESPUÉS de setConfig)
+  static function normalizeRaw($rawData, $provider) {
     $normalized = self::normalize($provider, $rawData);
     $standard = self::standardize($provider, $normalized);
 
@@ -79,6 +96,17 @@ class chatApiService {
       'normalized' => $normalized,
       'standard' => $standard
     ];
+  }
+
+  // Detectar provider desde webhook y normalizar (mantiene compatibilidad)
+  static function detectAndNormalize($rawData) {
+    $provider = self::detect($rawData);
+
+    if (!$provider) return null;
+
+    ogLog::info('detectAndNormalize - Provider detectado', ['provider' => $provider], self::$logMeta);
+
+    return self::normalizeRaw($rawData, $provider);
   }
 
   // Normalizar webhook según provider
@@ -159,6 +187,45 @@ class chatApiService {
     ogLog::throwError(__('services.ogChatApi.all_providers_failed'), ['error' => $lastError, 'to' => $to], self::$logMeta);
   }
 
+  // Enviar mensaje interactivo (botones, listas) — solo WhatsApp Cloud API lo soporta.
+  // Evolution API no tiene este concepto nativo; si el bot usa Evolution se omite silenciosamente.
+  // $interactive: el objeto del campo "interactive" del payload de Facebook:
+  //   ['type'=>'button', 'body'=>['text'=>'...'], 'action'=>['buttons'=>[...]]]
+  static function sendInteractive(string $to, array $interactive): array {
+    if (!self::$config) ogLog::throwError(__('services.ogChatApi.not_configured'), [], self::$logMeta);
+
+    $lastError = null;
+    foreach (self::$config as $index => $apiConfig) {
+      try {
+        $provider = self::getProviderInstance($apiConfig);
+
+        // Solo facebookProvider implementa sendInteractive
+        if (!method_exists($provider, 'sendInteractive')) {
+          ogLog::warning('sendInteractive - Provider no soportado, se omite', [
+            'provider' => $provider->getProviderName()
+          ], self::$logMeta);
+          continue;
+        }
+
+        $response = $provider->sendInteractive($to, $interactive);
+
+        if ($response['success']) {
+          $response['used_fallback'] = $index > 0;
+          $response['attempt']  = $index + 1;
+          $response['provider'] = self::$provider;
+          return $response;
+        }
+
+        $lastError = $response['error'] ?? 'Unknown error';
+      } catch (Exception $e) {
+        $lastError = $e->getMessage();
+        if ($index < count(self::$config) - 1) continue;
+      }
+    }
+
+    ogLog::throwError('sendInteractive - Todos los providers fallaron o no soportan interactive', ['error' => $lastError, 'to' => $to], self::$logMeta);
+  }
+
   static function sendPresence(string $to, string $presenceType, int $delay = 1200): array {
     if (!self::$config) return ['success' => true, 'silent' => true];
 
@@ -213,13 +280,13 @@ class chatApiService {
     if (isset(self::$providers[$cacheKey])) return self::$providers[$cacheKey];
 
     $config = [
-      'api_key'  => $apiConfig['config']['credential_value'] ?? $apiConfig['config']['access_token'] ?? '',
-      'instance' => $apiConfig['config']['instance'] ?? '',
-      'base_url' => $apiConfig['config']['base_url'] ?? '',
-      // Campos específicos de Facebook
-      /*'phone_number_id' => $apiConfig['config']['phone_number_id'] ?? '',
+      'api_key'      => $apiConfig['config']['credential_value'] ?? $apiConfig['config']['access_token'] ?? '',
+      'access_token' => $apiConfig['config']['access_token'] ?? $apiConfig['config']['credential_value'] ?? '',
+      'instance'     => $apiConfig['config']['instance'] ?? '',
+      'base_url'     => $apiConfig['config']['base_url'] ?? '',
+      // Campos específicos de Facebook/WhatsApp Cloud API
+      'phone_number_id'    => $apiConfig['config']['phone_number_id'] ?? '',
       'business_account_id' => $apiConfig['config']['business_account_id'] ?? '',
-      'access_token' => $apiConfig['config']['access_token'] ?? ''*/
     ];
 
     ogLog::info('getProviderInstance - Config extraído', ['type' => $type, 'config' => $config, 'apiConfig' => $apiConfig], self::$logMeta);

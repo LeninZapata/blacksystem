@@ -402,7 +402,7 @@ class ogSidebar {
     // ✅ Si el usuario es admin, mostrar TODO
     if (userRole === 'admin') {
       ogLogger?.info('core:sidebar', '👑 Usuario admin - mostrando todos los menús sin filtrado');
-      return menuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
+      return menuItems.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
     }
     
     return menuItems
@@ -424,7 +424,7 @@ class ogSidebar {
         }
         return true;
       })
-      .sort((a, b) => (a.order || 999) - (b.order || 999));
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
   }
 }
 

@@ -1,5 +1,24 @@
 <?php
-// Webhook de WhatsApp (Evolution API)
+// Verificación de webhook de Meta (WhatsApp Cloud API)
+// Meta hace un GET con hub_mode=subscribe, hub_verify_token y hub_challenge para confirmar la URL
+$router->get('/api/webhook/whatsapp', function() {
+  $mode  = $_GET['hub_mode'] ?? null;
+  $token = $_GET['hub_verify_token'] ?? null;
+  $challenge = $_GET['hub_challenge'] ?? null;
+
+  if ($mode === 'subscribe' && $token === WEBHOOK_META_VERIFY_TOKEN) {
+    http_response_code(200);
+    header('Content-Type: text/plain');
+    echo $challenge;
+    exit;
+  }
+
+  http_response_code(403);
+  echo 'Forbidden';
+  exit;
+});
+
+// Webhook de WhatsApp
 $router->post('/api/webhook/whatsapp', 'webhook@whatsapp')->middleware(['json']);
 
 // Webhooks futuros (Telegram, etc)

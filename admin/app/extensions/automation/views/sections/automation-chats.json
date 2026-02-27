@@ -1,0 +1,14 @@
+{
+  "id": "automationChats",
+  "title": "💬 Chats",
+  "type": "content",
+  "styles": ["automation/assets/css/chat.css"],
+  "scripts": ["automation/assets/js/chat.js"],
+  "content": [
+    {
+      "type": "html",
+      "order": 0,
+      "content": "<div class='bs-chat'><div class='bs-chat-sidebar'><div class='bs-chat-sidebar-header'>💬 Contactos</div><div id='bsChatList' class='bs-chat-list'></div><div id='bsChatLoadMore' class='bs-chat-loadmore' style='display:none'><button class='btn btn-secondary' onclick='chat.loadMore()'>Cargar más</button></div></div><div id='bsChatMain' class='bs-chat-main'><div class='bs-chat-empty-state'><span class='icon'>💬</span><p>Selecciona un contacto</p></div></div></div><script>setTimeout(()=>chat.init(), 80);</script>"
+    }
+  ]
+}

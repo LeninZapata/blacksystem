@@ -47,7 +47,7 @@ class ogHook {
       normalizedConfig.menu = {
         title: config.menu.title || extensionName,
         icon: config.menu.icon || '📦',
-        order: config.menu.order || 100,
+        order: config.menu.order ?? 100,
         role: config.menu.role || null,
         items: config.menu.items
           ? this.processMenuItems(config.menu.items, extensionName, extensionScripts, extensionStyles)
@@ -169,7 +169,7 @@ class ogHook {
         const processedItem = {
           id: item.id,
           title: item.title,
-          order: item.order || 999
+          order: item.order ?? 999
         };
 
         if (item.role) {
@@ -197,7 +197,7 @@ class ogHook {
 
         return processedItem;
       })
-      .sort((a, b) => (a.order || 100) - (b.order || 100));
+      .sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
   }
 
   static getMenuItems() {
@@ -215,7 +215,7 @@ class ogHook {
           id: pluginConfig.name || extensionName,
           title: pluginConfig.menu.title,
           icon: pluginConfig.menu.icon,
-          order: pluginConfig.menu.order || 100
+          order: pluginConfig.menu.order ?? 100
         };
 
         if (pluginConfig.menu.role) {
@@ -234,7 +234,7 @@ class ogHook {
       }
     }
 
-    menuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
+    menuItems.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
     return menuItems;
   }
@@ -289,7 +289,7 @@ class ogHook {
 
           if (Array.isArray(hookResult)) {
             const itemsWithOrder = hookResult.map(item => ({
-              order: item.order || 999,
+              order: item.order ?? 999,
               ...item
             }));
             results = [...results, ...itemsWithOrder];
@@ -304,7 +304,7 @@ class ogHook {
       }
     }
 
-    results.sort((a, b) => (a.order || 999) - (b.order || 999));
+    results.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
     return results;
   }

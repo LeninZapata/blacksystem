@@ -54,15 +54,15 @@ class facebookNormalizer {
         $mediaId = $message['image']['id'] ?? '';
         $caption = $message['image']['caption'] ?? '';
         $mimeType = $message['image']['mime_type'] ?? 'image/jpeg';
-        
-        // Descargar y convertir a base64
+        $webhookMediaUrl = $message['image']['url'] ?? null;
+
         if ($mediaId) {
-          $downloadResult = self::downloadMediaToBase64($mediaId, $metadata['phone_number_id'] ?? '');
+          $downloadResult = self::downloadMediaToBase64($mediaId, $webhookMediaUrl);
           if ($downloadResult['success']) {
             $base64 = $downloadResult['base64'];
             $mediaUrl = $downloadResult['url'];
           } else {
-            $mediaUrl = $mediaId;
+            $mediaUrl = $webhookMediaUrl ?? $mediaId;
           }
         }
         break;
@@ -71,14 +71,15 @@ class facebookNormalizer {
         $mediaId = $message['video']['id'] ?? '';
         $caption = $message['video']['caption'] ?? '';
         $mimeType = $message['video']['mime_type'] ?? 'video/mp4';
-        
+        $webhookMediaUrl = $message['video']['url'] ?? null;
+
         if ($mediaId) {
-          $downloadResult = self::downloadMediaToBase64($mediaId, $metadata['phone_number_id'] ?? '');
+          $downloadResult = self::downloadMediaToBase64($mediaId, $webhookMediaUrl);
           if ($downloadResult['success']) {
             $base64 = $downloadResult['base64'];
             $mediaUrl = $downloadResult['url'];
           } else {
-            $mediaUrl = $mediaId;
+            $mediaUrl = $webhookMediaUrl ?? $mediaId;
           }
         }
         break;
@@ -87,14 +88,15 @@ class facebookNormalizer {
         $mediaId = $message['audio']['id'] ?? '';
         $mimeType = $message['audio']['mime_type'] ?? 'audio/ogg';
         $isVoice = $message['audio']['voice'] ?? false;
-        
+        $webhookMediaUrl = $message['audio']['url'] ?? null;
+
         if ($mediaId) {
-          $downloadResult = self::downloadMediaToBase64($mediaId, $metadata['phone_number_id'] ?? '');
+          $downloadResult = self::downloadMediaToBase64($mediaId, $webhookMediaUrl);
           if ($downloadResult['success']) {
             $base64 = $downloadResult['base64'];
             $mediaUrl = $downloadResult['url'];
           } else {
-            $mediaUrl = $mediaId;
+            $mediaUrl = $webhookMediaUrl ?? $mediaId;
           }
         }
         break;
@@ -104,14 +106,15 @@ class facebookNormalizer {
         $caption = $message['document']['caption'] ?? '';
         $mimeType = $message['document']['mime_type'] ?? 'application/pdf';
         $text = $message['document']['filename'] ?? '';
-        
+        $webhookMediaUrl = $message['document']['url'] ?? null;
+
         if ($mediaId) {
-          $downloadResult = self::downloadMediaToBase64($mediaId, $metadata['phone_number_id'] ?? '');
+          $downloadResult = self::downloadMediaToBase64($mediaId, $webhookMediaUrl);
           if ($downloadResult['success']) {
             $base64 = $downloadResult['base64'];
             $mediaUrl = $downloadResult['url'];
           } else {
-            $mediaUrl = $mediaId;
+            $mediaUrl = $webhookMediaUrl ?? $mediaId;
           }
         }
         break;
@@ -120,14 +123,15 @@ class facebookNormalizer {
         $mediaId = $message['sticker']['id'] ?? '';
         $mimeType = $message['sticker']['mime_type'] ?? 'image/webp';
         $isAnimated = $message['sticker']['animated'] ?? false;
-        
+        $webhookMediaUrl = $message['sticker']['url'] ?? null;
+
         if ($mediaId) {
-          $downloadResult = self::downloadMediaToBase64($mediaId, $metadata['phone_number_id'] ?? '');
+          $downloadResult = self::downloadMediaToBase64($mediaId, $webhookMediaUrl);
           if ($downloadResult['success']) {
             $base64 = $downloadResult['base64'];
             $mediaUrl = $downloadResult['url'];
           } else {
-            $mediaUrl = $mediaId;
+            $mediaUrl = $webhookMediaUrl ?? $mediaId;
           }
         }
         break;
@@ -212,21 +216,17 @@ class facebookNormalizer {
       ] : null,
       'contacts' => $type === 'contacts' ? ($message['contacts'] ?? []) : null,
       'errors' => $type === 'unsupported' ? ($message['errors'] ?? []) : null,
+      'referral' => $message['referral'] ?? [],
       'raw' => $rawData
     ];
   }
 
   // Descargar media de Facebook y convertir a base64
-  private static function downloadMediaToBase64($mediaId, $phoneNumberId) {
+  // $webhookUrl: URL directa del webhook (evita llamada extra a Graph API para obtenerla)
+  private static function downloadMediaToBase64($mediaId, $webhookUrl = null) {
     try {
-      // Obtener access token desde el rawData (lo guardamos en el normalize)
-      // Por ahora retornamos solo el mediaId, el access_token debe venir del WebhookController
-      // que ya tiene acceso al bot config
-      
-      // NOTA: Este método será llamado después de que setConfig() se ejecute en el WebhookController
-      // así que podemos acceder al servicio chatApi
       $chatApiService = ogApp()->service('chatApi');
-      
+
       // Buscar la config de whatsapp-cloud-api
       $botConfig = $chatApiService::getBotConfig();
       if (!$botConfig || !isset($botConfig['config']['apis']['chat'])) {
@@ -238,38 +238,38 @@ class facebookNormalizer {
       $accessToken = null;
       foreach ($botConfig['config']['apis']['chat'] as $api) {
         if (($api['config']['type_value'] ?? '') === 'whatsapp-cloud-api') {
-          $accessToken = $api['config']['access_token'] ?? null;
+          $accessToken = $api['config']['access_token'] ?? $api['config']['credential_value'] ?? null;
           break;
         }
       }
 
       if (!$accessToken) {
-        ogLog::warning('downloadMediaToBase64 - No se encontró access_token para whatsapp-cloud-api', ['media_id' => $mediaId], ['module' => 'facebookNormalizer']);
+        ogLog::warning('downloadMediaToBase64 - No se encontró access_token', ['media_id' => $mediaId], ['module' => 'facebookNormalizer']);
         return ['success' => false];
       }
 
-      // Paso 1: Obtener URL de descarga del media
       $http = ogApp()->helper('http');
-      $mediaInfoUrl = "https://graph.facebook.com/v21.0/{$mediaId}";
-      
-      $mediaInfoResponse = $http::get($mediaInfoUrl, [
-        'headers' => [
-          'Authorization: Bearer ' . $accessToken
-        ]
-      ]);
 
-      if (!$mediaInfoResponse['success'] || !isset($mediaInfoResponse['data']['url'])) {
-        ogLog::warning('downloadMediaToBase64 - Error obteniendo info del media', ['media_id' => $mediaId, 'response' => $mediaInfoResponse], ['module' => 'facebookNormalizer']);
-        return ['success' => false];
+      // Si el webhook ya incluye la URL, usarla directamente (evita llamada extra a Graph API)
+      if ($webhookUrl) {
+        $mediaUrl = $webhookUrl;
+        ogLog::info('downloadMediaToBase64 - Usando URL del webhook directamente', ['media_id' => $mediaId], ['module' => 'facebookNormalizer']);
+      } else {
+        // Paso 1: Obtener URL desde Graph API (fallback cuando no viene en el webhook)
+        $mediaInfoResponse = $http::get("https://graph.facebook.com/v21.0/{$mediaId}", [
+          'headers' => ['Authorization: Bearer ' . $accessToken]
+        ]);
+
+        if (!$mediaInfoResponse['success'] || !isset($mediaInfoResponse['data']['url'])) {
+          ogLog::warning('downloadMediaToBase64 - Error obteniendo URL del media', ['media_id' => $mediaId, 'response' => $mediaInfoResponse], ['module' => 'facebookNormalizer']);
+          return ['success' => false];
+        }
+        $mediaUrl = $mediaInfoResponse['data']['url'];
       }
 
-      $mediaUrl = $mediaInfoResponse['data']['url'];
-
-      // Paso 2: Descargar el archivo
+      // Descargar el archivo con autenticación
       $mediaContentResponse = $http::get($mediaUrl, [
-        'headers' => [
-          'Authorization: Bearer ' . $accessToken
-        ],
+        'headers' => ['Authorization: Bearer ' . $accessToken],
         'return_binary' => true
       ]);
 
@@ -278,9 +278,7 @@ class facebookNormalizer {
         return ['success' => false];
       }
 
-      // Paso 3: Convertir a base64
       $base64 = base64_encode($mediaContentResponse['data']);
-
       ogLog::info('downloadMediaToBase64 - Media descargado', ['media_id' => $mediaId, 'size_kb' => round(strlen($base64) / 1024, 2)], ['module' => 'facebookNormalizer']);
 
       return [
@@ -402,6 +400,8 @@ class facebookNormalizer {
     // Manejo normal para mensajes
     $type = strtoupper($normalized['type']);
     $text = $normalized['text'] ?: $normalized['caption'] ?: '';
+    $referral = $normalized['referral'] ?? [];
+    $contextType = self::detectContextType($referral);
 
     return [
       'webhook' => [
@@ -443,15 +443,44 @@ class facebookNormalizer {
         ]
       ],
       'context' => [
-        'type' => 'normal',
-        'source' => null,
-        'source_app' => null,
-        'source_url' => null,
-        'is_fb_ads' => false,
-        'ad_data' => null,
-        'raw' => []
+        'type' => $contextType,
+        'source' => $referral['source_type'] ?? null,
+        'source_app' => $referral['source_type'] ?? null,
+        'source_url' => $referral['source_url'] ?? null,
+        'is_fb_ads' => $contextType === 'conversion' && ($referral['source_type'] ?? '') === 'ad',
+        'ad_data' => self::extractAdData($referral),
+        'raw' => $referral
       ],
       'raw' => $normalized
+    ];
+  }
+
+  // === MÉTODOS PRIVADOS ===
+
+  // Detectar tipo de contexto basado en el campo referral de Facebook
+  private static function detectContextType($referral) {
+    if (empty($referral)) return 'normal';
+    if (($referral['source_type'] ?? '') === 'ad') return 'conversion';
+    return 'normal';
+  }
+
+  // Extraer datos del anuncio desde el campo referral de Facebook
+  // Estructura equivalente a evolutionNormalizer::extractAdData()
+  private static function extractAdData($referral) {
+    if (empty($referral)) return null;
+
+    return [
+      'title' => $referral['headline'] ?? null,
+      'body' => $referral['body'] ?? null,
+      'media_type' => $referral['media_type'] ?? null,
+      'media_url' => $referral['image_url'] ?? $referral['video_url'] ?? null,
+      'thumbnail_url' => $referral['thumbnail_url'] ?? null,
+      'source_id' => $referral['source_id'] ?? null,
+      'source_url' => $referral['source_url'] ?? null,
+      'source_app' => null,
+      'ctwa_clid' => $referral['ctwa_clid'] ?? null,
+      'greeting_shown' => null,
+      'greeting_body' => null
     ];
   }
 }

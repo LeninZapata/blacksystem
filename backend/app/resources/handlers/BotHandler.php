@@ -125,13 +125,22 @@ class BotHandler {
     }
 
     // Resolver credenciales de chat
+    // Soporta formato viejo (array de IDs) y nuevo (array de objetos {credential_id, phone_number_id})
     if (isset($data['config']['apis']['chat']) && is_array($data['config']['apis']['chat'])) {
       $resolvedChat = [];
-      foreach ($data['config']['apis']['chat'] as $credId) {
+      foreach ($data['config']['apis']['chat'] as $chatItem) {
+        // Detectar formato
+        $credId         = is_array($chatItem) ? ($chatItem['credential_id'] ?? null) : $chatItem;
+        $botPhoneId     = is_array($chatItem) ? ($chatItem['phone_number_id'] ?? null) : null;
+
         $credential = ogDb::t('credentials')->find($credId);
         if ($credential) {
           if (isset($credential['config']) && is_string($credential['config'])) {
             $credential['config'] = json_decode($credential['config'], true);
+          }
+          // phone_number_id del bot tiene prioridad sobre cualquier valor en la credencial
+          if ($botPhoneId) {
+            $credential['config']['phone_number_id'] = $botPhoneId;
           }
           unset($credential['dc'], $credential['da'], $credential['ta'], $credential['tu']);
           $resolvedChat[] = $credential;

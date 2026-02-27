@@ -54,7 +54,6 @@ class credential {
           // WhatsApp Cloud API (Facebook)
           if (data.config.type_value === 'whatsapp-cloud-api') {
             if (data.config.access_token) fillData.access_token = data.config.access_token;
-            if (data.config.phone_number_id) fillData.phone_number_id = data.config.phone_number_id;
             if (data.config.business_account_id) fillData.business_account_id = data.config.business_account_id;
           }
         } else if (data.type === 'ad') {
@@ -110,7 +109,6 @@ class credential {
       // WhatsApp Cloud API (Facebook)
       if (formData.chat_api === 'whatsapp-cloud-api') {
         config.access_token = formData.access_token || '';
-        config.phone_number_id = formData.phone_number_id || '';
         config.business_account_id = formData.business_account_id || '';
         config.credential_value = formData.access_token || '';
       }

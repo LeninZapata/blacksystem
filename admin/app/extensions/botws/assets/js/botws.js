@@ -67,9 +67,13 @@ class botws {
       }
     });
 
-    // Chat se mantiene como array simple de IDs
+    // Chat: soporta formato viejo (array de IDs) y nuevo (array de objetos con credential_id + phone_number_id)
     const chatArray = Array.isArray(configData.apis?.chat)
-      ? configData.apis.chat.map(id => ({ credential_id: String(id) }))
+      ? configData.apis.chat.map(item =>
+          typeof item === 'object' && item !== null
+            ? { credential_id: String(item.credential_id), phone_number_id: item.phone_number_id || '' }
+            : { credential_id: String(item), phone_number_id: '' }
+        )
       : [];
 
     // Llenar todos los campos
@@ -142,9 +146,14 @@ class botws {
       });
     }
 
-    // Chat se mantiene como array simple de IDs
+    // Chat: guardar como array de objetos {credential_id, phone_number_id}
     const chatCredentials = Array.isArray(chatArray)
-      ? chatArray.map(item => parseInt(item.credential_id || item)).filter(id => !isNaN(id))
+      ? chatArray
+          .map(item => ({
+            credential_id: parseInt(item.credential_id || item),
+            phone_number_id: item.phone_number_id || null
+          }))
+          .filter(item => !isNaN(item.credential_id))
       : [];
 
     // ✅ Validación: Al menos 1 agent y 1 chat requerido
@@ -159,13 +168,20 @@ class botws {
       return null;
     }
 
+    // Limpiar phone_number_id nulo para no guardar basura
+    const chatFinal = chatCredentials.map(item => {
+      const obj = { credential_id: item.credential_id };
+      if (item.phone_number_id) obj.phone_number_id = item.phone_number_id;
+      return obj;
+    });
+
     const workflowId = formData.config?.workflow_id || formData['config.workflow_id'] || null;
 
     const config = {
       workflow_id: workflowId,
       apis: {
         ai: aiTasks,
-        chat: chatCredentials
+        chat: chatFinal
       }
     };
 
