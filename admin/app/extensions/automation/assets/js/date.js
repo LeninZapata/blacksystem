@@ -69,6 +69,25 @@ class bsDate {
     const y = date.getFullYear();
     return `${d} de ${m} ${y} a las ${time}`;
   }
+  /**
+   * Tiempo restante desde ahora hasta dateStr (1 solo nivel).
+   * Ejemplos: "5 minutos", "2 horas", "1 día", "expirado"
+   * @param {string} dateStr
+   * @returns {string}
+   */
+  static timeRemaining(dateStr) {
+    if (!dateStr) return '';
+    const target = new Date(dateStr.replace(' ', 'T'));
+    if (isNaN(target)) return '';
+    const diffMs = target - Date.now();
+    if (diffMs <= 0) return 'expirado';
+    const mins  = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMs / 3600000);
+    const days  = Math.floor(diffMs / 86400000);
+    if (days >= 1)  return `${days} día${days > 1 ? 's' : ''}`;
+    if (hours >= 1) return `${hours} hora${hours > 1 ? 's' : ''}`;
+    return `${mins} minuto${mins !== 1 ? 's' : ''}`;
+  }
 }
 
 window.bsDate = bsDate;

@@ -86,6 +86,18 @@ class chat {
     return div.firstElementChild;
   }
 
+  // ─── Caché ─────────────────────────────────────────────────────────────────
+  // Claves: chat_msgs_{clientId} · chat_open_{clientId}
+  // TTL  : mensajes 10 min, ventana 5 min — solo memoryCache (se limpia al refrescar)
+
+  static _cacheMsgs(clientId)  { return `chat_msgs_${clientId}`; }
+  static _cacheOpen(clientId)  { return `chat_open_${clientId}`; }
+
+  static _invalidateClient(clientId) {
+    ogCache.delete(this._cacheMsgs(clientId));
+    ogCache.delete(this._cacheOpen(clientId));
+  }
+
   // ─── Seleccionar contacto ──────────────────────────────────────────────────
 
   static select(number, clientId) {
@@ -93,6 +105,10 @@ class chat {
 
     const el = document.querySelector(`.bs-chat-item[data-number="${number}"]`);
     const name = el ? el.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
+
+    // Comprobar ANTES de quitar la clase si hay mensajes sin leer
+    const hasUnread = el?.classList.contains('unread') ?? false;
+
     if (el) {
       el.classList.add('active');
       el.classList.remove('unread');
@@ -103,6 +119,9 @@ class chat {
     this._activeNum    = number;
     this._activeId     = clientId;
     this._activeBotNum = null; // se actualiza al cargar mensajes
+
+    // Si había mensajes sin leer significa que llegaron nuevos → invalidar cache
+    if (hasUnread) this._invalidateClient(clientId);
 
     // Marcar como leído en el servidor (sin bloquear UI)
     ogModule('api').post(`/api/client/${clientId}/read`, {}).catch(() => {});
@@ -116,9 +135,15 @@ class chat {
     if (!h) return;
     h.className = 'bs-chat-panel-header';
     h.innerHTML = `
-      <span class="bs-chat-header-number">+${number}</span>
-      ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
-      <span class="bs-chat-header-bot">Cargando...</span>
+      <div class="bs-chat-header-row">
+        <span class="bs-chat-header-number">+${number}</span>
+        ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
+        <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
+          <div class="bs-chat-open-bar-track"><div class="bs-chat-open-bar" id="bsChatOpenBar"></div></div>
+          <span class="bs-chat-open-bar-label"></span>
+        </div>
+        <span class="bs-chat-header-bot">Cargando...</span>
+      </div>
     `;
   }
 
@@ -131,10 +156,11 @@ class chat {
       <div class="bs-chat-header-row">
         <span class="bs-chat-header-number">+${number}</span>
         ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
+        <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
+          <div class="bs-chat-open-bar-track"><div class="bs-chat-open-bar" id="bsChatOpenBar"></div></div>
+          <span class="bs-chat-open-bar-label"></span>
+        </div>
         <span class="bs-chat-header-bot">${botInfo}</span>
-      </div>
-      <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
-        <div class="bs-chat-open-bar" id="bsChatOpenBar"></div>
       </div>
     `;
   }
@@ -142,30 +168,69 @@ class chat {
   static async _loadOpenChatBar(clientId, botId) {
     if (!clientId || !botId) return;
     try {
-      const json = await ogModule('api').get(`/api/client/${clientId}/open-chat/${botId}`);
-      const expiry = json?.data?.expiry ?? null;
-      const wrap   = document.getElementById('bsChatOpenBarWrap');
-      const bar    = document.getElementById('bsChatOpenBar');
+      // Intentar desde caché primero (5 min, solo memoria)
+      let expiry = ogCache.getMemory(this._cacheOpen(clientId));
+
+      if (!expiry) {
+        const json = await ogModule('api').get(`/api/client/${clientId}/open-chat/${botId}`);
+        expiry = json?.data?.expiry ?? null;
+        if (expiry) ogCache.setMemory(this._cacheOpen(clientId), expiry, 5 * 60 * 1000);
+      }
+
+      const wrap = document.getElementById('bsChatOpenBarWrap');
+      const bar  = document.getElementById('bsChatOpenBar');
       if (!wrap || !bar || !expiry) return;
 
       const now        = Date.now();
       const expiryMs   = new Date(expiry.replace(' ', 'T')).getTime();
-      const windowMs   = 72 * 3600 * 1000;                       // referencia: 72h
+      const windowMs   = 72 * 3600 * 1000;
       const remaining  = Math.max(0, expiryMs - now);
       const pctLeft    = Math.min(100, Math.round(remaining / windowMs * 100));
       const pctConsumed = 100 - pctLeft;
+      const label      = window.bsDate ? bsDate.timeRemaining(expiry) : '';
 
       bar.style.width = pctConsumed + '%';
-      wrap.style.display = 'block';
+      wrap.style.display = 'flex';
+      const labelEl = wrap.querySelector('.bs-chat-open-bar-label');
+      if (labelEl) labelEl.textContent = label;
       wrap.title = `Ventana gratuita: ${pctLeft}% restante (expira ${expiry})`;
     } catch (_) { /* silencioso */ }
   }
 
   // ─── Mensajes ──────────────────────────────────────────────────────────────
 
+  static _renderMsgs(main, msgs, clientId) {
+    const botNumber = msgs.length > 0 ? (msgs[0].bot_number ?? null) : null;
+    const botId     = msgs.length > 0 ? (msgs[0].bot_id     ?? null) : null;
+    this._activeBotNum = botNumber;
+
+    const activeEl = document.querySelector('.bs-chat-item.active');
+    const name = activeEl ? activeEl.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
+    this._showHeader(this._activeNum, name, botNumber);
+    this._loadOpenChatBar(clientId, botId);
+
+    const compose = document.getElementById('bsChatCompose');
+    if (compose) compose.style.display = botNumber ? 'flex' : 'none';
+
+    if (msgs.length === 0) {
+      main.innerHTML = '<div class="bs-chat-empty-state"><span class="bs-chat-empty-icon">💬</span><p>Sin mensajes registrados</p></div>';
+      return;
+    }
+
+    main.innerHTML = msgs.map(m => this._msgHtml(m)).join('');
+    main.scrollTop = main.scrollHeight;
+  }
+
   static async loadMessages(clientId) {
     const main = document.getElementById('bsChatMain');
     if (!main) return;
+
+    // Intentar desde caché primero
+    const cached = ogCache.getMemory(this._cacheMsgs(clientId));
+    if (cached) {
+      this._renderMsgs(main, cached, clientId);
+      return;
+    }
 
     main.innerHTML = '<div class="bs-msg-loading">Cargando mensajes...</div>';
 
@@ -177,29 +242,10 @@ class chat {
 
       const msgs = json.data ?? [];
 
-      // Extraer bot_number del primer mensaje
-      const botNumber = msgs.length > 0 ? (msgs[0].bot_number ?? null) : null;
-      this._activeBotNum = botNumber;
+      // Guardar en caché (10 min, solo memoria)
+      ogCache.setMemory(this._cacheMsgs(clientId), msgs, 10 * 60 * 1000);
 
-      // Actualizar header con bot_number conocido
-      const activeEl = document.querySelector('.bs-chat-item.active');
-      const name = activeEl ? activeEl.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
-      const botId = msgs.length > 0 ? (msgs[0].bot_id ?? null) : null;
-      this._showHeader(this._activeNum, name, botNumber);
-      this._loadOpenChatBar(clientId, botId);
-
-      // Mostrar/ocultar compose
-      const compose = document.getElementById('bsChatCompose');
-      if (compose) compose.style.display = botNumber ? 'flex' : 'none';
-
-      if (msgs.length === 0) {
-        main.innerHTML = '<div class="bs-chat-empty-state"><span class="bs-chat-empty-icon">💬</span><p>Sin mensajes registrados</p></div>';
-        return;
-      }
-
-      main.innerHTML = msgs.map(m => this._msgHtml(m)).join('');
-      // Scroll al final
-      main.scrollTop = main.scrollHeight;
+      this._renderMsgs(main, msgs, clientId);
 
     } catch (e) {
       main.innerHTML = '<div class="bs-chat-empty-state" style="color:var(--og-red-500)">Error al cargar mensajes</div>';
@@ -294,7 +340,8 @@ class chat {
       if (!json.success) throw new Error(json.error ?? 'Error al enviar');
 
       input.value = '';
-      // Recargar mensajes para mostrar el enviado
+      // Invalidar caché de mensajes para que recargue con el nuevo mensaje
+      ogCache.delete(this._cacheMsgs(this._activeId));
       await this.loadMessages(this._activeId);
 
     } catch (e) {
