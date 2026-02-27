@@ -5,16 +5,20 @@ class chat {
   // Variable configurable: cuántos contactos cargar por página
   static perPage = 30;
 
-  static _page       = 1;
-  static _total      = 0;
-  static _activeNum  = null;
+  static _page          = 1;
+  static _total         = 0;
+  static _activeNum     = null;
+  static _activeId      = null;
+  static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
 
   // ─── Inicialización ────────────────────────────────────────────────────────
 
   static init() {
-    this._page      = 1;
-    this._total     = 0;
-    this._activeNum = null;
+    this._page         = 1;
+    this._total        = 0;
+    this._activeNum    = null;
+    this._activeId     = null;
+    this._activeBotNum = null;
     this.loadClients(true);
   }
 
@@ -88,10 +92,38 @@ class chat {
     document.querySelectorAll('.bs-chat-item').forEach(el => el.classList.remove('active'));
 
     const el = document.querySelector(`.bs-chat-item[data-number="${number}"]`);
+    const name = el ? el.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
     if (el) el.classList.add('active');
 
-    this._activeNum = number;
+    this._activeNum    = number;
+    this._activeId     = clientId;
+    this._activeBotNum = null; // se actualiza al cargar mensajes
+
+    this._showHeaderLoading(number, name);
     this.loadMessages(clientId);
+  }
+
+  static _showHeaderLoading(number, name) {
+    const h = document.getElementById('bsChatHeader');
+    if (!h) return;
+    h.className = 'bs-chat-panel-header';
+    h.innerHTML = `
+      <span class="bs-chat-header-number">+${number}</span>
+      ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
+      <span class="bs-chat-header-bot">Cargando...</span>
+    `;
+  }
+
+  static _showHeader(number, name, botNumber) {
+    const h = document.getElementById('bsChatHeader');
+    if (!h) return;
+    h.className = 'bs-chat-panel-header';
+    const botInfo = botNumber ? `Bot: +${botNumber}` : 'Sin bot asociado';
+    h.innerHTML = `
+      <span class="bs-chat-header-number">+${number}</span>
+      ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
+      <span class="bs-chat-header-bot">${botInfo}</span>
+    `;
   }
 
   // ─── Mensajes ──────────────────────────────────────────────────────────────
@@ -109,6 +141,19 @@ class chat {
       if (!json.success) throw new Error('not success');
 
       const msgs = json.data ?? [];
+
+      // Extraer bot_number del primer mensaje
+      const botNumber = msgs.length > 0 ? (msgs[0].bot_number ?? null) : null;
+      this._activeBotNum = botNumber;
+
+      // Actualizar header con bot_number conocido
+      const activeEl = document.querySelector('.bs-chat-item.active');
+      const name = activeEl ? activeEl.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
+      this._showHeader(this._activeNum, name, botNumber);
+
+      // Mostrar/ocultar compose
+      const compose = document.getElementById('bsChatCompose');
+      if (compose) compose.style.display = botNumber ? 'flex' : 'none';
 
       if (msgs.length === 0) {
         main.innerHTML = '<div class="bs-chat-empty-state"><span class="bs-chat-empty-icon">💬</span><p>Sin mensajes registrados</p></div>';
@@ -176,13 +221,60 @@ class chat {
       </div>
     </div>`;
   }
+  // ─── Envío de mensajes ────────────────────────────────────────────────────────────────
 
+  static onKeyDown(event) {
+    // Enter sin shift = enviar; Shift+Enter = nueva línea
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  static async sendMessage() {
+    const input  = document.getElementById('bsChatInput');
+    const btn    = document.querySelector('.bs-chat-send-btn');
+    const message = (input?.value ?? '').trim();
+
+    if (!message) return;
+    if (!this._activeBotNum) {
+      alert('No se encontró el número de bot para este contacto.');
+      return;
+    }
+
+    // Deshabilitar mientras se envía
+    input.disabled = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+    try {
+      const json = await ogModule('api').post('/api/chat/manual-send', {
+        bot_number:    this._activeBotNum,
+        client_number: this._activeNum,
+        client_id:     this._activeId,
+        message
+      });
+
+      if (!json.success) throw new Error(json.error ?? 'Error al enviar');
+
+      input.value = '';
+      // Recargar mensajes para mostrar el enviado
+      await this.loadMessages(this._activeId);
+
+    } catch (e) {
+      alert('Error: ' + e.message);
+    } finally {
+      input.disabled = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
+      input.focus();
+    }
+  }
   // ─── Helpers privados ──────────────────────────────────────────────────────
 
   static _itemHtml(c) {
     const number   = c.number ?? '';
     const clientId = c.id ?? '';
     const name     = (c.name ?? '').trim().replace(/'/g, '&#39;');
+    const product  = (c.last_product_name ?? '').trim().replace(/</g, '&lt;');
     const date     = window.bsDate ? bsDate.relativeShort(c.dc) : (c.dc ?? '').substring(0, 10);
     return `
       <div class="bs-chat-item" data-number="${number}" data-client-id="${clientId}" onclick="chat.select('${number}', ${clientId})">
@@ -190,7 +282,10 @@ class chat {
           <span class="bs-chat-item-number">+${number}</span>
           ${date ? `<span class="bs-chat-item-date">${date}</span>` : ''}
         </div>
-        ${name ? `<div class="bs-chat-item-name">${name}</div>` : ''}
+        <div class="bs-chat-item-meta">
+          <span class="bs-chat-item-product">${product || '<span class="bs-chat-item-noproduct">sin venta</span>'}</span>
+          ${name ? `<span class="bs-chat-item-name">${name}</span>` : ''}
+        </div>
       </div>`;
   }
 }

@@ -54,7 +54,6 @@ class ChatHandler {
         'bot_number' => $botNumber,
         'client_id' => $clientId,
         'client_number' => $clientNumber,
-        'sale_id' => $saleId,
         'type' => $type,
         'format' => $format,
         'message' => $message,

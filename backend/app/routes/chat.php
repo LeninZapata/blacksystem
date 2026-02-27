@@ -215,6 +215,87 @@ $router->group('/api/chat', function($router) {
     }
   })->middleware($devMiddleware);
 
+  // Envío manual de mensaje desde el panel admin
+  // POST /api/chat/manual-send
+  $router->post('/manual-send', function() {
+    $data          = ogRequest::data();
+    $botNumber     = $data['bot_number']    ?? null;
+    $clientNumber  = $data['client_number'] ?? null;
+    $clientId      = $data['client_id']     ?? null;
+    $message       = trim($data['message']  ?? '');
+
+    if (!$botNumber)    ogResponse::error('bot_number requerido', 400);
+    if (!$clientNumber) ogResponse::error('client_number requerido', 400);
+    if (!$message)      ogResponse::error('message requerido', 400);
+
+    $logMeta = ['module' => 'chat/manual-send', 'layer' => 'backend/app'];
+
+    try {
+      // 1. Cargar datos del bot desde JSON
+      ogApp()->loadHandler('bot');
+      $botData = BotHandler::getDataFile($botNumber);
+      if (!$botData) ogResponse::error("Bot no encontrado: {$botNumber}", 404);
+
+      $userId = $botData['user_id'] ?? null;
+      $botId  = $botData['id']      ?? null;
+
+      // Verificar que el bot pertenece al usuario autenticado
+      if ($userId && isset($GLOBALS['auth_user_id']) && (int)$userId !== (int)$GLOBALS['auth_user_id']) {
+        ogResponse::json(['success' => false, 'error' => 'No autorizado'], 403);
+      }
+
+      // 2. Configurar ChatAPI con el bot
+      $chatapi = ogApp()->service('chatApi');
+      $chatapi::setConfig($botData);
+
+      // Detectar provider disponible (usar el primero en config.apis.chat)
+      $chatApis = $botData['config']['apis']['chat'] ?? [];
+      $provider = $chatApis[0]['config']['type_value'] ?? 'evolutionapi';
+      $chatapi::setProvider($provider);
+
+      ogLog::info("manual-send - Enviando", [
+        'bot_number'    => $botNumber,
+        'client_number' => $clientNumber,
+        'provider'      => $provider,
+        'length'        => strlen($message)
+      ], $logMeta);
+
+      // 3. Enviar mensaje
+      $result = $chatapi::send($clientNumber, $message);
+
+      if (!($result['success'] ?? false)) {
+        ogResponse::error($result['error'] ?? 'Error al enviar', 500);
+      }
+
+      // 4. Registrar en tabla chats como tipo 'B' (Bot/Manual)
+      if ($botId && $clientId) {
+        ogApp()->loadHandler('chat');
+        ChatHandler::setUserId($userId);
+        ChatHandler::register(
+          $botId, $botNumber,
+          (int)$clientId, $clientNumber,
+          $message, 'B', 'text',
+          ['source' => 'manual_send']
+        );
+      }
+
+      ogLog::success("manual-send - OK", [
+        'bot_number'    => $botNumber,
+        'client_number' => $clientNumber,
+        'provider'      => $provider
+      ], $logMeta);
+
+      ogResponse::success(['sent' => true, 'provider' => $provider], 'Mensaje enviado');
+
+    } catch (Exception $e) {
+      ogLog::error("manual-send - Error: {$e->getMessage()}", [
+        'bot_number'    => $botNumber,
+        'client_number' => $clientNumber
+      ], $logMeta);
+      ogResponse::serverError('Error al enviar mensaje', OG_IS_DEV ? $e->getMessage() : null);
+    }
+  })->middleware('auth');
+
   // ============================================
   // RUTAS PERSONALIZADAS (siempre con auth)
   // ============================================
@@ -229,10 +310,6 @@ $router->group('/api/chat', function($router) {
 
   $router->get('/by-client/{client_id}', function($client_id) {
     ogResponse::json(ogApp()->handler('chat')::getByClient(['client_id' => $client_id]));
-  })->middleware('auth');
-
-  $router->get('/by-sale/{sale_id}', function($sale_id) {
-    ogResponse::json(ogApp()->handler('chat')::getBySale(['sale_id' => $sale_id]));
   })->middleware('auth');
 
   $router->get('/search/{text}', function($text) {

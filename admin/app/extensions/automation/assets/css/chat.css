@@ -81,13 +81,41 @@
     text-align: right;
   }
 
-  .bs-chat-item-name {
-    font-size: var(--og-font-xs);
-    color: var(--og-gray-500);
+  .bs-chat-item-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.4rem;
     margin-top: 2px;
+    min-width: 0;
+  }
+
+  .bs-chat-item-product {
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-700);
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .bs-chat-item-noproduct {
+    color: var(--og-gray-400);
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .bs-chat-item-name {
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-400);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+    max-width: 45%;
+    text-align: right;
   }
 
   /* ── Botón "Cargar más" - dentro del scroll como un item más ─────────────── */
@@ -102,10 +130,55 @@
   }
 
   /* ── Panel principal (mensajes) ─────────────────────────────────────────────── */
-  .bs-chat-main {
+  .bs-chat-panel {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     background: var(--og-gray-50);
+  }
+
+  .bs-chat-panel-header {
+    padding: 0.625rem 1rem;
+    font-size: var(--og-font-sm);
+    font-weight: 600;
+    color: var(--og-gray-800);
+    border-bottom: 1px solid var(--og-gray-200);
+    background: var(--og-layout-content-bg);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .bs-chat-panel-header.bs-chat-no-client {
+    font-weight: 400;
+    color: var(--og-gray-400);
+    font-size: var(--og-font-sm);
+  }
+
+  .bs-chat-panel-header .bs-chat-header-number {
+    font-weight: 600;
+    color: var(--og-gray-800);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bs-chat-panel-header .bs-chat-header-name {
+    font-weight: 400;
+    color: var(--og-gray-500);
+    font-size: var(--og-font-xs);
+  }
+
+  .bs-chat-panel-header .bs-chat-header-bot {
+    margin-left: auto;
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-400);
+    font-weight: 400;
+  }
+
+  .bs-chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     padding: 1rem 1.25rem;
     gap: 0.5rem;
@@ -205,5 +278,43 @@
     font-size: var(--og-font-xs);
     color: var(--og-gray-400);
     text-align: center;
+  }
+
+  /* ── Barra de composición ─────────────────────────────────────────────── */
+  .bs-chat-compose {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-top: 1px solid var(--og-gray-200);
+    background: var(--og-layout-content-bg);
+    flex-shrink: 0;
+  }
+
+  .bs-chat-input {
+    flex: 1;
+    resize: none;
+    border: 1px solid var(--og-gray-200);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: var(--og-font-sm);
+    font-family: inherit;
+    color: var(--og-gray-800);
+    background: var(--og-gray-50);
+    outline: none;
+    max-height: 120px;
+    overflow-y: auto;
+    line-height: 1.45;
+    transition: border-color 0.12s;
+  }
+
+  .bs-chat-input:focus {
+    border-color: var(--og-accent-primary);
+    background: var(--og-layout-content-bg);
+  }
+
+  .bs-chat-send-btn {
+    flex-shrink: 0;
+    align-self: flex-end;
   }
 }

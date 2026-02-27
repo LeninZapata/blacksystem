@@ -100,6 +100,31 @@ class ClientController extends ogController {
 
     if (!is_array($data)) $data = [];
 
+    // Obtener último product_name de sales para cada cliente (1 sola query)
+    if (!empty($data)) {
+      $ids = array_column($data, 'id');
+      $placeholders = implode(',', array_fill(0, count($ids), '?'));
+      $lastProducts = ogDb::raw(
+        "SELECT s.client_id, s.product_name
+         FROM sales s
+         INNER JOIN (
+           SELECT client_id, MAX(id) as max_id
+           FROM sales
+           WHERE client_id IN ($placeholders)
+           GROUP BY client_id
+         ) sub ON s.id = sub.max_id",
+        $ids
+      );
+      $productMap = [];
+      foreach ($lastProducts as $row) {
+        $productMap[$row['client_id']] = $row['product_name'];
+      }
+      foreach ($data as &$client) {
+        $client['last_product_name'] = $productMap[$client['id']] ?? null;
+      }
+      unset($client);
+    }
+
     ogResponse::success([
       'data'     => $data,
       'total'    => $total,
