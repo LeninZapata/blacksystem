@@ -25,7 +25,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       if ($alreadyPurchased) {
         // CASO 1: Mismo producto ya comprado → Re-welcome (sin venta)
         ogLog::info("execute - CASO: Re-welcome (producto ya comprado)", [ 'action' => 'send_welcome_without_creating_sale' ], $this->logMeta);
-        return $this->handleReWelcome($bot, $person, $product, $existingChat);
+        return $this->handleReWelcome($bot, $person, $product, $existingChat, $rawContext);
 
       } else {
 
@@ -75,7 +75,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     return false;
   }
 
-  private function handleReWelcome($bot, $person, $product, $existingChat) {
+  private function handleReWelcome($bot, $person, $product, $existingChat, $rawContext = []) {
     ogLog::info("handleReWelcome - INICIO", ['product_id' => $product['id']], $this->logMeta);
 
     ogApp()->loadHandler('product');
@@ -150,10 +150,10 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     ChatHandler::rebuildFromDB($person['number'], $bot['id']);
 
-    // Abrir ventana de conversación +72h por re-welcome (solo WhatsApp Cloud API)
+    // Abrir ventana +72h solo si viene de anuncio (Meta da 72h en ad-initiated)
     $reWelcomeClientId = $existingChat['client_id'] ?? null;
     if ($reWelcomeClientId) {
-      $this->openChatWindow($reWelcomeClientId, $bot['id'], $bot['config'] ?? []);
+      $this->openChatWindow($reWelcomeClientId, $bot['id'], $bot['config'] ?? [], $rawContext);
     }
 
     ogLog::info("handleReWelcome - Completado", ['messages_sent' => $messagesSent, 'chat_rebuilt' => true], $this->logMeta);
@@ -189,9 +189,9 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       ogLog::info("handleNewProductWelcome - Chats registrados (DB + JSON)", [ 'client_id' => $clientId, 'sale_id' => $saleId, 'product_id' => $productId ], $this->logMeta);
     }
 
-    // Abrir ventana de conversación +72h (solo WhatsApp Cloud API)
+    // Abrir ventana +72h solo si viene de anuncio (Meta da 72h en ad-initiated)
     if ($clientId) {
-      $this->openChatWindow($clientId, $bot['id'], $bot['config'] ?? []);
+      $this->openChatWindow($clientId, $bot['id'], $bot['config'] ?? [], $rawContext);
     }
 
     ogApp()->loadHandler('chat');
@@ -216,15 +216,23 @@ class WelcomeStrategy implements ConversationStrategyInterface {
    * Solo aplica para WhatsApp Cloud API (+72h desde bienvenida).
    * Evolution API no tiene límite de tiempo.
    */
-  private function openChatWindow(int $clientId, int $botId, array $botConfig) {
+  private function openChatWindow(int $clientId, int $botId, array $botConfig, array $rawContext = []) {
     $provider = $botConfig['apis']['chat'][0]['config']['type_value'] ?? null;
     if ($provider !== 'whatsapp-cloud-api') return;
+
+    // Detectar origen: solo los anuncios (ad) abren ventana de 72h en Meta.
+    // Un template/welcome orgánico NO abre ventana — la abre el primer mensaje del cliente.
+    $origin = $this->detectOrigin($rawContext);
+    if ($origin !== 'ad') {
+      ogLog::info("WelcomeStrategy::openChatWindow - Origen orgánico, sin ventana", [
+        'client_id' => $clientId, 'bot_id' => $botId, 'origin' => $origin
+      ], $this->logMeta);
+      return;
+    }
 
     $expiry = date('Y-m-d H:i:s', strtotime('+72 hours'));
     $now    = date('Y-m-d H:i:s');
 
-    // Welcome siempre impone 72h — siempre mayor que cualquier +24h de mensaje
-    // Usamos SELECT+UPDATE/INSERT explícito para no depender de UNIQUE constraint
     $existingMeta   = ogDb::raw(
       "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
       [$clientId, $botId]
@@ -242,9 +250,18 @@ class WelcomeStrategy implements ConversationStrategyInterface {
         [$clientId, $botId, $expiry, $now, time()]
       );
     }
-    ogLog::info("WelcomeStrategy - Ventana open_chat abierta +72h", [
+
+    ogLog::info("WelcomeStrategy::openChatWindow - Ventana +72h abierta (origen: ad)", [
       'client_id' => $clientId, 'bot_id' => $botId, 'expires_at' => $expiry
     ], $this->logMeta);
+  }
+
+  private function detectOrigin(array $context): string {
+    if (($context['is_fb_ads'] ?? false) === true)    return 'ad';
+    if (!empty($context['source_app']))               return 'ad';
+    if (($context['source'] ?? null) === 'FB_Ads')    return 'ad';
+    if (($context['type'] ?? null) === 'conversion')  return 'ad';
+    return 'organic';
   }
 
   private function registerStartSale($bot, $person, $product, $clientId, $saleId) {

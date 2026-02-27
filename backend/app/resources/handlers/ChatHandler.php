@@ -79,8 +79,26 @@ class ChatHandler {
         // Refrescar ventana de conversación: cliente responde → +24h (solo WhatsApp Cloud API)
         $currentBot = ogApp()->helper('cache')::memoryGet('current_bot');
         $botChatProvider = $currentBot['config']['apis']['chat'][0]['config']['type_value'] ?? null;
+
+        ogLog::info("ChatHandler::register - current_bot leído de memoria", [
+          'current_bot_is_null' => $currentBot === null,
+          'bot_chat_provider'   => $botChatProvider,
+          'bot_id_in_memory'    => $currentBot['id'] ?? null,
+          'has_config'          => isset($currentBot['config']),
+          'has_apis'            => isset($currentBot['config']['apis']['chat'][0]),
+        ], self::$logMeta);
+
         if ($botChatProvider === 'whatsapp-cloud-api') {
           $candidateExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
+
+          ogLog::info("ChatHandler::register - candidateExpiry calculado", [
+            'now_date'         => date('Y-m-d H:i:s'),
+            'now_time'         => time(),
+            'timezone'         => date_default_timezone_get(),
+            'candidate_expiry' => $candidateExpiry,
+            'client_id'        => $clientId,
+            'bot_id'           => $botId,
+          ], self::$logMeta);
 
           // Consultar expiry existente para no reducir la ventana
           $existingMeta   = ogDb::raw(
@@ -89,7 +107,8 @@ class ChatHandler {
           );
           $existingExpiry = $existingMeta[0]['meta_value'] ?? null;
 
-          // strtotime compara timestamps reales (UTC interno), sin problemas de string/tz
+          // Actualizar solo si el candidato es MAYOR que el existente.
+          // Esto preserva una ventana de +72h (ad) que supere al +24h del mensaje.
           $shouldUpdate = !$existingExpiry || strtotime($candidateExpiry) > strtotime($existingExpiry);
 
           if ($shouldUpdate) {

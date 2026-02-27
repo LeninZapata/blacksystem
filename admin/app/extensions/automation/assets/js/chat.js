@@ -19,6 +19,7 @@ class chat {
   static _heartbeatTimer  = null;
   static _heartbeatCount  = 0;
   static _lastMsgId       = null; // ID del último mensaje conocido en el chat activo
+  static _activeExpiry    = null; // Expiry de ventana open_chat del chat activo (ms epoch)
 
   static _clientHeartbeatTimer = null;
   static _clientHeartbeatCount = 0;
@@ -35,6 +36,7 @@ class chat {
     this._activeId        = null;
     this._activeBotNum    = null;
     this._lastMsgId       = null;
+    this._activeExpiry    = null;
     this._clientsKnown    = new Map();
     this.loadClients(true);
     this._startClientHeartbeat();
@@ -291,7 +293,8 @@ class chat {
 
     this._activeNum    = number;
     this._activeId     = clientId;
-    this._activeBotNum = null; // se actualiza al cargar mensajes
+    this._activeBotNum  = null; // se actualiza al cargar mensajes
+    this._activeExpiry  = null; // se actualiza al cargar barra open_chat
 
     // Si había mensajes sin leer significa que llegaron nuevos → invalidar cache
     if (hasUnread) this._invalidateClient(clientId);
@@ -364,7 +367,13 @@ class chat {
       // Calcular remaining usando server_now: ambas fechas están en la misma zona del servidor
       // → la diferencia es exacta sin importar la timezone del browser
       const toMs      = s => new Date(s.replace(' ', 'T')).getTime();
-      const remaining = Math.max(0, toMs(expiry) - (server_now ? toMs(server_now) : Date.now()));
+      const expiryMs  = toMs(expiry);
+      const remaining = Math.max(0, expiryMs - (server_now ? toMs(server_now) : Date.now()));
+
+      // Guardar el expiry en ms para validar al enviar (usando offset con reloj local)
+      const serverOffset = server_now ? (toMs(server_now) - Date.now()) : 0;
+      this._activeExpiry = { expiryMs, serverOffset };
+
       const windowMs    = 72 * 3600 * 1000;
       const pctLeft     = Math.min(100, Math.round(remaining / windowMs * 100));
       const pctConsumed = 100 - pctLeft;
@@ -509,6 +518,16 @@ class chat {
     if (!this._activeBotNum) {
       alert('No se encontró el número de bot para este contacto.');
       return;
+    }
+
+    // Validar ventana open_chat antes de enviar
+    if (this._activeExpiry) {
+      const { expiryMs, serverOffset } = this._activeExpiry;
+      const serverNow = Date.now() + serverOffset;
+      if (serverNow >= expiryMs) {
+        alert('⚠️ Ventana de conversación expirada.\nNo es posible enviar mensajes libres.\nEl cliente debe escribir primero para reabrir la ventana.');
+        return;
+      }
     }
 
     // Deshabilitar mientras se envía
