@@ -72,7 +72,7 @@ class chat {
       const list  = document.getElementById('bsChatList');
       if (!list) return;
 
-      items.forEach(c => {
+      items.forEach(async c => {
         const cId    = String(c.id ?? '');
         const known  = this._clientsKnown.get(cId);
         const el     = list.querySelector(`.bs-chat-item[data-client-id="${cId}"]`);
@@ -92,6 +92,21 @@ class chat {
 
         // Actualizar estado conocido
         this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
+
+        // Si el chat está activo y hay nuevos mensajes o unread, marcar como leído automáticamente
+        if (String(this._activeId) === cId && (dateChanged || unreadChanged) && parseInt(c.unread_count ?? 0) > 0) {
+          // Llamar al endpoint para marcar como leído
+          await ogModule('api').post(`/api/client/${cId}/read`);
+          // Quitar badge y clase unread del DOM
+          if (el) {
+            el.classList.remove('unread');
+            const oldBadge = el.querySelector('.bs-chat-unread-badge');
+            oldBadge?.remove();
+          }
+          // También actualizar el objeto conocido
+          this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: 0 });
+          return;
+        }
 
         if (dateChanged && el) {
           // Nuevo mensaje: reemplazar elemento y moverlo al tope
