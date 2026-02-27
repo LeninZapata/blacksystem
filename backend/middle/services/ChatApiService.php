@@ -213,10 +213,13 @@ class chatApiService {
       [$client['id'], $botId]
     );
 
+    // Sin ventana aún: cliente existe pero open_chat no se registró todavía.
+    // Ocurre durante el welcome (cliente recién creado en msg 1, ventana se abre al final).
     if (empty($meta)) {
-      ogLog::throwError('chatApiService::send - Sin ventana de conversación abierta. Ejecute un welcome primero.', [
+      ogLog::info('validateChatWindow - Sin ventana registrada, permitiendo envío (welcome en curso)', [
         'number' => $number, 'bot_id' => $botId
       ], self::$logMeta);
+      return;
     }
 
     $expiry = $meta[0]['meta_value'] ?? null;

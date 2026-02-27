@@ -85,25 +85,32 @@ class SendWelcomeAction {
           if ($messagesSent === 1) {
             $saleResult = CreateSaleAction::create($dataSale);
 
-            ogLog::success("send - Venta para crear", [
+            if (!$saleResult['success']) {
+              // Venta duplicada u otro error → abortar (otro proceso ya envió la bienvenida)
+              ogLog::warning("send - Venta no creada, abortando secuencia", [
+                'error' => $saleResult['error'] ?? 'unknown'
+              ], self::$logMeta);
+              break;
+            }
+
+            ogLog::success("send - Venta creada", [
               'sale_id' => $saleResult['sale_id'],
               'client_id' => $saleResult['client_id']
             ], self::$logMeta);
-            if ($saleResult['success']) {
-              $clientId = $saleResult['client_id'];
-              $saleId = $saleResult['sale_id'];
 
-              $followups = ProductHandler::getMessagesFile('follow', $productId);
-              if (!empty($followups)) {
-                ogApp()->loadHandler('followup');
-                FollowupHandler::registerFromSale([
-                  'sale_id' => $saleId,
-                  'product_id' => $productId,
-                  'client_id' => $clientId,
-                  'bot_id' => $bot['id'],
-                  'number' => $from
-                ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil', $bot);
-              }
+            $clientId = $saleResult['client_id'];
+            $saleId = $saleResult['sale_id'];
+
+            $followups = ProductHandler::getMessagesFile('follow', $productId);
+            if (!empty($followups)) {
+              ogApp()->loadHandler('followup');
+              FollowupHandler::registerFromSale([
+                'sale_id' => $saleId,
+                'product_id' => $productId,
+                'client_id' => $clientId,
+                'bot_id' => $bot['id'],
+                'number' => $from
+              ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil', $bot);
             }
           }
         } else {

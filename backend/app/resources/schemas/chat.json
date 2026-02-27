@@ -16,7 +16,6 @@
     { "name": "bot_number", "type": "string", "maxLength": 20, "required": true },
     { "name": "client_id", "type": "int", "required": true },
     { "name": "client_number", "type": "string", "maxLength": 20, "required": true },
-    { "name": "sale_id", "type": "int", "required": false, "default": 0 },
     { "name": "type", "type": "string", "maxLength": 1, "default": "P", "description": "S=Sistema, B=Bot, P=Prospecto" },
     { "name": "format", "type": "string", "maxLength": 25, "default": "text", "description": "text, audio, image, video, document, sticker, location, contact, etc." },
     { "name": "message", "type": "text", "required": false },

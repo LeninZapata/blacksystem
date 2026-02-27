@@ -305,10 +305,12 @@ class ogFormRepeatables {
       }
 
       const inputs = item.querySelectorAll('input, select, textarea');
+      const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`^(${escapedPath})\\[(\\d+)\\](.*)`);
       inputs.forEach(input => {
         const currentName = input.getAttribute('name');
         if (currentName) {
-          const newName = currentName.replace(/\[(\d+)\]/, `[${index}]`);
+          const newName = currentName.replace(pattern, `$1[${index}]$3`);
           input.setAttribute('name', newName);
         }
       });
@@ -393,7 +395,9 @@ class ogFormRepeatables {
         e.stopPropagation();
         const item = e.target.closest('.og-repeatable-item');
         if (item && confirm('¿Eliminar este elemento?')) {
+          const container = item.closest('.og-repeatable-items');
           item.remove();
+          if (container) this.reindexRepeatableItems(container);
         }
       }
 

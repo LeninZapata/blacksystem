@@ -26,13 +26,20 @@ class WelcomeStrategy implements ConversationStrategyInterface {
         // CASO 1: Mismo producto ya comprado → Re-welcome (sin venta)
         ogLog::info("execute - CASO: Re-welcome (producto ya comprado)", [ 'action' => 'send_welcome_without_creating_sale' ], $this->logMeta);
         return $this->handleReWelcome($bot, $person, $product, $existingChat, $rawContext);
-
-      } else {
-
-        // CASO 2: Producto diferente → Nueva venta
-        ogLog::info("execute - CASO: Producto diferente (cliente existente)", [ 'number' => $person['number'], 'new_product_id' => $productId, 'previous_products' => $existingChat['summary']['purchased_products'] ?? [], 'action' => 'crear_nueva_venta' ],  $this->logMeta);
-        return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
       }
+
+      // CASO 2: Mismo producto, no comprado, conversación < 48h → derivar a conversación activa
+      $sameProductPending = $this->hasSameProductPending($existingChat, $productId);
+      if ($sameProductPending && $this->isWithin48Hours($existingChat)) {
+        ogLog::info("execute - CASO: Mismo producto pendiente < 48h, derivando a conversación activa", [
+          'number' => $person['number'], 'product_id' => $productId
+        ], $this->logMeta);
+        return ['success' => true, 'redirected_to_conversation' => true];
+      }
+
+      // CASO 3: Producto diferente (o mismo producto pero conversación > 48h) → Nueva venta
+      ogLog::info("execute - CASO: Nueva venta (cliente existente)", [ 'number' => $person['number'], 'new_product_id' => $productId, 'action' => 'crear_nueva_venta' ], $this->logMeta);
+      return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
     }
 
     // CASO 3: Cliente completamente nuevo → Nueva venta
@@ -206,6 +213,33 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     ];
   }
 
+  // Verificar si hay una venta del mismo producto sin confirmar
+  private function hasSameProductPending($chat, $productId) {
+    $messages = $chat['messages'] ?? [];
+    foreach ($messages as $msg) {
+      $meta = $msg['metadata'] ?? [];
+      if (($meta['action'] ?? null) === 'start_sale' && (int)($meta['product_id'] ?? 0) === (int)$productId) {
+        $saleId = $meta['sale_id'] ?? null;
+        // Verificar que esa venta no está confirmada
+        foreach ($messages as $checkMsg) {
+          $checkMeta = $checkMsg['metadata'] ?? [];
+          if (($checkMeta['action'] ?? null) === 'sale_confirmed' && ($checkMeta['sale_id'] ?? null) == $saleId) {
+            return false; // Ya fue confirmada, no es pending
+          }
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Verificar si la conversación empezó hace menos de 48 horas
+  private function isWithin48Hours($chat) {
+    $started = $chat['conversation_started'] ?? null;
+    if (!$started) return false;
+    return (time() - strtotime($started)) < (48 * 3600);
+  }
+
   private function loadProduct($productId) {
     ogApp()->loadHandler('product');
     return ProductHandler::getProductFile($productId);
@@ -223,15 +257,11 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     // Detectar origen: solo los anuncios (ad) abren ventana de 72h en Meta.
     // Un template/welcome orgánico NO abre ventana — la abre el primer mensaje del cliente.
     $origin = $this->detectOrigin($rawContext);
-    if ($origin !== 'ad') {
-      ogLog::info("WelcomeStrategy::openChatWindow - Origen orgánico, sin ventana", [
-        'client_id' => $clientId, 'bot_id' => $botId, 'origin' => $origin
-      ], $this->logMeta);
-      return;
-    }
+    // Ad → 72h (Meta política de anuncios), orgánico → 24h (cliente inició conversación)
+    $hours = $origin === 'ad' ? 72 : 24;
 
     $nowTimestamp = time();
-    $expiry = date('Y-m-d H:i:s', $nowTimestamp + (72 * 3600));
+    $expiry = date('Y-m-d H:i:s', $nowTimestamp + ($hours * 3600));
     $now    = date('Y-m-d H:i:s', $nowTimestamp);
 
     $existingMeta = ogDb::raw(
@@ -252,8 +282,8 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       );
     }
 
-    ogLog::info("WelcomeStrategy::openChatWindow - Ventana +72h abierta (origen: ad)", [
-      'client_id' => $clientId, 'bot_id' => $botId, 'expires_at' => $expiry
+    ogLog::info("WelcomeStrategy::openChatWindow - Ventana abierta", [
+      'client_id' => $clientId, 'bot_id' => $botId, 'origin' => $origin, 'hours' => $hours, 'expires_at' => $expiry
     ], $this->logMeta);
   }
 

@@ -14,7 +14,6 @@ class facebookProvider extends baseChatApiProvider {
     $this->instance = '';
     $this->baseUrl = '';
 
-    // Validar config específico de Facebook
     $this->validateFacebookConfig();
   }
 
@@ -27,7 +26,6 @@ class facebookProvider extends baseChatApiProvider {
     return preg_replace('/[^0-9]/', '', $number);
   }
 
-  // Validación específica de Facebook (no sobrescribe validateConfig)
   private function validateFacebookConfig(): void {
     if (empty($this->apiKey)) {
       ogLog::throwError("validateFacebookConfig - access_token requerido", [], ['module' => 'facebookProvider']);
@@ -38,7 +36,6 @@ class facebookProvider extends baseChatApiProvider {
     }
   }
 
-  // Helper interno: POST al Graph API
   private function postToGraph(array $payload): array {
     $endpoint = "https://graph.facebook.com/v21.0/{$this->phoneNumberId}/messages";
     $http = ogApp()->helper('http');
@@ -51,10 +48,17 @@ class facebookProvider extends baseChatApiProvider {
     ]);
 
     if (!$response['success']) {
+      ogLog::error('facebookProvider.postToGraph - HTTP error', ['error' => $response['error'] ?? null, 'payload' => $payload], self::$logMeta);
       return $this->errorResponse($response['error'] ?? 'HTTP error al llamar Graph API');
     }
 
     $data = $response['data'];
+
+    // Graph API retorna error en el body con código 200 a veces
+    if (isset($data['error'])) {
+      ogLog::error('facebookProvider.postToGraph - Graph API error', ['graph_error' => $data['error'], 'payload' => $payload], self::$logMeta);
+      return $this->errorResponse($data['error']['message'] ?? 'Graph API error', $data['error']['code'] ?? null);
+    }
 
     if (isset($data['messages'][0]['id'])) {
       return $this->successResponse([
@@ -83,19 +87,23 @@ class facebookProvider extends baseChatApiProvider {
       $payload['type']  = 'audio';
       $payload['audio'] = ['link' => $url];
     } elseif ($mediaType === 'image') {
+      $media = ['link' => $url];
+      if ($message) $media['caption'] = $message; // omitir si vacío, null rompe Graph API
       $payload['type']  = 'image';
-      $payload['image'] = ['link' => $url, 'caption' => $message ?: null];
+      $payload['image'] = $media;
     } elseif ($mediaType === 'video') {
+      $media = ['link' => $url];
+      if ($message) $media['caption'] = $message;
       $payload['type']  = 'video';
-      $payload['video'] = ['link' => $url, 'caption' => $message ?: null];
+      $payload['video'] = $media;
     } else {
+      $media = ['link' => $url, 'filename' => $this->extractFilename($url)];
+      if ($message) $media['caption'] = $message;
       $payload['type']     = 'document';
-      $payload['document'] = [
-        'link'     => $url,
-        'caption'  => $message ?: null,
-        'filename' => $this->extractFilename($url)
-      ];
+      $payload['document'] = $media;
     }
+
+    ogLog::debug('facebookProvider.sendMessage - payload', ['media_type' => $mediaType, 'payload' => $payload], self::$logMeta);
 
     try {
       return $this->postToGraph($payload);
@@ -104,9 +112,7 @@ class facebookProvider extends baseChatApiProvider {
     }
   }
 
-  // Enviar mensaje interactivo (botones, listas)
-  // $interactive: el objeto completo del campo "interactive" del payload de Facebook
-  // Ej: ['type'=>'button','body'=>['text'=>'...'],'action'=>['buttons'=>[...]]]
+  // $interactive: objeto completo del campo "interactive" del payload de Facebook
   function sendInteractive(string $number, array $interactive): array {
     $number = $this->formatNumber($number);
 
@@ -126,25 +132,15 @@ class facebookProvider extends baseChatApiProvider {
   }
 
   function sendPresence(string $number, string $presenceType, int $delay = 1200): array {
-    // Facebook no soporta typing indicators directamente por API
-    // Retornar éxito silenciosamente (solo hacer sleep si es necesario)
-    if ($delay > 0) {
-      usleep($delay * 1000); // Convertir ms a microsegundos
-    }
-
+    // Facebook no soporta typing indicators, solo simulamos el delay
+    if ($delay > 0) usleep($delay * 1000);
     return $this->successResponse(['presence_sent' => false, 'note' => 'Facebook API does not support typing indicators']);
   }
 
   function sendArchive(string $chatNumber, string $lastMessageId = 'archive', bool $archive = true): array {
-    // Facebook no tiene endpoint directo para archivar chats
-    // Retornar éxito silenciosamente
-    return $this->successResponse([
-      'archived' => false,
-      'note' => 'Facebook API does not support chat archiving via API'
-    ]);
+    return $this->successResponse(['archived' => false, 'note' => 'Facebook API does not support chat archiving via API']);
   }
 
-  // Helper: Extraer filename de URL
   private function extractFilename(string $url): string {
     $parsedUrl = parse_url($url, PHP_URL_PATH);
     $filename = pathinfo($parsedUrl, PATHINFO_BASENAME);

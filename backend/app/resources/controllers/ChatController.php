@@ -33,7 +33,6 @@ class ChatController extends ogController {
     $data['tc'] = time();
     $data['type'] = $data['type'] ?? 'P';
     $data['format'] = $data['format'] ?? 'text';
-    $data['sale_id'] = $data['sale_id'] ?? 0;
 
     try {
       $id = ogDb::t('chats')->insert($data);

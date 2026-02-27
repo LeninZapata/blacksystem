@@ -59,4 +59,23 @@ class ogResponse {
     if (OG_IS_DEV && $debug) $res['debug'] = $debug;
     self::json($res, 500);
   }
+
+  // Responde 200 al cliente inmediatamente y deja el proceso PHP corriendo en background.
+  // Usar en webhooks para evitar retransmisiones por timeout (ej: Meta/WhatsApp).
+  static function flushAndContinue(array $data = []) {
+    ignore_user_abort(true);
+    set_time_limit(0);
+
+    $body = json_encode(['success' => true, 'data' => $data], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    http_response_code(200);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Connection: close');
+    header('Content-Length: ' . strlen($body));
+
+    echo $body;
+
+    if (ob_get_level()) ob_end_flush();
+    flush();
+  }
 }

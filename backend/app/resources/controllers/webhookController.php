@@ -96,8 +96,10 @@ class WebhookController {
       $handler = $this->resolveHandler($workflowFile);
       // Ejecutar handler con webhook completo
       //ogLog::debug("whatsapp - Handler resuelto, se va ejecutar el metodo <code>handle</code> con los siguientes datos", [ 'provider' => $detectedProvider, 'normalized' => $normalized, 'standard' => $standard], $this->logMeta);
+      // Responder 200 a Meta inmediatamente para evitar retransmisión del webhook
+      ogResponse::flushAndContinue([ 'message' => 'Webhook procesado', 'provider' => $detectedProvider, 'workflow' => $workflowFile ]);
+
       $handler->handle([ 'provider' => $detectedProvider, 'normalized' => $normalized, 'standard' => $standard, 'raw' => $rawData ]);
-      ogResponse::success([ 'message' => 'Webhook procesado', 'provider' => $detectedProvider, 'workflow' => $workflowFile ]);
 
     } catch (Exception $e) {
       ogLog::error('whatsapp - Error crítico', [ 'error' => $e->getMessage() ], $this->logMeta);

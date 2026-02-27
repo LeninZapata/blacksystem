@@ -88,7 +88,7 @@ class InfoproductV2Handler {
     // FILTRO: Ignorar eventos de tipo "presence"
     $event = $webhook['normalized']['body']['event'] ?? null;
 
-    if ($event === 'presence.update' || stripos($event, 'presence') !== false) {
+    if ($event && ($event === 'presence.update' || stripos($event, 'presence') !== false)) {
       ogLog::info("handle - Evento presence detectado, ignorando", [ 'event' => $event ], $this->logMeta);
       return;
     }
@@ -189,7 +189,14 @@ class InfoproductV2Handler {
       // Configurar provider de envío (aquí sí puede ser el forzado)
       $this->configureChatProvider($bot, $selectedProvider);
 
-      $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
+      $welcomeResult = $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
+
+      // Mismo producto < 48h → ignorar (bienvenida ya enviada por otro proceso)
+      if ($welcomeResult['redirected_to_conversation'] ?? false) {
+        ogLog::info("handle - Welcome ignorado (mismo producto < 48h, bienvenida ya enviada)", [
+          'number' => $person['number'], 'product_id' => $welcomeCheck['product_id']
+        ], $this->logMeta);
+      }
       return;
     }
 
@@ -517,8 +524,9 @@ class InfoproductV2Handler {
     require_once $this->appPath . '/workflows/infoproduct/strategies/WelcomeStrategy.php';
 
     $strategy = new WelcomeStrategy();
-    $strategy->execute([ 'bot' => $bot, 'person' => $person, 'message' => $message, 'context' => $context, 'product_id' => $welcomeCheck['product_id'] ]);
+    $result = $strategy->execute([ 'bot' => $bot, 'person' => $person, 'message' => $message, 'context' => $context, 'product_id' => $welcomeCheck['product_id'] ]);
     ogLog::info("executeWelcome - FIN", [], $this->logMeta);
+    return $result;
   }
 
   // ========================================
