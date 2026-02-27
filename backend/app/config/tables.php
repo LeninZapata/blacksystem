@@ -3,6 +3,7 @@ return [
   'bots' => 'bots',
   'chats' => 'chats',
   'clients' => 'clients',
+  'client_bot_meta' => 'client_bot_meta',
   'credentials' => 'credentials',
   'products' => 'products',
   'sales' => 'sales',

@@ -65,6 +65,39 @@ class ChatHandler {
 
       $chatId = ogDb::t('chats')->insert($data);
 
+      // Actualizar actividad del cliente
+      $now = date('Y-m-d H:i:s');
+      $clientUpdate = ['last_message_at' => $now];
+      if ($type === 'P') {
+        $clientUpdate['last_client_message_at'] = $now;
+        // Incrementar contador de no leídos
+        ogDb::raw(
+          "UPDATE " . ogDb::t('clients', true) . " SET unread_count = unread_count + 1, last_client_message_at = ?, last_message_at = ? WHERE id = ?",
+          [$now, $now, $clientId]
+        );
+
+        // Refrescar ventana de conversación: cliente responde → +24h (solo WhatsApp Cloud API)
+        $currentBot = ogApp()->helper('cache')::memoryGet('current_bot');
+        $botChatProvider = $currentBot['config']['apis']['chat'][0]['config']['type_value'] ?? null;
+        if ($botChatProvider === 'whatsapp-cloud-api') {
+          $openChatExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
+          ogDb::raw(
+            "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc)
+             VALUES (?, ?, 'open_chat', ?, ?, ?)
+             ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value), tc = VALUES(tc)",
+            [$clientId, $botId, $openChatExpiry, $now, time()]
+          );
+          ogLog::info("ChatHandler::register - Ventana open_chat renovada +24h", [
+            'client_id' => $clientId, 'bot_id' => $botId, 'expires_at' => $openChatExpiry
+          ], self::$logMeta);
+        }
+      } else {
+        ogDb::raw(
+          "UPDATE " . ogDb::t('clients', true) . " SET last_message_at = ? WHERE id = ?",
+          [$now, $clientId]
+        );
+      }
+
       return $chatId;
 
     } catch (Exception $e) {

@@ -35,7 +35,7 @@ class InfoproductV2Handler {
    * - Testing Facebook: private $forcedProvider = 'whatsapp-cloud-api';
    * - Producción: private $forcedProvider = null;
    */
-  private $forcedProvider = 'evolutionapi'; // DEBUG: cambiar aqui para produccion
+  private $forcedProvider = 'whatsapp-cloud-api'; // DEBUG: cambiar aqui para produccion
 
   /**
    * Límite de horas para usar WhatsApp Cloud API (Facebook)
@@ -592,7 +592,7 @@ class InfoproductV2Handler {
    * Seleccionar provider de ChatAPI según configuración y tiempo
    */
   private function selectChatProvider($chat, $bot) {
-    // Si hay provider forzado, usarlo directamente
+    // Provider forzado para testing — null = usar config del bot
     if ($this->forcedProvider !== null) {
       ogLog::info("selectChatProvider - Provider forzado", [
         'forced_provider' => $this->forcedProvider
@@ -600,41 +600,23 @@ class InfoproductV2Handler {
       return $this->forcedProvider;
     }
 
-    // Si no hay chat, usar Facebook (conversación nueva)
-    if (!$chat) {
-      ogLog::info("selectChatProvider - Sin chat (nuevo) → Facebook", [], $this->logMeta);
-      return self::PROVIDER_FACEBOOK;
-    }
+    // Usar el primer provider de chat configurado en el bot
+    $botProvider = $bot['config']['apis']['chat'][0]['config']['type_value'] ?? self::PROVIDER_EVOLUTION;
 
-    $conversationStarted = $chat['conversation_started'] ?? null;
-
-    if (!$conversationStarted) {
-      ogLog::warning("selectChatProvider - Chat sin conversation_started → Facebook por defecto", [
-        'chat' => $chat
-      ], $this->logMeta);
-      return self::PROVIDER_FACEBOOK;
-    }
-
-    // Calcular horas desde que inició la conversación
-    $startTime = strtotime($conversationStarted);
-    $currentTime = time();
-    $hoursPassed = ($currentTime - $startTime) / 3600;
-
-    ogLog::info("selectChatProvider - Calculando provider", [
-      'conversation_started' => $conversationStarted,
-      'hours_passed' => round($hoursPassed, 2),
-      'limit' => self::HOURS_LIMIT_FACEBOOK
+    ogLog::info("selectChatProvider - Provider desde config del bot", [
+      'provider' => $botProvider,
+      'bot_id'   => $bot['id'] ?? null
     ], $this->logMeta);
 
-    // Si pasaron más de X horas → Evolution
-    if ($hoursPassed > self::HOURS_LIMIT_FACEBOOK) {
-      ogLog::info("selectChatProvider - Más de " . round($hoursPassed, 2) . "h → Evolution", [], $this->logMeta);
-      return self::PROVIDER_EVOLUTION;
-    }
+    // NOTA: Para WhatsApp Cloud API existe ventana de conversación gratuita:
+    //   - Apertura por bienvenida/anuncio (welcome): 72 horas
+    //   - Apertura por mensaje del cliente (entrante): 24 horas
+    // La ventana se gestiona en la tabla client_bot_meta (clave: open_chat).
+    // Si la ventana expiró, chatApiService::send() lanzará error;
+    // en ese caso se debe usar una plantilla (template message) de WhatsApp.
+    // Evolution API no tiene límite de tiempo.
 
-    // Si está dentro de las X horas → Facebook
-    ogLog::info("selectChatProvider - Dentro de " . round($hoursPassed, 2) . "h → Facebook", [], $this->logMeta);
-    return self::PROVIDER_FACEBOOK;
+    return $botProvider;
   }
 
   /**

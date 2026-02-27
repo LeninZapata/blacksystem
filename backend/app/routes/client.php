@@ -3,6 +3,22 @@
 
 $router->group('/api/client', function($router) {
 
+  // Marcar chat como leído - POST /api/client/{id}/read
+  $router->post('/{id}/read', function($id) {
+    $affected = ogDb::t('clients')->where('id', $id)->update(['unread_count' => 0]);
+    ogResponse::success(['affected' => $affected]);
+  })->middleware(['auth', 'throttle:200,1']);
+
+  // Ventana de apertura WhatsApp - GET /api/client/{id}/open-chat/{bot_id}
+  $router->get('/{id}/open-chat/{bot_id}', function($id, $bot_id) {
+    $meta = ogDb::raw(
+      "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' LIMIT 1",
+      [(int)$id, (int)$bot_id]
+    );
+    $expiry = $meta[0]['meta_value'] ?? null;
+    ogResponse::success(['expiry' => $expiry]);
+  })->middleware(['auth', 'throttle:200,1']);
+
   // Eliminar todos los datos del cliente por ID - DELETE /api/client/{id}/all-data
   $router->delete('/{id}/all-data', function($id) {
     ogResponse::json( ogApp()->handler('client')::deleteAllData(['id' => $id]) );

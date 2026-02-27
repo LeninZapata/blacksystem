@@ -164,6 +164,11 @@ class chatApiService {
   static function send(string $to, string $message, string $media = ''): array {
     if (!self::$config) ogLog::throwError(__('services.ogChatApi.not_configured'), [], self::$logMeta);
 
+    // Validar ventana de conversación gratuita (solo WhatsApp Cloud API)
+    if (self::$provider === 'whatsapp-cloud-api') {
+      self::validateChatWindow($to);
+    }
+
     $lastError = null;
     foreach (self::$config as $index => $apiConfig) {
       try {
@@ -185,6 +190,45 @@ class chatApiService {
     }
 
     ogLog::throwError(__('services.ogChatApi.all_providers_failed'), ['error' => $lastError, 'to' => $to], self::$logMeta);
+  }
+
+  // Validar ventana de conversación gratuita para WhatsApp Cloud API.
+  // Lanza error si la ventana (open_chat en client_bot_meta) no existe o ha expirado.
+  // Evolution API no tiene ventana → no se llama para ese provider.
+  private static function validateChatWindow(string $to) {
+    $botId = self::$botData['id'] ?? null;
+    if (!$botId) return;
+
+    $number = ltrim($to, '+');
+    $client = ogDb::t('clients')->where('number', $number)->first();
+    if (!$client) {
+      ogLog::warning('validateChatWindow - Cliente no encontrado, omitiendo validación', [
+        'number' => $number, 'bot_id' => $botId
+      ], self::$logMeta);
+      return;
+    }
+
+    $meta = ogDb::raw(
+      "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' LIMIT 1",
+      [$client['id'], $botId]
+    );
+
+    if (empty($meta)) {
+      ogLog::throwError('chatApiService::send - Sin ventana de conversación abierta. Ejecute un welcome primero.', [
+        'number' => $number, 'bot_id' => $botId
+      ], self::$logMeta);
+    }
+
+    $expiry = $meta[0]['meta_value'] ?? null;
+    if (!$expiry || strtotime($expiry) < time()) {
+      ogLog::throwError('chatApiService::send - Ventana de conversación expirada. Use una plantilla (template message).', [
+        'number' => $number, 'bot_id' => $botId, 'expired_at' => $expiry
+      ], self::$logMeta);
+    }
+
+    ogLog::info('validateChatWindow - Ventana válida', [
+      'number' => $number, 'bot_id' => $botId, 'expires_at' => $expiry
+    ], self::$logMeta);
   }
 
   // Enviar mensaje interactivo (botones, listas) — solo WhatsApp Cloud API lo soporta.

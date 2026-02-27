@@ -42,7 +42,7 @@ class StickerMessageProcessor implements MessageProcessorInterface {
     $person = $context['person'];
     $chatData = $context['chat_data'];
 
-    $messageText = "[Sticker enviado]";
+    $messageText = "[Sticker recibo]";
 
     ogApp()->loadHandler('chat');
     ChatHandler::register(

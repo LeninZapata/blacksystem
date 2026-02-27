@@ -88,7 +88,7 @@ class ClientController extends ogController {
     }
 
     // Ordenamiento
-    $sort = ogRequest::query('sort', 'id');
+    $sort = ogRequest::query('sort', 'last_message_at');
     $order = ogRequest::query('order', 'DESC');
     $query = $query->orderBy($sort, $order);
 

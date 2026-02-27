@@ -36,7 +36,7 @@ class chat {
       if (btnRef) list.appendChild(btnRef);
     }
 
-    const url = `${this.apis.client}?sort=dc&order=DESC&per_page=${this.perPage}&page=${this._page}`;
+    const url = `${this.apis.client}?sort=last_message_at&order=DESC&per_page=${this.perPage}&page=${this._page}`;
 
     try {
       const json = await ogModule('api').get(url);
@@ -93,11 +93,19 @@ class chat {
 
     const el = document.querySelector(`.bs-chat-item[data-number="${number}"]`);
     const name = el ? el.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
-    if (el) el.classList.add('active');
+    if (el) {
+      el.classList.add('active');
+      el.classList.remove('unread');
+      const badge = el.querySelector('.bs-chat-unread-badge');
+      if (badge) badge.remove();
+    }
 
     this._activeNum    = number;
     this._activeId     = clientId;
     this._activeBotNum = null; // se actualiza al cargar mensajes
+
+    // Marcar como leído en el servidor (sin bloquear UI)
+    ogModule('api').post(`/api/client/${clientId}/read`, {}).catch(() => {});
 
     this._showHeaderLoading(number, name);
     this.loadMessages(clientId);
@@ -120,10 +128,37 @@ class chat {
     h.className = 'bs-chat-panel-header';
     const botInfo = botNumber ? `Bot: +${botNumber}` : 'Sin bot asociado';
     h.innerHTML = `
-      <span class="bs-chat-header-number">+${number}</span>
-      ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
-      <span class="bs-chat-header-bot">${botInfo}</span>
+      <div class="bs-chat-header-row">
+        <span class="bs-chat-header-number">+${number}</span>
+        ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
+        <span class="bs-chat-header-bot">${botInfo}</span>
+      </div>
+      <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
+        <div class="bs-chat-open-bar" id="bsChatOpenBar"></div>
+      </div>
     `;
+  }
+
+  static async _loadOpenChatBar(clientId, botId) {
+    if (!clientId || !botId) return;
+    try {
+      const json = await ogModule('api').get(`/api/client/${clientId}/open-chat/${botId}`);
+      const expiry = json?.data?.expiry ?? null;
+      const wrap   = document.getElementById('bsChatOpenBarWrap');
+      const bar    = document.getElementById('bsChatOpenBar');
+      if (!wrap || !bar || !expiry) return;
+
+      const now        = Date.now();
+      const expiryMs   = new Date(expiry.replace(' ', 'T')).getTime();
+      const windowMs   = 72 * 3600 * 1000;                       // referencia: 72h
+      const remaining  = Math.max(0, expiryMs - now);
+      const pctLeft    = Math.min(100, Math.round(remaining / windowMs * 100));
+      const pctConsumed = 100 - pctLeft;
+
+      bar.style.width = pctConsumed + '%';
+      wrap.style.display = 'block';
+      wrap.title = `Ventana gratuita: ${pctLeft}% restante (expira ${expiry})`;
+    } catch (_) { /* silencioso */ }
   }
 
   // ─── Mensajes ──────────────────────────────────────────────────────────────
@@ -149,7 +184,9 @@ class chat {
       // Actualizar header con bot_number conocido
       const activeEl = document.querySelector('.bs-chat-item.active');
       const name = activeEl ? activeEl.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
+      const botId = msgs.length > 0 ? (msgs[0].bot_id ?? null) : null;
       this._showHeader(this._activeNum, name, botNumber);
+      this._loadOpenChatBar(clientId, botId);
 
       // Mostrar/ocultar compose
       const compose = document.getElementById('bsChatCompose');
@@ -275,12 +312,19 @@ class chat {
     const clientId = c.id ?? '';
     const name     = (c.name ?? '').trim().replace(/'/g, '&#39;');
     const product  = (c.last_product_name ?? '').trim().replace(/</g, '&lt;');
-    const date     = window.bsDate ? bsDate.relativeShort(c.dc) : (c.dc ?? '').substring(0, 10);
+    const unread   = parseInt(c.unread_count ?? 0);
+    const dateStr  = c.last_message_at ?? c.dc ?? '';
+    const date     = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
+    const unreadCls = unread > 0 ? ' unread' : '';
+    const badge    = unread > 0 ? `<span class="bs-chat-unread-badge">${unread > 99 ? '99+' : unread}</span>` : '';
     return `
-      <div class="bs-chat-item" data-number="${number}" data-client-id="${clientId}" onclick="chat.select('${number}', ${clientId})">
+      <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" onclick="chat.select('${number}', ${clientId})">
         <div class="bs-chat-item-header">
           <span class="bs-chat-item-number">+${number}</span>
-          ${date ? `<span class="bs-chat-item-date">${date}</span>` : ''}
+          <div class="bs-chat-item-right">
+            ${date ? `<span class="bs-chat-item-date">${date}</span>` : ''}
+            ${badge}
+          </div>
         </div>
         <div class="bs-chat-item-meta">
           <span class="bs-chat-item-product">${product || '<span class="bs-chat-item-noproduct">sin venta</span>'}</span>

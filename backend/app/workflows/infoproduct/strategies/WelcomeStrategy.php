@@ -150,6 +150,12 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     ChatHandler::rebuildFromDB($person['number'], $bot['id']);
 
+    // Abrir ventana de conversación +72h por re-welcome (solo WhatsApp Cloud API)
+    $reWelcomeClientId = $existingChat['client_id'] ?? null;
+    if ($reWelcomeClientId) {
+      $this->openChatWindow($reWelcomeClientId, $bot['id'], $bot['config'] ?? []);
+    }
+
     ogLog::info("handleReWelcome - Completado", ['messages_sent' => $messagesSent, 'chat_rebuilt' => true], $this->logMeta);
 
     return [
@@ -183,6 +189,11 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       ogLog::info("handleNewProductWelcome - Chats registrados (DB + JSON)", [ 'client_id' => $clientId, 'sale_id' => $saleId, 'product_id' => $productId ], $this->logMeta);
     }
 
+    // Abrir ventana de conversación +72h (solo WhatsApp Cloud API)
+    if ($clientId) {
+      $this->openChatWindow($clientId, $bot['id'], $bot['config'] ?? []);
+    }
+
     ogApp()->loadHandler('chat');
     ChatHandler::rebuildFromDB($person['number'], $bot['id']);
     ogLog::info("handleNewProductWelcome - Completado ➜ Chat reconstruido desde BD", [ 'number' => $person['number'], 'bot_id' => $bot['id'],  'sale_id' => $saleId, 'messages_sent' => $welcomeResult['messages_sent'], 'chat_rebuilt' => true ], $this->logMeta);
@@ -198,6 +209,28 @@ class WelcomeStrategy implements ConversationStrategyInterface {
   private function loadProduct($productId) {
     ogApp()->loadHandler('product');
     return ProductHandler::getProductFile($productId);
+  }
+
+  /**
+   * Abre/renueva la ventana de conversación gratuita en client_bot_meta.
+   * Solo aplica para WhatsApp Cloud API (+72h desde bienvenida).
+   * Evolution API no tiene límite de tiempo.
+   */
+  private function openChatWindow(int $clientId, int $botId, array $botConfig) {
+    $provider = $botConfig['apis']['chat'][0]['config']['type_value'] ?? null;
+    if ($provider !== 'whatsapp-cloud-api') return;
+
+    $expiry = date('Y-m-d H:i:s', strtotime('+72 hours'));
+    $now    = date('Y-m-d H:i:s');
+    ogDb::raw(
+      "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc)
+       VALUES (?, ?, 'open_chat', ?, ?, ?)
+       ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value), tc = VALUES(tc)",
+      [$clientId, $botId, $expiry, $now, time()]
+    );
+    ogLog::info("WelcomeStrategy - Ventana open_chat abierta +72h", [
+      'client_id' => $clientId, 'bot_id' => $botId, 'expires_at' => $expiry
+    ], $this->logMeta);
   }
 
   private function registerStartSale($bot, $person, $product, $clientId, $saleId) {
