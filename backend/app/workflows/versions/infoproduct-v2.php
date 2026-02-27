@@ -134,6 +134,11 @@ class InfoproductV2Handler {
     $bot = array_merge($bot, $botData);
     ogApp()->helper('cache')::memorySet('current_bot', $bot);
 
+    // ★ FIX: Establecer timezone del bot para toda la ejecución del webhook
+    $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
+    date_default_timezone_set($botTimezone);
+    ogLog::info("handle - Timezone establecida", ['timezone' => $botTimezone], $this->logMeta);
+
     // ESTABLECER user_id GLOBALMENTE EN ChatHandler
     $userId = $bot['user_id'] ?? null;
     if ($userId) {
@@ -561,6 +566,8 @@ class InfoproductV2Handler {
     }
 
     ogApp()->helper('cache')::memorySet('current_bot', $bot);
+    $botTimezone = $bot['config']['timezone'] ?? 'America/Guayaquil';
+    date_default_timezone_set($botTimezone);
     $bot['prompt_recibo']         = $this->prompt_recibo;
     $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
 

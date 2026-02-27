@@ -351,33 +351,34 @@ class chat {
       if (!cached) {
         const json   = await ogModule('api').get(`/api/client/${clientId}/open-chat/${botId}`);
         const expiry = json?.data?.expiry    ?? null;
+        const tc     = json?.data?.tc        ?? null;
         const srvNow = json?.data?.server_now ?? null;
-        if (expiry) {
-          cached = { expiry, server_now: srvNow };
+        if (expiry && tc) {
+          cached = { expiry, tc, server_now: srvNow };
           ogCache.setMemory(this._cacheOpen(clientId), cached, 5 * 60 * 1000);
         }
       }
 
       const wrap = document.getElementById('bsChatOpenBarWrap');
       const bar  = document.getElementById('bsChatOpenBar');
-      if (!wrap || !bar || !cached?.expiry) return;
+      if (!wrap || !bar || !cached?.expiry || !cached?.tc) return;
 
-      const { expiry, server_now } = cached;
+      const { expiry, tc } = cached;
 
-      // Calcular remaining usando server_now: ambas fechas están en la misma zona del servidor
-      // → la diferencia es exacta sin importar la timezone del browser
-      const toMs      = s => new Date(s.replace(' ', 'T')).getTime();
-      const expiryMs  = toMs(expiry);
-      const remaining = Math.max(0, expiryMs - (server_now ? toMs(server_now) : Date.now()));
+      // Calcular progreso real usando inicio (tc), actual (hora local), final (expiry)
+      const toMs = s => typeof s === 'number' ? s * 1000 : new Date(s.replace(' ', 'T')).getTime();
+      const startMs  = toMs(tc); // tc es timestamp (segundos)
+      const expiryMs = toMs(expiry); // expiry es string fecha
+      const nowMs    = Date.now(); // Hora local del navegador
+
+      const totalMs = expiryMs - startMs;
+      const elapsedMs = Math.max(0, nowMs - startMs);
+      const pctConsumed = totalMs > 0 ? Math.min(100, Math.round(elapsedMs / totalMs * 100)) : 0;
+      const pctLeft = 100 - pctConsumed;
+      const label = window.bsDate ? bsDate.timeRemaining(expiry) : '';
 
       // Guardar el expiry en ms para validar al enviar (usando offset con reloj local)
-      const serverOffset = server_now ? (toMs(server_now) - Date.now()) : 0;
-      this._activeExpiry = { expiryMs, serverOffset };
-
-      const windowMs    = 72 * 3600 * 1000;
-      const pctLeft     = Math.min(100, Math.round(remaining / windowMs * 100));
-      const pctConsumed = 100 - pctLeft;
-      const label       = window.bsDate ? bsDate.timeRemaining(expiry) : '';
+      this._activeExpiry = { expiryMs, serverOffset: 0 };
 
       bar.style.width = pctConsumed + '%';
       wrap.style.display = 'flex';

@@ -80,57 +80,59 @@ class ChatHandler {
         $currentBot = ogApp()->helper('cache')::memoryGet('current_bot');
         $botChatProvider = $currentBot['config']['apis']['chat'][0]['config']['type_value'] ?? null;
 
-        ogLog::info("ChatHandler::register - current_bot leído de memoria", [
-          'current_bot_is_null' => $currentBot === null,
-          'bot_chat_provider'   => $botChatProvider,
-          'bot_id_in_memory'    => $currentBot['id'] ?? null,
-          'has_config'          => isset($currentBot['config']),
-          'has_apis'            => isset($currentBot['config']['apis']['chat'][0]),
-        ], self::$logMeta);
-
         if ($botChatProvider === 'whatsapp-cloud-api') {
-          $candidateExpiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
-
-          ogLog::info("ChatHandler::register - candidateExpiry calculado", [
-            'now_date'         => date('Y-m-d H:i:s'),
-            'now_time'         => time(),
-            'timezone'         => date_default_timezone_get(),
-            'candidate_expiry' => $candidateExpiry,
-            'client_id'        => $clientId,
-            'bot_id'           => $botId,
-          ], self::$logMeta);
-
-          // Consultar expiry existente para no reducir la ventana
-          $existingMeta   = ogDb::raw(
-            "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
-            [$clientId, $botId]
+          // Consultar expiry existente
+          $existingMeta = ogDb::raw(
+              "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
+              [$clientId, $botId]
           );
           $existingExpiry = $existingMeta[0]['meta_value'] ?? null;
 
-          // Actualizar solo si el candidato es MAYOR que el existente.
-          // Esto preserva una ventana de +72h (ad) que supere al +24h del mensaje.
-          $shouldUpdate = !$existingExpiry || strtotime($candidateExpiry) > strtotime($existingExpiry);
+          // time() siempre devuelve UTC epoch — timezone-safe
+          $nowTimestamp = time();
+          $candidateExpiry = date('Y-m-d H:i:s', $nowTimestamp + 86400); // +24 horas
+          $phpNow = date('Y-m-d H:i:s', $nowTimestamp);
+
+          // Solo actualizar si NO existe o si ya expiró
+          $shouldUpdate = !$existingExpiry || strtotime($existingExpiry) < $nowTimestamp;
+
+          // === DEBUG TEMPORAL - BORRAR DESPUÉS ===
+          ogLog::warning("DEBUG open_chat", [
+              'client_id'          => $clientId,
+              'bot_id'             => $botId,
+              'existingExpiry'     => $existingExpiry,
+              'existingExpiry_ts'  => $existingExpiry ? strtotime($existingExpiry) : null,
+              'nowTimestamp'       => $nowTimestamp,
+              'phpNow'             => $phpNow,
+              'candidateExpiry'    => $candidateExpiry,
+              'php_timezone'       => date_default_timezone_get(),
+              'diferencia_seg'     => $existingExpiry ? (strtotime($existingExpiry) - $nowTimestamp) : 'N/A',
+              'shouldUpdate'       => $shouldUpdate ? 'SI' : 'NO'
+          ], self::$logMeta);
+          // === FIN DEBUG ===
 
           if ($shouldUpdate) {
-            if ($existingExpiry) {
-              ogDb::raw(
-                "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat'",
-                [$candidateExpiry, time(), $clientId, $botId]
-              );
-            } else {
-              ogDb::raw(
-                "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'open_chat', ?, ?, ?)",
-                [$clientId, $botId, $candidateExpiry, $now, time()]
-              );
-            }
+              if ($existingExpiry) {
+                  ogDb::raw(
+                      "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat'",
+                      [$candidateExpiry, $nowTimestamp, $clientId, $botId]
+                  );
+              } else {
+                  ogDb::raw(
+                      "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'open_chat', ?, ?, ?)",
+                      [$clientId, $botId, $candidateExpiry, $now, $nowTimestamp]
+                  );
+              }
           }
 
           ogLog::info("ChatHandler::register - Ventana open_chat", [
-            'client_id'       => $clientId,
-            'bot_id'          => $botId,
-            'existing_expiry' => $existingExpiry,
-            'candidate_expiry'=> $candidateExpiry,
-            'action'          => $shouldUpdate ? 'actualizada' : 'no_actualizada (existente es mayor)'
+              'client_id'        => $clientId,
+              'bot_id'           => $botId,
+              'existing_expiry'  => $existingExpiry,
+              'candidate_expiry' => $candidateExpiry,
+              'php_timezone'     => date_default_timezone_get(),
+              'php_now'          => $phpNow,
+              'action'           => $shouldUpdate ? 'actualizada (expirada o nueva)' : 'no_actualizada (ventana vigente)'
           ], self::$logMeta);
         }
       } else {

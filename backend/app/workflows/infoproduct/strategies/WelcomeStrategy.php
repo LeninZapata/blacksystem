@@ -230,10 +230,11 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       return;
     }
 
-    $expiry = date('Y-m-d H:i:s', strtotime('+72 hours'));
-    $now    = date('Y-m-d H:i:s');
+    $nowTimestamp = time();
+    $expiry = date('Y-m-d H:i:s', $nowTimestamp + (72 * 3600));
+    $now    = date('Y-m-d H:i:s', $nowTimestamp);
 
-    $existingMeta   = ogDb::raw(
+    $existingMeta = ogDb::raw(
       "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
       [$clientId, $botId]
     );
@@ -242,12 +243,12 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     if ($existingExpiry) {
       ogDb::raw(
         "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat'",
-        [$expiry, time(), $clientId, $botId]
+        [$expiry, $nowTimestamp, $clientId, $botId]
       );
     } else {
       ogDb::raw(
         "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'open_chat', ?, ?, ?)",
-        [$clientId, $botId, $expiry, $now, time()]
+        [$clientId, $botId, $expiry, $now, $nowTimestamp]
       );
     }
 

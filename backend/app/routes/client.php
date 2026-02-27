@@ -12,13 +12,18 @@ $router->group('/api/client', function($router) {
   // Ventana de apertura WhatsApp - GET /api/client/{id}/open-chat/{bot_id}
   $router->get('/{id}/open-chat/{bot_id}', function($id, $bot_id) {
     $meta = ogDb::raw(
-      "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
+      "SELECT meta_value, tc FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
       [(int)$id, (int)$bot_id]
     );
     $expiry = $meta[0]['meta_value'] ?? null;
+    $tc     = $meta[0]['tc'] ?? null;
     // server_now permite al frontend calcular el delta en la misma zona horaria
     // eliminando cualquier diferencia entre la timezone del server y la del browser
-    ogResponse::success(['expiry' => $expiry, 'server_now' => date('Y-m-d H:i:s')]);
+    ogResponse::success([
+      'expiry'     => $expiry,
+      'tc'         => $tc,
+      'server_now' => date('Y-m-d H:i:s')
+    ]);
   })->middleware(['auth', 'throttle:200,1']);
 
   // Eliminar todos los datos del cliente por ID - DELETE /api/client/{id}/all-data
