@@ -55,11 +55,30 @@
     border-left-color: var(--og-accent-primary);
   }
 
+  .bs-chat-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
   .bs-chat-item-number {
     font-size: var(--og-font-sm);
     font-weight: 600;
     color: var(--og-gray-800);
     font-variant-numeric: tabular-nums;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bs-chat-item-date {
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-500);
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-align: right;
   }
 
   .bs-chat-item-name {
@@ -71,12 +90,10 @@
     text-overflow: ellipsis;
   }
 
-  /* ── Botón "Cargar más" ───────────────────────────────────────────────── */
+  /* ── Botón "Cargar más" - dentro del scroll como un item más ─────────────── */
   .bs-chat-loadmore {
-    padding: 0.625rem 1rem;
-    border-top: 1px solid var(--og-gray-200);
+    padding: 0.75rem 1rem;
     text-align: center;
-    flex-shrink: 0;
   }
 
   .bs-chat-loadmore .btn {
@@ -84,25 +101,101 @@
     font-size: var(--og-font-xs);
   }
 
-  /* ── Panel principal (mensajes / placeholder) ─────────────────────────── */
+  /* ── Panel principal (mensajes) ─────────────────────────────────────────────── */
   .bs-chat-main {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     background: var(--og-gray-50);
-    overflow: hidden;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    gap: 0.5rem;
   }
 
   .bs-chat-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
     text-align: center;
     color: var(--og-gray-400);
     font-size: var(--og-font-sm);
+    height: 100%;
   }
 
-  .bs-chat-empty-state .icon {
-    display: block;
+  .bs-chat-empty-icon {
     font-size: 2.25rem;
     margin-bottom: 0.5rem;
+  }
+
+  .bs-msg-loading {
+    text-align: center;
+    color: var(--og-gray-400);
+    font-size: var(--og-font-xs);
+    padding: 2rem;
+    width: 100%;
+  }
+
+  /* ── Burbujas de mensajes ────────────────────────────────────────────────────────── */
+  .bs-msg {
+    display: flex;
+    width: 100%;
+  }
+
+  /* Prospecto: izquierda */
+  .bs-msg-p { justify-content: flex-start; }
+  .bs-msg-p .bs-msg-bubble {
+    background: var(--og-layout-content-bg);
+    border: 1px solid var(--og-gray-200);
+    color: var(--og-gray-800);
+    border-radius: 0 12px 12px 12px;
+    max-width: 65%;
+  }
+
+  /* Bot: derecha */
+  .bs-msg-b { justify-content: flex-end; }
+  .bs-msg-b .bs-msg-bubble {
+    background: var(--og-blue-500);
+    color: #fff;
+    border-radius: 12px 12px 0 12px;
+    max-width: 65%;
+  }
+  .bs-msg-b .bs-msg-time { color: rgba(255,255,255,0.65); }
+
+  /* Sistema: centro */
+  .bs-msg-s { justify-content: center; }
+  .bs-msg-s .bs-msg-bubble {
+    background: var(--og-gray-100);
+    border: 1px solid var(--og-gray-200);
+    color: var(--og-gray-500);
+    border-radius: 12px;
+    font-size: var(--og-font-xs);
+    max-width: 75%;
+    text-align: center;
+  }
+
+  .bs-msg-bubble {
+    padding: 0.5rem 0.75rem;
+    font-size: var(--og-font-sm);
+    line-height: 1.45;
+    word-break: break-word;
+    position: relative;
+  }
+
+  .bs-msg-bubble img {
+    max-width: 220px;
+    max-height: 220px;
+    border-radius: 6px;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .bs-msg-time {
+    display: block;
+    font-size: 10px;
+    color: var(--og-gray-400);
+    margin-top: 4px;
+    text-align: right;
   }
 
   /* ── Mensajes utilitarios dentro del listado ──────────────────────────── */

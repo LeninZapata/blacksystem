@@ -80,6 +80,11 @@ class ChatController extends ogController {
   function list() {
     $query = ogDb::t('chats');
 
+    // Filtrar por user_id autenticado
+    if (isset($GLOBALS['auth_user_id'])) {
+      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
+    }
+
     // Filtros
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;

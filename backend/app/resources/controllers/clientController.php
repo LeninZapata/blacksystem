@@ -95,11 +95,17 @@ class ClientController extends ogController {
     // Paginación
     $page = ogRequest::query('page', 1);
     $perPage = ogRequest::query('per_page', 50);
+    $total = (clone $query)->count();
     $data = $query->paginate($page, $perPage)->get();
 
     if (!is_array($data)) $data = [];
 
-    ogResponse::success($data);
+    ogResponse::success([
+      'data'     => $data,
+      'total'    => $total,
+      'page'     => (int)$page,
+      'per_page' => (int)$perPage
+    ]);
   }
 
   function delete($id) {
