@@ -29,13 +29,13 @@ class ImageMessageProcessor implements MessageProcessorInterface {
     // VALIDACIÓN INTELIGENTE: Solo enviar mensaje de espera si hay venta pendiente
     if ($this->shouldSendWaitMessage($chatData)) {
       ogLog::info("process - Enviando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'pending_sale' ], $this->logMeta);
-      $this->sendWaitMessage($person['number']);
+      $this->sendWaitMessage($person['number'], $context);
     } else {
       ogLog::info("process - Saltando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'sin_venta_pendiente' ], $this->logMeta);
     }
 
     require_once ogApp()->getPath() . '/workflows/infoproduct/interpreters/ImageInterpreter.php';
-    $analysis = ImageInterpreter::interpret($imageMessage, $bot);
+    $analysis = ImageInterpreter::interpret($imageMessage, $bot, $person['number'] ?? null);
 
     if (!$analysis['success']) {
       return [
@@ -68,17 +68,40 @@ class ImageMessageProcessor implements MessageProcessorInterface {
     return $currentSale !== null;
   }
 
-  private function sendWaitMessage($to) {
+  private function sendWaitMessage($to, $context) {
     $chatapi = ogApp()->service('chatApi');
+    $bot      = $context['bot'];
+    $chatData = $context['chat_data'];
 
-    // Enviar presence después del mensaje (1.5-2.2 segundos)
-    $randomDelayMs = rand(12, 17) * 100; // 1500-2200ms en pasos de 100ms
+    $randomDelayMs = rand(12, 17) * 100;
     $message = "Listo ✅\nUn momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste){p}\n\n🕐 Si tardo en responder, no te preocupes.\nEstoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊{e-like}";
     $chatapi::sendPresence($to, 'composing', $randomDelayMs);
     $chatapi::send($to, $message);
 
-    // Enviar presence después del mensaje (1.5-2.2 segundos)
-    $randomDelayMs = rand(15, 22) * 100; // 1500-2200ms en pasos de 100ms
+    // Registrar mensaje del bot en DB + JSON
+    ogApp()->loadHandler('chat');
+    ChatHandler::register(
+      $bot['id'],
+      $bot['number'],
+      $chatData['client_id'],
+      $to,
+      $message,
+      'B',
+      'text',
+      ['action' => 'wait_image_validation'],
+      $chatData['current_sale']['sale_id'] ?? null
+    );
+    ChatHandler::addMessage([
+      'number'   => $to,
+      'bot_id'   => $bot['id'],
+      'client_id'=> $chatData['client_id'],
+      'sale_id'  => $chatData['current_sale']['sale_id'] ?? null,
+      'message'  => $message,
+      'format'   => 'text',
+      'metadata' => ['action' => 'wait_image_validation']
+    ], 'B');
+
+    $randomDelayMs = rand(15, 22) * 100;
     $chatapi::sendPresence($to, 'composing', $randomDelayMs);
   }
 }

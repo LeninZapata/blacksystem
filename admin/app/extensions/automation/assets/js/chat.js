@@ -1,6 +1,6 @@
 class chat {
 
-  static apis = { clientChat: '/api/client/list-chat', bot: '/api/bot' };
+  static apis = { clientChat: '/api/client/list-chat', bot: '/api/bot', receipt: '/api/chat/receipt' };
 
   // ─── Config pública (editable) ─────────────────────────────────────────────
   static perPage                = 30;   // contactos por página
@@ -233,6 +233,8 @@ class chat {
       if (main) {
         newMsgs.forEach(m => main.insertAdjacentHTML('beforeend', this._msgHtml(m)));
         main.scrollTop = main.scrollHeight;
+        this._loadReceiptImages(main);
+        this._bindImageLightbox(main);
       }
 
       // Si llegó mensaje del cliente (type P), invalidar cache de ventana open_chat
@@ -484,6 +486,62 @@ class chat {
 
     main.innerHTML = msgs.map(m => this._msgHtml(m)).join('');
     main.scrollTop = main.scrollHeight;
+    this._loadReceiptImages(main);
+    this._bindImageLightbox(main);
+  }
+
+  // Carga imágenes de recibos autenticadas como blob para evitar exponer el endpoint
+  static _receiptCache = new Map(); // filename → objectURL (cache en memoria por sesión)
+
+  static async _loadReceiptImages(container) {
+    const imgs = container.querySelectorAll('img[data-receipt]');
+    if (!imgs.length) return;
+
+    const token = ogModule('auth')?.getToken?.() ?? null;
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    imgs.forEach(async img => {
+      const filename = img.dataset.receipt;
+
+      // Usar caché si ya fue cargado antes
+      if (this._receiptCache.has(filename)) {
+        img.src = this._receiptCache.get(filename);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${this.apis.receipt}/${filename}`, { headers });
+        if (!res.ok) throw new Error('not ok');
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        this._receiptCache.set(filename, url);
+        img.src = url;
+      } catch {
+        const resume = img.closest('[data-resume]')?.dataset?.resume ?? '';
+        img.parentElement.innerHTML = `<span class="bs-msg-expired-media">📷 ${resume || 'Imagen no disponible'}</span>`;
+      }
+    });
+  }
+
+  static _bindImageLightbox(container) {
+    container.querySelectorAll('img[data-receipt]').forEach(img => {
+      img.addEventListener('click', () => this._openLightbox(img.src));
+    });
+  }
+
+  static _openLightbox(src) {
+    const box = document.createElement('div');
+    box.className = 'bs-img-lightbox';
+    box.innerHTML = `<button class="bs-img-lightbox-close">✕</button><img src="${src}">`;
+
+    const close = () => box.remove();
+    box.querySelector('.bs-img-lightbox-close').onclick = close;
+    box.addEventListener('click', e => { if (e.target === box) close(); });
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
+    });
+
+    document.body.appendChild(box);
   }
 
   static async loadMessages(clientId) {
@@ -531,6 +589,15 @@ class chat {
         const meta   = m.metadata ?? {};
         const action = meta.action ?? '';
         if (action === 'followup_sent') displayText = `📨 Seguimiento: ${text}`;
+        if (action === 'start_sale' && meta.msgs_total != null) {
+          const sent   = meta.msgs_sent   ?? 0;
+          const total  = meta.msgs_total  ?? 0;
+          const ok     = sent === total;
+          const badge  = ok
+            ? `✅ ${sent}/${total} msgs`
+            : `⚠️ ${sent}/${total} msgs`;
+          displayText = `${text}\n${badge}`;
+        }
       }
       const escaped = displayText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const formatted = escaped
@@ -539,11 +606,17 @@ class chat {
       content = `<span>${formatted}</span>`;
     } else if (format === 'image') {
       const meta = m.metadata ?? {};
-      const imgUrl = meta.image_url ?? '';
+      const receiptFile = meta.receipt_file ?? null;
+      const resume = meta.description?.resume ?? meta.resume ?? '';
       const caption = (meta.caption ?? '') || (typeof text === 'string' && text.startsWith('{') ? '' : text);
-      content = imgUrl
-        ? `<div class="bs-msg-media"><img src="${imgUrl}" alt="imagen" onerror="this.style.display='none'"></div>${caption ? `<span>${caption}</span>` : ''}`
-        : `<span>📷 Imagen</span>`;
+      if (receiptFile) {
+        content = `<div class="bs-msg-media" data-resume="${resume}"><img data-receipt="${receiptFile}" alt="imagen"></div>${caption ? `<span>${caption}</span>` : ''}`;
+      } else {
+        const imgUrl = meta.image_url ?? '';
+        content = imgUrl
+          ? `<div class="bs-msg-media"><img src="${imgUrl}" alt="imagen" onerror="this.parentElement.innerHTML='<span class=\\'bs-msg-expired-media\\'>📷 ${resume || 'Imagen no disponible'}</span>'"></div>${caption ? `<span>${caption}</span>` : ''}`
+          : `<span>📷 ${resume || 'Imagen'}</span>`;
+      }
     } else if (format === 'audio') {
       content = `<span>🎵 Audio</span>`;
     } else if (format === 'video') {

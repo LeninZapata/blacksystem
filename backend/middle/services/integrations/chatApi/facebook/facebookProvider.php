@@ -109,11 +109,35 @@ class facebookProvider extends baseChatApiProvider {
 
     ogLog::debug('facebookProvider.sendMessage - payload', ['media_type' => $mediaType, 'payload' => $payload], self::$logMeta);
 
-    try {
-      return $this->postToGraph($payload);
-    } catch (Exception $e) {
-      return $this->errorResponse($e->getMessage());
+    // Con media: reintentar hasta 3 veces si Graph API falla (hosting lento)
+    $maxAttempts = !empty($url) ? 3 : 1;
+    $retryDelay  = 4; // segundos entre reintentos
+    $lastResult  = null;
+
+    for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+      try {
+        $result = $this->postToGraph($payload);
+        if ($result['success']) return $result;
+
+        $lastResult = $result;
+        ogLog::warning('facebookProvider.sendMessage - Intento fallido', [
+          'attempt'    => $attempt,
+          'max'        => $maxAttempts,
+          'media_type' => $mediaType,
+          'error'      => $result['error'] ?? 'unknown'
+        ], self::$logMeta);
+      } catch (Exception $e) {
+        $lastResult = $this->errorResponse($e->getMessage());
+        ogLog::warning('facebookProvider.sendMessage - Excepción intento', [
+          'attempt' => $attempt,
+          'error'   => $e->getMessage()
+        ], self::$logMeta);
+      }
+
+      if ($attempt < $maxAttempts) sleep($retryDelay);
     }
+
+    return $lastResult ?? $this->errorResponse('Sin respuesta de Graph API');
   }
 
   // $interactive: objeto completo del campo "interactive" del payload de Facebook

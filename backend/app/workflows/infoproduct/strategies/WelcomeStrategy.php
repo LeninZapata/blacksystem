@@ -192,7 +192,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     $saleId = $welcomeResult['sale_id'];
 
     if ($clientId && $saleId) {
-      $this->registerStartSale($bot, $person, $product, $clientId, $saleId);
+      $this->registerStartSale($bot, $person, $product, $clientId, $saleId, $welcomeResult);
       ogLog::info("handleNewProductWelcome - Chats registrados (DB + JSON)", [ 'client_id' => $clientId, 'sale_id' => $saleId, 'product_id' => $productId ], $this->logMeta);
     }
 
@@ -295,7 +295,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     return 'organic';
   }
 
-  private function registerStartSale($bot, $person, $product, $clientId, $saleId) {
+  private function registerStartSale($bot, $person, $product, $clientId, $saleId, $welcomeResult = []) {
     ogApp()->loadHandler('chat');
 
     // Obtener origin de la venta desde BD
@@ -304,14 +304,21 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     $message = 'Nueva venta iniciada: ' . $product['name'];
     $metadata = [
-      'action' => 'start_sale',
-      'sale_id' => $saleId,
-      'product_id' => $product['id'],
-      'product_name' => $product['name'],
-      'price' => $product['price'],
-      'description' => $product['description'] ?? '',
-      'instructions' => $product['config']['prompt'] ?? '',
-      'origin' => $origin
+      'action'          => 'start_sale',
+      'sale_id'         => $saleId,
+      'product_id'      => $product['id'],
+      'product_name'    => $product['name'],
+      'price'           => $product['price'],
+      'description'     => $product['description'] ?? '',
+      'instructions'    => $product['config']['prompt'] ?? '',
+      'origin'          => $origin,
+      'msgs_total'      => $welcomeResult['total_messages']  ?? null,
+      'msgs_sent'       => $welcomeResult['messages_sent']   ?? null,
+      'msgs_failed'     => $welcomeResult['messages_failed'] ?? null,
+      'msgs_failed_idx' => !empty($welcomeResult['failed_messages'])
+                            ? array_column($welcomeResult['failed_messages'], 'index')
+                            : [],
+      'duration_s'      => $welcomeResult['duration_seconds'] ?? null
     ];
 
     // ChatHandler ahora resuelve user_id automáticamente

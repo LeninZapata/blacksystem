@@ -300,6 +300,25 @@ $router->group('/api/chat', function($router) {
   // RUTAS PERSONALIZADAS (siempre con auth)
   // ============================================
 
+  // Servir recibo de pago guardado en storage/recibos/
+  $router->get('/receipt/{filename}', function($filename) {
+    // Sanitizar: solo nombre de archivo sin rutas
+    $filename = basename($filename);
+    $filePath = ogApp()->getPath('storage') . '/recibos/' . $filename;
+
+    if (!file_exists($filePath)) ogResponse::notFound('Recibo no encontrado');
+
+    $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $mimeMap  = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'gif' => 'image/gif'];
+    $mimeType = $mimeMap[$ext] ?? 'image/jpeg';
+
+    header('Content-Type: ' . $mimeType);
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: private, max-age=31536000');
+    readfile($filePath);
+    exit;
+  })->middleware('auth');
+
   $router->get('/conversation/{bot_id}/{client_id}', function($bot_id, $client_id) {
     ogResponse::json(ogApp()->handler('chat')::getConversation(['bot_id' => $bot_id, 'client_id' => $client_id]));
   })->middleware('auth');
@@ -348,6 +367,7 @@ $router->group('/api/chat', function($router) {
 // - GET    /api/chat/cleanup/old-chats?days=14&limit=100&dry_run=false
 //
 // PERSONALIZADAS (siempre auth):
+// - GET    /api/chat/receipt/{filename}
 // - GET    /api/chat/conversation/{bot_id}/{client_id}
 // - GET    /api/chat/by-bot/{bot_id}
 // - GET    /api/chat/by-client/{client_id}

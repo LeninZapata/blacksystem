@@ -3,7 +3,7 @@
 class ImageInterpreter {
   private static $logMeta = ['module' => 'ImageInterpreter', 'layer' => 'app/workflows'];
 
-  static function interpret($message, $bot) {
+  static function interpret($message, $bot, $number = null) {
     $imageUrl = $message['media_url'] ?? null;
     $caption = $message['text'] ?? '';
     $base64 = $message['base64'] ?? null;
@@ -63,14 +63,18 @@ class ImageInterpreter {
 
       $jsonData = json_decode($description, true);
 
+      // Guardar imagen en storage/recibos/ para acceso permanente
+      $receiptFile = self::saveReceipt($base64, $mimeType, $number);
+
       return [
         'success' => true,
         'type' => 'image',
         'text' => json_encode($jsonData, JSON_UNESCAPED_UNICODE),
         'metadata' => [
-          'image_url' => $imageUrl,
-          'caption' => $caption,
-          'description' => $jsonData
+          'image_url'    => $imageUrl,
+          'receipt_file' => $receiptFile,
+          'caption'      => $caption,
+          'description'  => $jsonData
         ]
       ];
 
@@ -92,5 +96,66 @@ class ImageInterpreter {
       'webp' => 'image/webp'
     ];
     return $mimes[$ext] ?? 'image/jpeg';
+  }
+
+  // Guarda el base64 en storage/recibos/ y retorna solo el nombre del archivo
+  private static function saveReceipt($base64, $mimeType, $number) {
+    try {
+      $clean    = preg_replace('/[^0-9]/', '', $number ?? '');
+      $filename = ($clean ?: 'unknown') . '_' . time() . '.webp';
+      $dir      = ogApp()->getPath('storage') . '/recibos';
+
+      if (!is_dir($dir)) mkdir($dir, 0755, true);
+
+      $imgData = base64_decode($base64);
+      $src     = imagecreatefromstring($imgData);
+
+      if (!$src) {
+        // Fallback: guardar sin comprimir si GD falla
+        file_put_contents($dir . '/' . $filename, $imgData);
+        return $filename;
+      }
+
+      $compressed = self::compressToWebp($src, $filename, $dir);
+      imagedestroy($src);
+
+      return $compressed ? $filename : null;
+    } catch (Exception $e) {
+      ogLog::error('saveReceipt - Error al guardar', ['error' => $e->getMessage()], self::$logMeta);
+      return null;
+    }
+  }
+
+  // Convierte a WebP y reduce tamaño/calidad hasta < 30KB
+  private static function compressToWebp($src, $filename, $dir) {
+    $targetBytes = 30 * 1024;
+    $origW   = imagesx($src);
+    $origH   = imagesy($src);
+    $w       = $origW;
+    $h       = $origH;
+    $quality = 80;
+    $tmpFile = $dir . '/' . $filename;
+
+    // Primera conversión a WebP
+    self::writeWebp($src, $origW, $origH, $w, $h, $quality, $tmpFile);
+
+    // Loop: para si $w llega a 300px, sin importar el peso
+    while (filesize($tmpFile) > $targetBytes && $w > 300) {
+      $w       = (int)($w * 0.8);
+      $h       = (int)($h * 0.8);
+      $quality = max(10, $quality - 15);
+      self::writeWebp($src, $origW, $origH, $w, $h, $quality, $tmpFile);
+    }
+
+    return file_exists($tmpFile);
+  }
+
+  // Escala $src desde tamaño original a $dstW x $dstH y guarda como WebP
+  private static function writeWebp($src, $origW, $origH, $dstW, $dstH, $quality, $path) {
+    $canvas = imagecreatetruecolor($dstW, $dstH);
+    imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+    imagecopyresampled($canvas, $src, 0, 0, 0, 0, $dstW, $dstH, $origW, $origH);
+    imagewebp($canvas, $path, $quality);
+    imagedestroy($canvas);
   }
 }

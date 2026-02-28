@@ -77,7 +77,7 @@ class SendWelcomeAction {
 
       try {
         $result = $chatapi::send($from, $text, $url);
-        
+
         if ($result['success']) {
           $messagesSent++;
           
@@ -268,4 +268,5 @@ class SendWelcomeAction {
       ], self::$logMeta);
     }
   }
+
 }
