@@ -6,11 +6,12 @@
   .bs-chat {
     display: grid;
     grid-template-columns: 300px 1fr;
-    height: calc(100vh - var(--og-layout-header-height) - 110px);
+    height: calc(100vh - var(--og-layout-header-height) - 2rem);
     border: 1px solid var(--og-gray-200);
     border-radius: 8px;
     overflow: hidden;
     background: var(--og-layout-content-bg);
+    box-sizing: border-box;
   }
 
   /* ── Sidebar (lista de contactos) ─────────────────────────────────────── */
@@ -33,6 +34,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .bs-chat-bot-selector {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--og-gray-200);
+    background: var(--og-layout-content-bg);
+    flex-shrink: 0;
+
+    select {
+      width: 100%;
+      font-size: var(--og-font-xs);
+      color: var(--og-gray-700);
+      background: var(--og-gray-50);
+      border: 1px solid var(--og-gray-200);
+      border-radius: 6px;
+      padding: 0.3rem 0.5rem;
+      outline: none;
+      cursor: pointer;
+
+      &:focus { border-color: var(--og-accent-primary); }
+    }
   }
 
   .bs-chat-refresh-btn {
@@ -234,6 +256,24 @@
     padding-bottom: 0.5rem;
   }
 
+  /* Bloque izquierdo: número + nombre */
+  .bs-chat-header-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* Bloque derecho: bot + progressbar */
+  .bs-chat-header-sub {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
   .bs-chat-panel-header.bs-chat-no-client {
     font-weight: 400;
     color: var(--og-gray-400);
@@ -263,8 +303,6 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    margin-left: auto;
-    margin-right: 0.25rem;
     cursor: default;
     overflow: visible;
   }
@@ -438,5 +476,84 @@
   .bs-chat-send-btn {
     flex-shrink: 0;
     align-self: flex-end;
+  }
+
+  /* ── Botón volver (mobile) ──────────────────────────────────────────────── */
+  .bs-chat-back-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--og-gray-500);
+    font-size: 1rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+
+    &:hover {
+      color: var(--og-accent-primary);
+      background: var(--og-blue-50);
+    }
+  }
+
+  /* ── Responsive mobile < 769px ─────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .bs-chat {
+      --og-layout-header-height: 40px;
+      display: block;
+      position: relative;
+      overflow: hidden;
+      height: calc(100dvh - var(--og-layout-header-height) - 0.8rem);
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+    }
+
+    .bs-chat-sidebar {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      transform: translateX(0);
+      transition: transform 0.28s ease;
+    }
+
+    .bs-chat-panel {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      transform: translateX(100%);
+      transition: transform 0.28s ease;
+    }
+
+    /* Cuando se abre un chat: sidebar sale a la izquierda, panel entra desde derecha */
+    .bs-chat.mobile-chat-open {
+      .bs-chat-sidebar { transform: translateX(-100%); }
+      .bs-chat-panel   { transform: translateX(0); }
+    }
+
+    .bs-chat-back-btn { display: flex; align-items: center; }
+
+    /* Header: 2 columnas en mobile */
+    .bs-chat-header-row { align-items: stretch; }
+
+    .bs-chat-header-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.1rem;
+    }
+
+    .bs-chat-header-sub {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.1rem;
+      margin-left: 0;
+      width: auto;
+    }
   }
 }

@@ -3,10 +3,23 @@
 
 $router->group('/api/client', function($router) {
 
-  // Marcar chat como leído - POST /api/client/{id}/read
+  // Lista de clientes para panel de chat (con last_message_at/unread desde client_bot_meta)
+  // GET /api/client/list-chat?bot_id=11  (bot_id opcional)
+  $router->get('/list-chat', function() {
+    (new ClientController())->listChat();
+  })->middleware(['auth', 'throttle:100,1']);
+
+  // Marcar chat como leído - POST /api/client/{id}/read  (requiere bot_id en body)
   $router->post('/{id}/read', function($id) {
-    $affected = ogDb::t('clients')->where('id', $id)->update(['unread_count' => 0]);
-    ogResponse::success(['affected' => $affected]);
+    $botId = ogRequest::data()['bot_id'] ?? ogRequest::query('bot_id', null);
+    if (!$botId) ogResponse::error('bot_id requerido', 400);
+
+    ogDb::raw(
+      "UPDATE client_bot_meta SET meta_value = '0', tc = ?
+       WHERE client_id = ? AND bot_id = ? AND meta_key = 'unread_count'",
+      [time(), (int)$id, (int)$botId]
+    );
+    ogResponse::success(['ok' => true]);
   })->middleware(['auth', 'throttle:200,1']);
 
   // Ventana de apertura WhatsApp - GET /api/client/{id}/open-chat/{bot_id}

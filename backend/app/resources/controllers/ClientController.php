@@ -133,6 +133,101 @@ class ClientController extends ogController {
     ]);
   }
 
+  // Lista de clientes para el panel de chat, con last_message_at/unread_count desde client_bot_meta
+  function listChat() {
+    $userId  = $GLOBALS['auth_user_id'] ?? null;
+    $botId   = ogRequest::query('bot_id', null);   // opcional: filtra por bot
+    $page    = (int)ogRequest::query('page', 1);
+    $perPage = (int)ogRequest::query('per_page', 50);
+    $offset  = ($page - 1) * $perPage;
+
+    if ($botId) {
+      // Filtro por bot específico
+      $data = ogDb::raw(
+        "SELECT c.*,
+           cbm_lm.bot_id          AS chat_bot_id,
+           cbm_lm.meta_value      AS last_message_at,
+           cbm_lc.meta_value      AS last_client_message_at,
+           COALESCE(CAST(cbm_u.meta_value AS UNSIGNED), 0) AS unread_count
+         FROM clients c
+         INNER JOIN client_bot_meta cbm_lm
+           ON cbm_lm.client_id = c.id AND cbm_lm.meta_key = 'last_message_at' AND cbm_lm.bot_id = ?
+         LEFT JOIN client_bot_meta cbm_lc
+           ON cbm_lc.client_id = c.id AND cbm_lc.bot_id = cbm_lm.bot_id AND cbm_lc.meta_key = 'last_client_message_at'
+         LEFT JOIN client_bot_meta cbm_u
+           ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
+         ORDER BY cbm_lm.meta_value DESC
+         LIMIT ? OFFSET ?",
+        [(int)$botId, $perPage, $offset]
+      );
+
+      $totalRow = ogDb::raw(
+        "SELECT COUNT(*) as cnt FROM clients c
+         INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at' AND cbm.bot_id = ?",
+        [(int)$botId]
+      );
+    } else {
+      // Todos los bots del usuario — bots se une primero para poder filtrar por user_id
+      $data = ogDb::raw(
+        "SELECT c.*,
+           cbm_lm.bot_id          AS chat_bot_id,
+           cbm_lm.meta_value      AS last_message_at,
+           cbm_lc.meta_value      AS last_client_message_at,
+           COALESCE(CAST(cbm_u.meta_value AS UNSIGNED), 0) AS unread_count
+         FROM clients c
+         INNER JOIN client_bot_meta cbm_lm ON cbm_lm.client_id = c.id AND cbm_lm.meta_key = 'last_message_at'
+         INNER JOIN bots b ON b.id = cbm_lm.bot_id AND b.user_id = ?
+         LEFT JOIN client_bot_meta cbm_lc
+           ON cbm_lc.client_id = c.id AND cbm_lc.bot_id = cbm_lm.bot_id AND cbm_lc.meta_key = 'last_client_message_at'
+         LEFT JOIN client_bot_meta cbm_u
+           ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
+         ORDER BY cbm_lm.meta_value DESC
+         LIMIT ? OFFSET ?",
+        [(int)$userId, $perPage, $offset]
+      );
+
+      $totalRow = ogDb::raw(
+        "SELECT COUNT(*) as cnt FROM clients c
+         INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at'
+         INNER JOIN bots b ON b.id = cbm.bot_id AND b.user_id = ?",
+        [(int)$userId]
+      );
+    }
+    $total = $totalRow[0]['cnt'] ?? 0;
+
+    if (!is_array($data)) $data = [];
+
+    // Último producto por cliente+bot
+    if (!empty($data)) {
+      $ids          = array_column($data, 'id');
+      $placeholders = implode(',', array_fill(0, count($ids), '?'));
+      $lastProducts = ogDb::raw(
+        "SELECT s.client_id, s.bot_id, s.product_name
+         FROM sales s
+         INNER JOIN (
+           SELECT client_id, bot_id, MAX(id) as max_id
+           FROM sales
+           WHERE client_id IN ($placeholders) AND status = 1
+           GROUP BY client_id, bot_id
+         ) sub ON s.id = sub.max_id",
+        $ids
+      );
+      $productMap = [];
+      foreach ($lastProducts as $row) $productMap[$row['client_id'] . '_' . $row['bot_id']] = $row['product_name'];
+      foreach ($data as &$client) {
+        $client['last_product_name'] = $productMap[$client['id'] . '_' . $client['chat_bot_id']] ?? null;
+      }
+      unset($client);
+    }
+
+    ogResponse::success([
+      'data'     => $data,
+      'total'    => (int)$total,
+      'page'     => $page,
+      'per_page' => $perPage
+    ]);
+  }
+
   function delete($id) {
     $client = ogDb::t('clients')->find($id);
     if (!$client) ogResponse::notFound(__('client.not_found'));

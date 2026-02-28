@@ -42,6 +42,25 @@ class ChatHandler {
     ogLog::throwError("ChatHandler - No se pudo resolver user_id", [ 'bot_id' => $botId ], self::$logMeta);
   }
 
+  // Upsert de un key en client_bot_meta
+  private static function upsertMeta($clientId, $botId, $key, $value, $tc) {
+    $exists = ogDb::raw(
+      "SELECT id FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = ? LIMIT 1",
+      [$clientId, $botId, $key]
+    );
+    if ($exists) {
+      ogDb::raw(
+        "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE id = ?",
+        [$value, $tc, $exists[0]['id']]
+      );
+    } else {
+      ogDb::raw(
+        "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, ?, ?, ?, ?)",
+        [$clientId, $botId, $key, $value, date('Y-m-d H:i:s', $tc), $tc]
+      );
+    }
+  }
+
   // Registrar mensaje en la base de datos
   static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type, $format, $metadata = null, $saleId = 0) {
     try {
@@ -65,16 +84,30 @@ class ChatHandler {
 
       $chatId = ogDb::t('chats')->insert($data);
 
-      // Actualizar actividad del cliente
+      // Actualizar actividad por cliente+bot en client_bot_meta
       $now = date('Y-m-d H:i:s');
-      $clientUpdate = ['last_message_at' => $now];
+      $tc  = time();
+
       if ($type === 'P') {
-        $clientUpdate['last_client_message_at'] = $now;
-        // Incrementar contador de no leídos
-        ogDb::raw(
-          "UPDATE " . ogDb::t('clients', true) . " SET unread_count = unread_count + 1, last_client_message_at = ?, last_message_at = ? WHERE id = ?",
-          [$now, $now, $clientId]
+        // Incrementar unread_count por cliente+bot
+        $unreadRow = ogDb::raw(
+          "SELECT id FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'unread_count' LIMIT 1",
+          [$clientId, $botId]
         );
+        if ($unreadRow) {
+          ogDb::raw(
+            "UPDATE client_bot_meta SET meta_value = meta_value + 1, tc = ? WHERE id = ?",
+            [$tc, $unreadRow[0]['id']]
+          );
+        } else {
+          ogDb::raw(
+            "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'unread_count', 1, ?, ?)",
+            [$clientId, $botId, $now, $tc]
+          );
+        }
+
+        // last_client_message_at por cliente+bot
+        self::upsertMeta($clientId, $botId, 'last_client_message_at', $now, $tc);
 
         // Refrescar ventana de conversación: cliente responde → +24h (solo WhatsApp Cloud API)
         $currentBot = ogApp()->helper('cache')::memoryGet('current_bot');
@@ -88,39 +121,20 @@ class ChatHandler {
           );
           $existingExpiry = $existingMeta[0]['meta_value'] ?? null;
 
-          // time() siempre devuelve UTC epoch — timezone-safe
-          $nowTimestamp = time();
-          $candidateExpiry = date('Y-m-d H:i:s', $nowTimestamp + 86400); // +24 horas
-          $phpNow = date('Y-m-d H:i:s', $nowTimestamp);
-
-          // Solo actualizar si NO existe o si ya expiró
-          $shouldUpdate = !$existingExpiry || strtotime($existingExpiry) < $nowTimestamp;
-
-          // === DEBUG TEMPORAL - BORRAR DESPUÉS ===
-          ogLog::warning("DEBUG open_chat", [
-              'client_id'          => $clientId,
-              'bot_id'             => $botId,
-              'existingExpiry'     => $existingExpiry,
-              'existingExpiry_ts'  => $existingExpiry ? strtotime($existingExpiry) : null,
-              'nowTimestamp'       => $nowTimestamp,
-              'phpNow'             => $phpNow,
-              'candidateExpiry'    => $candidateExpiry,
-              'php_timezone'       => date_default_timezone_get(),
-              'diferencia_seg'     => $existingExpiry ? (strtotime($existingExpiry) - $nowTimestamp) : 'N/A',
-              'shouldUpdate'       => $shouldUpdate ? 'SI' : 'NO'
-          ], self::$logMeta);
-          // === FIN DEBUG ===
+          $candidateExpiry = date('Y-m-d H:i:s', $tc + 86400); // +24 horas
+          $phpNow = date('Y-m-d H:i:s', $tc);
+          $shouldUpdate = !$existingExpiry || strtotime($existingExpiry) < $tc;
 
           if ($shouldUpdate) {
               if ($existingExpiry) {
                   ogDb::raw(
                       "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat'",
-                      [$candidateExpiry, $nowTimestamp, $clientId, $botId]
+                      [$candidateExpiry, $tc, $clientId, $botId]
                   );
               } else {
                   ogDb::raw(
                       "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'open_chat', ?, ?, ?)",
-                      [$clientId, $botId, $candidateExpiry, $now, $nowTimestamp]
+                      [$clientId, $botId, $candidateExpiry, $now, $tc]
                   );
               }
           }
@@ -135,12 +149,10 @@ class ChatHandler {
               'action'           => $shouldUpdate ? 'actualizada (expirada o nueva)' : 'no_actualizada (ventana vigente)'
           ], self::$logMeta);
         }
-      } else {
-        ogDb::raw(
-          "UPDATE " . ogDb::t('clients', true) . " SET last_message_at = ? WHERE id = ?",
-          [$now, $clientId]
-        );
       }
+
+      // last_message_at siempre, por cliente+bot
+      self::upsertMeta($clientId, $botId, 'last_message_at', $now, $tc);
 
       return $chatId;
 

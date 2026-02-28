@@ -1,6 +1,6 @@
 class chat {
 
-  static apis = { client: '/api/client' };
+  static apis = { clientChat: '/api/client/list-chat', bot: '/api/bot' };
 
   // ─── Config pública (editable) ─────────────────────────────────────────────
   static perPage                = 30;   // contactos por página
@@ -15,6 +15,7 @@ class chat {
   static _activeNum     = null;
   static _activeId      = null;
   static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
+  static _activeBotId   = null;  // Filtro de bot seleccionado (opcional)
 
   static _heartbeatTimer  = null;
   static _heartbeatCount  = 0;
@@ -35,11 +36,44 @@ class chat {
     this._activeNum       = null;
     this._activeId        = null;
     this._activeBotNum    = null;
+    this._activeBotId     = null;
     this._lastMsgId       = null;
     this._activeExpiry    = null;
     this._clientsKnown    = new Map();
+    this._initBotFilter();
+  }
+
+  // Carga bots del usuario e inserta el select como filtro opcional en el sidebar
+  static async _initBotFilter() {
+    const header = document.querySelector('.bs-chat-sidebar-header');
+    if (!header) { this.loadClients(true); this._startClientHeartbeat(); return; }
+
+    try {
+      const json = await ogModule('api').get(`${this.apis.bot}?per_page=50`);
+      const bots = json.data?.data ?? json.data ?? [];
+
+      if (bots.length > 1) {
+        // Solo mostrar el select si hay más de 1 bot (con 1 no tiene sentido filtrar)
+        header.insertAdjacentHTML('afterend',
+          `<div class="bs-chat-bot-selector">
+            <select id="bsChatBotSelect" onchange="chat.onBotFilter(this.value)">
+              <option value="">Todos los bots</option>
+              ${bots.map(b => `<option value="${b.id}">+${b.number} — ${b.name}</option>`).join('')}
+            </select>
+          </div>`
+        );
+      }
+    } catch (_) { /* sin bots disponibles, igual continúa */ }
+
     this.loadClients(true);
     this._startClientHeartbeat();
+  }
+
+  // Cambia el filtro de bot y recarga la lista
+  static onBotFilter(botId) {
+    this._activeBotId  = botId ? parseInt(botId) : null;
+    this._clientsKnown = new Map();
+    this.loadClients(true);
   }
 
   // ─── Heartbeat de lista de contactos ───────────────────────────────────────
@@ -64,7 +98,8 @@ class chat {
   // Fetch silencioso: detecta nuevos mensajes / nuevos contactos e inyecta en DOM
   static async _syncClients() {
     try {
-      const url  = `${this.apis.client}?sort=last_message_at&order=DESC&per_page=${this.perPage}&page=1`;
+      const botParam = this._activeBotId ? `&bot_id=${this._activeBotId}` : '';
+      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}`;
       const json = await ogModule('api').get(url);
       if (!json.success) return;
 
@@ -96,7 +131,7 @@ class chat {
         // Si el chat está activo y hay nuevos mensajes o unread, marcar como leído automáticamente
         if (String(this._activeId) === cId && (dateChanged || unreadChanged) && parseInt(c.unread_count ?? 0) > 0) {
           // Llamar al endpoint para marcar como leído
-          await ogModule('api').post(`/api/client/${cId}/read`);
+          await ogModule('api').post(`/api/client/${cId}/read`, { bot_id: c.chat_bot_id ?? this._activeBotId });
           // Quitar badge y clase unread del DOM
           if (el) {
             el.classList.remove('unread');
@@ -223,7 +258,8 @@ class chat {
       if (btnRef) list.appendChild(btnRef);
     }
 
-    const url = `${this.apis.client}?sort=last_message_at&order=DESC&per_page=${this.perPage}&page=${this._page}`;
+    const botParam = this._activeBotId ? `&bot_id=${this._activeBotId}` : '';
+    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}`;
 
     try {
       const json = await ogModule('api').get(url);
@@ -314,12 +350,22 @@ class chat {
     // Si había mensajes sin leer significa que llegaron nuevos → invalidar cache
     if (hasUnread) this._invalidateClient(clientId);
 
-    // Marcar como leído en el servidor (sin bloquear UI)
-    ogModule('api').post(`/api/client/${clientId}/read`, {}).catch(() => {});
+    // Marcar como leído en el servidor — bot_id viene del item del sidebar
+    const itemEl = document.querySelector(`.bs-chat-item[data-client-id="${clientId}"]`);
+    const botIdForRead = itemEl?.dataset.botId ?? this._activeBotId;
+    ogModule('api').post(`/api/client/${clientId}/read`, { bot_id: botIdForRead }).catch(() => {});
+
+    // Mobile: mostrar panel de mensajes
+    document.querySelector('.bs-chat')?.classList.add('mobile-chat-open');
 
     this._showHeaderLoading(number, name);
     this.loadMessages(clientId);
     this._startHeartbeat(clientId); // inicia polls cada N segundos (máx heartbeatMaxPolls veces)
+  }
+
+  // Mobile: volver al listado de contactos
+  static backToList() {
+    document.querySelector('.bs-chat')?.classList.remove('mobile-chat-open');
   }
 
   static _showHeaderLoading(number, name) {
@@ -328,13 +374,18 @@ class chat {
     h.className = 'bs-chat-panel-header';
     h.innerHTML = `
       <div class="bs-chat-header-row">
-        <span class="bs-chat-header-number">+${number}</span>
-        ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
-        <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
-          <div class="bs-chat-open-bar-track"><div class="bs-chat-open-bar" id="bsChatOpenBar"></div></div>
-          <span class="bs-chat-open-bar-label"></span>
+        <button class="bs-chat-back-btn" onclick="chat.backToList()" title="Volver">&#8592;</button>
+        <div class="bs-chat-header-main">
+          <span class="bs-chat-header-number">+${number}</span>
+          ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
         </div>
-        <span class="bs-chat-header-bot">Cargando...</span>
+        <div class="bs-chat-header-sub">
+          <span class="bs-chat-header-bot">Cargando...</span>
+          <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
+            <div class="bs-chat-open-bar-track"><div class="bs-chat-open-bar" id="bsChatOpenBar"></div></div>
+            <span class="bs-chat-open-bar-label"></span>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -346,13 +397,18 @@ class chat {
     const botInfo = botNumber ? `Bot: +${botNumber}` : 'Sin bot asociado';
     h.innerHTML = `
       <div class="bs-chat-header-row">
-        <span class="bs-chat-header-number">+${number}</span>
-        ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
-        <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
-          <div class="bs-chat-open-bar-track"><div class="bs-chat-open-bar" id="bsChatOpenBar"></div></div>
-          <span class="bs-chat-open-bar-label"></span>
+        <button class="bs-chat-back-btn" onclick="chat.backToList()" title="Volver">&#8592;</button>
+        <div class="bs-chat-header-main">
+          <span class="bs-chat-header-number">+${number}</span>
+          ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
         </div>
-        <span class="bs-chat-header-bot">${botInfo}</span>
+        <div class="bs-chat-header-sub">
+          <span class="bs-chat-header-bot">${botInfo}</span>
+          <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
+            <div class="bs-chat-open-bar-track"><div class="bs-chat-open-bar" id="bsChatOpenBar"></div></div>
+            <span class="bs-chat-open-bar-label"></span>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -590,6 +646,7 @@ class chat {
   static _itemHtml(c) {
     const number   = c.number ?? '';
     const clientId = c.id ?? '';
+    const botId    = c.chat_bot_id ?? '';
     const name     = (c.name ?? '').trim().replace(/'/g, '&#39;');
     const product  = (c.last_product_name ?? '').trim().replace(/</g, '&lt;');
     const unread   = parseInt(c.unread_count ?? 0);
@@ -598,7 +655,7 @@ class chat {
     const unreadCls = unread > 0 ? ' unread' : '';
     const badge    = unread > 0 ? `<span class="bs-chat-unread-badge">${unread > 99 ? '99+' : unread}</span>` : '';
     return `
-      <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" onclick="chat.select('${number}', ${clientId})">
+      <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" onclick="chat.select('${number}', ${clientId})">
         <div class="bs-chat-item-header">
           <span class="bs-chat-item-number">+${number}</span>
           <div class="bs-chat-item-right">

@@ -3,6 +3,10 @@ URGENTE:
   porque tengo DIGAMOS DE mi cuenta de ecuador  manejo la publicidad en otros paises entonces
   el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
 RAPIDO:
+☐ Pedir que el fush del request del envio de whatsapp api ,lo haga con tiempo de holgua porque si es invmediado
+y elhosting no envia rapido la respuesta de la imagen o video este no lo envia.. ya paso cuando banahosting
+se demoro, entonces hay una funcion que hace este envie rapido el 200 de respuesta pero sin el media de banahostin
+no va enviar ese mensaje...
 ☐ proque cuando hice la bienvenida de dannes no aparee en sus chatsm creo que el meta_bot_chat tambien debe estar
  a nivel de tablas y node campo... esto creo que es el problema, lo curioso es que no s eve... en los chats...
 ☐ Cunado eliminas datos debes hacerlo tambie nen la tabla client_bot_meta
@@ -56,8 +60,15 @@ tiene un medio secuencia pero no agrupa esto me ayudaria identificar problemas e
 ☐ En lo que tiene que ver la bienvenida forzada tanto en el router como en js hay paisees quemados
 aunque cubren la mayoria que se usara hay que ver si se crea un apartado de paises activos para que hasta
 el bot select de pais sean cargados alli
+☐ la tabla de meta bot debes hacer un proceso semanal para elminar los key de cada cliente unread_count, o dejarlo alli no mas
+porque cada lciente tendria 3 registro unicos por el momento.
 FRONTEND:
 ☐ El listado de producto hay que ponerle el pais porque se va a comenzar a vender en otros paises.
 ☐ graficas de chats vs ventas
 ☐ arreglar el problema de disminucion de presupuesto porque en 0 en forma manual
 ☐ Tener varias cuenas de copiloto con el mismo github https://www.google.com/search?q=como+agregar+varias+cuentas+de+copilot+en+vscode&sca_esv=190a96a9d156750b&sxsrf=ANbL-n6_xmW-h-ndj1nsOm-Z_po0yjnrQQ%3A1771016744303&udm=50&fbs=ADc_l-bpk8W4E-qsVlOvbGJcDwpn75JLSqV3j_xbkySF4grw51H30IP-0-FgEAUalWuLGReuPxwY1XJn-KcoPw8-j7gPmDhIlzW26CnVSGeGlpeLqqRzcnYbVaxCwe1cZuC6K9LEItujwZhN_-uqW4TyOOfEvMjVGovmuJouBaZrBdUWVEeT9SXYp74N0i0ejHq82GcpgX311zLb03PqMgzprhD4qxT4Jw&aep=1&ntc=1&sa=X&ved=2ahUKEwjmyr2_r9eSAxVATDABHRGaAEcQ2J8OegQICRAE&biw=1393&bih=902&dpr=1&mstk=AUtExfDJzYWquRKB48yd5aWicm4nw2-Omly6jmw75MpIEU9kuEBs8MM14aPgT9bKUv7-d92iFate9xa82kahHVBJM4YBhxFb6KsupNbOHoFE5r-uhdQmcopLmPBQxv-ARc8gqBLEDmNzVTMnoM0XSGF-ihyOAgfUjAjTG0a0UuiFoolWGXnrPVOVBZZS8CS-gdx_wcNTJ-r0RDlxFZYKBXqe8X4ax20L33uZSNVezFyKDNIWfZ6QPsb5XRDrSrBp8JhUAH0frCB5Mcfjfzl2ZMzfyPEJRGnzAu4nt7NzszMiMB750QaGD9OH6qFABy8YHAzEH61wqn56U1SADw&csuir=1&mtid=KpKPafLTJKq3wt0P9OeuwAQ
+
+CORE:
+☐ PROVOCAR LENTITUD EN LA respuesta del servidor para ver como se comporta el sistema en el frontend para cada peticion
+esto hara tener una CLARIDAD mayor a nivel de experiencia de usuario y asi poder identificar problemas de rendimiento y solucionarlos antes de que los usuarios los experimenten, esto es importante para garantizar una buena experiencia de usuario y evitar que los usuarios se frustren por la lentitud del sistema, esto se puede hacer agregando un retraso artificial en el servidor para simular una respuesta lenta y luego monitorear el comportamiento del sistema en el frontend para identificar cualquier problema de rendimiento y solucionarlo antes de que los usuarios lo experimenten.
+☐ Ejecutador de de rutas rapido interno sin problemas, debe ser mas rapido que el de vscode.
