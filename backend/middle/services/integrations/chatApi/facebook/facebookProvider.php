@@ -86,6 +86,10 @@ class facebookProvider extends baseChatApiProvider {
     } elseif ($mediaType === 'audio') {
       $payload['type']  = 'audio';
       $payload['audio'] = ['link' => $url];
+    } elseif ($mediaType === 'voice') {
+      // ogg/opus con voice:true → llega como nota de voz grabada
+      $payload['type']  = 'audio';
+      $payload['audio'] = ['link' => $url, 'voice' => true];
     } elseif ($mediaType === 'image') {
       $media = ['link' => $url];
       if ($message) $media['caption'] = $message; // omitir si vacío, null rompe Graph API

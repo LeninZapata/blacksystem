@@ -3,6 +3,18 @@ URGENTE:
   porque tengo DIGAMOS DE mi cuenta de ecuador  manejo la publicidad en otros paises entonces
   el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
 RAPIDO:
+☐ proque cuando hice la bienvenida de dannes no aparee en sus chatsm creo que el meta_bot_chat tambien debe estar
+ a nivel de tablas y node campo... esto creo que es el problema, lo curioso es que no s eve... en los chats...
+☐ Cunado eliminas datos debes hacerlo tambie nen la tabla client_bot_meta
+☐ la bienvenida no esta dando la apertura de 72 horas, solo de 24 horas, revisa eso por favor
+☐ Calculo de fechas de seguimiento + upsell tambien calcular.. no puede pasarse de 72 horas.
+☐ label para ver chats con ventas y tambien dentro del chat algo que indique la venta....
+☐ En el chat por ejemplo cuando el bot escrie asi _asdas_ esto deveria ser cursiva aun el chat no soporta estos formatos
+☐ cuando esta seleccionado el chat, entonces no debe ponerse en estaod unread, pero cuando no este entonces si.
+☐ agregar texto de pie de pagina, con esto puedo agregar nuevos copy que impulse a la venta, pero primero pruebalo con un webhook crudo para ve que si es posible
+☐ agregar trigger de plantillas
+☐ agrear botnes en los mensajes puede ser de bienvenida o se seguimietno
+ 
 ☐ Soporte de meta por el error del numero: https://business.facebook.com/direct-support/case-detail/33845938431721309/?force_full_site=0&business_id=2908180592788929
 ☐ Yo respondo en vez del bot y este esta que me autoresponde! @CRITICAL
 ☐ Revisa si el buffer VALE y si sivale aumentale el tiempo

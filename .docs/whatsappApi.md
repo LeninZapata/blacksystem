@@ -50,6 +50,8 @@ Body JSON:
 
 Luego de esto el número cambia de **"Pendiente"** a **"Conectado"** en el Administrador de WhatsApp.
 
+> **Atajo:** Una vez que la WABA está configurada y suscrita, los números nuevos que agregues a esa misma WABA quedan **conectados automáticamente** sin necesitar este paso de `register`. Solo es necesario la primera vez o al migrar un número desde otra WABA.
+
 ---
 
 ## Paso 3 — Suscribir la app a la WABA para recibir webhooks
@@ -76,6 +78,8 @@ POST /2452367395218340/subscribed_apps
 
 > **Importante:** Este paso se debe repetir para cada WABA nueva que agregues.
 
+> **Clave:** Debes usar el **token permanente del Usuario del Sistema** (no el token personal del Graph API Explorer). Pégalo manualmente en el campo "Token de acceso" del explorador antes de ejecutar. Con el token personal da error 100 porque no tiene permisos sobre la WABA.
+
 ---
 
 ## Paso 4 — Verificar que el webhook está configurado
@@ -85,6 +89,24 @@ Ve a **developers.facebook.com → tu app → WhatsApp → Configuración → We
 Asegúrate que:
 - La **URL de devolución de llamada** apunta a tu endpoint
 - El campo **`messages`** está en estado **"Suscritos"** (toggle azul)
+
+---
+
+## Paso 5 — Agregar número nuevo a un WABA existente
+
+Cuando el WABA ya está configurado, agregar un número nuevo es más simple:
+
+1. Agrega el número en **business.facebook.com → Configuración → Cuentas de WhatsApp → [tu WABA] → Números de teléfono → Agregar**
+2. Verifica con SMS o llamada — el número quedará **conectado directamente** sin necesitar el paso de `register`
+3. Ve a **Usuarios del sistema → Bot Optimizador → Administrar activos** y agrega la nueva **Cuenta de WhatsApp** con **Control total**
+4. **Regenera el token** del usuario del sistema para que incluya los nuevos permisos
+5. Obtén el **Phone Number ID** real del número nuevo en:
+   ```
+   https://business.facebook.com/latest/whatsapp_manager/phone_numbers?business_id=2908180592788929&asset_id={waba_id}
+   ```
+6. Prueba enviando un mensaje con ese Phone Number ID y el token nuevo
+
+> **Importante:** El token debe regenerarse después de asignar permisos — el token anterior no incluye los nuevos activos aunque el usuario ya los tenga asignados.
 
 ---
 
@@ -240,9 +262,12 @@ Content-Type: application/json
 ## Checklist para agregar un número nuevo
 
 - [ ] Agregar número al BM y verificar con SMS/llamada
-- [ ] Ejecutar POST `/{phone_number_id}/register` con pin
+- [ ] Si es la primera vez: ejecutar POST `/{phone_number_id}/register` con pin
 - [ ] Verificar que el estado cambió a **"Conectado"**
-- [ ] Ejecutar POST `/{waba_id}/subscribed_apps`
+- [ ] Si es WABA nueva: ejecutar POST `/{waba_id}/subscribed_apps`
+- [ ] Asignar la nueva Cuenta de WhatsApp al usuario del sistema con Control total
+- [ ] Regenerar el token del usuario del sistema
+- [ ] Obtener el Phone Number ID real desde el WhatsApp Manager
 - [ ] Verificar que el campo `messages` en webhooks está suscrito
 - [ ] Hacer prueba: escribir al número y confirmar que llega el webhook
 - [ ] Configurar PIN de verificación en dos pasos (recomendado por seguridad)
@@ -258,3 +283,5 @@ Para producción **nunca uses el token temporal de 60 minutos**. Usa el token de
 Permisos necesarios:
 - `whatsapp_business_messaging`
 - `whatsapp_business_management`
+
+> **Recuerda:** Cada vez que asignes un activo nuevo al usuario del sistema debes regenerar el token para que los nuevos permisos queden incluidos.

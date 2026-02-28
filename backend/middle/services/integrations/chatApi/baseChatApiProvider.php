@@ -35,13 +35,14 @@ abstract class baseChatApiProvider implements chatApiProviderInterface {
     
     if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'])) return 'image';
     if (in_array($ext, ['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv'])) return 'video';
-    if (in_array($ext, ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'opus', 'flac'])) return 'audio';
+    if (in_array($ext, ['mp3', 'wav', 'm4a', 'aac', 'flac'])) return 'audio';
+    if (in_array($ext, ['ogg', 'opus'])) return 'voice'; // ogg/opus = nota de voz
     
     return 'document';
   }
 
   protected function shouldIncludeText(string $mediaType, string $message): bool {
-    return !empty($message) && $mediaType !== 'audio';
+    return !empty($message) && $mediaType !== 'audio' && $mediaType !== 'voice';
   }
 
   protected function successResponse($data): array {
