@@ -165,6 +165,9 @@ $router->group('/api/followup', function($router) {
             $metadata['instruction'] = $fup['instruction'];
           }
 
+          // Setear user_id del followup para que ChatHandler lo use al registrar
+          ChatHandler::setUserId($fup['user_id']);
+
           // Registrar en chat
           ChatHandler::register(
             $fup['bot_id'],

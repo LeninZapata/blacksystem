@@ -68,10 +68,14 @@ class DeliverProductAction {
   }
 
   private static function registerDelivery($bot, $person, $chatData, $productId) {
-    $message = "Producto entregado: ID {$productId}";
+    $product     = productHandler::getProductFile($productId);
+    $productName = $product['name'] ?? "ID {$productId}";
+
+    $message  = "Producto entregado: {$productName}";
     $metadata = [
-      'action' => 'delivered_product',
-      'product_id' => $productId,
+      'action'       => 'delivered_product',
+      'product_id'   => $productId,
+      'product_name' => $productName,
       'delivered_at' => date('Y-m-d H:i:s')
     ];
 

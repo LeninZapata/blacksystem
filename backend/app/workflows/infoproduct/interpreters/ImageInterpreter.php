@@ -133,7 +133,7 @@ class ImageInterpreter {
     $origH   = imagesy($src);
     $w       = $origW;
     $h       = $origH;
-    $quality = 80;
+    $quality = 95;
     $tmpFile = $dir . '/' . $filename;
 
     // Primera conversión a WebP

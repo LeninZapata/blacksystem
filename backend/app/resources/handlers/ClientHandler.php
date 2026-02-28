@@ -165,10 +165,10 @@ class ClientHandler {
   // Si no existe, lo crea
   static function registerOrUpdate($number, $name, $countryCode, $device = null, $userId = null) {
     try {
-      // Buscar cliente existente
-      $existing = ogDb::t('clients')
-        ->where('number', $number)
-        ->first();
+      // Buscar cliente existente por number + user_id (un cliente es único por usuario)
+      $query = ogDb::t('clients')->where('number', $number);
+      if ($userId) $query = $query->where('user_id', $userId);
+      $existing = $query->first();
 
       if ($existing) {
         // Actualizar cliente existente

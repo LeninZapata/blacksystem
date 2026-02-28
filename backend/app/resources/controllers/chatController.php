@@ -79,9 +79,13 @@ class ChatController extends ogController {
   function list() {
     $query = ogDb::t('chats');
 
-    // Filtrar por user_id autenticado
+    // Filtrar por bots del usuario autenticado (no por user_id del chat, que puede variar por proceso)
     if (isset($GLOBALS['auth_user_id'])) {
-      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
+      $botIds = ogDb::t('bots')->where('user_id', $GLOBALS['auth_user_id'])->select('id')->get();
+      $botIds = array_column($botIds ?? [], 'id');
+      if (!empty($botIds)) {
+        $query = $query->whereIn('bot_id', $botIds);
+      }
     }
 
     // Filtros
