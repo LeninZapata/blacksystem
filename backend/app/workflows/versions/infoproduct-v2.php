@@ -521,6 +521,7 @@ class InfoproductV2Handler {
 
   private function executeWelcome($bot, $person, $message, $context, $welcomeCheck) {
     require_once $this->appPath . '/workflows/infoproduct/strategies/ConversationStrategyInterface.php';
+    require_once $this->appPath . '/workflows/infoproduct/strategies/ChatWindowStrategy.php';
     require_once $this->appPath . '/workflows/infoproduct/strategies/WelcomeStrategy.php';
 
     $strategy = new WelcomeStrategy();

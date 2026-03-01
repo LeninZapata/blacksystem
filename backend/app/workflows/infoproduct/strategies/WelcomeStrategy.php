@@ -251,48 +251,7 @@ class WelcomeStrategy implements ConversationStrategyInterface {
    * Evolution API no tiene límite de tiempo.
    */
   private function openChatWindow(int $clientId, int $botId, array $botConfig, array $rawContext = []) {
-    $provider = $botConfig['apis']['chat'][0]['config']['type_value'] ?? null;
-    if ($provider !== 'whatsapp-cloud-api') return;
-
-    // Detectar origen: solo los anuncios (ad) abren ventana de 72h en Meta.
-    // Un template/welcome orgánico NO abre ventana — la abre el primer mensaje del cliente.
-    $origin = $this->detectOrigin($rawContext);
-    // Ad → 72h (Meta política de anuncios), orgánico → 24h (cliente inició conversación)
-    $hours = $origin === 'ad' ? 72 : 24;
-
-    $nowTimestamp = time();
-    $expiry = date('Y-m-d H:i:s', $nowTimestamp + ($hours * 3600));
-    $now    = date('Y-m-d H:i:s', $nowTimestamp);
-
-    $existingMeta = ogDb::raw(
-      "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
-      [$clientId, $botId]
-    );
-    $existingExpiry = $existingMeta[0]['meta_value'] ?? null;
-
-    if ($existingExpiry) {
-      ogDb::raw(
-        "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat'",
-        [$expiry, $nowTimestamp, $clientId, $botId]
-      );
-    } else {
-      ogDb::raw(
-        "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'open_chat', ?, ?, ?)",
-        [$clientId, $botId, $expiry, $now, $nowTimestamp]
-      );
-    }
-
-    ogLog::info("WelcomeStrategy::openChatWindow - Ventana abierta", [
-      'client_id' => $clientId, 'bot_id' => $botId, 'origin' => $origin, 'hours' => $hours, 'expires_at' => $expiry
-    ], $this->logMeta);
-  }
-
-  private function detectOrigin(array $context): string {
-    if (($context['is_fb_ads'] ?? false) === true)    return 'ad';
-    if (!empty($context['source_app']))               return 'ad';
-    if (($context['source'] ?? null) === 'FB_Ads')    return 'ad';
-    if (($context['type'] ?? null) === 'conversion')  return 'ad';
-    return 'organic';
+    ChatWindowStrategy::persist($clientId, $botId, $botConfig, $rawContext);
   }
 
   private function registerStartSale($bot, $person, $product, $clientId, $saleId, $welcomeResult = []) {

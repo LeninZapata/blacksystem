@@ -100,6 +100,13 @@ class UpsellHandler {
       'text' => 'Trigger de upsell',
       'source_url' => null,
       'future_date' => $futureDate,
+      'max_send_at' => (function() use ($clientId, $botId) {
+        $meta = ogDb::raw(
+          "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
+          [$clientId, $botId]
+        );
+        return $meta[0]['meta_value'] ?? null;
+      })(),
       'processed' => 0,
       'status' => 1,
       'special' => 'upsell',

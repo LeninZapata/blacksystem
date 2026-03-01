@@ -17,16 +17,24 @@ AUNQUE el comportamiento fue que luego de 5 minutos si dio del otro bot, puede q
 bot lo dara y luego el siguiente sera mucho despues y le dara tiempo al bot de aca de darle, son casos extraordinarios
 REVISA LOS TIEMPOS. 
 SOLUCION: se resuelve en 5 minutos que ejecuta el CRON nuevamente
-☐ El seguimiento no debe mostrar cmo un mensaje no leido, pero si la fecha de actualizacion
-☐ Tiempos de follow, hay que guardar en un meta el tiempo maximo que tiene de enviar al cliente eso, porqeu si se pasa va enviar error
+✔ El seguimiento no debe mostrar cmo un mensaje no leido, pero si la fecha de actualizacion @done(01-03-2026 09:09)
+✔ Tiempos de follow, hay que guardar en un meta el tiempo maximo que tiene de enviar al cliente eso, porqeu si se pasa va enviar error @done(01-03-2026 13:07)
 entonces conn FALLBACK seria bueno guardar el tiempo maximo que tiene para enviar el mensaje de seguimiento, entonces si se pasa ese tiempo no va enviar el mensaje y asi evitar errores, esto se puede hacer guardando en un meta el tiempo maximo que tiene para enviar el mensaje de seguimiento y luego compararlo con el tiempo actual antes de enviar el mensaje, si se pasa ese tiempo no va enviar el mensaje y asi evitar errores.
+✔ Hay un error digamos hay que contemplar 2 cosas, el mensaje de apertura de 72 horas sirve para la venta @done(01-03-2026 13:13)
+pero al ejecutar el seguiente UPsell este debe basarse en ese tiempo porq es una apartura limitada.
+  ✔ ahora si la persona luego de 24 horas entra para otro producto sus seguimientos deben ser cortos @done(01-03-2026 13:13)
+  porque la apertura de mensajes es limitada, y pues los seguimienos sera muy cortos 
+  AUNQ estos casos son muy raros, ya seria que un aperson entre dentro de las 72 horas ENTONCES
+  con otro producto de todas formas con la nueva forma de que si el seguimiento esta sobre el tiempo de 
+  apertura el seguimiento no se puede enviar, creo que con eso se resuelve el tema de los seguimientos cortos, porque si se pasa el tiempo de apertura no se va enviar el mensaje de seguimiento entonces no habria problema con eso, esto se puede hacer comparando el tiempo actual con el tiempo de apertura antes de enviar el mensaje de seguimiento y si se pasa ese tiempo no va enviar el mensaje de seguimiento y asi evitar problemas con los seguimientos cortos.
 ☐ Cunado eliminas datos debes hacerlo tambie nen la tabla client_bot_meta
-☐ la bienvenida no esta dando la apertura de 72 horas, solo de 24 horas, revisa eso por favor
-☐ Calculo de fechas de seguimiento + upsell tambien calcular.. no puede pasarse de 72 horas.
-☐ label para ver chats con ventas y tambien dentro del chat algo que indique la venta....
+✔ la bienvenida no esta dando la apertura de 72 horas, solo de 24 horas, revisa eso por favor @done(01-03-2026 13:14)
+✔ Calculo de fechas de seguimiento + upsell tambien calcular.. no puede pasarse de 72 horas. @done(01-03-2026 13:14)
+✘ label para ver chats con ventas y tambien dentro del chat algo que indique la venta.... @cancelled(01-03-2026 13:16)
+en un futuro se pondra mas opciones para este panel de usuario..... 
 ☐ En el chat por ejemplo cuando el bot escrie asi _asdas_ esto deveria ser cursiva aun el chat no soporta estos formatos
-☐ cuando esta seleccionado el chat, entonces no debe ponerse en estaod unread, pero cuando no este entonces si.
-☐ agregar texto de pie de pagina, con esto puedo agregar nuevos copy que impulse a la venta, pero primero pruebalo con un webhook crudo para ve que si es posible
+✔ cuando esta seleccionado el chat, entonces no debe ponerse en estaod unread, pero cuando no este entonces si. @done(01-03-2026 13:23)
+✔ agregar texto de pie de pagina, con esto puedo agregar nuevos copy que impulse a la venta, pero primero pruebalo con un webhook crudo para ve que si es posible @done(01-03-2026 13:23)
 ☐ agregar trigger de plantillas
 ☐ agrear botnes en los mensajes puede ser de bienvenida o se seguimietno
  
@@ -86,3 +94,5 @@ esto hara tener una CLARIDAD mayor a nivel de experiencia de usuario y asi poder
 ☐ necesito crear un miniSupaBase, que pueda guardar rapidamente tablas un configuraciones para que la
 IA me pueda enteder rapido porque solo copiaria y pegaria tabla o respuestas rapidas como PRE-PLANTILLAS
 con eso ya puedo tener una base de datos rapida para que la IA me pueda ayudar a generar codigo mas rapido, esto me ayudaria a ser mas productivo y a generar codigo de mejor calidad, esto se puede hacer creando una base de datos rapida que pueda guardar tablas y configuraciones para que la IA me pueda entender rapido y asi poder generar codigo mas rapido y de mejor calidad.
+☐ Crear un sistema de salud de software, quiere decir que registre cada cierto tiempo el la pagina esta bien o mal 
+con espera de tiempo y todo porque a veces puede haber problemas con el hosting. Esto tambien debe tener alertas.

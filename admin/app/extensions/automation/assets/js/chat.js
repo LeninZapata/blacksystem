@@ -601,6 +601,9 @@ class chat {
       const escaped = displayText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const formatted = escaped
         .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+        .replace(/_(.*?)_/g, '<em>$1</em>')
+        .replace(/~(.*?)~/g, '<s>$1</s>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
         .replace(/\n/g, '<br>');
       content = `<span>${formatted}</span>`;
     } else if (format === 'image') {

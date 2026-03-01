@@ -130,6 +130,26 @@ class FollowupHandler {
       $calculatedFollowups = self::adjustFor70Hours($calculatedFollowups, $botTimezone);
     }
 
+    // Obtener fecha máxima de envío:
+    // Prioridad 1: viene calculada desde el llamador (open_chat aún no existe en BD)
+    // Prioridad 2: consultar client_bot_meta si ya existe
+    $maxSendAt = $saleData['max_send_at'] ?? null;
+
+    if ($maxSendAt === null) {
+      $openChatMeta = ogDb::raw(
+        "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat' ORDER BY meta_value DESC LIMIT 1",
+        [$saleData['client_id'], $saleData['bot_id']]
+      );
+      $maxSendAt = $openChatMeta[0]['meta_value'] ?? null;
+    }
+
+    ogLog::info("registerFromSale - max_send_at resuelto", [
+      'client_id'   => $saleData['client_id'],
+      'bot_id'      => $saleData['bot_id'],
+      'max_send_at' => $maxSendAt,
+      'source'      => isset($saleData['max_send_at']) ? 'caller' : 'db'
+    ], self::$logMeta);
+
     // PASO 3: Insertar followups en BD
     $count = 0;
     foreach ($calculatedFollowups as $item) {
@@ -149,6 +169,7 @@ class FollowupHandler {
         'text' => $fullMessage ?: null,
         'source_url' => $fup['url'] ?? null,
         'future_date' => $item['future_date'],
+        'max_send_at' => $maxSendAt,
         'processed' => 0,
         'status' => 1,
         'dc' => date('Y-m-d H:i:s'),
@@ -450,6 +471,23 @@ class FollowupHandler {
       if (!empty($followups)) {
         foreach ($followups as $fup) {
           $personNumber = $fup['number'];
+
+          // Validar ventana de conversación: si max_send_at expiró, cancelar y omitir
+          if (!empty($fup['max_send_at']) && $fup['max_send_at'] < $now) {
+            ogLog::info("getPending - Followup omitido: ventana de conversación expirada", [
+              'followup_id' => $fup['id'],
+              'max_send_at' => $fup['max_send_at'],
+              'now'         => $now,
+              'number'      => $personNumber
+            ], self::$logMeta);
+            // Cancelar para no procesar en futuros crons
+            ogDb::t('followups')->where('id', $fup['id'])->update([
+              'processed' => 2,
+              'du' => $now,
+              'tu' => time()
+            ]);
+            continue;
+          }
 
           if (!isset($seenNumbers[$personNumber])) {
             $fup['bot_number'] = $botNumber;

@@ -104,12 +104,22 @@ class SendWelcomeAction {
             $followups = ProductHandler::getMessagesFile('follow', $productId);
             if (!empty($followups)) {
               ogApp()->loadHandler('followup');
+
+              // Calcular max_send_at anticipadamente (open_chat aún no existe en BD)
+              $appPath = ogApp()->getPath();
+              require_once $appPath . '/workflows/infoproduct/strategies/ChatWindowStrategy.php';
+              $maxSendAt = ChatWindowStrategy::calcMaxSendAt(
+                $bot['config'] ?? [],
+                $dataSale['context'] ?? []
+              );
+
               FollowupHandler::registerFromSale([
-                'sale_id' => $saleId,
-                'product_id' => $productId,
-                'client_id' => $clientId,
-                'bot_id' => $bot['id'],
-                'number' => $from
+                'sale_id'     => $saleId,
+                'product_id'  => $productId,
+                'client_id'   => $clientId,
+                'bot_id'      => $bot['id'],
+                'number'      => $from,
+                'max_send_at' => $maxSendAt
               ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil', $bot);
             }
           }

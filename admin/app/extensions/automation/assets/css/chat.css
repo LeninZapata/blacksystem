@@ -446,6 +446,14 @@
     cursor: pointer;
   }
 
+  .bs-msg-bubble code {
+    font-family: monospace;
+    font-size: 0.85em;
+    background: rgba(0,0,0,0.08);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+
   /* ── Lightbox de imagen ───────────────────────────────────────────────── */
   .bs-img-lightbox {
     position: fixed;
