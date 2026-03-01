@@ -25,8 +25,16 @@ class infoproductProduct {
         style: 'currency',
         currency: 'USD'
       }).format(row.price) : 'Gratis';
-      
-      return `<div><strong>${value}</strong> <span style="color: #6b7280; font-size: 0.875rem;">(${price})</span></div>`;
+
+      let botInfo = '';
+      if (row.bot_name) {
+        const flag = row.country_code
+          ? row.country_code.toUpperCase().replace(/./g, c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0)))
+          : '🌐';
+        botInfo = `<div style="font-size: 0.78rem; color: #6b7280; margin-top: 3px;">${flag} ${row.bot_name}</div>`;
+      }
+
+      return `<div><strong>${value}</strong> <span style="color: #6b7280; font-size: 0.875rem;">(${price})</span>${botInfo}</div>`;
     });
 
     // Formatter para precio con badge de color

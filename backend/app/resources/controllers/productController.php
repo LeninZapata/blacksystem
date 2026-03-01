@@ -113,23 +113,25 @@ class ProductController extends ogController {
   }
 
   function list() {
-    $query = ogDb::t('products');
+    $query = ogDb::t('products')
+      ->select(['products.*', 'bots.name AS bot_name', 'bots.country_code'])
+      ->leftJoin('bots', 'products.bot_id', '=', 'bots.id');
 
     // Filtrar por user_id autenticado
     if (isset($GLOBALS['auth_user_id'])) {
-      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
+      $query = $query->where('products.user_id', $GLOBALS['auth_user_id']);
     }/* else {
       ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }*/
 
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
-      $query = $query->where($key, $value);
+      $query = $query->where("products.{$key}", $value);
     }
 
     $sort = ogRequest::query('sort', 'id');
     $order = ogRequest::query('order', 'DESC');
-    $query = $query->orderBy($sort, $order);
+    $query = $query->orderBy("products.{$sort}", $order);
 
     $page = ogRequest::query('page', 1);
     $perPage = ogRequest::query('per_page', 50);

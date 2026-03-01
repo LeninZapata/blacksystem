@@ -3,17 +3,31 @@ class ClientHandler {
   private static $logMeta = ['module' => 'ClientHandler', 'layer' => 'app/resources'];
 
   // Eliminar todos los datos del cliente en cascada
+  // $params['ids']   => array de client_id (cuando viene de deleteAllDataByNumber)
+  // $params['id']    => client_id único (cuando viene de deleteAllData por ID)
+  // $params['number'] => número de teléfono
   static function deleteAllData($params) {
 
-    $id = $params['id'];
     $number = $params['number'];
+    // Soportar tanto id único como múltiples ids
+    $ids = $params['ids'] ?? (isset($params['id']) ? [$params['id']] : []);
 
     try {
 
-      $chats = ogDb::t('chats')->where('client_number', $number)->delete();
+      $chats     = ogDb::t('chats')->where('client_number', $number)->delete();
       $followups = ogDb::t('followups')->where('number', $number)->delete();
-      $sales = ogDb::t('sales')->where('number', $number)->delete();
+      $sales     = ogDb::t('sales')->where('number', $number)->delete();
       ogDb::t('clients')->where('number', $number)->delete();
+
+      // Eliminar client_bot_meta para todos los client_id del número
+      $metaDeleted = 0;
+      if (!empty($ids)) {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $metaDeleted  = ogDb::raw(
+          "DELETE FROM client_bot_meta WHERE client_id IN ({$placeholders})",
+          $ids
+        );
+      }
 
       // Cargar ogFile bajo demanda
       $file = ogApp()->helper('file');
@@ -25,11 +39,12 @@ class ClientHandler {
         'success' => true,
         'message' => __('client.delete_all.success'),
         'deleted' => [
-          'client' => 1,
-          'sales' => $sales,
-          'chats' => $chats,
-          'followups' => $followups,
-          'files' => $deletedFiles
+          'clients'          => count($ids) ?: 1,
+          'client_bot_meta'  => $metaDeleted,
+          'sales'            => $sales,
+          'chats'            => $chats,
+          'followups'        => $followups,
+          'files'            => $deletedFiles
         ]
       ];
     } catch (Exception $e) {
@@ -45,26 +60,30 @@ class ClientHandler {
   static function deleteAllDataByNumber($params) {
     $number = $params['number'];
 
-    // Buscar cliente por número
-    $client = ogDb::t('clients')->where('number', $number)->first();
-    if (!$client) {
-      // Eliminar todos los archivos chat del cliente en caso haya reciduos
-      $exist =  ogApp()->helper('file')->deletePattern(ogApp()->getPath('storage/json/chats') . "/chat_{$number}_bot_*.json");
-      if( $exist ){
-        ogLog::info('deleteAllDataByNumber - Cliente no encontrado, pero se eliminaron archivos residuales', [ 'number' => $number, 'files_deleted' => $exist ], self::$logMeta );
+    // Buscar TODOS los clientes con ese número (puede haber varios client_id, uno por bot)
+    $clients = ogDb::t('clients')->where('number', $number)->get();
+
+    if (empty($clients)) {
+      // Limpiar residuos aunque no exista el cliente en BD
+      $exist = ogApp()->helper('file')->deletePattern(ogApp()->getPath('storage/json/chats') . "/chat_{$number}_bot_*.json");
+      if ($exist) {
+        ogLog::info('deleteAllDataByNumber - Cliente no encontrado, pero se eliminaron archivos residuales', ['number' => $number, 'files_deleted' => $exist], self::$logMeta);
       }
       $exist = ogDb::t('chats')->where('client_number', $number)->delete();
-      if( $exist ){
-        ogLog::info('deleteAllDataByNumber - Chats residual eliminado de BD', [ 'number' => $number ], self::$logMeta );
+      if ($exist) {
+        ogLog::info('deleteAllDataByNumber - Chats residual eliminado de BD', ['number' => $number], self::$logMeta);
       }
       $exist = ogDb::t('followups')->where('number', $number)->delete();
-      if( $exist ){
-        ogLog::info('deleteAllDataByNumber - Followups residual eliminado de BD', [ 'number' => $number ], self::$logMeta );
+      if ($exist) {
+        ogLog::info('deleteAllDataByNumber - Followups residual eliminado de BD', ['number' => $number], self::$logMeta);
       }
       return ['success' => false, 'error' => __('client.not_found')];
     }
 
-    return self::deleteAllData(['id' => $client['id'] , 'number' => $number ]);
+    // Recolectar todos los client_id del número para limpiar client_bot_meta
+    $clientIds = array_column($clients, 'id');
+
+    return self::deleteAllData(['ids' => $clientIds, 'number' => $number]);
   }
 
   // Obtener todos los datos del cliente por número (chats, followups, sales)
