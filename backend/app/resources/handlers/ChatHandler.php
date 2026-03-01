@@ -43,7 +43,7 @@ class ChatHandler {
   }
 
   // Registrar mensaje en la base de datos
-  static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type, $format, $metadata = null, $saleId = 0) {
+  static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type, $format, $metadata = null, $saleId = 0, $skipUnreadCount = false) {
     try {
       // Resolver user_id automáticamente
       $userId = self::resolveUserId($botId);
@@ -142,7 +142,9 @@ class ChatHandler {
         );
         // Actualizar last_message_at e incrementar unread_count en client_bot_meta (B y S)
         self::upsertBotMeta($clientId, $botId, 'last_message_at', $now);
-        self::upsertBotMetaIncrement($clientId, $botId, 'unread_count');
+        if (!$skipUnreadCount) {
+          self::upsertBotMetaIncrement($clientId, $botId, 'unread_count');
+        }
       }
 
       return $chatId;

@@ -168,7 +168,7 @@ $router->group('/api/followup', function($router) {
           // Setear user_id del followup para que ChatHandler lo use al registrar
           ChatHandler::setUserId($fup['user_id']);
 
-          // Registrar en chat
+          // Registrar en chat (skipUnreadCount=true: seguimientos no cuentan como no leídos)
           ChatHandler::register(
             $fup['bot_id'],
             $fup['bot_number'],
@@ -178,7 +178,8 @@ $router->group('/api/followup', function($router) {
             'S',
             'text',
             $metadata,
-            $fup['sale_id']
+            $fup['sale_id'],
+            true
           );
 
           ChatHandler::addMessage([

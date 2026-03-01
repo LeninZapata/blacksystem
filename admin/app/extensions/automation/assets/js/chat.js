@@ -113,10 +113,9 @@ class chat {
         const el     = list.querySelector(`.bs-chat-item[data-client-id="${cId}"]`);
 
         if (!known) {
-          // Cliente nuevo: inyectar al tope de la lista
-          const node = this._itemNode(c);
-          list.insertBefore(node, list.firstChild);
+          // Registrar en mapa siempre; insertar en DOM solo si realmente no existe
           this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
+          if (!el) list.insertBefore(this._itemNode(c), list.firstChild);
           return;
         }
 
@@ -727,10 +726,15 @@ class chat {
     const date     = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
     const unreadCls = unread > 0 ? ' unread' : '';
     const badge    = unread > 0 ? `<span class="bs-chat-unread-badge">${unread > 99 ? '99+' : unread}</span>` : '';
+    const confirmedAmt = c.confirmed_amount ? parseFloat(c.confirmed_amount) : null;
+    const saleBadge = confirmedAmt ? `<span class="bs-chat-sale-badge">+$${confirmedAmt % 1 === 0 ? confirmedAmt : confirmedAmt.toFixed(2)}</span>` : '';
     return `
       <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" onclick="chat.select('${number}', ${clientId})">
         <div class="bs-chat-item-header">
-          <span class="bs-chat-item-number">+${number}</span>
+          <div class="bs-chat-item-left">
+            <span class="bs-chat-item-number">+${number}</span>
+            ${saleBadge}
+          </div>
           <div class="bs-chat-item-right">
             ${date ? `<span class="bs-chat-item-date">${date}</span>` : ''}
             ${badge}

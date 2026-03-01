@@ -3,12 +3,23 @@ URGENTE:
   porque tengo DIGAMOS DE mi cuenta de ecuador  manejo la publicidad en otros paises entonces
   el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
 RAPIDO:
-☐ Pedir que el fush del request del envio de whatsapp api ,lo haga con tiempo de holgua porque si es invmediado
+✘ Pedir que el fush del request del envio de whatsapp api ,lo haga con tiempo de holgua porque si es invmediado @cancelled(28-02-2026 18:21)
 y elhosting no envia rapido la respuesta de la imagen o video este no lo envia.. ya paso cuando banahosting
 se demoro, entonces hay una funcion que hace este envie rapido el 200 de respuesta pero sin el media de banahostin
 no va enviar ese mensaje...
-☐ proque cuando hice la bienvenida de dannes no aparee en sus chatsm creo que el meta_bot_chat tambien debe estar
+SOLUCION: no es tanto el facebook es el hosting, hay una explicacion para evitar que pase esto....
+✔ proque cuando hice la bienvenida de dannes no aparee en sus chatsm creo que el meta_bot_chat tambien debe estar @done(28-02-2026 19:00)
  a nivel de tablas y node campo... esto creo que es el problema, lo curioso es que no s eve... en los chats...
+✘ En el following hay una validacion que solo le puede dar 1 solo seguimiento en ese ronda pero a numeros no repetidos @cancelled(28-02-2026 23:31)
+ahorita hice la prueba y este lo que hice es darme segumiento solo de un bot y no del otro, obvio que lo evadio, entonces
+hay que filtrar que si se puedan ser el mismo numero preo con user diferentes hay que ver como se hace ese filtro 
+AUNQUE el comportamiento fue que luego de 5 minutos si dio del otro bot, puede que no cambie nada ya que el otro seguimiento d ese
+bot lo dara y luego el siguiente sera mucho despues y le dara tiempo al bot de aca de darle, son casos extraordinarios
+REVISA LOS TIEMPOS. 
+SOLUCION: se resuelve en 5 minutos que ejecuta el CRON nuevamente
+☐ El seguimiento no debe mostrar cmo un mensaje no leido, pero si la fecha de actualizacion
+☐ Tiempos de follow, hay que guardar en un meta el tiempo maximo que tiene de enviar al cliente eso, porqeu si se pasa va enviar error
+entonces conn FALLBACK seria bueno guardar el tiempo maximo que tiene para enviar el mensaje de seguimiento, entonces si se pasa ese tiempo no va enviar el mensaje y asi evitar errores, esto se puede hacer guardando en un meta el tiempo maximo que tiene para enviar el mensaje de seguimiento y luego compararlo con el tiempo actual antes de enviar el mensaje, si se pasa ese tiempo no va enviar el mensaje y asi evitar errores.
 ☐ Cunado eliminas datos debes hacerlo tambie nen la tabla client_bot_meta
 ☐ la bienvenida no esta dando la apertura de 72 horas, solo de 24 horas, revisa eso por favor
 ☐ Calculo de fechas de seguimiento + upsell tambien calcular.. no puede pasarse de 72 horas.
@@ -72,3 +83,6 @@ CORE:
 ☐ PROVOCAR LENTITUD EN LA respuesta del servidor para ver como se comporta el sistema en el frontend para cada peticion
 esto hara tener una CLARIDAD mayor a nivel de experiencia de usuario y asi poder identificar problemas de rendimiento y solucionarlos antes de que los usuarios los experimenten, esto es importante para garantizar una buena experiencia de usuario y evitar que los usuarios se frustren por la lentitud del sistema, esto se puede hacer agregando un retraso artificial en el servidor para simular una respuesta lenta y luego monitorear el comportamiento del sistema en el frontend para identificar cualquier problema de rendimiento y solucionarlo antes de que los usuarios lo experimenten.
 ☐ Ejecutador de de rutas rapido interno sin problemas, debe ser mas rapido que el de vscode.
+☐ necesito crear un miniSupaBase, que pueda guardar rapidamente tablas un configuraciones para que la
+IA me pueda enteder rapido porque solo copiaria y pegaria tabla o respuestas rapidas como PRE-PLANTILLAS
+con eso ya puedo tener una base de datos rapida para que la IA me pueda ayudar a generar codigo mas rapido, esto me ayudaria a ser mas productivo y a generar codigo de mejor calidad, esto se puede hacer creando una base de datos rapida que pueda guardar tablas y configuraciones para que la IA me pueda entender rapido y asi poder generar codigo mas rapido y de mejor calidad.

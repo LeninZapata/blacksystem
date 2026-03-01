@@ -218,6 +218,23 @@ class ClientController extends ogController {
         $client['last_product_name'] = $productMap[$client['id'] . '_' . $client['chat_bot_id']] ?? null;
       }
       unset($client);
+
+      // Monto acumulado de ventas confirmadas por cliente+bot
+      $confirmedSales = ogDb::raw(
+        "SELECT client_id, bot_id, SUM(COALESCE(billed_amount, amount)) AS confirmed_amount
+         FROM sales
+         WHERE client_id IN ($placeholders) AND status = 1 AND process_status = 'sale_confirmed'
+         GROUP BY client_id, bot_id",
+        $ids
+      );
+      $confirmedMap = [];
+      foreach ($confirmedSales as $row) {
+        $confirmedMap[$row['client_id'] . '_' . $row['bot_id']] = $row['confirmed_amount'];
+      }
+      foreach ($data as &$client) {
+        $client['confirmed_amount'] = $confirmedMap[$client['id'] . '_' . $client['chat_bot_id']] ?? null;
+      }
+      unset($client);
     }
 
     ogResponse::success([
