@@ -580,6 +580,22 @@ class AdAutoScaleService {
     return $metrics;
   }
 
+  // Calcular ventas confirmadas del sistema (para métrica confirmed_sales)
+  private function getConfirmedSales($productId, $dateFrom, $dateTo) {
+    $sql = "
+      SELECT COUNT(*) as total_sales
+      FROM sales
+      WHERE product_id = ?
+        AND payment_date >= ?
+        AND payment_date <= ?
+        AND process_status = 'sale_confirmed'
+        AND status = 1
+    ";
+
+    $result = ogDb::raw($sql, [$productId, $dateFrom, $dateTo . ' 23:59:59']);
+    return !empty($result) ? (int)($result[0]['total_sales'] ?? 0) : 0;
+  }
+
   // Calcular ROAS personalizado
   // Calcular revenue (ingresos totales)
   private function calculateRevenue($productId, $dateFrom, $dateTo) {
@@ -901,6 +917,9 @@ class AdAutoScaleService {
 
     // Métricas que NO requieren time_range suffix
     $timeMetrics = ['current_hour', 'current_day_of_week'];
+
+    // Métricas del sistema que sí usan sufijo time_range (calculadas por el sistema, no por FB)
+    $systemMetrics = ['confirmed_sales'];
     
     // Métricas de cambio temporal que YA son específicas de hoy (no necesitan sufijo)
     $temporalChangeMetrics = [
@@ -933,6 +952,9 @@ class AdAutoScaleService {
       } elseif (in_array($metric, $temporalChangeMetrics)) {
         // Métricas de cambio temporal: sin sufijo (ya son específicas de hoy)
         $varName = $metric;
+      } elseif (in_array($metric, $systemMetrics)) {
+        // Métricas del sistema (confirmed_sales, etc.): agregar sufijo time_range
+        $varName = $metric . '_' . $timeRange;
       } else {
         // Resto de métricas: agregar sufijo time_range
         $varName = $metric . '_' . $timeRange;
@@ -1448,8 +1470,10 @@ class AdAutoScaleService {
     return null;
   }
 
-  // Obtener rango más común de tiempo
-  // Obtener todos los time_ranges únicos
+  // Métricas del sistema (no dependen de datos de FB/ad_metrics)
+  private $systemOnlyMetrics = ['confirmed_sales'];
+
+  // Obtener todos los time_ranges únicos y qué métricas se usan por rango
   private function getAllTimeRanges($config) {
     $timeRanges = [];
     $conditionBlocks = $config['condition_blocks'] ?? [];
@@ -1461,14 +1485,21 @@ class AdAutoScaleService {
         $conditions = $group['conditions'] ?? [];
         foreach ($conditions as $condition) {
           $timeRange = $condition['time_range'] ?? null;
-          if ($timeRange && !in_array($timeRange, $timeRanges)) {
-            $timeRanges[] = $timeRange;
+          $metric   = $condition['metric'] ?? null;
+          if ($timeRange) {
+            if (!isset($timeRanges[$timeRange])) {
+              $timeRanges[$timeRange] = [];
+            }
+            if ($metric && !in_array($metric, $timeRanges[$timeRange])) {
+              $timeRanges[$timeRange][] = $metric;
+            }
           }
         }
       }
     }
 
-    return !empty($timeRanges) ? $timeRanges : ['today'];
+    // Si no hay rangos definidos, devolver 'today' vacío
+    return !empty($timeRanges) ? $timeRanges : ['today' => []];
   }
 
   // Obtener métricas para todos los time_ranges
@@ -1477,58 +1508,71 @@ class AdAutoScaleService {
     $assetId = $asset['ad_asset_id'];
     $allMetrics = [];
     
-    foreach ($timeRanges as $timeRange) {
+    foreach ($timeRanges as $timeRange => $metricsUsed) {
       $dates = $this->getDateRangeFromTimeRange($timeRange);
-      $adMetrics = $this->getAdMetrics($asset, $dates['from'], $dates['to']);
-      
-      // VALIDACIÓN 1: Verificar que haya datos
-      if ($adMetrics['spend'] <= 0 && $adMetrics['results'] <= 0 && $adMetrics['impressions'] <= 0) {
-        return [
-          'success' => false,
-          'error' => "Sin datos de métricas para el rango {$timeRange} ({$dates['from']} - {$dates['to']})"
-        ];
-      }
-      
-      // VALIDACIÓN 2: Días completos requeridos
-      $requiredDays = $this->getRequiredDaysForTimeRange($timeRange);
-      if ($requiredDays > 0 && $adMetrics['days_available'] < $requiredDays) {
-        return [
-          'success' => false,
-          'error' => "Datos insuficientes para {$timeRange}: se requieren {$requiredDays} días, hay {$adMetrics['days_available']}"
-        ];
-      }
-      
-      // VALIDACIÓN 3: Mínimo de actividad
-      if ($adMetrics['results'] < 2) {
-        return [
-          'success' => false,
-          'error' => "Actividad insuficiente en {$timeRange}: {$adMetrics['results']} resultados (mínimo: 2)"
-        ];
-      }
-      
-      // Calcular ROAS y revenue personalizado
-      $revenue = $this->calculateRevenue($productId, $dates['from'], $dates['to']);
-      $roas = $adMetrics['spend'] > 0 ? $revenue / $adMetrics['spend'] : 0;
-      $profit = $revenue - $adMetrics['spend'];
-      
-      // Almacenar métricas con sufijo de time_range
       $suffix = '_' . $timeRange;
-      $allMetrics['roas' . $suffix] = round($roas, 2);
-      $allMetrics['profit' . $suffix] = round($profit, 2);
-      $allMetrics['cost_per_result' . $suffix] = round($adMetrics['results'] > 0 ? $adMetrics['spend'] / $adMetrics['results'] : 0, 2);
-      $allMetrics['frequency' . $suffix] = round($adMetrics['reach'] > 0 ? $adMetrics['impressions'] / $adMetrics['reach'] : 0, 2);
-      $allMetrics['spend' . $suffix] = $adMetrics['spend'];
-      $allMetrics['results' . $suffix] = $adMetrics['results'];
-      $allMetrics['impressions' . $suffix] = $adMetrics['impressions'];
-      $allMetrics['reach' . $suffix] = $adMetrics['reach'];
-      $allMetrics['clicks' . $suffix] = $adMetrics['clicks'];
-      $allMetrics['ctr' . $suffix] = $adMetrics['ctr'];
-      $allMetrics['cpc' . $suffix] = $adMetrics['cpc'];
-      $allMetrics['cpm' . $suffix] = $adMetrics['cpm'];
+
+      // Determinar si este rango usa al menos una métrica de FB
+      // Si TODAS las métricas son del sistema, saltamos validaciones y consulta de FB
+      $fbMetricsUsed = array_filter($metricsUsed, function($m) {
+        return !in_array($m, $this->systemOnlyMetrics);
+      });
+      $onlySystemMetrics = empty($fbMetricsUsed);
+
+      if (!$onlySystemMetrics) {
+        $adMetrics = $this->getAdMetrics($asset, $dates['from'], $dates['to']);
+
+        // VALIDACIÓN 1: Verificar que haya datos
+        if ($adMetrics['spend'] <= 0 && $adMetrics['results'] <= 0 && $adMetrics['impressions'] <= 0) {
+          return [
+            'success' => false,
+            'error' => "Sin datos de métricas para el rango {$timeRange} ({$dates['from']} - {$dates['to']})"
+          ];
+        }
+        
+        // VALIDACIÓN 2: Días completos requeridos
+        $requiredDays = $this->getRequiredDaysForTimeRange($timeRange);
+        if ($requiredDays > 0 && $adMetrics['days_available'] < $requiredDays) {
+          return [
+            'success' => false,
+            'error' => "Datos insuficientes para {$timeRange}: se requieren {$requiredDays} días, hay {$adMetrics['days_available']}"
+          ];
+        }
+        
+        // VALIDACIÓN 3: Mínimo de actividad
+        if ($adMetrics['results'] < 2) {
+          return [
+            'success' => false,
+            'error' => "Actividad insuficiente en {$timeRange}: {$adMetrics['results']} resultados (mínimo: 2)"
+          ];
+        }
+
+        // Calcular ROAS y revenue personalizado
+        $revenue = $this->calculateRevenue($productId, $dates['from'], $dates['to']);
+        $roas = $adMetrics['spend'] > 0 ? $revenue / $adMetrics['spend'] : 0;
+        $profit = $revenue - $adMetrics['spend'];
+
+        $allMetrics['roas' . $suffix] = round($roas, 2);
+        $allMetrics['profit' . $suffix] = round($profit, 2);
+        $allMetrics['cost_per_result' . $suffix] = round($adMetrics['results'] > 0 ? $adMetrics['spend'] / $adMetrics['results'] : 0, 2);
+        $allMetrics['frequency' . $suffix] = round($adMetrics['reach'] > 0 ? $adMetrics['impressions'] / $adMetrics['reach'] : 0, 2);
+        $allMetrics['spend' . $suffix] = $adMetrics['spend'];
+        $allMetrics['results' . $suffix] = $adMetrics['results'];
+        $allMetrics['impressions' . $suffix] = $adMetrics['impressions'];
+        $allMetrics['reach' . $suffix] = $adMetrics['reach'];
+        $allMetrics['clicks' . $suffix] = $adMetrics['clicks'];
+        $allMetrics['ctr' . $suffix] = $adMetrics['ctr'];
+        $allMetrics['cpc' . $suffix] = $adMetrics['cpc'];
+        $allMetrics['cpm' . $suffix] = $adMetrics['cpm'];
+      }
+
+      // Ventas confirmadas del sistema (basado en tabla sales) — siempre disponible
+      $confirmedSales = $this->getConfirmedSales($productId, $dates['from'], $dates['to']);
+      $allMetrics['confirmed_sales' . $suffix] = $confirmedSales;
     }
     
-    // Agregar métricas de cambio temporal (1h, 2h, 3h) solo si es 'today'
-    if (in_array('today', $timeRanges)) {
+    // Agregar métricas de cambio temporal (1h, 2h, 3h) solo si se usa 'today'
+    if (array_key_exists('today', $timeRanges)) {
       $temporalMetrics = $this->calculateTemporalChanges($asset);
       $allMetrics = array_merge($allMetrics, $temporalMetrics);
     }
@@ -1540,7 +1584,7 @@ class AdAutoScaleService {
     return [
       'success' => true,
       'metrics' => $allMetrics,
-      'time_ranges' => $timeRanges
+      'time_ranges' => array_keys($timeRanges)
     ];
   }
 

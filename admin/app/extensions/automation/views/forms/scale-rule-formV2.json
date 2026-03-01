@@ -177,6 +177,10 @@
                         {
                           "value": "current_day_of_week",
                           "label": "i18n:automation.scale_rules.metric.current_day_of_week"
+                        },
+                        {
+                          "value": "confirmed_sales",
+                          "label": "i18n:automation.scale_rules.metric.confirmed_sales"
                         }
                       ],
                       "validation": "required"

@@ -206,7 +206,8 @@
         "profit_change_2h": "Cambio Profit (últimas 2 horas)",
         "profit_change_3h": "Cambio Profit (últimas 3 horas)",
         "current_hour": "🕐 Hora Actual del Bot",
-        "current_day_of_week": "🗓️ Día de la Semana Actual"
+        "current_day_of_week": "🗓️ Día de la Semana Actual",
+        "confirmed_sales": "💰 Ventas Confirmadas (sistema)"
       },
       "day_of_week": {
         "monday": "Lunes",

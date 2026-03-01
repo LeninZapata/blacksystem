@@ -3,70 +3,28 @@ URGENTE:
   porque tengo DIGAMOS DE mi cuenta de ecuador  manejo la publicidad en otros paises entonces
   el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
 RAPIDO:
-✘ Pedir que el fush del request del envio de whatsapp api ,lo haga con tiempo de holgua porque si es invmediado @cancelled(28-02-2026 18:21)
-y elhosting no envia rapido la respuesta de la imagen o video este no lo envia.. ya paso cuando banahosting
-se demoro, entonces hay una funcion que hace este envie rapido el 200 de respuesta pero sin el media de banahostin
-no va enviar ese mensaje...
-SOLUCION: no es tanto el facebook es el hosting, hay una explicacion para evitar que pase esto....
-✔ proque cuando hice la bienvenida de dannes no aparee en sus chatsm creo que el meta_bot_chat tambien debe estar @done(28-02-2026 19:00)
- a nivel de tablas y node campo... esto creo que es el problema, lo curioso es que no s eve... en los chats...
-✘ En el following hay una validacion que solo le puede dar 1 solo seguimiento en ese ronda pero a numeros no repetidos @cancelled(28-02-2026 23:31)
-ahorita hice la prueba y este lo que hice es darme segumiento solo de un bot y no del otro, obvio que lo evadio, entonces
-hay que filtrar que si se puedan ser el mismo numero preo con user diferentes hay que ver como se hace ese filtro 
-AUNQUE el comportamiento fue que luego de 5 minutos si dio del otro bot, puede que no cambie nada ya que el otro seguimiento d ese
-bot lo dara y luego el siguiente sera mucho despues y le dara tiempo al bot de aca de darle, son casos extraordinarios
-REVISA LOS TIEMPOS. 
-SOLUCION: se resuelve en 5 minutos que ejecuta el CRON nuevamente
-✔ El seguimiento no debe mostrar cmo un mensaje no leido, pero si la fecha de actualizacion @done(01-03-2026 09:09)
-✔ Tiempos de follow, hay que guardar en un meta el tiempo maximo que tiene de enviar al cliente eso, porqeu si se pasa va enviar error @done(01-03-2026 13:07)
-entonces conn FALLBACK seria bueno guardar el tiempo maximo que tiene para enviar el mensaje de seguimiento, entonces si se pasa ese tiempo no va enviar el mensaje y asi evitar errores, esto se puede hacer guardando en un meta el tiempo maximo que tiene para enviar el mensaje de seguimiento y luego compararlo con el tiempo actual antes de enviar el mensaje, si se pasa ese tiempo no va enviar el mensaje y asi evitar errores.
-✔ Hay un error digamos hay que contemplar 2 cosas, el mensaje de apertura de 72 horas sirve para la venta @done(01-03-2026 13:13)
-pero al ejecutar el seguiente UPsell este debe basarse en ese tiempo porq es una apartura limitada.
-  ✔ ahora si la persona luego de 24 horas entra para otro producto sus seguimientos deben ser cortos @done(01-03-2026 13:13)
-  porque la apertura de mensajes es limitada, y pues los seguimienos sera muy cortos 
-  AUNQ estos casos son muy raros, ya seria que un aperson entre dentro de las 72 horas ENTONCES
-  con otro producto de todas formas con la nueva forma de que si el seguimiento esta sobre el tiempo de 
-  apertura el seguimiento no se puede enviar, creo que con eso se resuelve el tema de los seguimientos cortos, porque si se pasa el tiempo de apertura no se va enviar el mensaje de seguimiento entonces no habria problema con eso, esto se puede hacer comparando el tiempo actual con el tiempo de apertura antes de enviar el mensaje de seguimiento y si se pasa ese tiempo no va enviar el mensaje de seguimiento y asi evitar problemas con los seguimientos cortos.
 ☐ Cunado eliminas datos debes hacerlo tambie nen la tabla client_bot_meta
-✔ la bienvenida no esta dando la apertura de 72 horas, solo de 24 horas, revisa eso por favor @done(01-03-2026 13:14)
-✔ Calculo de fechas de seguimiento + upsell tambien calcular.. no puede pasarse de 72 horas. @done(01-03-2026 13:14)
-✘ label para ver chats con ventas y tambien dentro del chat algo que indique la venta.... @cancelled(01-03-2026 13:16)
-en un futuro se pondra mas opciones para este panel de usuario..... 
-☐ En el chat por ejemplo cuando el bot escrie asi _asdas_ esto deveria ser cursiva aun el chat no soporta estos formatos
-✔ cuando esta seleccionado el chat, entonces no debe ponerse en estaod unread, pero cuando no este entonces si. @done(01-03-2026 13:23)
-✔ agregar texto de pie de pagina, con esto puedo agregar nuevos copy que impulse a la venta, pero primero pruebalo con un webhook crudo para ve que si es posible @done(01-03-2026 13:23)
 ☐ agregar trigger de plantillas
 ☐ agrear botnes en los mensajes puede ser de bienvenida o se seguimietno
- 
-☐ Soporte de meta por el error del numero: https://business.facebook.com/direct-support/case-detail/33845938431721309/?force_full_site=0&business_id=2908180592788929
-☐ Yo respondo en vez del bot y este esta que me autoresponde! @CRITICAL
-☐ Revisa si el buffer VALE y si sivale aumentale el tiempo
-☐ Agregar a las escala que solo escale apartir de una hora generar porque ejemplo dannes comenzo a escachar 
-el 23/02/2026 desde las 00:01 porque tuvo ventas a las 12 de la noche en adelante, entonces tambien se vio que 
-facebook comenzo a dar alcance en la madrugada y creo que es dinero perdido, entonces creo que las reglas podria
-ejecutar desde las 06am o 7am, entonces puedes decir arriba que se ejecuten desde 3am, 5am, 6am.. o todo el dia... 
-con eso puedes ser versatil......
-☐ Revisar el tema del webhoook de facebook como primario para poder ejecutar la bienvenida sin problema
-☐ Revisa el buffer +593 99 133 7353 este caso envio el recibo luego puso otra palabra mas y este lo tomo como si no hubiera pagado aun 
-luego d enviarle el link esto debemos replicarlo para poder solucionarlo..
 ☐ el componente de los permisos no funciona tan bien revisa eso por tabs
-☐ Hay una regla que se llama "🔥 Escalar Temprano ROAS Alto" esto esta tomando un metrica de Resutlado > 1 el detalle que ese
-resultado es el de facebook, hay que agregar una metrica llamada SALES_CONFIMED para que esa sea la metrica que debe evaluar aqui https://i.imgur.com/6mIxXyH.png
-☐ En este caso SELECT * FROM `sales` WHERE `number` like '%593992903767%'; di 2 veces la bienvenida forzada, entonces se crearon 2 ventas
-esto NO debe ocurrir porque si es una bievenida forzada del mismo producto que ya existe simplemente debe actualizar la fecha pero no crear un 
-nuevo registro de VENTA. @critical este envia 2veces el seguimiento tambien y esto si es mas grave...
+
+FRONTEND:
+☐ El listado de producto hay que ponerle el pais porque se va a comenzar a vender en otros paises.
+☐ graficas de chats vs ventas
+✔ arreglar el problema de disminucion de presupuesto porque en 0 en forma manual @done(01-03-2026 14:50)
+
+CORE:
+☐ Tener varias cuenas de copiloto con el mismo github https://www.google.com/search?q=como+agregar+varias+cuentas+de+copilot+en+vscode&sca_esv=190a96a9d156750b&sxsrf=ANbL-n6_xmW-h-ndj1nsOm-Z_po0yjnrQQ%3A1771016744303&udm=50&fbs=ADc_l-bpk8W4E-qsVlOvbGJcDwpn75JLSqV3j_xbkySF4grw51H30IP-0-FgEAUalWuLGReuPxwY1XJn-KcoPw8-j7gPmDhIlzW26CnVSGeGlpeLqqRzcnYbVaxCwe1cZuC6K9LEItujwZhN_-uqW4TyOOfEvMjVGovmuJouBaZrBdUWVEeT9SXYp74N0i0ejHq82GcpgX311zLb03PqMgzprhD4qxT4Jw&aep=1&ntc=1&sa=X&ved=2ahUKEwjmyr2_r9eSAxVATDABHRGaAEcQ2J8OegQICRAE&biw=1393&bih=902&dpr=1&mstk=AUtExfDJzYWquRKB48yd5aWicm4nw2-Omly6jmw75MpIEU9kuEBs8MM14aPgT9bKUv7-d92iFate9xa82kahHVBJM4YBhxFb6KsupNbOHoFE5r-uhdQmcopLmPBQxv-ARc8gqBLEDmNzVTMnoM0XSGF-ihyOAgfUjAjTG0a0UuiFoolWGXnrPVOVBZZS8CS-gdx_wcNTJ-r0RDlxFZYKBXqe8X4ax20L33uZSNVezFyKDNIWfZ6QPsb5XRDrSrBp8JhUAH0frCB5Mcfjfzl2ZMzfyPEJRGnzAu4nt7NzszMiMB750QaGD9OH6qFABy8YHAzEH61wqn56U1SADw&csuir=1&mtid=KpKPafLTJKq3wt0P9OeuwAQ
+☐ PROVOCAR LENTITUD EN LA respuesta del servidor para ver como se comporta el sistema en el frontend para cada peticion
+esto hara tener una CLARIDAD mayor a nivel de experiencia de usuario y asi poder identificar problemas de rendimiento y solucionarlos antes de que los usuarios los experimenten, esto es importante para garantizar una buena experiencia de usuario y evitar que los usuarios se frustren por la lentitud del sistema, esto se puede hacer agregando un retraso artificial en el servidor para simular una respuesta lenta y luego monitorear el comportamiento del sistema en el frontend para identificar cualquier problema de rendimiento y solucionarlo antes de que los usuarios lo experimenten.
+☐ Ejecutador de de rutas rapido interno sin problemas, debe ser mas rapido que el de vscode.
+☐ necesito crear un miniSupaBase, que pueda guardar rapidamente tablas un configuraciones para que la
+IA me pueda enteder rapido porque solo copiaria y pegaria tabla o respuestas rapidas como PRE-PLANTILLAS
+con eso ya puedo tener una base de datos rapida para que la IA me pueda ayudar a generar codigo mas rapido, esto me ayudaria a ser mas productivo y a generar codigo de mejor calidad, esto se puede hacer creando una base de datos rapida que pueda guardar tablas y configuraciones para que la IA me pueda entender rapido y asi poder generar codigo mas rapido y de mejor calidad.
+☐ Crear un sistema de salud de software, quiere decir que registre cada cierto tiempo el la pagina esta bien o mal 
+con espera de tiempo y todo porque a veces puede haber problemas con el hosting. Esto tambien debe tener alertas.
 ☐ Crear dentro en endpoints donde se pueda ejecutar un endpoint inclusive con variables
 asi se ejecuta basado el auth actual ya que no puedo ejecutar en la url porque tengo que quitar el auth acada momento..
-Backend (Aplicacion):
-☐ Hacer pruebas con el endpoint de archive para encontrar la logica de como enviar a archivo ese chat
-☐ Revisar si por ejemplo falla el ESCRIBIENDO... este no haga que parece el proceso de envio del mensaje... que sean temas apartes
-☐ Cuando haces un vent a las 12 de la noche el upsell se va activar 12:05, tienes que revisar si esta bien asi o
-hacer que se ejecute al otro dia en la mañana
-☐ Creo que no esta archivando los mensajes en proceso, osea no tiene el codigo de archive
-☐ Plantillas que se ejecutan a un triger, es decir si dice
-'banco pichincha' se ejecuta una plantilla que diga 'banco pichincha'
-☐ CRON para actualizar e JSON de bot->product->activos->credenciales y todo eso
-  ya que hay cosas que se activa o desactivan en automatico
 ☐ Los logs deben primero borrarse del sistema la mayoria y dejar los necesarios para...
 _ hacer que solo muestre los logs de errores y no los de info o debug
 _ crer unos info pero en configuracion hacer que luego de se dejen de ejecutar los info
@@ -76,23 +34,3 @@ IA que me ayude agruparlos, porque ejemplo un grupo puede ser el inicio de chat 
 ver lo que paso dentro de ese grupo, creo que si se puede tal vez dandole un ID que recorra todo el proceso
 entonces este lo puede agrupar y yo revisar, esto seria genial prque actualmente lo lista por order y 
 tiene un medio secuencia pero no agrupa esto me ayudaria identificar problemas en el proceso, por ejemplo si el cliente se queja de que no le llego el mensaje de upsell, yo puedo revisar ese grupo y ver que paso ahi, o si se queja de que no le llego el mensaje de bienvenida, yo puedo revisar ese grupo y ver que paso ahi, esto me ayudaria a identificar problemas en el proceso y solucionarlos mas rapido
-☐ En lo que tiene que ver la bienvenida forzada tanto en el router como en js hay paisees quemados
-aunque cubren la mayoria que se usara hay que ver si se crea un apartado de paises activos para que hasta
-el bot select de pais sean cargados alli
-☐ la tabla de meta bot debes hacer un proceso semanal para elminar los key de cada cliente unread_count, o dejarlo alli no mas
-porque cada lciente tendria 3 registro unicos por el momento.
-FRONTEND:
-☐ El listado de producto hay que ponerle el pais porque se va a comenzar a vender en otros paises.
-☐ graficas de chats vs ventas
-☐ arreglar el problema de disminucion de presupuesto porque en 0 en forma manual
-☐ Tener varias cuenas de copiloto con el mismo github https://www.google.com/search?q=como+agregar+varias+cuentas+de+copilot+en+vscode&sca_esv=190a96a9d156750b&sxsrf=ANbL-n6_xmW-h-ndj1nsOm-Z_po0yjnrQQ%3A1771016744303&udm=50&fbs=ADc_l-bpk8W4E-qsVlOvbGJcDwpn75JLSqV3j_xbkySF4grw51H30IP-0-FgEAUalWuLGReuPxwY1XJn-KcoPw8-j7gPmDhIlzW26CnVSGeGlpeLqqRzcnYbVaxCwe1cZuC6K9LEItujwZhN_-uqW4TyOOfEvMjVGovmuJouBaZrBdUWVEeT9SXYp74N0i0ejHq82GcpgX311zLb03PqMgzprhD4qxT4Jw&aep=1&ntc=1&sa=X&ved=2ahUKEwjmyr2_r9eSAxVATDABHRGaAEcQ2J8OegQICRAE&biw=1393&bih=902&dpr=1&mstk=AUtExfDJzYWquRKB48yd5aWicm4nw2-Omly6jmw75MpIEU9kuEBs8MM14aPgT9bKUv7-d92iFate9xa82kahHVBJM4YBhxFb6KsupNbOHoFE5r-uhdQmcopLmPBQxv-ARc8gqBLEDmNzVTMnoM0XSGF-ihyOAgfUjAjTG0a0UuiFoolWGXnrPVOVBZZS8CS-gdx_wcNTJ-r0RDlxFZYKBXqe8X4ax20L33uZSNVezFyKDNIWfZ6QPsb5XRDrSrBp8JhUAH0frCB5Mcfjfzl2ZMzfyPEJRGnzAu4nt7NzszMiMB750QaGD9OH6qFABy8YHAzEH61wqn56U1SADw&csuir=1&mtid=KpKPafLTJKq3wt0P9OeuwAQ
-
-CORE:
-☐ PROVOCAR LENTITUD EN LA respuesta del servidor para ver como se comporta el sistema en el frontend para cada peticion
-esto hara tener una CLARIDAD mayor a nivel de experiencia de usuario y asi poder identificar problemas de rendimiento y solucionarlos antes de que los usuarios los experimenten, esto es importante para garantizar una buena experiencia de usuario y evitar que los usuarios se frustren por la lentitud del sistema, esto se puede hacer agregando un retraso artificial en el servidor para simular una respuesta lenta y luego monitorear el comportamiento del sistema en el frontend para identificar cualquier problema de rendimiento y solucionarlo antes de que los usuarios lo experimenten.
-☐ Ejecutador de de rutas rapido interno sin problemas, debe ser mas rapido que el de vscode.
-☐ necesito crear un miniSupaBase, que pueda guardar rapidamente tablas un configuraciones para que la
-IA me pueda enteder rapido porque solo copiaria y pegaria tabla o respuestas rapidas como PRE-PLANTILLAS
-con eso ya puedo tener una base de datos rapida para que la IA me pueda ayudar a generar codigo mas rapido, esto me ayudaria a ser mas productivo y a generar codigo de mejor calidad, esto se puede hacer creando una base de datos rapida que pueda guardar tablas y configuraciones para que la IA me pueda entender rapido y asi poder generar codigo mas rapido y de mejor calidad.
-☐ Crear un sistema de salud de software, quiere decir que registre cada cierto tiempo el la pagina esta bien o mal 
-con espera de tiempo y todo porque a veces puede haber problemas con el hosting. Esto tambien debe tener alertas.

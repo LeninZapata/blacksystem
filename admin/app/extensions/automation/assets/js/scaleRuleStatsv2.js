@@ -1229,7 +1229,8 @@ class scaleRuleStatsv2 {
       'profit_change_2h': 'Cambio Ganancia (2h)',
       'profit_change_3h': 'Cambio Ganancia (3h)',
       'current_hour': 'Hora',
-      'current_day_of_week': 'Día'
+      'current_day_of_week': 'Día',
+      'confirmed_sales': 'Ventas Confirmadas (sistema)'
     };
     
     // Si la métrica no está en el mapa, intentar sin sufijos de tiempo
@@ -1250,7 +1251,7 @@ class scaleRuleStatsv2 {
     let html = '';
     
     // Mostrar métricas principales
-    const mainMetrics = ['roas', 'cost_per_result', 'results', 'spend', 'frequency', 'ctr'];
+    const mainMetrics = ['roas', 'cost_per_result', 'results', 'confirmed_sales', 'spend', 'frequency', 'ctr'];
     mainMetrics.forEach(key => {
       if (metrics[key] !== undefined) {
         html += `
@@ -1302,7 +1303,7 @@ class scaleRuleStatsv2 {
     }
 
     // Enteros
-    if (['results', 'impressions', 'reach', 'clicks'].includes(metricBase)) {
+    if (['results', 'impressions', 'reach', 'clicks', 'confirmed_sales'].includes(metricBase)) {
       return parseInt(value).toLocaleString();
     }
 
