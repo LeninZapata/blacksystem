@@ -329,7 +329,8 @@ class scaleRulePreview {
       'profit_change_2h': 'Cambio Ganancia (2h)',
       'profit_change_3h': 'Cambio Ganancia (3h)',
       'current_hour': 'Hora',
-      'current_day_of_week': 'Día'
+      'current_day_of_week': 'Día',
+      'confirmed_sales' : 'Ventas Confirmadas'
     };
     
     // Si la métrica no está en el mapa, intentar sin el sufijo _today, _yesterday, etc.
