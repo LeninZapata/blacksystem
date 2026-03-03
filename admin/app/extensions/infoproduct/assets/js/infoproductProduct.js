@@ -10,6 +10,13 @@ class infoproductProduct {
 
   // Inicializar formatters personalizados
   static initFormatters() {
+    // Formatter para sale_type_mode con badge gris
+    ogDatatable.registerFormatter('sale-type-mode', (value) => {
+      const map = { '1': 'Principal', '2': 'Upsell', '3': 'P & U' };
+      const label = map[String(value)] ?? 'P & U';
+      return `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:0.3rem;font-size:0.75rem;font-weight:500;background:#e5e7eb;color:#374151;">${label}</span>`;
+    });
+
     // Formatter para estado con badge de color
     ogDatatable.registerFormatter('product-status', (value, row) => {
       const isActive = value == 1 || value === true;
@@ -88,6 +95,7 @@ class infoproductProduct {
       name: data.name,
       bot_id: data.bot_id ? String(data.bot_id) : '',
       price: data.price || '',
+      sale_type_mode: data.sale_type_mode ? String(data.sale_type_mode) : '3',
       description: data.description || '',
       status: data.status == 1,
       'config.welcome_triggers': configData.welcome_triggers || '',
@@ -262,6 +270,7 @@ class infoproductProduct {
       context: formData.context || this.context,
       bot_id: parseInt(formData.bot_id),
       price: parseFloat(formData.price),
+      sale_type_mode: parseInt(formData.sale_type_mode) || 3,
       name: formData.name,
       description: formData.description || null,
       status: formData.status ? 1 : 0,

@@ -41,6 +41,25 @@
     },
     {
       "type": "group",
+      "columns": 1,
+      "gap": "normal",
+      "fields": [
+        {
+          "name": "sale_type_mode",
+          "label": "i18n:infoproduct.products.field.sale_type_mode",
+          "type": "select",
+          "validation": "required",
+          "default": "3",
+          "options": [
+            { "value": "1", "label": "i18n:infoproduct.products.field.sale_type_mode.option_1" },
+            { "value": "2", "label": "i18n:infoproduct.products.field.sale_type_mode.option_2" },
+            { "value": "3", "label": "i18n:infoproduct.products.field.sale_type_mode.option_3" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
       "columns": 2,
       "gap": "normal",
       "fields": [

@@ -39,7 +39,16 @@
               "name": "i18n:infoproduct.products.column.name",
               "format": "product-name-with-price",
               "sortable": false,
-              "width": "250px"
+              "width": "320px"
+            }
+          },
+          {
+            "sale_type_mode": {
+              "name": "Tipo",
+              "format": "sale-type-mode",
+              "width": "80px",
+              "align": "center",
+              "sortable": false
             }
           },
           {

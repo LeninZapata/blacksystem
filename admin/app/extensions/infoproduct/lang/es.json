@@ -61,6 +61,12 @@
           "label": "Precio",
           "placeholder": "Ingrese el precio del producto"
         },
+        "sale_type_mode": {
+          "label": "Clasificación del Producto",
+          "option_1": "Solo producto principal",
+          "option_2": "Solo Upsell",
+          "option_3": "Principal & Upsell"
+        },
         "description": {
           "label": "Descripción (contexto)",
           "placeholder": "Describe brevemente el contenido(contexto) de este infoproducto... para que el bot entienda",

@@ -18,6 +18,7 @@
     { "name": "context", "type": "string", "maxLength": 50, "description": "infoproductws, ecommercews, etc." },
     { "name": "bot_id", "type": "int" },
     { "name": "price", "type": "decimal", "precision": 10, "scale": 2 },
+    { "name": "sale_type_mode", "type": "tinyint", "required": false, "default": 3, "description": "1=Solo principal, 2=Solo upsell, 3=Principal & Upsell" },
     { "name": "status", "type": "tinyint", "required": false, "default": 1, "description": "0: inactivo, 1: activo" },
     { "name": "dc", "type": "datetime" },
     { "name": "du", "type": "datetime" },
