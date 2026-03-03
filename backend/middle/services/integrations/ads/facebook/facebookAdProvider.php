@@ -399,4 +399,36 @@ class facebookAdProvider extends baseAdProvider {
       return $this->errorResponse($e->getMessage());
     }
   }
+
+  // Reactivar activo (usado al resetear presupuesto diario)
+  function resumeAsset(string $assetId, string $assetType): array {
+    try {
+      $url = "{$this->baseUrl}/{$assetId}?status=ACTIVE&access_token={$this->apiKey}";
+
+      ogLog::info("Reactivando activo", [
+        'asset_type' => $assetType,
+        'asset_id' => $assetId
+      ], self::$logMeta);
+
+      $response = ogApp()->helper('http')::post($url);
+
+      if (!$response['success']) {
+        return $this->errorResponse(
+          "Error HTTP al reactivar activo: " . ($response['error'] ?? 'Unknown'),
+          $response['httpCode'] ?? 500
+        );
+      }
+
+      return $this->successResponse([
+        'asset_id' => $assetId,
+        'asset_type' => $assetType,
+        'status' => 'ACTIVE',
+        'resumed' => true
+      ]);
+
+    } catch (Exception $e) {
+      ogLog::error('Error reactivando activo', ['error' => $e->getMessage()], self::$logMeta);
+      return $this->errorResponse($e->getMessage());
+    }
+  }
 }

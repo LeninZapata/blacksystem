@@ -570,7 +570,7 @@
                 {
                   "field": "action_type",
                   "operator": "any",
-                  "value": "increase_budget,decrease_budget"
+                  "value": "increase_budget,decrease_budget,adjust_to_spend"
                 }
               ],
               "conditionContext": "repeatable",
@@ -592,6 +592,10 @@
                     {
                       "value": "daily",
                       "label": "i18n:automation.scale_rules.time_period.daily"
+                    },
+                    {
+                      "value": "every_2h",
+                      "label": "i18n:automation.scale_rules.time_period.every_2h"
                     },
                     {
                       "value": "every_3h",
@@ -621,48 +625,6 @@
                     }
                   ],
                   "validation": "required"
-                }
-              ]
-            },
-            {
-              "name": "period_fields_group_adjust",
-              "type": "group",
-              "columns": 1,
-              "gap": "normal",
-              "condition": [
-                {
-                  "field": "action_type",
-                  "operator": "equals",
-                  "value": "adjust_to_spend"
-                }
-              ],
-              "conditionContext": "repeatable",
-              "fields": [
-                {
-                  "name": "time_period",
-                  "label": "i18n:automation.scale_rules.field.time_period",
-                  "type": "select",
-                  "required": true,
-                  "options": [
-                    {
-                      "value": "everytime",
-                      "label": "i18n:automation.scale_rules.time_period.everytime"
-                    },
-                    {
-                      "value": "every_2h",
-                      "label": "i18n:automation.scale_rules.time_period.every_2h"
-                    },
-                    {
-                      "value": "every_3h",
-                      "label": "i18n:automation.scale_rules.time_period.every_3h"
-                    },
-                    {
-                      "value": "every_6h",
-                      "label": "i18n:automation.scale_rules.time_period.every_6h"
-                    }
-                  ],
-                  "validation": "required",
-                  "help": "i18n:automation.scale_rules.field.time_period_adjust_help"
                 }
               ]
             }

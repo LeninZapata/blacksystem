@@ -1267,6 +1267,29 @@ class AdAutoScaleService {
 
     $budget = $currentBudget['budget'];
 
+    // FRENO: adjust_to_spend nunca debe aumentar el presupuesto.
+    // Si el gasto actual + buffer ya supera el presupuesto real, no tocar nada.
+    // De lo contrario, el sistema actuaría como escalador en vez de freno.
+    if ($newBudget > $budget) {
+      ogLog::info('adjustToSpend - Omitido: el nuevo presupuesto superaría el actual (freno activo)', [
+        'asset_id' => $assetId,
+        'current_spend' => $currentSpend,
+        'adjustment_value' => $adjustmentValue,
+        'new_budget_calculated' => $newBudget,
+        'current_budget' => $budget
+      ], self::$logMeta);
+
+      return [
+        'success' => true,
+        'action' => 'adjust_to_spend',
+        'message' => 'Presupuesto no modificado: el gasto ya absorbió el margen disponible (freno activo)',
+        'budget_before' => $budget,
+        'budget_after' => $budget,
+        'current_spend' => $currentSpend,
+        'changed' => false
+      ];
+    }
+
     // Si no hay cambio significativo, no hacer nada
     if (abs($newBudget - $budget) < 0.01) {
       return [

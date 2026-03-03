@@ -141,6 +141,7 @@
         "value_day_help": "Día de la semana en zona horaria del bot. Usa esto para ejecutar reglas solo en días específicos (ej: solo Lunes a Viernes, o solo Fines de Semana)",
         "condition_groups": "Grupos de Condiciones",
         "conditions": "Condiciones",
+        "conditions_logic": "Lógica entre Grupos",
         "metric": "Métrica",
         "metric_level": "Nivel de Métrica",
         "metric_level_help": "Nivel donde se evalúa la métrica (puede ser diferente al nivel de aplicación)",

@@ -448,6 +448,26 @@ class AdAutoScaleHandler {
         ];
       }
 
+      // 5b. Si el activo estaba pausado en Facebook, reactivarlo.
+      // Esto ocurre cuando una regla de freno lo pausó durante el día anterior.
+      $wasPaused = isset($currentBudgetData['status']) && $currentBudgetData['status'] === 'PAUSED';
+      $resumeResult = null;
+      if ($wasPaused && method_exists($provider, 'resumeAsset')) {
+        $resumeResult = $provider->resumeAsset($asset['ad_asset_id'], $asset['ad_asset_type']);
+        if ($resumeResult['success']) {
+          ogLog::success('resetAssetBudget - Activo reactivado en Facebook', [
+            'asset_id' => $asset['id'],
+            'ad_asset_id' => $asset['ad_asset_id']
+          ], self::$logMeta);
+        } else {
+          ogLog::warning('resetAssetBudget - No se pudo reactivar el activo en Facebook', [
+            'asset_id' => $asset['id'],
+            'ad_asset_id' => $asset['ad_asset_id'],
+            'error' => $resumeResult['error'] ?? 'Unknown'
+          ], self::$logMeta);
+        }
+      }
+
       $executionTime = round((microtime(true) - $startTime) * 1000);
 
       // 6. Guardar en historial
@@ -477,10 +497,12 @@ class AdAutoScaleHandler {
         'reset_type' => $resetType,
         'budget_before' => $budgetBefore,
         'budget_after' => $budgetAfter,
+        'was_paused' => $wasPaused,
+        'reactivated' => $wasPaused && ($resumeResult['success'] ?? false),
         'execution_time_ms' => $executionTime
       ], self::$logMeta);
 
-      return ['success' => true];
+      return ['success' => true, 'budget_before' => $budgetBefore, 'budget_after' => $budgetAfter];
 
     } catch (Exception $e) {
       ogLog::error('resetAssetBudget - Error', [
