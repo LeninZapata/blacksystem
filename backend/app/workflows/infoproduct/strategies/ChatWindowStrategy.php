@@ -21,13 +21,23 @@ class ChatWindowStrategy {
   const HOURS_ORGANIC = 24;
 
   /**
-   * Detecta si el contexto proviene de un anuncio de Meta.
+   * Detecta si el contexto proviene de un anuncio de Meta (paid ad).
+   *
+   * Casos cubiertos:
+   * - is_fb_ads=true   → normalizador confirmó paid ad (source_type=ad o ctwa_clid)
+   * - source_app        → source_type presente en referral (Evolution o Facebook)
+   * - source='FB_Ads'  → conversionSource de Evolution API
+   * - type='conversion' → contextType resuelto por cualquier normalizador
+   * - ctwa_clid         → Click-to-WhatsApp ID, exclusivo de paid CTWA ads (red de seguridad)
+   *
+   * NO es ad: post compartido orgánico de FB, QR code, botón de página → solo hay source_url
    */
   static function isAd(array $context): bool {
-    return ($context['is_fb_ads'] ?? false) === true
+    return ($context['is_fb_ads']            ?? false) === true
       || !empty($context['source_app'])
-      || ($context['source'] ?? null) === 'FB_Ads'
-      || ($context['type']   ?? null) === 'conversion';
+      || ($context['source']                 ?? null) === 'FB_Ads'
+      || ($context['type']                   ?? null) === 'conversion'
+      || !empty($context['ad_data']['ctwa_clid']);  // fallback directo: paid CTWA ad
   }
 
   /**
@@ -66,6 +76,10 @@ class ChatWindowStrategy {
     $nowTs  = time();
     $expiry = date('Y-m-d H:i:s', $nowTs + ($hours * 3600));
 
+    // Detectar sub-tipo para el log: ad / facebook (referral sin paid) / organic
+    $originLabel = $isAd ? 'ad'
+      : (!empty($context['source_url']) || !empty($context['ad_data']) ? 'facebook' : 'organic');
+
     $existing = ogDb::raw(
       "SELECT meta_value FROM client_bot_meta
        WHERE client_id = ? AND bot_id = ? AND meta_key = 'open_chat'
@@ -83,7 +97,7 @@ class ChatWindowStrategy {
         'client_id'       => $clientId,
         'bot_id'          => $botId,
         'existing_expiry' => $existingExpiry,
-        'origin'          => 'organic'
+        'origin'          => $originLabel
       ], ['module' => 'ChatWindowStrategy', 'layer' => 'app/workflows']);
       return;
     }
@@ -105,7 +119,7 @@ class ChatWindowStrategy {
     ogLog::info("ChatWindowStrategy::persist - Ventana abierta", [
       'client_id'  => $clientId,
       'bot_id'     => $botId,
-      'origin'     => $isAd ? 'ad' : 'organic',
+      'origin'     => $originLabel,
       'hours'      => $hours,
       'expires_at' => $expiry
     ], ['module' => 'ChatWindowStrategy', 'layer' => 'app/workflows']);

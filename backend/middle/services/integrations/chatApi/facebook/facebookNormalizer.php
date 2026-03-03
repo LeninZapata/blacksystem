@@ -447,7 +447,9 @@ class facebookNormalizer {
         'source' => $referral['source_type'] ?? null,
         'source_app' => $referral['source_type'] ?? null,
         'source_url' => $referral['source_url'] ?? null,
-        'is_fb_ads' => $contextType === 'conversion' && ($referral['source_type'] ?? '') === 'ad',
+        // is_fb_ads: true cuando detectContextType resuelve 'conversion'
+        // (cubre source_type=ad Y ctwa_clid exclusivo de CTWA)
+        'is_fb_ads' => $contextType === 'conversion',
         'ad_data' => self::extractAdData($referral),
         'raw' => $referral
       ],
@@ -460,7 +462,10 @@ class facebookNormalizer {
   // Detectar tipo de contexto basado en el campo referral de Facebook
   private static function detectContextType($referral) {
     if (empty($referral)) return 'normal';
+    // source_type === 'ad' → anuncio estándar CTWA
     if (($referral['source_type'] ?? '') === 'ad') return 'conversion';
+    // ctwa_clid es exclusivo de Click-to-WhatsApp Ads aunque source_type falte
+    if (!empty($referral['ctwa_clid'])) return 'conversion';
     return 'normal';
   }
 

@@ -117,20 +117,36 @@ class CreateSaleAction {
     }
 
     // Prioridad 2: Facebook Ads
+    // 2a. Flag explícito del normalizador
     if (($context['is_fb_ads'] ?? false) === true) {
       return 'ad';
     }
 
+    // 2b. source_app viene de source_type del referral de Facebook
     if (!empty($context['source_app'])) {
       return 'ad';
     }
 
+    // 2c. Source de Evolution API (conversionSource = 'FB_Ads')
     if (($context['source'] ?? null) === 'FB_Ads') {
       return 'ad';
     }
 
+    // 2d. Contexto de tipo conversión (cualquier provider)
     if (($context['type'] ?? null) === 'conversion') {
       return 'ad';
+    }
+
+    // 2e. ctwa_clid presente → exclusivo de Click-to-WhatsApp Ads
+    if (!empty($context['ad_data']['ctwa_clid'])) {
+      return 'ad';
+    }
+
+    // 2f. referral de Facebook presente (source_url o raw con datos) pero sin
+    //     confirmación de paid ad → post orgánico compartido, QR code, botón de page.
+    //     Se clasifica como 'facebook' (no 'ad' ni 'organic').
+    if (!empty($context['source_url']) || !empty($context['ad_data'])) {
+      return 'facebook';
     }
 
     // Prioridad 3: Offer
