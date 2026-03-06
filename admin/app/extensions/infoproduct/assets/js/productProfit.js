@@ -273,7 +273,9 @@ class productProfit {
         totalRevenue = parseFloat(response.summary.total_revenue || 0);
         totalSpend = parseFloat(response.summary.total_spend || 0);
       } else if (data.length > 0) {
-        // Fallback: Buscar el registro con mayor spend (última hora con datos acumulados)
+        // Fallback: sumar revenue y purchases directamente de todos los registros del chart
+        // NOTA: el revenue en el chart es acumulado, así que tomamos el último valor para spend
+        // y sumamos revenue incremental (diferencia entre registros consecutivos)
         let maxSpendItem = data[0];
         data.forEach(item => {
           if (parseFloat(item.spend || 0) > parseFloat(maxSpendItem.spend || 0)) {
@@ -281,6 +283,8 @@ class productProfit {
           }
         });
         
+        // El último revenue acumulado del chart puede no incluir ventas en horas sin ads
+        // Solo usamos este fallback cuando no hay summary (situación excepcional)
         totalProfit = parseFloat(maxSpendItem.profit || 0);
         totalRevenue = parseFloat(maxSpendItem.revenue || 0);
         totalSpend = parseFloat(maxSpendItem.spend || 0);

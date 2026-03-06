@@ -14,34 +14,3 @@ FRONTEND:
 ☐ graficas de chats vs ventas
 ☐ separa el menu de herrramientas de DEV con administracion/config es un relajo
 CORE:
-☐ Tener varias cuenas de copiloto con el mismo github https://www.google.com/search?q=como+agregar+varias+cuentas+de+copilot+en+vscode&sca_esv=190a96a9d156750b&sxsrf=ANbL-n6_xmW-h-ndj1nsOm-Z_po0yjnrQQ%3A1771016744303&udm=50&fbs=ADc_l-bpk8W4E-qsVlOvbGJcDwpn75JLSqV3j_xbkySF4grw51H30IP-0-FgEAUalWuLGReuPxwY1XJn-KcoPw8-j7gPmDhIlzW26CnVSGeGlpeLqqRzcnYbVaxCwe1cZuC6K9LEItujwZhN_-uqW4TyOOfEvMjVGovmuJouBaZrBdUWVEeT9SXYp74N0i0ejHq82GcpgX311zLb03PqMgzprhD4qxT4Jw&aep=1&ntc=1&sa=X&ved=2ahUKEwjmyr2_r9eSAxVATDABHRGaAEcQ2J8OegQICRAE&biw=1393&bih=902&dpr=1&mstk=AUtExfDJzYWquRKB48yd5aWicm4nw2-Omly6jmw75MpIEU9kuEBs8MM14aPgT9bKUv7-d92iFate9xa82kahHVBJM4YBhxFb6KsupNbOHoFE5r-uhdQmcopLmPBQxv-ARc8gqBLEDmNzVTMnoM0XSGF-ihyOAgfUjAjTG0a0UuiFoolWGXnrPVOVBZZS8CS-gdx_wcNTJ-r0RDlxFZYKBXqe8X4ax20L33uZSNVezFyKDNIWfZ6QPsb5XRDrSrBp8JhUAH0frCB5Mcfjfzl2ZMzfyPEJRGnzAu4nt7NzszMiMB750QaGD9OH6qFABy8YHAzEH61wqn56U1SADw&csuir=1&mtid=KpKPafLTJKq3wt0P9OeuwAQ
-☐ PROVOCAR LENTITUD EN LA respuesta del servidor para ver como se comporta el sistema en el frontend para cada peticion
-esto hara tener una CLARIDAD mayor a nivel de experiencia de usuario y asi poder identificar problemas de rendimiento y solucionarlos antes de que los usuarios los experimenten, esto es importante para garantizar una buena experiencia de usuario y evitar que los usuarios se frustren por la lentitud del sistema, esto se puede hacer agregando un retraso artificial en el servidor para simular una respuesta lenta y luego monitorear el comportamiento del sistema en el frontend para identificar cualquier problema de rendimiento y solucionarlo antes de que los usuarios lo experimenten.
-☐ Ejecutador de de rutas rapido interno sin problemas, debe ser mas rapido que el de vscode.
-☐ necesito crear un miniSupaBase, que pueda guardar rapidamente tablas un configuraciones para que la
-IA me pueda enteder rapido porque solo copiaria y pegaria tabla o respuestas rapidas como PRE-PLANTILLAS
-con eso ya puedo tener una base de datos rapida para que la IA me pueda ayudar a generar codigo mas rapido, esto me ayudaria a ser mas productivo y a generar codigo de mejor calidad, esto se puede hacer creando una base de datos rapida que pueda guardar tablas y configuraciones para que la IA me pueda entender rapido y asi poder generar codigo mas rapido y de mejor calidad.
-☐ Crear un sistema de salud de software, quiere decir que registre cada cierto tiempo el la pagina esta bien o mal 
-con espera de tiempo y todo porque a veces puede haber problemas con el hosting. Esto tambien debe tener alertas.
-☐ Crear dentro en endpoints donde se pueda ejecutar un endpoint inclusive con variables
-asi se ejecuta basado el auth actual ya que no puedo ejecutar en la url porque tengo que quitar el auth acada momento..
-☐ Los logs deben primero borrarse del sistema la mayoria y dejar los necesarios para...
-_ hacer que solo muestre los logs de errores y no los de info o debug
-_ crer unos info pero en configuracion hacer que luego de se dejen de ejecutar los info
-y asi para poder cada vez quitarle mas logs y que no se llene el sistema de logs y se vuelva lento
-_ lo que me interesa es agruparlos, por el momento la los listos pero tengo que pedirle a la 
-IA que me ayude agruparlos, porque ejemplo un grupo puede ser el inicio de chat entonces me gustaria 
-ver lo que paso dentro de ese grupo, creo que si se puede tal vez dandole un ID que recorra todo el proceso
-entonces este lo puede agrupar y yo revisar, esto seria genial prque actualmente lo lista por order y 
-tiene un medio secuencia pero no agrupa esto me ayudaria identificar problemas en el proceso, por ejemplo si el cliente se queja de que no le llego el mensaje de upsell, yo puedo revisar ese grupo y ver que paso ahi, o si se queja de que no le llego el mensaje de bienvenida, yo puedo revisar ese grupo y ver que paso ahi, esto me ayudaria a identificar problemas en el proceso y solucionarlos mas rapido
-☐ Hacer que la carga de los repeater tenguna un loading... para evitar que se vea como que se va armando 1x1
-☐ los grupos fields no son responsive, hacerlos responsive
-☐ el modal hacerlo que sean como paneles que aparenzan a los lados, agregar claramente la funcionalidad de que no se cierra dandole clc en el body
-  ☐ hacer que el modal tenga atributos dinamos al titulo, ejemplo cuando se abra que el titulo sea un nombre de los campos internos creo que seria mejor asi pero es opcional
-☐ La tabla creo que no async se esta ejecutando cuando sus data esta cargada la cual es mal pero el tema de table hay que cambiarla de ley porque hay que hacer un minisupabase asi que esto l ocambia todo 
-  a nivel de componente de talbe
-☐ Seguir puliendo el diseño completo de UI
-☐ Hay un scroll que no se de donde sale pero es nivel de sistema completo...
-☐ Crear el boton link....
-☐ Crwear un sistema de CRONs basado en orden de ejecucion y parametros....
-☐ el componente de los permisos no funciona tan bien revisa eso por tabs

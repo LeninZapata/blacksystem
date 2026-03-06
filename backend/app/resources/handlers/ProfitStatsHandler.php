@@ -83,7 +83,6 @@ class ProfitStatsHandler {
         FROM sales s
         WHERE s.user_id = ?
           AND DATE(s.payment_date) = ?
-          AND s.context = 'whatsapp'
           AND s.process_status = 'sale_confirmed'
           AND s.status = 1
       ";
@@ -106,11 +105,16 @@ class ProfitStatsHandler {
 
       // Crear mapa de ventas por hora
       $salesMap = [];
+      $totalSalesRevenue = 0;
+      $totalSalesPurchases = 0;
       foreach ($salesData as $sale) {
         $salesMap[(int)$sale['hour']] = [
           'real_purchases' => (int)$sale['real_purchases'],
           'revenue' => (float)$sale['revenue']
         ];
+        // Acumular totales directos (independiente de si hay ads en esa hora)
+        $totalSalesRevenue += (float)$sale['revenue'];
+        $totalSalesPurchases += (int)$sale['real_purchases'];
       }
 
       // PASO 3: Combinar datos y calcular profit
@@ -119,15 +123,24 @@ class ProfitStatsHandler {
       $results = [];
       $accumulatedRevenue = 0;
       $accumulatedPurchases = 0;
+
+      // Ordenar horas de ventas para procesar en orden con puntero
+      $salesHours = array_keys($salesMap);
+      sort($salesHours);
+      $salesHourIndex = 0;
       
       foreach ($adsData as $row) {
         $hour = (int)$row['hour'];
         $spend = (float)$row['spend']; // Ya viene acumulado de la tabla
-        $salesInfo = $salesMap[$hour] ?? ['real_purchases' => 0, 'revenue' => 0];
-        
-        // Acumular revenue para mostrar datos progresivos
-        $accumulatedRevenue += $salesInfo['revenue'];
-        $accumulatedPurchases += $salesInfo['real_purchases'];
+
+        // Acumular TODAS las ventas de horas <= hora actual (captura ventas en horas sin ads)
+        while ($salesHourIndex < count($salesHours) && $salesHours[$salesHourIndex] <= $hour) {
+          $saleHour = $salesHours[$salesHourIndex];
+          $accumulatedRevenue += $salesMap[$saleHour]['revenue'];
+          $accumulatedPurchases += $salesMap[$saleHour]['real_purchases'];
+          $salesHourIndex++;
+        }
+
         $revenue = $accumulatedRevenue;
         $realPurchases = $accumulatedPurchases;
         
@@ -149,9 +162,8 @@ class ProfitStatsHandler {
         ];
       }
 
-      // PASO 3: Calcular resumen desde los datos horarios
-      // No usamos ad_metrics_daily porque puede tener datos parciales si el CRON
-      // corrió antes de que terminara el día. Los datos horarios son más confiables.
+      // PASO 4: Calcular resumen usando totales directos de ventas
+      // (no desde el acumulado del chart, para capturar ventas en horas sin datos de ads)
       $summary = null;
       
       if (!empty($results)) {
@@ -162,13 +174,17 @@ class ProfitStatsHandler {
             $lastRecord = $record;
           }
         }
+
+        $totalSpend = $lastRecord['spend'];
+        // Usar totales directos de ventas (no el acumulado del chart que puede perder ventas en horas sin ads)
+        $totalRoas = $totalSpend > 0 ? round($totalSalesRevenue / $totalSpend, 2) : 0;
         
         $summary = [
-          'total_spend' => $lastRecord['spend'],
-          'total_revenue' => $lastRecord['revenue'],
-          'total_profit' => $lastRecord['profit'],
-          'total_roas' => $lastRecord['roas'],
-          'total_purchases' => $lastRecord['real_purchases'],
+          'total_spend' => $totalSpend,
+          'total_revenue' => round($totalSalesRevenue, 2),
+          'total_profit' => round($totalSalesRevenue - $totalSpend, 2),
+          'total_roas' => $totalRoas,
+          'total_purchases' => $totalSalesPurchases,
           'source' => 'ad_metrics_hourly' // Calculado desde datos horarios
         ];
       }
@@ -280,7 +296,6 @@ class ProfitStatsHandler {
           WHERE s.user_id = ?
             AND DATE(s.payment_date) >= ?
             AND DATE(s.payment_date) <= ?
-            AND s.context = 'whatsapp'
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
         ";
@@ -389,7 +404,6 @@ class ProfitStatsHandler {
           FROM sales s
           WHERE s.user_id = ?
             AND DATE(s.payment_date) = ?
-            AND s.context = 'whatsapp'
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
         ";
@@ -476,7 +490,6 @@ class ProfitStatsHandler {
           FROM sales s
           WHERE s.user_id = ?
             AND DATE(s.payment_date) = ?
-            AND s.context = 'whatsapp'
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
         ";
