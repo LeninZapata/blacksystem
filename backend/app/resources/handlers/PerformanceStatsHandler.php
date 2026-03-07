@@ -13,6 +13,7 @@ class PerformanceStatsHandler {
     $date = $params['date'] ?? date('Y-m-d');
     $botId = $params['bot_id'] ?? null;
     $productId = $params['product_id'] ?? null;
+    $envFilter = !$productId ? " AND (env IS NULL OR env != 'T')" : "";
 
     if (!$botId) {
       return ['success' => false, 'error' => 'bot_id es requerido'];
@@ -39,7 +40,7 @@ class PerformanceStatsHandler {
       WHERE h.user_id = ?
         AND pa.product_id IN (
           SELECT id FROM " . ogDb::t('products', true) . "
-          WHERE user_id = ? AND bot_id = ? AND status = 1
+          WHERE user_id = ? AND bot_id = ? AND status = 1" . $envFilter . "
         )
         AND h.query_date = ?
     ";
@@ -123,6 +124,7 @@ class PerformanceStatsHandler {
     $range = $params['range'] ?? 'last_7_days';
     $botId = $params['bot_id'] ?? null;
     $productId = $params['product_id'] ?? null;
+    $envFilter = !$productId ? " AND (env IS NULL OR env != 'T')" : "";
     $dates = ogApp()->helper('date')::getDateRange($range);
 
     if (!$dates) {
@@ -163,7 +165,7 @@ class PerformanceStatsHandler {
         WHERE d.user_id = ?
           AND pa.product_id IN (
             SELECT id FROM " . ogDb::t('products', true) . "
-            WHERE user_id = ? AND bot_id = ? AND status = 1
+            WHERE user_id = ? AND bot_id = ? AND status = 1" . $envFilter . "
           )
           AND d.metric_date >= ?
       ";
@@ -245,7 +247,7 @@ class PerformanceStatsHandler {
         WHERE h.user_id = ?
           AND pa.product_id IN (
             SELECT id FROM " . ogDb::t('products', true) . "
-            WHERE user_id = ? AND bot_id = ? AND status = 1
+            WHERE user_id = ? AND bot_id = ? AND status = 1" . $envFilter . "
           )
           AND h.query_date = ?
       ";

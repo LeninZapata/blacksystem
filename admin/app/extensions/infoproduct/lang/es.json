@@ -67,6 +67,11 @@
           "option_2": "Solo Upsell",
           "option_3": "Principal & Upsell"
         },
+        "env": {
+          "label": "Entorno",
+          "option_p": "🟢 Producción",
+          "option_t": "🧪 Testeo"
+        },
         "description": {
           "label": "Descripción (contexto)",
           "placeholder": "Describe brevemente el contenido(contexto) de este infoproducto... para que el bot entienda",

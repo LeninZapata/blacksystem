@@ -68,6 +68,8 @@ class ProfitStatsHandler {
       if ($productId) {
         $sqlAds .= " AND paa.product_id = ?";
         $params[] = $productId;
+      } elseif ($botId) {
+        $sqlAds .= " AND paa.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
       }
 
       $sqlAds .= " GROUP BY h.query_hour ORDER BY h.query_hour ASC";
@@ -97,6 +99,8 @@ class ProfitStatsHandler {
       if ($productId) {
         $sqlSales .= " AND s.product_id = ?";
         $salesParams[] = $productId;
+      } else {
+        $sqlSales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
       }
 
       $sqlSales .= " GROUP BY HOUR(s.payment_date)";
@@ -280,6 +284,8 @@ class ProfitStatsHandler {
         if ($productId) {
           $sqlAds .= " AND paa.product_id = ?";
           $paramsAds[] = $productId;
+        } elseif ($botId) {
+          $sqlAds .= " AND paa.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
         $sqlAds .= " GROUP BY d.metric_date ORDER BY d.metric_date ASC";
@@ -310,6 +316,8 @@ class ProfitStatsHandler {
         if ($productId) {
           $sqlSales .= " AND s.product_id = ?";
           $paramsSales[] = $productId;
+        } else {
+          $sqlSales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
         $sqlSales .= " GROUP BY DATE(s.payment_date)";
@@ -392,6 +400,8 @@ class ProfitStatsHandler {
         if ($productId) {
           $sqlYesterdayAds .= " AND paa.product_id = ?";
           $paramsYesterdayAds[] = $productId;
+        } elseif ($botId) {
+          $sqlYesterdayAds .= " AND paa.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
         $yesterdayAdsData = ogDb::raw($sqlYesterdayAds, $paramsYesterdayAds);
@@ -418,6 +428,8 @@ class ProfitStatsHandler {
         if ($productId) {
           $sqlYesterdaySales .= " AND s.product_id = ?";
           $paramsYesterdaySales[] = $productId;
+        } else {
+          $sqlYesterdaySales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
         $yesterdaySalesData = ogDb::raw($sqlYesterdaySales, $paramsYesterdaySales);
@@ -476,6 +488,8 @@ class ProfitStatsHandler {
         if ($productId) {
           $sqlTodayAds .= " AND paa.product_id = ?";
           $paramsTodayAds[] = $productId;
+        } elseif ($botId) {
+          $sqlTodayAds .= " AND paa.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
         $sqlTodayAds .= " GROUP BY h.query_date";
@@ -504,6 +518,8 @@ class ProfitStatsHandler {
         if ($productId) {
           $sqlTodaySales .= " AND s.product_id = ?";
           $paramsTodaySales[] = $productId;
+        } else {
+          $sqlTodaySales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
         $todaySalesData = ogDb::raw($sqlTodaySales, $paramsTodaySales);

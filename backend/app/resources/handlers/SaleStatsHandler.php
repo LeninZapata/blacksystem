@@ -46,6 +46,8 @@ class SaleStatsHandler {
     if ($productId) {
       $sqlRevenue .= " AND product_id = ?";
       $revenueParams[] = $productId;
+    } else {
+      $sqlRevenue .= " AND product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
     }
     
     $sqlRevenue .= "
@@ -78,6 +80,8 @@ class SaleStatsHandler {
     if ($productId) {
       $sqlConversion .= " AND product_id = ?";
       $conversionParams[] = $productId;
+    } else {
+      $sqlConversion .= " AND product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
     }
     
     $sqlConversion .= "
@@ -319,6 +323,8 @@ class SaleStatsHandler {
     if ($productId) {
       $sql .= " AND product_id = ?";
       $queryParams[] = $productId;
+    } else {
+      $sql .= " AND product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
     }
 
     $sql .= "

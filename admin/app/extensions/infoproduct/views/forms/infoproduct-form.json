@@ -41,7 +41,7 @@
     },
     {
       "type": "group",
-      "columns": 1,
+      "columns": 2,
       "gap": "normal",
       "fields": [
         {
@@ -54,6 +54,16 @@
             { "value": "1", "label": "i18n:infoproduct.products.field.sale_type_mode.option_1" },
             { "value": "2", "label": "i18n:infoproduct.products.field.sale_type_mode.option_2" },
             { "value": "3", "label": "i18n:infoproduct.products.field.sale_type_mode.option_3" }
+          ]
+        },
+        {
+          "name": "env",
+          "label": "i18n:infoproduct.products.field.env",
+          "type": "select",
+          "default": "P",
+          "options": [
+            { "value": "P", "label": "i18n:infoproduct.products.field.env.option_p" },
+            { "value": "T", "label": "i18n:infoproduct.products.field.env.option_t" }
           ]
         }
       ]
