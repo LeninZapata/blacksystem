@@ -12,9 +12,9 @@ formatos: xx.xx ó xxx.xx ó xxxx.xx ó xx,xx ó xxx,xx ó xxxx,xx o es un amoun
 {  "amount_found": "{aqui va el amount encontrado es format con decimal y es numerico}" }
 
 3) Si valid_amount es TRUE, entonces ¿Aparece algún nombre en el comprobante?
-   - Busca en campos como: "Origen", "Remitente", "De", "Nombre", "Cliente", "Desde"
-   - No importa si está completo o parcial, si hay un nombre márcalo como válido-
-   - El valid_name no se refiera un campo de: "A {nombre}", "Para {nombre}", "Destinatario {nombre}"
+   - No importa si está completo o parcial, si hay un nombre márcalo como válido siempre y cuando cumpla con los puntos de abajo:
+   1. Busca en campos como: "Origen", "Remitente", "De", "Nombre", "Cliente", "Desde"
+   2. El valid_name no se refiera un campo de: "A {nombre}", "Para {nombre}", "Destinatario {nombre}"
 
 { "valid_name": true/false }
 { "name_found": "{nombre encontrado aqui}" }

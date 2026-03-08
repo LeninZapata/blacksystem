@@ -52,6 +52,15 @@
             }
           },
           {
+            "env": {
+              "name": "Entorno",
+              "format": "product-env",
+              "width": "80px",
+              "align": "center",
+              "sortable": false
+            }
+          },
+          {
             "status": {
               "name": "i18n:infoproduct.products.column.status",
               "format": "product-status",

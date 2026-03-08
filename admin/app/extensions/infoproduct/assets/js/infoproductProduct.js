@@ -63,6 +63,18 @@ class infoproductProduct {
       const botInfo = row.bot_id ? `<small class="og-text-gray-500" style="display: block; font-size: 0.75rem;">Bot #${row.bot_id}</small>` : '';
       return `<div><strong>${value}</strong>${botInfo}</div>`;
     });
+
+    // Formatter para entorno (env)
+    ogDatatable.registerFormatter('product-env', (value, row) => {
+      const isInactive = row.status == 0 || row.status === false;
+      const isTest = value === 'T';
+      const emoji = isTest ? '🧪' : '🟢';
+      const text = isTest ? 'Testeo' : 'Prod';
+      const color = isInactive ? '#6b7280' : (isTest ? '#92400e' : '#14532d');
+      const bg    = isInactive ? '#f3f4f6' : (isTest ? '#fef3c7' : '#dcfce7');
+      const emojiStyle = isInactive ? 'filter:grayscale(1);opacity:0.6;' : '';
+      return `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:0.3rem;font-size:0.75rem;font-weight:500;background:${bg};color:${color};"><span style="${emojiStyle}">${emoji}</span> ${text}</span>`;
+    });
   }
 
   // Abrir form nuevo

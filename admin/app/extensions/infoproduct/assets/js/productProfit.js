@@ -535,6 +535,7 @@ class productProfit {
       'last_7_days': 'Hace 7 días',
       'last_15_days': 'Hace 15 días',
       'this_month': 'Este mes',
+      'last_month': 'Mes pasado',
       'last_30_days': 'Hace 30 días',
       'custom_date': 'Día específico'
     };
