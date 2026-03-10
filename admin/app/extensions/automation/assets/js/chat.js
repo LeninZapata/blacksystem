@@ -331,7 +331,7 @@ class chat {
     document.querySelectorAll('.bs-chat-item').forEach(el => el.classList.remove('active'));
 
     const el = document.querySelector(`.bs-chat-item[data-number="${number}"]`);
-    const name = el ? el.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
+    const name = el ? (el.dataset.name ?? '') : '';
 
     // Comprobar ANTES de quitar la clase si hay mensajes sin leer
     const hasUnread = el?.classList.contains('unread') ?? false;
@@ -471,7 +471,7 @@ class chat {
     this._lastMsgId = msgs.length > 0 ? (msgs[msgs.length - 1].id ?? null) : null;
 
     const activeEl = document.querySelector('.bs-chat-item.active');
-    const name = activeEl ? activeEl.querySelector('.bs-chat-item-name')?.textContent?.trim() : '';
+    const name = activeEl ? (activeEl.dataset.name ?? '') : '';
     this._showHeader(this._activeNum, name, botNumber);
     this._loadOpenChatBar(clientId, botId);
 
@@ -732,10 +732,10 @@ class chat {
     const confirmedAmt = c.confirmed_amount ? parseFloat(c.confirmed_amount) : null;
     const saleBadge = confirmedAmt ? `<span class="bs-chat-sale-badge">+$${confirmedAmt % 1 === 0 ? confirmedAmt : confirmedAmt.toFixed(2)}</span>` : '';
     return `
-      <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" onclick="chat.select('${number}', ${clientId})">
+      <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${number}', ${clientId})">
         <div class="bs-chat-item-header">
           <div class="bs-chat-item-left">
-            <span class="bs-chat-item-number">+${number}</span>
+            ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">+${number}</span>`}
             ${saleBadge}
           </div>
           <div class="bs-chat-item-right">
@@ -745,7 +745,7 @@ class chat {
         </div>
         <div class="bs-chat-item-meta">
           <span class="bs-chat-item-product">${product || '<span class="bs-chat-item-noproduct">sin venta</span>'}</span>
-          ${name ? `<span class="bs-chat-item-name">${name}</span>` : ''}
+          ${name ? `<span class="bs-chat-item-name">+${number}</span>` : ''}
         </div>
       </div>`;
   }

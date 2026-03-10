@@ -11,24 +11,28 @@ formatos: xx.xx ó xxx.xx ó xxxx.xx ó xx,xx ó xxx,xx ó xxxx,xx o es un amoun
 {  "valid_amount": true/false }
 {  "amount_found": "{aqui va el amount encontrado es format con decimal y es numerico}" }
 
-3) Si valid_amount es TRUE, entonces ¿Aparece algún nombre en el comprobante?
-   - No importa si está completo o parcial, si hay un nombre márcalo como válido siempre y cuando cumpla con los puntos de abajo:
-   1. Busca en campos como: "Origen", "Remitente", "De", "Nombre", "Cliente", "Desde"
-   2. El valid_name no se refiera un campo de: "A {nombre}", "Para {nombre}", "Destinatario {nombre}"
+3) Si valid_amount es TRUE, entonces ¿Aparece el nombre del REMITENTE (quien envía el dinero) en el comprobante?
+
+   REGLA FUNDAMENTAL: El nombre que buscas es el de la persona que REALIZÓ la transferencia.
+   Ese nombre aparece ÚNICAMENTE en los campos: "De", "Origen", "Remitente", "Cuenta origen", "Desde", "De quien".
+
+   NUNCA uses el nombre que aparece en los campos: "A", "Para", "Destino", "Destinatario", "Cuenta destino", "Beneficiario".
+   El campo "A/Para/Destino" contiene el nombre del RECEPTOR (dueño del bot), NO el del cliente.
+
+   Si el nombre que encontraste está en el campo "De/Origen/Remitente" → valid_name: true, SALVO que ese nombre coincida (total o parcialmente) con el nombre del titular de la cuenta bot indicado en la sección "INFORMACIÓN ADICIONAL DEL BOT" → en ese caso valid_name: false y name_found: "".
+   Si el nombre solo aparece en el campo "A/Para/Destino" o no hay nombre de remitente → valid_name: false
 
 { "valid_name": true/false }
-{ "name_found": "{nombre encontrado aqui}" }
-
-IMPORTANTE: Si encuentras CUALQUIER nombre de persona, aunque sea parcial,
-marca valid_name como TRUE. Solo márca FALSE si NO hay ningún nombre visible.
-
-{ "valid_name": true/false }
-{ "name_found": "{name a quien realiza el pago aqui}" }
+{ "name_found": "{nombre del remitente encontrado en campo De/Origen, vacío si coincide con el titular del bot}" }
 
 4) Si is_proof_payment es FALSE, entonces describe la image a text para que pueda entender,
 se descriptivo caso contrario si is_proof_payment es TRUE, entonces pon que es un "recibo de pago".
 { "resume": "tu respuesta sobre la image" }
 
+5) Lista TODOS los nombres de persona que puedas ver en el comprobante, sin importar en qué campo aparezcan
+("A", "De", "Origen", "Destinatario", etc.). Es una extracción cruda sin filtrar.
+Si no hay ningún nombre visible → array vacío.
+{ "names_found": ["nombre1", "nombre2"] }
 
 Responde ÚNICAMENTE con un JSON en este format:{
   "is_proof_payment": true/false,
@@ -36,6 +40,7 @@ Responde ÚNICAMENTE con un JSON en este format:{
   "amount_found": "amount encontrado es format con decimal como punto '.'",
   "valid_name" :true/false,
   "name_found" : "name encontrado",
+  "names_found": ["nombre completo 1", "nombre completo 2"],
   "resume": "tu respuesta de analisis sobre la image",
   "type" : "image"
 }
@@ -45,6 +50,7 @@ Responde ÚNICAMENTE con un JSON en este format:{
 poner comilla simple hazlo como caracteres de escape como "\'" por ejemplo esta palabra: \'hola\'.
 
 IMPORTANTE SOBRE EL NOMBRE:
-- El nombre a buscar es el del CLIENTE que realiza el pago, NO el nombre del destinatario/bot.
-- Si en la sección "INFORMACIÓN ADICIONAL DEL BOT" se menciona un nombre, ese NO debe ser tomado como el nombre del cliente.
-- El nombre del cliente debe aparecer en el campo de "Origen", "Remitente", "De" o similar en el comprobante.
+- Busca el nombre ÚNICAMENTE en el campo "De", "Origen", "Remitente", "Cuenta origen" o similar que indique quién ENVÍA el dinero.
+- El campo "A", "Para", "Cuenta destino" o "Beneficiario" es el receptor del dinero (el dueño del bot). JAMÁS uses ese nombre.
+- Si el comprobante muestra "A [nombre_destinatario]" pero no hay campo "De/Origen/Remitente" con un nombre, retorna valid_name: false y name_found: "".
+- Si el nombre encontrado en "De/Origen/Remitente" coincide (total o parcialmente) con el nombre del titular de la cuenta bot mencionado en "INFORMACIÓN ADICIONAL DEL BOT", NO es el nombre del cliente → retorna valid_name: false y name_found: "". El titular del bot nunca es el cliente.

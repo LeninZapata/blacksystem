@@ -86,6 +86,7 @@ class botws {
       mode: data.mode || '',
       status: data.status == 1,
       'config.workflow_id': configData.workflow_id ? String(configData.workflow_id) : '',
+      'config.account_holder': configData.account_holder || '',
       'config.apis.agent': agentArray,
       'config.apis.chat': chatArray
     });
@@ -177,16 +178,19 @@ class botws {
 
     const workflowId = formData.config?.workflow_id || formData['config.workflow_id'] || null;
 
+    const accountHolder = formData.config?.account_holder || formData['config.account_holder'] || null;
+
     const config = {
       workflow_id: workflowId,
+      account_holder: accountHolder || null,
       apis: {
         ai: aiTasks,
         chat: chatFinal
       }
     };
 
-    ogLogger.debug('ext:botws', 'buildBody - formData:', formData);
-    ogLogger.debug('ext:botws', 'buildBody - config construido:', config);
+    ogLogger.info('ext:botws', 'buildBody - formData:', formData);
+    ogLogger.info('ext:botws', 'buildBody - config construido:', config);
 
     return {
       name: formData.name,

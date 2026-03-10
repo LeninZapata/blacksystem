@@ -38,6 +38,14 @@
       "rows": 8
     },
     {
+      "name": "config.account_holder",
+      "label": "i18n:botws.bot.form.field.account_holder",
+      "type": "text",
+      "validation": "max:150",
+      "placeholder": "i18n:botws.bot.form.field.account_holder.placeholder",
+      "hint": "i18n:botws.bot.form.field.account_holder.hint"
+    },
+    {
       "type": "grouper",
       "mode": "linear",
       "collapsible": false,

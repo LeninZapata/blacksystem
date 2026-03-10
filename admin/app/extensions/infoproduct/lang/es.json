@@ -17,7 +17,7 @@
         "new": {
           "title": "Crear Nuevo Infoproducto"
         },
-        "edit": {
+        "edit": { 
           "title": "Editar Infoproducto"
         },
         "clone": {

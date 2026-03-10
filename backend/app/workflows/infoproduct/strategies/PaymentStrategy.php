@@ -71,7 +71,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $this->updateSale($paymentData, $saleId);
 
     // 2. Actualizar cliente (nombre, total_purchases, amount_spent)
-    $this->updateClient($chatData['client_id'], $paymentData, $validation);
+    $this->updateClient($chatData['client_id'], $paymentData, $validation, $bot);
 
     // 3. Registrar sale_confirmed (Sistema)
     $this->registerSaleConfirmed($bot, $person, $chatData, $paymentData, $validation);
@@ -301,6 +301,59 @@ class PaymentStrategy implements ConversationStrategyInterface {
     ], 'P');
   }
 
+  /**
+   * Resuelve el nombre del cliente a partir de names_found (array de la IA)
+   * comparado contra account_holder del bot.
+   *
+   * Lógica:
+   * - Descarta cualquier nombre que comparta 2+ palabras con el titular.
+   * - Si queda exactamente 1 candidato → es el cliente.
+   * - Si quedan 0 o 2+ → null (no actualizar: sin nombre o ambiguo).
+   * - Si no hay account_holder configurado → cae al name_found directo de la IA.
+   */
+  private function resolveClientName(array $paymentData, array $bot): ?string {
+    $namesFound   = $paymentData['names_found'] ?? [];
+    $accountHolder = trim($bot['config']['account_holder'] ?? '');
+
+    // Sin array de nombres → fallback al name_found directo (valid_name=true)
+    if (empty($namesFound)) {
+      $validName = $paymentData['valid_name'] ?? false;
+      $nameDirect = trim($paymentData['name'] ?? '');
+      return ($validName === true && !empty($nameDirect)) ? $nameDirect : null;
+    }
+
+    // Sin titular configurado → no podemos filtrar, retornar null (seguro)
+    if (empty($accountHolder)) {
+      ogLog::warning("resolveClientName - Sin account_holder configurado en el bot, no se actualiza nombre", [], $this->logMeta);
+      return null;
+    }
+
+    $holderWords = array_filter(
+      array_map('mb_strtolower', preg_split('/\s+/', $accountHolder))
+    );
+
+    $candidates = array_values(array_filter($namesFound, function($name) use ($holderWords) {
+      $nameWords = array_filter(
+        array_map('mb_strtolower', preg_split('/\s+/', trim($name)))
+      );
+      $coincidences = count(array_intersect($nameWords, $holderWords));
+      return $coincidences < 2; // descartar si 2+ palabras coinciden con el titular
+    }));
+
+    ogLog::info("resolveClientName - Candidatos tras filtrar titular", [
+      'names_found'   => $namesFound,
+      'account_holder'=> $accountHolder,
+      'candidates'    => $candidates
+    ], $this->logMeta);
+
+    if (count($candidates) === 1) {
+      return trim($candidates[0]);
+    }
+
+    // 0 candidatos = todos eran el titular | 2+ = ambiguo → no actualizar
+    return null;
+  }
+
   private function updateSale($paymentData, $saleId) {
     $billedAmount = $paymentData['amount'] ?? 0;
 
@@ -330,7 +383,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     }
   }
 
-  private function updateClient($clientId, $paymentData, $validation) {
+  private function updateClient($clientId, $paymentData, $validation, $bot = []) {
     $client = ogDb::t('clients')->find($clientId);
 
     if (!$client) {
@@ -345,19 +398,24 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'tu' => time()
     ];
 
-    // 1. Actualizar nombre si aplica (lógica flexible)
-    $receiptName = $paymentData['name'] ?? null;
-    $validName = $validation['data']['valid_name'] ?? false;
-    $wordCount = $receiptName ? str_word_count($receiptName) : 0;
-    $hasValidName = $validName || ($wordCount >= 2);
+    // 1. Resolver nombre del cliente
+    $resolvedName = $this->resolveClientName($paymentData, $bot);
 
-    if ($hasValidName && $receiptName && !empty($receiptName)) {
+    if ($resolvedName !== null && !empty($resolvedName)) {
       $currentName = $client['name'] ?? '';
-
-      if (empty($currentName) || strlen($receiptName) > strlen($currentName)) {
-        $updates['name'] = $receiptName;
-        ogLog::info("updateClient - Nombre actualizado: '{$currentName}' → '{$receiptName}'", [ 'client_id' => $clientId, 'reason' => empty($currentName) ? 'empty_name' : 'longer_name' ], $this->logMeta);
+      if (empty($currentName) || strlen($resolvedName) > strlen($currentName)) {
+        $updates['name'] = $resolvedName;
+        ogLog::info("updateClient - Nombre actualizado: '{$currentName}' → '{$resolvedName}'", [
+          'client_id' => $clientId,
+          'reason'    => empty($currentName) ? 'empty_name' : 'longer_name'
+        ], $this->logMeta);
       }
+    } else {
+      ogLog::info("updateClient - Nombre no actualizado", [
+        'client_id'   => $clientId,
+        'names_found' => $paymentData['names_found'] ?? [],
+        'reason'      => 'null_or_ambiguous'
+      ], $this->logMeta);
     }
 
     // 2. Incrementar total_purchases

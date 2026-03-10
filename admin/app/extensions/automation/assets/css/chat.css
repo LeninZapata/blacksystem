@@ -92,7 +92,7 @@
 
   /* ── Item de contacto ─────────────────────────────────────────────────── */
   .bs-chat-item {
-    padding: 0.75rem 1rem;
+    padding: 0.55rem 0.75rem 1rem;
     cursor: pointer;
     border-bottom: 1px solid var(--og-gray-100);
     border-left: 3px solid transparent;

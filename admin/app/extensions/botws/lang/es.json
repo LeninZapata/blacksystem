@@ -35,6 +35,11 @@
             "label": "Personalidad",
             "placeholder": "Describe la personalidad del bot (opcional)"
           },
+          "account_holder": {
+            "label": "Nombre del Titular de la Cuenta",
+            "placeholder": "Ej: Dannes Daniel Zapata Ponce",
+            "hint": "Nombre completo del titular de la cuenta bancaria del bot. Se usa para excluirlo al identificar el nombre del cliente en recibos de pago."
+          },
           "type": {
             "label": "Tipo de Bot",
             "infoproduct": "Infoproducto",

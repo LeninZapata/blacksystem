@@ -39,6 +39,13 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
       // CASO 3: Producto diferente (o mismo producto pero conversación > 48h) → Nueva venta
       ogLog::info("execute - CASO: Nueva venta (cliente existente)", [ 'number' => $person['number'], 'new_product_id' => $productId, 'action' => 'crear_nueva_venta' ], $this->logMeta);
+
+      // El usuario escribió → Meta ya abrió ventana nueva. Refrescar antes de enviar
+      // para que validateChatWindow no rechace la ventana expirada de la sesión anterior.
+      if (!empty($existingChat['client_id']) && ChatWindowStrategy::isFacebookProvider($bot['config'] ?? [])) {
+        ChatWindowStrategy::refresh((int)$existingChat['client_id'], $bot['id']);
+      }
+
       return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
     }
 
@@ -93,6 +100,13 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     }
 
     $chatapi = ogApp()->service('chatApi');
+
+    // El usuario escribió → Meta ya abrió ventana nueva. Refrescar antes de enviar
+    // para que validateChatWindow no rechace la ventana expirada de la sesión anterior.
+    $reWelcomeClientId = $existingChat['client_id'] ?? null;
+    if ($reWelcomeClientId && ChatWindowStrategy::isFacebookProvider($bot['config'] ?? [])) {
+      ChatWindowStrategy::refresh((int)$reWelcomeClientId, $bot['id']);
+    }
 
     $messagesSent = 0;
     foreach ($messages as $index => $msg) {

@@ -192,11 +192,14 @@ class ClientHandler {
       if ($existing) {
         // Actualizar cliente existente
         $updateData = [
-          'name' => $name,
           'device' => $device,
           'du' => date('Y-m-d H:i:s'),
           'tu' => time()
         ];
+        // Solo actualizar nombre si viene uno no vacío
+        if (!empty(trim((string)$name))) {
+          $updateData['name'] = $name;
+        }
 
         ogDb::t('clients')
           ->where('id', $existing['id'])

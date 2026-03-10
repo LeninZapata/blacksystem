@@ -53,9 +53,11 @@ class PaymentProofValidator {
     $amount = str_replace(',', '.', $amount);
 
     return [
-      'amount' => (float)$amount,
-      'name' => $analysis['name_found'] ?? '',
-      'resume' => $analysis['resume'] ?? ''
+      'amount'      => (float)$amount,
+      'name'        => $analysis['name_found'] ?? '',
+      'names_found' => $analysis['names_found'] ?? [],
+      'valid_name'  => $analysis['valid_name'] ?? false,
+      'resume'      => $analysis['resume'] ?? ''
     ];
   }
 
