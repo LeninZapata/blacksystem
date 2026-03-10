@@ -57,6 +57,27 @@
     }
   }
 
+  .bs-chat-filter-confirmed {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-500);
+    font-weight: 400;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-left: auto;
+    margin-right: 0.25rem;
+  }
+
+  .bs-chat-filter-confirmed input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: var(--og-accent-primary);
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
   .bs-chat-refresh-btn {
     background: none;
     border: none;
@@ -229,6 +250,44 @@
     color: var(--og-gray-400);
     font-weight: 400;
     font-style: italic;
+  }
+
+  .bs-chat-item-sales {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .bs-sale-item {
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-500);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .bs-sale-icon {
+    flex-shrink: 0;
+    font-style: normal;
+  }
+
+  .bs-sale-ok .bs-sale-icon {
+    color: var(--og-green-500);
+  }
+
+  .bs-sale-pending .bs-sale-icon {
+    color: var(--og-gray-400);
+  }
+
+  .bs-sale-amt {
+    color: var(--og-gray-400);
+    font-size: 0.85em;
+    flex-shrink: 0;
   }
 
   .bs-chat-item-name {

@@ -15,7 +15,8 @@ class chat {
   static _activeNum     = null;
   static _activeId      = null;
   static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
-  static _activeBotId   = null;  // Filtro de bot seleccionado (opcional)
+  static _activeBotId        = null;  // Filtro de bot seleccionado (opcional)
+  static _onlyConfirmed       = false; // Filtro "solo ventas confirmadas"
 
   static _heartbeatTimer  = null;
   static _heartbeatCount  = 0;
@@ -37,6 +38,7 @@ class chat {
     this._activeId        = null;
     this._activeBotNum    = null;
     this._activeBotId     = null;
+    this._onlyConfirmed   = false;
     this._lastMsgId       = null;
     this._activeExpiry    = null;
     this._clientsKnown    = new Map();
@@ -76,6 +78,13 @@ class chat {
     this.loadClients(true);
   }
 
+  // Cambia el filtro de solo ventas confirmadas
+  static onConfirmedFilter(checked) {
+    this._onlyConfirmed = checked;
+    this._clientsKnown  = new Map();
+    this.loadClients(true);
+  }
+
   // ─── Heartbeat de lista de contactos ───────────────────────────────────────
 
   static _startClientHeartbeat() {
@@ -98,8 +107,9 @@ class chat {
   // Fetch silencioso: detecta nuevos mensajes / nuevos contactos e inyecta en DOM
   static async _syncClients() {
     try {
-      const botParam = this._activeBotId ? `&bot_id=${this._activeBotId}` : '';
-      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}`;
+      const botParam       = this._activeBotId  ? `&bot_id=${this._activeBotId}` : '';
+      const confirmedParam  = this._onlyConfirmed ? `&confirmed_only=1`             : '';
+      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}${confirmedParam}`;
       const json = await ogModule('api').get(url);
       if (!json.success) return;
 
@@ -259,8 +269,9 @@ class chat {
       if (btnRef) list.appendChild(btnRef);
     }
 
-    const botParam = this._activeBotId ? `&bot_id=${this._activeBotId}` : '';
-    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}`;
+    const botParam      = this._activeBotId  ? `&bot_id=${this._activeBotId}` : '';
+    const confirmedParam = this._onlyConfirmed ? `&confirmed_only=1`             : '';
+    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}${confirmedParam}`;
 
     try {
       const json = await ogModule('api').get(url);
@@ -722,9 +733,9 @@ class chat {
     const number   = c.number ?? '';
     const clientId = c.id ?? '';
     const botId    = c.chat_bot_id ?? '';
-    const name     = (c.name ?? '').trim().replace(/'/g, '&#39;');
-    const product  = (c.last_product_name ?? '').trim().replace(/</g, '&lt;');
-    const unread   = parseInt(c.unread_count ?? 0);
+    const name      = (c.name ?? '').trim().replace(/'/g, '&#39;');
+    const salesList = c.sales ?? [];
+    const unread    = parseInt(c.unread_count ?? 0);
     const dateStr  = c.last_message_at ?? c.dc ?? '';
     const date     = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
     const unreadCls = unread > 0 ? ' unread' : '';
@@ -744,7 +755,17 @@ class chat {
           </div>
         </div>
         <div class="bs-chat-item-meta">
-          <span class="bs-chat-item-product">${product || '<span class="bs-chat-item-noproduct">sin venta</span>'}</span>
+          <div class="bs-chat-item-sales">
+            ${salesList.length > 0
+              ? salesList.map(s => {
+                  const ok   = s.process_status === 'sale_confirmed';
+                  const icon = ok ? '✓' : '⊙';
+                  const nm   = (s.product_name ?? '').replace(/</g, '&lt;');
+                  const amt  = ok && s.amount != null ? ` <span class="bs-sale-amt">$${parseFloat(s.amount) % 1 === 0 ? parseFloat(s.amount) : parseFloat(s.amount).toFixed(2)}</span>` : '';
+                  return `<span class="bs-sale-item ${ok ? 'bs-sale-ok' : 'bs-sale-pending'}"><span class="bs-sale-icon">${icon}</span> ${nm}${amt}</span>`;
+                }).join('')
+              : '<span class="bs-chat-item-noproduct">sin venta</span>'}
+          </div>
           ${name ? `<span class="bs-chat-item-name">+${number}</span>` : ''}
         </div>
       </div>`;

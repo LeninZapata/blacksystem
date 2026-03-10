@@ -136,10 +136,15 @@ class ClientController extends ogController {
   // Lista de clientes para el panel de chat, con last_message_at/unread_count desde client_bot_meta
   function listChat() {
     $userId  = $GLOBALS['auth_user_id'] ?? null;
-    $botId   = ogRequest::query('bot_id', null);   // opcional: filtra por bot
+    $botId         = ogRequest::query('bot_id', null);        // opcional: filtra por bot
+    $confirmedOnly = (int)ogRequest::query('confirmed_only', 0); // 1 = solo con sale_confirmed
     $page    = (int)ogRequest::query('page', 1);
     $perPage = (int)ogRequest::query('per_page', 50);
     $offset  = ($page - 1) * $perPage;
+
+    // Cláusula extra para filtro "solo ventas confirmadas"
+    $confirmedJoin  = $confirmedOnly ? "INNER JOIN sales sc ON sc.client_id = c.id AND sc.status = 1 AND sc.process_status = 'sale_confirmed'" : '';
+    $confirmedGroup = $confirmedOnly ? "GROUP BY c.id, cbm_lm.bot_id, cbm_lm.meta_value, cbm_lc.meta_value, cbm_u.meta_value" : '';
 
     if ($botId) {
       // Filtro por bot específico
@@ -156,14 +161,17 @@ class ClientController extends ogController {
            ON cbm_lc.client_id = c.id AND cbm_lc.bot_id = cbm_lm.bot_id AND cbm_lc.meta_key = 'last_client_message_at'
          LEFT JOIN client_bot_meta cbm_u
            ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
+         {$confirmedJoin}
+         {$confirmedGroup}
          ORDER BY cbm_lm.meta_value DESC
          LIMIT ? OFFSET ?",
         [(int)$botId, $perPage, $offset]
       );
 
       $totalRow = ogDb::raw(
-        "SELECT COUNT(*) as cnt FROM clients c
-         INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at' AND cbm.bot_id = ?",
+        "SELECT COUNT(DISTINCT c.id) as cnt FROM clients c
+         INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at' AND cbm.bot_id = ?
+         {$confirmedJoin}",
         [(int)$botId]
       );
     } else {
@@ -181,15 +189,18 @@ class ClientController extends ogController {
            ON cbm_lc.client_id = c.id AND cbm_lc.bot_id = cbm_lm.bot_id AND cbm_lc.meta_key = 'last_client_message_at'
          LEFT JOIN client_bot_meta cbm_u
            ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
+         {$confirmedJoin}
+         {$confirmedGroup}
          ORDER BY cbm_lm.meta_value DESC
          LIMIT ? OFFSET ?",
         [(int)$userId, $perPage, $offset]
       );
 
       $totalRow = ogDb::raw(
-        "SELECT COUNT(*) as cnt FROM clients c
+        "SELECT COUNT(DISTINCT c.id) as cnt FROM clients c
          INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at'
-         INNER JOIN bots b ON b.id = cbm.bot_id AND b.user_id = ?",
+         INNER JOIN bots b ON b.id = cbm.bot_id AND b.user_id = ?
+         {$confirmedJoin}",
         [(int)$userId]
       );
     }
@@ -197,25 +208,29 @@ class ClientController extends ogController {
 
     if (!is_array($data)) $data = [];
 
-    // Último producto por cliente+bot
     if (!empty($data)) {
+      // Todas las ventas activas por cliente+bot (para mostrar estado individual)
       $ids          = array_column($data, 'id');
       $placeholders = implode(',', array_fill(0, count($ids), '?'));
-      $lastProducts = ogDb::raw(
-        "SELECT s.client_id, s.bot_id, s.product_name
+      $allSales = ogDb::raw(
+        "SELECT s.client_id, s.bot_id, s.product_name, s.process_status,
+                COALESCE(s.billed_amount, s.amount) AS final_amount
          FROM sales s
-         INNER JOIN (
-           SELECT client_id, bot_id, MAX(id) as max_id
-           FROM sales
-           WHERE client_id IN ($placeholders) AND status = 1
-           GROUP BY client_id, bot_id
-         ) sub ON s.id = sub.max_id",
+         WHERE s.client_id IN ($placeholders) AND s.status = 1
+         ORDER BY s.client_id, s.bot_id, s.id ASC",
         $ids
       );
-      $productMap = [];
-      foreach ($lastProducts as $row) $productMap[$row['client_id'] . '_' . $row['bot_id']] = $row['product_name'];
+      $salesMap = [];
+      foreach ($allSales as $row) {
+        $key = $row['client_id'] . '_' . $row['bot_id'];
+        $salesMap[$key][] = [
+          'product_name'   => $row['product_name'],
+          'process_status' => $row['process_status'],
+          'amount'         => $row['process_status'] === 'sale_confirmed' ? (float)$row['final_amount'] : null
+        ];
+      }
       foreach ($data as &$client) {
-        $client['last_product_name'] = $productMap[$client['id'] . '_' . $client['chat_bot_id']] ?? null;
+        $client['sales'] = $salesMap[$client['id'] . '_' . $client['chat_bot_id']] ?? [];
       }
       unset($client);
 
