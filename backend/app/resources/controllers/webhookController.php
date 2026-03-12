@@ -6,6 +6,9 @@ class WebhookController {
   function whatsapp() {
     try {
       $rawData = ogRequest::data();
+      if ($this->isAdWebhook($rawData)) {
+        $this->saveRawWebhook($rawData, 'wa');
+      }
       ogLog::info('whatsapp - Webhook recibido', [], $this->logMeta);
       // ogLog::info('whatsapp - Webhook recibido RAW', $rawData, $this->logMeta);
 
@@ -124,6 +127,35 @@ class WebhookController {
     } ogLog::info("resolveHandler - Clase de ejecución encontrada: {$className}", [], $this->logMeta);
 
     return new $className();
+  }
+
+  // Detectar si el webhook raw es originado por un anuncio (CTWA)
+  private function isAdWebhook($rawData) {
+    $referral = $rawData['entry'][0]['changes'][0]['value']['messages'][0]['referral'] ?? [];
+    if (empty($referral)) return false;
+    return ($referral['source_type'] ?? '') === 'ad' || !empty($referral['ctwa_clid']);
+  }
+
+  // Guardar webhook raw en archivo diario para análisis
+  private function saveRawWebhook($rawData, $channel = 'wa') {
+    try {
+      $dir = ogApp()->getPath() . '/storage/webhook/';
+
+      if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+      }
+
+      $fileName = 'webhook_' . $channel . '-' . date('d-m-Y') . '.log';
+      $filePath = $dir . $fileName;
+
+      $jsonSingleLine = json_encode($rawData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+      if ($jsonSingleLine) {
+        file_put_contents($filePath, $jsonSingleLine . PHP_EOL, FILE_APPEND | LOCK_EX);
+      }
+    } catch (Exception $e) {
+      ogLog::error('saveRawWebhook - Error guardando webhook raw', ['error' => $e->getMessage()], $this->logMeta);
+    }
   }
 
   // Convertir nombre de archivo a nombre de clase

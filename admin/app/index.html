@@ -10,7 +10,7 @@
 <div id="app"></div>
 
 <script>
-  let version = '0.5.155';
+  let version = '0.5.161';
 
   // Detectar si estamos en /admin/ o en root
   var pathname = window.location.pathname;
@@ -58,8 +58,7 @@
     apiBaseUrl: pathname.replace(/\/admin\/?$/, '/'),
 
     container: '#app',
-    // ✅ CAMBIO AQUÍ: Usar notación middle: para vistas en /middle/views/
-    defaultView: 'middle:dashboard/dashboard',
+    defaultView: 'automation|sections/home',
 
     i18n: {
       enabled: true,

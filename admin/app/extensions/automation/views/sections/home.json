@@ -1,0 +1,33 @@
+{
+  "id": "automation-home",
+  "title": "Home",
+  "type": "content",
+  "content": [
+    {
+      "type": "component",
+      "component": "tabs",
+      "config": {
+        "id": "home-tabs",
+        "preloadAllTabs": false,
+        "tabs": [
+          {
+            "id": "tab-chats",
+            "title": "💬 Chats",
+            "content": [
+              {
+                "type": "view",
+                "view": "sections/automation-chats",
+                "extension": "automation"
+              }
+            ]
+          },
+          {
+            "id": "tab-resumen",
+            "title": "📊 Resumen",
+            "content": []
+          }
+        ]
+      }
+    }
+  ]
+}

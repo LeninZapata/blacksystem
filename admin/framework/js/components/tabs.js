@@ -199,6 +199,9 @@ class ogTabs {
       tabContent.innerHTML = '';
       tabContent.appendChild(tempContainer);
 
+      // Cargar vistas dinámicas DESPUÉS de que el container está en el DOM
+      await this.loadDynamicViews(tabsData.id, tempContainer);
+
       if (isFirstLoad && tab.onLoad) {
         if (deferOnLoad) {
           // Guardar callback para ejecutar después de cargar scripts
@@ -252,6 +255,11 @@ class ogTabs {
 
     if (item.type === 'html') {
       return ogI18n.processString(item.content || '');
+    }
+
+    if (item.type === 'view' && item.view) {
+      const ext = item.extension ? ` data-view-extension="${item.extension}"` : '';
+      return `<div class="dynamic-view" data-view="${item.view}"${ext}></div>`;
     }
 
     return '';
@@ -314,6 +322,23 @@ class ogTabs {
 
   static clearCache() {
     this.tabCache.clear();
+  }
+
+  // Cargar vistas dinámicas (debe llamarse DESPUÉS de insertar el container en el DOM)
+  static async loadDynamicViews(tabsId, container) {
+    const extensionContext = this.extensionContextMap.get(tabsId) || null;
+    const viewContainers = container.querySelectorAll('.dynamic-view[data-view]');
+
+    for (const viewContainer of viewContainers) {
+      const viewName = viewContainer.dataset.view;
+      const viewExtension = viewContainer.dataset.viewExtension || extensionContext || null;
+      try {
+        await ogView.loadView(viewName, viewContainer, viewExtension);
+      } catch (error) {
+        ogLogger.error('com:tabs', 'Error cargando vista dinámica:', error);
+        viewContainer.innerHTML = `<div class="error">${__('com.tabs.error_loading')}</div>`;
+      }
+    }
   }
 
   static async loadTabResources(tab, tabsId) {
