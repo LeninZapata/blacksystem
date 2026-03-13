@@ -196,18 +196,18 @@ class adMetricsHandler {
               ->update(['is_latest' => 0]);
 
             // 4.2 Insertar nuevo registro como latest
-            // Calcular query_date y query_hour en el timezone LOCAL del activo
-            // para que coincidan con el "día" que Facebook considera al devolver datos.
+            // query_date: en timezone LOCAL del activo (para que el filtro por fecha local funcione bien).
+            // query_hour: siempre UTC del servidor (consistente con datos históricos y con
+            //             calculateTemporalChanges que compara UTC hours con payment_date UTC).
             $assetTz = !empty($assetInfo['timezone']) ? $assetInfo['timezone'] : null;
             try {
-              $localDt       = new DateTime('now', new DateTimeZone($assetTz ?: 'UTC'));
+              $localDt        = new DateTime('now', new DateTimeZone($assetTz ?: 'UTC'));
               $localQueryDate = $localDt->format('Y-m-d');
-              $localQueryHour = (int)$localDt->format('G');
             } catch (Exception $tzEx) {
               // timezone inválido → caer al UTC del servidor
               $localQueryDate = $dateNow;
-              $localQueryHour = $hourNow;
             }
+            $localQueryHour = $hourNow; // UTC
 
             $insertData = [
               'user_id' => $userId,

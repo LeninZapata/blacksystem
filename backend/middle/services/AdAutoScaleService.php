@@ -550,7 +550,7 @@ class AdAutoScaleService {
         WHERE h.product_id = ?
           AND h.ad_asset_id = ?
           AND h.query_date = ?
-        ORDER BY h.query_hour DESC, h.id DESC
+        ORDER BY h.id DESC
         LIMIT 1
       ";
 
@@ -583,6 +583,7 @@ class AdAutoScaleService {
   }
 
   // Calcular ventas confirmadas del sistema (para métrica confirmed_sales)
+  // $dateFrom/$dateTo: UTC datetimes listos para comparar con payment_date (UTC)
   private function getConfirmedSales($productId, $dateFrom, $dateTo) {
     $sql = "
       SELECT COUNT(*) as total_sales
@@ -594,12 +595,12 @@ class AdAutoScaleService {
         AND status = 1
     ";
 
-    $result = ogDb::raw($sql, [$productId, $dateFrom, $dateTo . ' 23:59:59']);
+    $result = ogDb::raw($sql, [$productId, $dateFrom, $dateTo]);
     return !empty($result) ? (int)($result[0]['total_sales'] ?? 0) : 0;
   }
 
-  // Calcular ROAS personalizado
   // Calcular revenue (ingresos totales)
+  // $dateFrom/$dateTo: UTC datetimes listos para comparar con payment_date (UTC)
   private function calculateRevenue($productId, $dateFrom, $dateTo) {
     $sql = "
       SELECT SUM(billed_amount) as total_revenue
@@ -611,7 +612,7 @@ class AdAutoScaleService {
         AND status = 1
     ";
 
-    $result = ogDb::raw($sql, [$productId, $dateFrom, $dateTo . ' 23:59:59']);
+    $result = ogDb::raw($sql, [$productId, $dateFrom, $dateTo]);
     return !empty($result) ? (float)($result[0]['total_revenue'] ?? 0) : 0;
   }
 
@@ -639,7 +640,7 @@ class AdAutoScaleService {
       WHERE product_id = ?
         AND ad_asset_id = ?
         AND query_date = ?
-      ORDER BY query_hour DESC, id DESC
+      ORDER BY id DESC
       LIMIT 1
     ", [$productId, $assetId, $today]);
 
@@ -749,9 +750,11 @@ class AdAutoScaleService {
     $spend = !empty($result) ? (float)($result[0]['spend'] ?? 0) : 0;
     $results = !empty($result) ? (int)($result[0]['results'] ?? 0) : 0;
     
-    // Calcular revenue y profit hasta esa hora
-    $dateTimeEnd = $date . ' ' . str_pad($hour, 2, '0', STR_PAD_LEFT) . ':59:59';
-    $revenue = $this->calculateRevenue($productId, $date . ' 00:00:00', $dateTimeEnd);
+    // Calcular revenue y profit hasta esa hora (convertir local→UTC para comparar con payment_date)
+    $assetTimezone = $this->getAssetTimezone($asset);
+    $utcRange = ogApp()->helper('date')::localDateToUtcRange($date, $assetTimezone);
+    $utcHourEnd = (new DateTime($date . ' ' . str_pad($hour, 2, '0', STR_PAD_LEFT) . ':59:59', new DateTimeZone($assetTimezone)))->setTimezone(new DateTimeZone('UTC'));
+    $revenue = $this->calculateRevenue($productId, $utcRange['start'], $utcHourEnd->format('Y-m-d H:i:s'));
     $roas = $spend > 0 ? $revenue / $spend : 0;
     $profit = $revenue - $spend;
     
@@ -1558,8 +1561,10 @@ class AdAutoScaleService {
           ];
         }
 
-        // Calcular ROAS y revenue personalizado
-        $revenue = $this->calculateRevenue($productId, $dates['from'], $dates['to']);
+        // Calcular ROAS y revenue personalizado (convertir fechas locales→UTC para payment_date)
+        $utcSalesRange = ogApp()->helper('date')::localDateToUtcRange($dates['from'], $assetTimezone);
+        $utcSalesTo = (new DateTime($dates['to'] . ' 23:59:59', new DateTimeZone($assetTimezone)))->setTimezone(new DateTimeZone('UTC'));
+        $revenue = $this->calculateRevenue($productId, $utcSalesRange['start'], $utcSalesTo->format('Y-m-d H:i:s'));
         $roas = $adMetrics['spend'] > 0 ? $revenue / $adMetrics['spend'] : 0;
         $profit = $revenue - $adMetrics['spend'];
 
@@ -1578,7 +1583,10 @@ class AdAutoScaleService {
       }
 
       // Ventas confirmadas del sistema (basado en tabla sales) — siempre disponible
-      $confirmedSales = $this->getConfirmedSales($productId, $dates['from'], $dates['to']);
+      // Convertir fechas locales→UTC para comparar con payment_date (UTC)
+      $utcSalesRangeCfm = ogApp()->helper('date')::localDateToUtcRange($dates['from'], $assetTimezone);
+      $utcSalesToCfm = (new DateTime($dates['to'] . ' 23:59:59', new DateTimeZone($assetTimezone)))->setTimezone(new DateTimeZone('UTC'));
+      $confirmedSales = $this->getConfirmedSales($productId, $utcSalesRangeCfm['start'], $utcSalesToCfm->format('Y-m-d H:i:s'));
       $allMetrics['confirmed_sales' . $suffix] = $confirmedSales;
     }
     

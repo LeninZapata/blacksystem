@@ -127,10 +127,10 @@ class ProfitStatsHandler {
       }
 
       // PASO 3: Combinar datos y calcular profit
-      // query_hour ya está en hora LOCAL del activo (guardado así por AdMetricsHandler).
-      // No aplicar conversión de offset, solo ordenar por hora local.
+      // query_hour está en UTC del servidor. Convertir a hora local del usuario para display.
+      $offsetHours = $utcRange['offset_hours'];
       foreach ($adsData as &$row) {
-        $row['local_hour'] = (int)$row['hour'];
+        $row['local_hour'] = (int)((($row['hour'] + $offsetHours) % 24 + 24) % 24);
       }
       unset($row);
       usort($adsData, function($a, $b) { return $a['local_hour'] - $b['local_hour']; });
