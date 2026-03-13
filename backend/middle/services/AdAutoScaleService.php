@@ -476,10 +476,12 @@ class AdAutoScaleService {
   }
 
   // Obtener métricas de ads (histórico + hoy)
-  private function getAdMetrics($asset, $dateFrom, $dateTo) {
+  // $localToday: fecha "hoy" en el timezone del activo (pasada desde getMetricsForAllTimeRanges)
+  // para que la distinción historical/hourly sea coherente con el timezone local.
+  private function getAdMetrics($asset, $dateFrom, $dateTo, $localToday = null) {
     $assetId = $asset['ad_asset_id'];
     $productId = $asset['product_id'];
-    $today = date('Y-m-d');
+    $today = $localToday ?? $this->getLocalDate($this->getAssetTimezone($asset));
 
     $metrics = [
       'spend' => 0,
@@ -624,7 +626,7 @@ class AdAutoScaleService {
   private function calculateTemporalChanges($asset) {
     $productId = $asset['product_id'];
     $assetId = $asset['ad_asset_id'];
-    $today = date('Y-m-d');
+    $today = $this->getLocalDate($this->getAssetTimezone($asset));
     
     $metrics = [];
 
@@ -680,61 +682,45 @@ class AdAutoScaleService {
     return $metrics;
   }
 
+  // Helper: obtener fecha local en el timezone del activo (almacenamiento es UTC)
+  private function getLocalDate($timezone = null) {
+    if ($timezone) {
+      try {
+        return (new DateTime('now', new DateTimeZone($timezone)))->format('Y-m-d');
+      } catch (Exception $e) {
+        // timezone inválido, caer a servidor
+      }
+    }
+    return date('Y-m-d');
+  }
+
+  // Helper: obtener timezone del activo publicitario
+  private function getAssetTimezone($asset) {
+    return !empty($asset['timezone']) ? $asset['timezone'] : date_default_timezone_get();
+  }
+
   // Obtener métricas de tiempo (current_hour, current_day_of_week)
+  // Usa el timezone de product_ad_assets porque la regla de escala se basa
+  // en la horario de la cuenta publicitaria, no del bot ni del usuario.
   private function getTimeMetrics($asset) {
     try {
-      // Obtener timezone del bot (usando el mismo patrón que resetDailyBudgets)
-      $productId = $asset['product_id'];
-      
-      // Obtener bot asociado al producto
-      $product = ogDb::t('products')
-        ->select('bot_id')
-        ->where('id', $productId)
-        ->first();
-      
-      if (!$product || !$product['bot_id']) {
-        // Si no hay bot, usar timezone de servidor
-        $timezone = date_default_timezone_get();
-      } else {
-        $bot = ogDb::t('bots')
-          ->select('country_code')
-          ->where('id', $product['bot_id'])
-          ->first();
-        
-        if (!$bot || !$bot['country_code']) {
-          $timezone = date_default_timezone_get();
-        } else {
-          // Obtener timezone usando ogCountry helper
-          ogApp()->loadHelper('country');
-          $countryInfo = ogCountry::get($bot['country_code']);
-          $timezone = $countryInfo['timezone'] ?? date_default_timezone_get();
-        }
-      }
-      
-      // Crear DateTime con la zona horaria del bot
+      $timezone = $this->getAssetTimezone($asset);
       $datetime = new DateTime('now', new DateTimeZone($timezone));
-      
-      // Obtener hora (0-23)
-      $currentHour = (int)$datetime->format('H');
-      
-      // Obtener día de la semana (1=Lunes, 7=Domingo) - formato ISO-8601
-      $currentDayOfWeek = (int)$datetime->format('N');
-      
+
       return [
-        'current_hour' => $currentHour,
-        'current_day_of_week' => $currentDayOfWeek
+        'current_hour'        => (int)$datetime->format('H'),
+        'current_day_of_week' => (int)$datetime->format('N'),
       ];
-      
+
     } catch (Exception $e) {
       ogLog::error('getTimeMetrics - Error', [
         'error' => $e->getMessage(),
-        'asset' => $asset
+        'asset_timezone' => $asset['timezone'] ?? null,
       ], self::$logMeta);
-      
-      // En caso de error, usar valores por defecto del servidor
+
       return [
-        'current_hour' => (int)date('H'),
-        'current_day_of_week' => (int)date('N')
+        'current_hour'        => (int)date('H'),
+        'current_day_of_week' => (int)date('N'),
       ];
     }
   }
@@ -1530,9 +1516,11 @@ class AdAutoScaleService {
     $productId = $asset['product_id'];
     $assetId = $asset['ad_asset_id'];
     $allMetrics = [];
-    
+    $assetTimezone = $this->getAssetTimezone($asset);
+    $localToday = $this->getLocalDate($assetTimezone);
+
     foreach ($timeRanges as $timeRange => $metricsUsed) {
-      $dates = $this->getDateRangeFromTimeRange($timeRange);
+      $dates = $this->getDateRangeFromTimeRange($timeRange, $assetTimezone);
       $suffix = '_' . $timeRange;
 
       // Determinar si este rango usa al menos una métrica de FB
@@ -1543,7 +1531,7 @@ class AdAutoScaleService {
       $onlySystemMetrics = empty($fbMetricsUsed);
 
       if (!$onlySystemMetrics) {
-        $adMetrics = $this->getAdMetrics($asset, $dates['from'], $dates['to']);
+        $adMetrics = $this->getAdMetrics($asset, $dates['from'], $dates['to'], $localToday);
 
         // VALIDACIÓN 1: Verificar que haya datos
         if ($adMetrics['spend'] <= 0 && $adMetrics['results'] <= 0 && $adMetrics['impressions'] <= 0) {
@@ -1662,29 +1650,31 @@ class AdAutoScaleService {
     return false;
   }
 
-  // Convertir time_range a fechas
-  private function getDateRangeFromTimeRange($timeRange) {
-    $today = date('Y-m-d');
+  // Convertir time_range a fechas usando el timezone del activo publicitario.
+  // Las fechas "hoy" y "ayer" se calculan en la hora local de la cuenta publicitaria
+  // para que coincidan con el día que el usuario considera "hoy".
+  private function getDateRangeFromTimeRange($timeRange, $timezone = null) {
+    $today = $this->getLocalDate($timezone);
 
     switch ($timeRange) {
       case 'today':
         return ['from' => $today, 'to' => $today];
 
       case 'yesterday':
-        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
         return ['from' => $yesterday, 'to' => $yesterday];
 
       case 'last_3d':
-        return ['from' => date('Y-m-d', strtotime('-3 days')), 'to' => $today];
+        return ['from' => date('Y-m-d', strtotime($today . ' -3 days')), 'to' => $today];
 
       case 'last_7d':
-        return ['from' => date('Y-m-d', strtotime('-7 days')), 'to' => $today];
+        return ['from' => date('Y-m-d', strtotime($today . ' -7 days')), 'to' => $today];
 
       case 'last_14d':
-        return ['from' => date('Y-m-d', strtotime('-14 days')), 'to' => $today];
+        return ['from' => date('Y-m-d', strtotime($today . ' -14 days')), 'to' => $today];
 
       case 'last_30d':
-        return ['from' => date('Y-m-d', strtotime('-30 days')), 'to' => $today];
+        return ['from' => date('Y-m-d', strtotime($today . ' -30 days')), 'to' => $today];
 
       case 'lifetime':
         return ['from' => '2020-01-01', 'to' => $today];

@@ -19,10 +19,50 @@ class PerformanceStatsHandler {
       return ['success' => false, 'error' => 'bot_id es requerido'];
     }
 
+    // Convertir fecha local a rango UTC
+    $userTz   = ogApp()->helper('date')::getUserTimezone();
+    $utcRange = ogApp()->helper('date')::localDateToUtcRange($date, $userTz);
+    $offsetHours = $utcRange['offset_hours'];
+
+    // Anchor: estado agregado de la hora UTC inmediatamente anterior al inicio del día ECU.
+    // Se usa como baseline para el primer delta, evitando mostrar el acumulado completo
+    // del día anterior en ECU 00:00 cuando Facebook tiene carry-over de atribución.
+    // Ej: ECU 23:00 ayer (UTC 04:xx) → results=45. ECU 00:00 hoy (UTC 05:xx) → results=45 → delta=0.
+    $anchorHourUtc = date('Y-m-d H:i:s', strtotime($utcRange['start']) - 3600);
+    $anchorDate    = substr($anchorHourUtc, 0, 10);
+    $anchorHour    = (int)substr($anchorHourUtc, 11, 2);
+
+    $anchorSql = "
+        SELECT SUM(h.link_clicks) as link_clicks, SUM(h.reach) as reach, SUM(h.results) as results
+        FROM ad_metrics_hourly h
+        INNER JOIN product_ad_assets pa ON h.ad_asset_id = pa.ad_asset_id
+        INNER JOIN (
+          SELECT ad_asset_id, MAX(id) as max_id
+          FROM ad_metrics_hourly
+          WHERE user_id = ? AND query_date = ? AND query_hour = ?
+          GROUP BY ad_asset_id
+        ) latest ON h.ad_asset_id = latest.ad_asset_id AND h.id = latest.max_id
+        WHERE h.user_id = ?
+          AND pa.product_id IN (
+            SELECT id FROM " . ogDb::t('products', true) . "
+            WHERE user_id = ? AND bot_id = ? AND status = 1" . $envFilter . "
+          )
+          AND h.query_date = ? AND h.query_hour = ?
+    ";
+    $anchorParams = [$userId, $anchorDate, $anchorHour, $userId, $userId, $botId, $anchorDate, $anchorHour];
+    if ($productId) { $anchorSql .= " AND pa.product_id = ?"; $anchorParams[] = $productId; }
+
+    $anchorRows = ogDb::raw($anchorSql, $anchorParams);
+    $prevRow    = (!empty($anchorRows) && $anchorRows[0]['results'] !== null) ? $anchorRows[0] : null;
+
+    // Filtro de datetime UTC para ad_metrics_hourly
+
     // Construir query para métricas de ads (hourly)
-    // Obtener el último registro de cada hora (sin filtrar por is_latest que solo devuelve 1 registro)
+    // Se incluye query_date en SELECT y GROUP BY para poder calcular deltas
+    // correctamente por día UTC de Facebook (los datos son acumulativos por día UTC)
     $sql = "
       SELECT
+        h.query_date,
         h.query_hour as hour,
         SUM(h.link_clicks) as link_clicks,
         SUM(h.reach) as reach,
@@ -30,22 +70,30 @@ class PerformanceStatsHandler {
       FROM ad_metrics_hourly h
       INNER JOIN product_ad_assets pa ON h.ad_asset_id = pa.ad_asset_id
       INNER JOIN (
-        SELECT ad_asset_id, query_hour, MAX(id) as max_id
+        SELECT ad_asset_id, query_date, query_hour, MAX(id) as max_id
         FROM ad_metrics_hourly
-        WHERE user_id = ? AND query_date = ?
-        GROUP BY ad_asset_id, query_hour
-      ) latest ON h.ad_asset_id = latest.ad_asset_id 
-                 AND h.query_hour = latest.query_hour 
+        WHERE user_id = ?
+          AND CONCAT(query_date, ' ', LPAD(query_hour, 2, '0'), ':00:00') >= ?
+          AND CONCAT(query_date, ' ', LPAD(query_hour, 2, '0'), ':00:00') <= ?
+        GROUP BY ad_asset_id, query_date, query_hour
+      ) latest ON h.ad_asset_id = latest.ad_asset_id
+                 AND h.query_date = latest.query_date
+                 AND h.query_hour = latest.query_hour
                  AND h.id = latest.max_id
       WHERE h.user_id = ?
         AND pa.product_id IN (
           SELECT id FROM " . ogDb::t('products', true) . "
           WHERE user_id = ? AND bot_id = ? AND status = 1" . $envFilter . "
         )
-        AND h.query_date = ?
+        AND CONCAT(h.query_date, ' ', LPAD(h.query_hour, 2, '0'), ':00:00') >= ?
+        AND CONCAT(h.query_date, ' ', LPAD(h.query_hour, 2, '0'), ':00:00') <= ?
     ";
 
-    $queryParams = [$userId, $date, $userId, $userId, $botId, $date];
+    $queryParams = [
+      $userId, $utcRange['start'], $utcRange['end'],
+      $userId, $userId, $botId,
+      $utcRange['start'], $utcRange['end'],
+    ];
 
     if ($productId) {
       $sql .= " AND pa.product_id = ?";
@@ -53,52 +101,46 @@ class PerformanceStatsHandler {
     }
 
     $sql .= "
-      GROUP BY h.query_hour
-      ORDER BY h.query_hour ASC
+      GROUP BY h.query_date, h.query_hour
+      ORDER BY h.query_date ASC, h.query_hour ASC
     ";
 
     $results = ogDb::raw($sql, $queryParams);
 
-    // Crear array con todas las 24 horas con datos acumulativos
-    $accumulatedData = [];
-    for ($h = 0; $h < 24; $h++) {
-      $accumulatedData[$h] = [
-        'link_clicks' => 0,
-        'reach' => 0,
-        'results' => 0
-      ];
-    }
+    // Los datos de Facebook son acumulativos por día en la timezone del usuario (ECU).
+    // Todos los registros del rango UTC corresponden a UNA sola serie de acumulación
+    // (Facebook acumula por timezone del account, no por UTC).
+    // Los deltas se calculan entre registros consecutivos en orden cronológico UTC,
+    // usando el anchor como baseline para el primer registro del día.
 
-    // Llenar con datos acumulativos reales
-    foreach ($results as $row) {
-      $hour = (int)$row['hour'];
-      $accumulatedData[$hour] = [
-        'link_clicks' => (int)$row['link_clicks'],
-        'reach' => (int)$row['reach'],
-        'results' => (int)$row['results']
-      ];
-    }
-
-    // Calcular valores incrementales por hora (diferencia entre horas consecutivas)
+    // Inicializar las 24 horas locales en cero
     $hourlyData = [];
     for ($h = 0; $h < 24; $h++) {
-      if ($h === 0) {
-        // Primera hora: usar el valor directo
-        $hourlyData[$h] = [
-          'hour' => $h,
-          'chats_initiated' => $accumulatedData[$h]['results'],
-          'whatsapp_clicks' => $accumulatedData[$h]['link_clicks'],
-          'reach' => $accumulatedData[$h]['reach']
+      $hourlyData[$h] = ['hour' => $h, 'chats_initiated' => 0, 'whatsapp_clicks' => 0, 'reach' => 0];
+    }
+
+    foreach ($results as $row) {
+      $utcHour   = (int)$row['hour'];
+      $localHour = (int)((($utcHour + $offsetHours) % 24 + 24) % 24);
+
+      if ($prevRow === null) {
+        // Primer registro: valor directo (acumulado desde inicio del día ECU)
+        $hourlyData[$localHour] = [
+          'hour'            => $localHour,
+          'chats_initiated' => (int)$row['results'],
+          'whatsapp_clicks' => (int)$row['link_clicks'],
+          'reach'           => (int)$row['reach'],
         ];
       } else {
-        // Horas siguientes: calcular diferencia con la hora anterior
-        $hourlyData[$h] = [
-          'hour' => $h,
-          'chats_initiated' => max(0, $accumulatedData[$h]['results'] - $accumulatedData[$h-1]['results']),
-          'whatsapp_clicks' => max(0, $accumulatedData[$h]['link_clicks'] - $accumulatedData[$h-1]['link_clicks']),
-          'reach' => max(0, $accumulatedData[$h]['reach'] - $accumulatedData[$h-1]['reach'])
+        // Delta vs registro anterior (orden cronológico UTC, cruzando medianoche UTC si aplica)
+        $hourlyData[$localHour] = [
+          'hour'            => $localHour,
+          'chats_initiated' => max(0, (int)$row['results']     - (int)$prevRow['results']),
+          'whatsapp_clicks' => max(0, (int)$row['link_clicks'] - (int)$prevRow['link_clicks']),
+          'reach'           => max(0, (int)$row['reach']       - (int)$prevRow['reach']),
         ];
       }
+      $prevRow = $row;
     }
 
     // Convertir a array indexado
@@ -125,7 +167,7 @@ class PerformanceStatsHandler {
     $botId = $params['bot_id'] ?? null;
     $productId = $params['product_id'] ?? null;
     $envFilter = !$productId ? " AND (env IS NULL OR env != 'T')" : "";
-    $dates = ogApp()->helper('date')::getDateRange($range);
+    $dates = ogApp()->helper('date')::getDateRange($range, ogApp()->helper('date')::getUserTimezone());
 
     if (!$dates) {
       return ['success' => false, 'error' => 'Rango inválido'];

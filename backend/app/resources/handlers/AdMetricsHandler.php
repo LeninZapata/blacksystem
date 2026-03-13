@@ -109,7 +109,9 @@ class adMetricsHandler {
 
     try {
       $startTime = microtime(true);
-      $hourNow = date('G'); // Hora actual 0-23
+      // NOTA: $hourNow y $dateNow son UTC del servidor, solo se usan como fallback.
+      // Cada activo calcula su propia fecha/hora local según product_ad_assets.timezone.
+      $hourNow = (int)date('G');
       $dateNow = date('Y-m-d');
 
       // 1. Obtener todos los productos activos
@@ -194,6 +196,19 @@ class adMetricsHandler {
               ->update(['is_latest' => 0]);
 
             // 4.2 Insertar nuevo registro como latest
+            // Calcular query_date y query_hour en el timezone LOCAL del activo
+            // para que coincidan con el "día" que Facebook considera al devolver datos.
+            $assetTz = !empty($assetInfo['timezone']) ? $assetInfo['timezone'] : null;
+            try {
+              $localDt       = new DateTime('now', new DateTimeZone($assetTz ?: 'UTC'));
+              $localQueryDate = $localDt->format('Y-m-d');
+              $localQueryHour = (int)$localDt->format('G');
+            } catch (Exception $tzEx) {
+              // timezone inválido → caer al UTC del servidor
+              $localQueryDate = $dateNow;
+              $localQueryHour = $hourNow;
+            }
+
             $insertData = [
               'user_id' => $userId,
               'product_id' => $productId,
@@ -220,8 +235,8 @@ class adMetricsHandler {
               'cpc' => $metrics['cpc'] ?? null,
               'ctr' => $metrics['ctr'] ?? null,
               'conversion_rate' => $metrics['conversion_rate'] ?? null,
-              'query_date' => $dateNow,
-              'query_hour' => $hourNow,
+              'query_date' => $localQueryDate,
+              'query_hour' => $localQueryHour,
               'api_response_time' => null,
               'api_status' => 'success',
               'is_latest' => 1,

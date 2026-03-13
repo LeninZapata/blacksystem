@@ -12,6 +12,11 @@ class ProfitStatsHandler {
     $productId = $params['product_id'] ?? ogRequest::query('product_id');
     $userId = $GLOBALS['auth_user_id'];
 
+    // Convertir fecha local a rango UTC
+    $userTz   = ogApp()->helper('date')::getUserTimezone();
+    $utcRange = ogApp()->helper('date')::localDateToUtcRange($date, $userTz);
+    $offsetSec = (int)$utcRange['offset_sec'];
+
     try {
       $today = date('Y-m-d');
       $isToday = ($date === $today);
@@ -41,17 +46,18 @@ class ProfitStatsHandler {
         ";
       }
 
+      // query_date y query_hour se almacenan en el timezone LOCAL del activo (ver AdMetricsHandler).
+      // Filtrar por fecha local directamente: no usar rango UTC con CONCAT.
       $sqlAds .= "
         WHERE h.user_id = ?
           AND h.query_date = ?
       ";
 
       // Tomar el último snapshot de cada hora (tanto para hoy como días históricos)
-      // Esto asegura que obtengamos datos de todas las horas que han transcurrido
       $sqlAds .= " AND h.id IN (
         SELECT MAX(h2.id)
         FROM ad_metrics_hourly h2
-        WHERE h2.user_id = ? 
+        WHERE h2.user_id = ?
           AND h2.query_date = ?
           AND h2.ad_asset_id = h.ad_asset_id
           AND h2.query_hour = h.query_hour
@@ -79,17 +85,17 @@ class ProfitStatsHandler {
       // PASO 2: Obtener ventas reales por hora del mismo día
       $sqlSales = "
         SELECT
-          HOUR(s.payment_date) as hour,
+          HOUR(DATE_ADD(s.payment_date, INTERVAL {$offsetSec} SECOND)) as hour,
           COUNT(DISTINCT s.id) as real_purchases,
           COALESCE(SUM(s.billed_amount), 0) as revenue
         FROM sales s
         WHERE s.user_id = ?
-          AND DATE(s.payment_date) = ?
+          AND s.payment_date >= ? AND s.payment_date <= ?
           AND s.process_status = 'sale_confirmed'
           AND s.status = 1
       ";
 
-      $salesParams = [$userId, $date];
+      $salesParams = [$userId, $utcRange['start'], $utcRange['end']];
 
       if ($botId) {
         $sqlSales .= " AND s.bot_id = ?";
@@ -103,11 +109,11 @@ class ProfitStatsHandler {
         $sqlSales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
       }
 
-      $sqlSales .= " GROUP BY HOUR(s.payment_date)";
+      $sqlSales .= " GROUP BY HOUR(DATE_ADD(s.payment_date, INTERVAL {$offsetSec} SECOND))";
 
       $salesData = ogDb::raw($sqlSales, $salesParams);
 
-      // Crear mapa de ventas por hora
+      // Crear mapa de ventas por hora (hora local)
       $salesMap = [];
       $totalSalesRevenue = 0;
       $totalSalesPurchases = 0;
@@ -116,25 +122,29 @@ class ProfitStatsHandler {
           'real_purchases' => (int)$sale['real_purchases'],
           'revenue' => (float)$sale['revenue']
         ];
-        // Acumular totales directos (independiente de si hay ads en esa hora)
         $totalSalesRevenue += (float)$sale['revenue'];
         $totalSalesPurchases += (int)$sale['real_purchases'];
       }
 
       // PASO 3: Combinar datos y calcular profit
-      // Acumular revenue progresivamente (tanto para hoy como para días históricos)
-      // El gasto (spend) ya viene acumulado de ad_metrics_hourly
+      // query_hour ya está en hora LOCAL del activo (guardado así por AdMetricsHandler).
+      // No aplicar conversión de offset, solo ordenar por hora local.
+      foreach ($adsData as &$row) {
+        $row['local_hour'] = (int)$row['hour'];
+      }
+      unset($row);
+      usort($adsData, function($a, $b) { return $a['local_hour'] - $b['local_hour']; });
+
       $results = [];
       $accumulatedRevenue = 0;
       $accumulatedPurchases = 0;
 
-      // Ordenar horas de ventas para procesar en orden con puntero
       $salesHours = array_keys($salesMap);
       sort($salesHours);
       $salesHourIndex = 0;
       
       foreach ($adsData as $row) {
-        $hour = (int)$row['hour'];
+        $hour = $row['local_hour'];
         $spend = (float)$row['spend']; // Ya viene acumulado de la tabla
 
         // Acumular TODAS las ventas de horas <= hora actual (captura ventas en horas sin ads)
@@ -165,6 +175,23 @@ class ProfitStatsHandler {
           'results' => (int)$row['results']
         ];
       }
+
+      // PASO 3.5: Forzar monotonía en spend.
+      // El SUM(spend) por hora puede bajar si algún activo no tiene snapshot en esa hora exacta
+      // (spend es acumulado por activo, pero no todos reportan a cada hora).
+      // El gasto del día solo puede crecer, nunca decrecer.
+      $runMaxSpend = 0;
+      foreach ($results as &$row) {
+        if ($row['spend'] > $runMaxSpend) {
+          $runMaxSpend = $row['spend'];
+        } else {
+          $row['spend'] = $runMaxSpend;
+        }
+        // Recalcular profit y roas con el spend corregido
+        $row['profit'] = round($row['revenue'] - $row['spend'], 2);
+        $row['roas']   = $row['spend'] > 0 ? round($row['revenue'] / $row['spend'], 2) : 0;
+      }
+      unset($row);
 
       // PASO 4: Calcular resumen usando totales directos de ventas
       // (no desde el acumulado del chart, para capturar ventas en horas sin datos de ads)
@@ -224,7 +251,7 @@ class ProfitStatsHandler {
     $productId = $params['product_id'] ?? ogRequest::query('product_id');
     $userId = $GLOBALS['auth_user_id'];
 
-    $dates = ogApp()->helper('date')::getDateRange($range);
+    $dates = ogApp()->helper('date')::getDateRange($range, ogApp()->helper('date')::getUserTimezone());
     if (!$dates) {
       return [
         'success' => false,

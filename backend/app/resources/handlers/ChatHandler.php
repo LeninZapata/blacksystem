@@ -59,14 +59,14 @@ class ChatHandler {
         'message' => $message,
         'metadata' => $metadata ? json_encode($metadata) : null,
         'status' => 1,
-        'dc' => date('Y-m-d H:i:s'),
+        'dc' => gmdate('Y-m-d H:i:s'),
         'tc' => time()
       ];
 
       $chatId = ogDb::t('chats')->insert($data);
 
       // Actualizar actividad del cliente
-      $now = date('Y-m-d H:i:s');
+      $now = gmdate('Y-m-d H:i:s');
       $clientUpdate = ['last_message_at' => $now];
       if ($type === 'P') {
         $clientUpdate['last_client_message_at'] = $now;
@@ -133,8 +133,8 @@ class ChatHandler {
         'client_id' => $clientId,
         'client_number' => $number,
         'bot_id' => $botId,
-        'conversation_started' => date('Y-m-d H:i:s'),
-        'last_activity' => date('Y-m-d H:i:s'),
+        'conversation_started' => gmdate('Y-m-d H:i:s'),
+        'last_activity' => gmdate('Y-m-d H:i:s'),
         'current_sale' => null,
         'summary' => [
           'total_messages' => 0,
@@ -152,7 +152,7 @@ class ChatHandler {
     }
 
     // Actualizar última actividad
-    $chat['last_activity'] = date('Y-m-d H:i:s');
+    $chat['last_activity'] = gmdate('Y-m-d H:i:s');
 
     // Manejar tipo especial 'start_sale'
     if ($type === 'start_sale') {
@@ -164,7 +164,7 @@ class ChatHandler {
         'product_id' => $productId,
         'product_name' => $productName,
         'sale_status' => 'initiated',
-        'started_at' => date('Y-m-d H:i:s'),
+        'started_at' => gmdate('Y-m-d H:i:s'),
         'origin' => $metadata['origin'] ?? 'organic'
       ];
 
@@ -177,7 +177,7 @@ class ChatHandler {
 
     // Agregar mensaje al array
     $newMessage = [
-      'date' => date('Y-m-d H:i:s'),
+      'date' => gmdate('Y-m-d H:i:s'),
       'type' => $type,
       'format' => $format,
       'message' => $message,
@@ -381,7 +381,7 @@ class ChatHandler {
       "SELECT id FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = ?",
       [$clientId, $botId, $key]
     );
-    $now = date('Y-m-d H:i:s');
+    $now = gmdate('Y-m-d H:i:s');
     if (!empty($existing[0]['id'])) {
       ogDb::raw(
         "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE id = ?",
@@ -401,7 +401,7 @@ class ChatHandler {
       "SELECT id, meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = ?",
       [$clientId, $botId, $key]
     );
-    $now = date('Y-m-d H:i:s');
+    $now = gmdate('Y-m-d H:i:s');
     if (!empty($existing[0]['id'])) {
       ogDb::raw(
         "UPDATE client_bot_meta SET meta_value = meta_value + 1, tc = ? WHERE id = ?",

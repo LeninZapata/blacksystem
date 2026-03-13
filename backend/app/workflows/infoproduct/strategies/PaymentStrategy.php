@@ -362,7 +362,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
         ->where('id', $saleId)
         ->update([
           'billed_amount' => $billedAmount,
-          'du' => date('Y-m-d H:i:s'),
+          'du' => gmdate('Y-m-d H:i:s'),
           'tu' => time()
         ]);
 
@@ -394,7 +394,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     }
 
     $updates = [
-      'du' => date('Y-m-d H:i:s'),
+      'du' => gmdate('Y-m-d H:i:s'),
       'tu' => time()
     ];
 
@@ -513,7 +513,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
         ->where('id', $saleId)
         ->update([
           'tracking_funnel_id' => $trackingId,
-          'du' => date('Y-m-d H:i:s'),
+          'du' => gmdate('Y-m-d H:i:s'),
           'tu' => time()
         ]);
 
@@ -567,7 +567,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
       $saleId,
       'RECEIPT_' . time(),
       'Recibo de pago',
-      date('Y-m-d H:i:s')
+      gmdate('Y-m-d H:i:s')
     );
   }
 

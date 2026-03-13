@@ -8,6 +8,11 @@ URGENTE:
   el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
 ☐ COmo se manejan muchos productos uno se puede confundir con las reglas de escalas creadas o no Hay que agregar un aviso
 QUE PRODUCTO no tiene reglas de escalas con eso podemos crerlas.... y que no se nos pase por alto
+☐ Cuando hay un errror de pago, este ya no se activan los conjuntos de anuncios porque el reseteo ya paso y en el reseteo este prende los activos
+LO QUE SE PODRIA HACER ES MOSTRAR LOS ACTIVOS DE UN USUARIO Y VER QUE ESTA APAGADOY PRENDERLO DESDE EL SISTEMA.
+☐ El sistema debe tener un reseteo de presupues a su base para media noche, y el reseteo de presupuesto basado en elROAS tipo 6am
+con esto no gasta mucho en la noche, ya puede amanecer con un gasto que no queremos....
+☐ Falas en las horas del seguimiento tiene unas horas que no tiene sentido, al menos asi las veo, porque no se hizo migracion de followup en las horas
 RAPIDO:
 ☐ Si llega un nuevo producto que genera un sale_id osea es nuevo los anteriores de ese cliente y bot deben
   PROCESAR los seguimientos para que ya no se envien porque entro en una nueva veta.

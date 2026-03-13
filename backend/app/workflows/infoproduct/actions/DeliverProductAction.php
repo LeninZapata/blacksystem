@@ -76,7 +76,7 @@ class DeliverProductAction {
       'action'       => 'delivered_product',
       'product_id'   => $productId,
       'product_name' => $productName,
-      'delivered_at' => date('Y-m-d H:i:s')
+      'delivered_at' => gmdate('Y-m-d H:i:s')
     ];
 
     ogApp()->loadHandler('chat');

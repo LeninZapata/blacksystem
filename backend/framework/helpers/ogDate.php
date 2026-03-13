@@ -2,11 +2,54 @@
 // ogDate - Helper para manejo de fechas y rangos
 class ogDate {
 
-  // Obtener rango de fechas según período
-  static function getDateRange($range) {
-    $now = new DateTime();
+  // Leer timezone del usuario desde el header X-User-Timezone (enviado por api.js)
+  static function getUserTimezone() {
+    $tz = $_SERVER['HTTP_X_USER_TIMEZONE'] ?? 'UTC';
+    try {
+      new DateTimeZone($tz);
+      return $tz;
+    } catch (\Exception $e) {
+      return 'UTC';
+    }
+  }
+
+  // Convertir una fecha local (YYYY-MM-DD) a rango UTC para consultas en BD.
+  // Retorna: ['start', 'end' (ambos UTC), 'offset_hours', 'offset_sec']
+  static function localDateToUtcRange($date, $timezone = 'UTC') {
+    try {
+      $tz  = new DateTimeZone($timezone);
+      $utc = new DateTimeZone('UTC');
+      $offsetSec = $tz->getOffset(new DateTime('now', $utc));
+      $start = (new DateTime($date . ' 00:00:00', $tz))->setTimezone($utc);
+      $end   = (new DateTime($date . ' 23:59:59', $tz))->setTimezone($utc);
+      return [
+        'start'        => $start->format('Y-m-d H:i:s'),
+        'end'          => $end->format('Y-m-d H:i:s'),
+        'offset_hours' => $offsetSec / 3600,
+        'offset_sec'   => $offsetSec,
+      ];
+    } catch (\Exception $e) {
+      return [
+        'start'        => $date . ' 00:00:00',
+        'end'          => $date . ' 23:59:59',
+        'offset_hours' => 0,
+        'offset_sec'   => 0,
+      ];
+    }
+  }
+
+  // Obtener rango de fechas según período, en UTC, calculado en la timezone del usuario.
+  // $timezone = resultado de getUserTimezone()
+  static function getDateRange($range, $timezone = 'UTC') {
+    try {
+      $tz = new DateTimeZone($timezone);
+    } catch (\Exception $e) {
+      $tz = new DateTimeZone('UTC');
+    }
+    $utc   = new DateTimeZone('UTC');
+    $now   = new DateTime('now', $tz);
     $start = clone $now;
-    $end = clone $now;
+    $end   = clone $now;
 
     switch ($range) {
       case 'today':
@@ -22,22 +65,18 @@ class ogDate {
         $end->setTime(23, 59, 59);
         break;
       case 'last_3_days':
-        // 3 días hacia atrás SIN incluir hoy
         $start->modify('-3 days')->setTime(0, 0, 0);
         $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'last_7_days':
-        // 7 días hacia atrás SIN incluir hoy
         $start->modify('-7 days')->setTime(0, 0, 0);
         $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'last_10_days':
-        // 10 días hacia atrás SIN incluir hoy
         $start->modify('-10 days')->setTime(0, 0, 0);
         $end->modify('-1 day')->setTime(23, 59, 59);
         break;
       case 'last_15_days':
-        // 15 días hacia atrás SIN incluir hoy
         $start->modify('-15 days')->setTime(0, 0, 0);
         $end->modify('-1 day')->setTime(23, 59, 59);
         break;
@@ -50,7 +89,6 @@ class ogDate {
         $end->modify('last day of this month')->setTime(23, 59, 59);
         break;
       case 'last_30_days':
-        // 30 días hacia atrás SIN incluir hoy
         $start->modify('-30 days')->setTime(0, 0, 0);
         $end->modify('-1 day')->setTime(23, 59, 59);
         break;
@@ -63,8 +101,8 @@ class ogDate {
     }
 
     return [
-      'start' => $start->format('Y-m-d H:i:s'),
-      'end' => $end->format('Y-m-d H:i:s')
+      'start' => $start->setTimezone($utc)->format('Y-m-d H:i:s'),
+      'end'   => $end->setTimezone($utc)->format('Y-m-d H:i:s'),
     ];
   }
 

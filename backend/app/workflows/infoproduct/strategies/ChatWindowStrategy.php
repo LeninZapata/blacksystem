@@ -72,9 +72,9 @@ class ChatWindowStrategy {
 
     $isAd   = self::isAd($context);
     $hours  = $isAd ? self::HOURS_AD : self::HOURS_ORGANIC;
-    $now    = date('Y-m-d H:i:s');
+    $now    = gmdate('Y-m-d H:i:s');
     $nowTs  = time();
-    $expiry = date('Y-m-d H:i:s', $nowTs + ($hours * 3600));
+    $expiry = gmdate('Y-m-d H:i:s', $nowTs + ($hours * 3600));
 
     // Detectar sub-tipo para el log: ad / facebook (referral sin paid) / organic
     $originLabel = $isAd ? 'ad'
@@ -131,7 +131,7 @@ class ChatWindowStrategy {
    * (Nunca reinicia una ventana todavía activa)
    */
   static function refresh(int $clientId, int $botId): void {
-    $now   = date('Y-m-d H:i:s');
+    $now   = gmdate('Y-m-d H:i:s');
     $nowTs = time();
 
     $existing = ogDb::raw(
@@ -153,7 +153,7 @@ class ChatWindowStrategy {
       return;
     }
 
-    $expiry = date('Y-m-d H:i:s', $nowTs + (self::HOURS_ORGANIC * 3600)); // +24h
+    $expiry = gmdate('Y-m-d H:i:s', $nowTs + (self::HOURS_ORGANIC * 3600)); // +24h
 
     if ($existingExpiry) {
       ogDb::raw(

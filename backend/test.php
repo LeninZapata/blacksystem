@@ -1,317 +1,190 @@
-<?php
+﻿<?php
 /**
- * MIGRACIÓN DE FECHAS → UTC
- * Convierte campos datetime de Ecuador (UTC-5) a UTC sumando 5 horas.
- * Los campos tc/tu son Unix timestamps — NO se tocan.
- * ⚠️ Ejecutar cada botón solo una vez. Hacer respaldo antes.
+ * UNDO S-fix â€” Revertir +5h aplicado por error a chats S que ya estaban en UTC
  */
 
 require_once __DIR__ . '/../wp.php';
 require_once __DIR__ . '/bootstrap.php';
 
+$today  = gmdate('Y-m-d');
 $action = $_POST['action'] ?? null;
-$result = null;
+$results = [];
 
-if ($action) {
-  try {
-    $pdo = ogDb::table('clients')->getConnection();
+$pdo = ogDb::table('chats')->getConnection();
 
-    // ── ad_auto_scale ─────────────────────────────────────────────────────────
-    if ($action === 'ad_auto_scale') {
-      $s1 = $pdo->prepare("UPDATE `ad_auto_scale` SET `dc` = DATE_ADD(`dc`, INTERVAL 5 HOUR)");
-      $s1->execute(); $r1 = $s1->rowCount();
-      $s2 = $pdo->prepare("UPDATE `ad_auto_scale` SET `du` = DATE_ADD(`du`, INTERVAL 5 HOUR) WHERE `du` IS NOT NULL");
-      $s2->execute(); $r2 = $s2->rowCount();
-      $result = ['success' => true, 'table' => 'ad_auto_scale', 'rows' => ['dc' => $r1, 'du' => $r2]];
+function dbq($pdo, $sql, $params = []) {
+  $s = $pdo->prepare($sql);
+  $s->execute($params);
+  return $s;
+}
+function dba($pdo, $sql, $params = []) {
+  return dbq($pdo, $sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+}
 
-    // ── ad_auto_scale_history ─────────────────────────────────────────────────
-    } elseif ($action === 'ad_auto_scale_history') {
-      $s = $pdo->prepare(
-        "UPDATE `ad_auto_scale_history`
-         SET `executed_at` = DATE_ADD(`executed_at`, INTERVAL 5 HOUR),
-             `dc`          = DATE_ADD(`dc`, INTERVAL 5 HOUR)"
+// â”€â”€â”€ Ejecutar acciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+if ($action === 'undo_s_fix_client') {
+  $clientId = (int)($_POST['client_id'] ?? 0);
+  $botId    = (int)($_POST['bot_id'] ?? 0);
+  if ($clientId && $botId) {
+    try {
+      $s1 = dbq($pdo,
+        "UPDATE `chats`
+         SET `dc` = DATE_SUB(`dc`, INTERVAL 5 HOUR)
+         WHERE `type` = 'S' AND `client_id` = ? AND `bot_id` = ?
+           AND DATE(`dc`) = ?",
+        [$clientId, $botId, $today]
       );
-      $s->execute();
-      $result = ['success' => true, 'table' => 'ad_auto_scale_history', 'rows' => ['executed_at + dc' => $s->rowCount()]];
-
-    // ── ad_budget_resets ──────────────────────────────────────────────────────
-    } elseif ($action === 'ad_budget_resets') {
-      // reset_date se recalcula a partir del reset_at original antes de desplazar
-      $s = $pdo->prepare(
-        "UPDATE `ad_budget_resets`
-         SET `reset_date` = DATE(DATE_ADD(`reset_at`, INTERVAL 5 HOUR)),
-             `reset_at`   = DATE_ADD(`reset_at`, INTERVAL 5 HOUR)"
+      $s2 = dbq($pdo,
+        "UPDATE `client_bot_meta`
+         SET `meta_value` = DATE_SUB(`meta_value`, INTERVAL 5 HOUR)
+         WHERE `meta_key` = 'last_message_at'
+           AND `client_id` = ? AND `bot_id` = ?",
+        [$clientId, $botId]
       );
-      $s->execute();
-      $result = ['success' => true, 'table' => 'ad_budget_resets', 'rows' => ['reset_at + reset_date' => $s->rowCount()]];
-
-    // ── ad_metrics_daily ──────────────────────────────────────────────────────
-    } elseif ($action === 'ad_metrics_daily') {
-      $s = $pdo->prepare(
-        "UPDATE `ad_metrics_daily`
-         SET `generated_at` = DATE_ADD(`generated_at`, INTERVAL 5 HOUR),
-             `dc`           = DATE_ADD(`dc`, INTERVAL 5 HOUR)"
-      );
-      $s->execute();
-      $result = ['success' => true, 'table' => 'ad_metrics_daily', 'rows' => ['generated_at + dc' => $s->rowCount()]];
-
-    // ── ad_metrics_hourly ─────────────────────────────────────────────────────
-    } elseif ($action === 'ad_metrics_hourly') {
-      // query_date + query_hour forman juntos el datetime de consulta.
-      // Se recalculan ambos a partir de los valores originales en una sola sentencia
-      // (MySQL usa los valores originales de la fila para todas las expresiones del SET).
-      $s = $pdo->prepare(
-        "UPDATE `ad_metrics_hourly`
-         SET
-           `query_date` = DATE(DATE_ADD(
-             CONCAT(`query_date`, ' ', LPAD(`query_hour`, 2, '0'), ':00:00'),
-             INTERVAL 5 HOUR
-           )),
-           `query_hour` = HOUR(DATE_ADD(
-             CONCAT(`query_date`, ' ', LPAD(`query_hour`, 2, '0'), ':00:00'),
-             INTERVAL 5 HOUR
-           )),
-           `dc` = DATE_ADD(`dc`, INTERVAL 5 HOUR)"
-      );
-      $s->execute();
-      $result = ['success' => true, 'table' => 'ad_metrics_hourly', 'rows' => ['query_date + query_hour + dc' => $s->rowCount()]];
+      $results['undo_s'] = [
+        'ok' => true,
+        'rows_chat' => $s1->rowCount(),
+        'rows_meta' => $s2->rowCount(),
+        'label' => "UNDO â€” client_id={$clientId}, bot_id={$botId}"
+      ];
+    } catch (Exception $e) {
+      $results['undo_s'] = ['ok' => false, 'err' => $e->getMessage()];
     }
-
-  } catch (Exception $e) {
-    $result = ['success' => false, 'error' => $e->getMessage()];
   }
 }
 
-// ── Conteos actuales ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Preview chats S del cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+$previewClientId = (int)($_POST['client_id'] ?? 1545);
+$previewBotId    = (int)($_POST['bot_id'] ?? 11);
 
-$metaKeys   = ['last_message_at', 'last_client_message_at', 'open_chat'];
-$metaCounts = [];
-foreach ($metaKeys as $k) {
-  $metaCounts[$k] = (int) ogDb::raw(
-    "SELECT COUNT(*) as t FROM `client_bot_meta`
-     WHERE `meta_key` = ? AND `meta_value` REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'",
-    [$k]
-  )[0]['t'];
-}
+$sampS = dba($pdo,
+  "SELECT id, type, LEFT(message,60) msg, dc,
+     CONVERT_TZ(dc,'UTC','America/Guayaquil') as dc_ecu
+   FROM `chats`
+   WHERE `type` = 'S' AND `client_id` = ? AND `bot_id` = ?
+     AND DATE(`dc`) = ?
+   ORDER BY id DESC LIMIT 10",
+  [$previewClientId, $previewBotId, $today]
+);
 
-$cnt = [];
-$cnt['ad_auto_scale_total']   = (int) ogDb::raw("SELECT COUNT(*) as t FROM `ad_auto_scale`", [])[0]['t'];
-$cnt['ad_auto_scale_du']      = (int) ogDb::raw("SELECT COUNT(*) as t FROM `ad_auto_scale` WHERE `du` IS NOT NULL", [])[0]['t'];
-$cnt['ad_auto_scale_history'] = (int) ogDb::raw("SELECT COUNT(*) as t FROM `ad_auto_scale_history`", [])[0]['t'];
-$cnt['ad_budget_resets']      = (int) ogDb::raw("SELECT COUNT(*) as t FROM `ad_budget_resets`", [])[0]['t'];
-$cnt['ad_metrics_daily']      = (int) ogDb::raw("SELECT COUNT(*) as t FROM `ad_metrics_daily`", [])[0]['t'];
-$cnt['ad_metrics_hourly']     = (int) ogDb::raw("SELECT COUNT(*) as t FROM `ad_metrics_hourly`", [])[0]['t'];
+$sampMeta = dba($pdo,
+  "SELECT meta_key, meta_value,
+     CONVERT_TZ(meta_value,'UTC','America/Guayaquil') as meta_ecu
+   FROM `client_bot_meta`
+   WHERE `meta_key` = 'last_message_at' AND `client_id` = ? AND `bot_id` = ?",
+  [$previewClientId, $previewBotId]
+);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Migración UTC</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Segoe UI',sans-serif; background:#f0f2f5; padding:2rem; }
-    .wrap { max-width:860px; margin:0 auto; }
-    h1 { color:#1a2332; margin-bottom:.4rem; font-size:1.5rem; }
-    .subtitle { color:#6c757d; font-size:.9rem; margin-bottom:2rem; }
-    .alert { padding:.9rem 1.25rem; border-radius:6px; margin-bottom:1.5rem; font-size:.9rem; }
-    .alert-ok  { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
-    .alert-err { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
-    .card { background:white; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,.08); margin-bottom:1.25rem; overflow:hidden; }
-    .card-head { padding:.9rem 1.25rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f0f0f0; }
-    .card-title { font-size:1rem; font-weight:700; color:#1a2332; }
-    .card-body { padding:1rem 1.25rem; display:flex; align-items:flex-end; justify-content:space-between; gap:1.5rem; flex-wrap:wrap; }
-    .fields { flex:1; }
-    .fields p { font-size:.82rem; color:#555; margin-bottom:.35rem; }
-    .fields p strong { color:#2c3e50; }
-    .pill { display:inline-block; background:#e8f4fd; color:#1a6fa8; border-radius:20px; font-size:.75rem; font-weight:600; padding:.2rem .65rem; margin:.15rem .1rem; }
-    .pill.note { background:#fff8e1; color:#7d5a00; }
-    .counts { display:flex; gap:.75rem; align-items:flex-start; flex-wrap:wrap; }
-    .count-box { text-align:center; background:#f8f9fa; border-radius:6px; padding:.5rem .85rem; border:1px solid #dee2e6; min-width:80px; }
-    .count-num { font-size:1.4rem; font-weight:700; color:#2c3e50; }
-    .count-lbl { font-size:.72rem; color:#888; margin-top:.1rem; }
-    .btn-run { padding:.6rem 1.4rem; font-size:.88rem; font-weight:700; background:#e74c3c; color:white; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; }
-    .btn-run:hover { background:#c0392b; }
-    code { background:#f1f1f1; padding:.1rem .35rem; border-radius:3px; font-family:monospace; font-size:.85em; }
-    .badge-pending { background:#fff3cd; color:#856404; border:1px solid #ffc107; padding:.2rem .6rem; border-radius:4px; font-size:.75rem; font-weight:600; }
-    .badge-done    { background:#d4edda; color:#155724; border:1px solid #28a745; padding:.2rem .6rem; border-radius:4px; font-size:.75rem; font-weight:600; }
-    .btn-disabled  { padding:.6rem 1.4rem; font-size:.88rem; font-weight:700; background:#adb5bd; color:white; border:none; border-radius:6px; cursor:not-allowed; white-space:nowrap; }
-  </style>
+<meta charset="UTF-8">
+<title>UNDO S-fix UTC</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;padding:2rem;color:#2c3e50}
+  .wrap{max-width:860px;margin:0 auto}
+  h1{font-size:1.35rem;margin-bottom:.3rem}
+  .subtitle{color:#6c757d;font-size:.85rem;margin-bottom:.5rem}
+  .badge{display:inline-block;background:#fff3cd;color:#7d5a00;border-radius:20px;font-size:.78rem;font-weight:700;padding:.2rem .8rem;margin-bottom:1.5rem}
+  .alert{padding:.85rem 1.2rem;border-radius:6px;margin-bottom:.75rem;font-size:.88rem}
+  .alert-ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+  .alert-err{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+  .card{background:#fff;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:1.25rem;overflow:hidden;border:2px solid #e74c3c}
+  .card-head{padding:.85rem 1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;border-bottom:1px solid #f0f0f0}
+  .card-title{font-size:.95rem;font-weight:700;color:#e74c3c}
+  .card-sub{font-size:.78rem;color:#888;margin-top:.2rem}
+  .card-body{padding:1rem 1.2rem}
+  .btn{padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;border:none;border-radius:6px;cursor:pointer}
+  .btn-red{background:#e74c3c;color:#fff}.btn-red:hover{background:#c0392b}
+  input[type=number],input[type=text]{padding:.4rem .5rem;border:1px solid #ccc;border-radius:4px;font-size:.85rem}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.75rem}
+  th{background:#f8f9fa;padding:.4rem .55rem;text-align:left;border-bottom:2px solid #dee2e6;color:#555}
+  td{padding:.38rem .55rem;border-bottom:1px solid #f4f4f4}
+  tr:last-child td{border-bottom:none}
+  td.dc{font-family:monospace;color:#c0392b;font-weight:600}
+  td.ok{font-family:monospace;color:#27ae60;font-weight:600}
+  .info{font-size:.82rem;color:#555;margin-bottom:.6rem;line-height:1.5}
+</style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🕐 Migración Ecuador → UTC</h1>
-  <p class="subtitle">Suma 5 horas a todos los campos datetime pendientes. Ejecutar cada botón <strong>una sola vez</strong>.</p>
+  <h1>âª UNDO â€” Revertir S-fix errÃ³neo</h1>
+  <p class="subtitle">Resta 5h a chats tipo S y <code>last_message_at</code> de un cliente que ya tenÃ­a UTC correcto y recibiÃ³ +5h de mÃ¡s.</p>
+  <div class="badge">ðŸ“… Hoy UTC: <?= $today ?></div>
 
-  <?php if ($result): ?>
-    <?php if ($result['success']): ?>
+  <?php foreach ($results as $r): ?>
+    <?php if ($r['ok']): ?>
       <div class="alert alert-ok">
-        ✅ <strong><?= htmlspecialchars($result['table']) ?></strong> migrado correctamente.<br>
-        <?php foreach ($result['rows'] as $field => $count): ?>
-          &nbsp;&nbsp;• <code><?= htmlspecialchars($field) ?></code>: <strong><?= number_format($count) ?></strong> registros actualizados<br>
-        <?php endforeach; ?>
+        âœ… <strong><?= htmlspecialchars($r['label']) ?></strong><br>
+        &nbsp;&nbsp;â€¢ chats S corregidos: <strong><?= $r['rows_chat'] ?></strong><br>
+        &nbsp;&nbsp;â€¢ client_bot_meta corregidos: <strong><?= $r['rows_meta'] ?></strong>
       </div>
     <?php else: ?>
-      <div class="alert alert-err">❌ Error: <?= htmlspecialchars($result['error']) ?></div>
+      <div class="alert alert-err">âŒ <?= htmlspecialchars($r['err']) ?></div>
     <?php endif; ?>
-  <?php endif; ?>
+  <?php endforeach; ?>
 
-
-  <!-- 1. client_bot_meta (meta_value) — YA MIGRADO -->
-  <div class="card" style="opacity:.6">
-    <div class="card-head">
-      <span class="card-title"><code>client_bot_meta</code> — meta_value (fechas del chat)</span>
-      <span class="badge-done">✅ Ya migrado</span>
-    </div>
-    <div class="card-body">
-      <div class="fields">
-        <p><strong>Campos afectados:</strong></p>
-        <?php foreach ($metaKeys as $k): ?>
-          <span class="pill"><?= $k ?></span>
-        <?php endforeach; ?>
-        <p style="margin-top:.6rem;font-size:.8rem;color:#e74c3c;font-weight:600">
-          Ejecutado en sesión anterior — NO ejecutar de nuevo.
-        </p>
-      </div>
-      <div class="counts">
-        <?php foreach ($metaCounts as $k => $n): ?>
-          <div class="count-box"><div class="count-num"><?= number_format($n) ?></div><div class="count-lbl"><?= $k ?></div></div>
-        <?php endforeach; ?>
-      </div>
-      <button class="btn-disabled" disabled>✅ Ya ejecutado</button>
-    </div>
-  </div>
-
-
-  <!-- 2. ad_auto_scale -->
   <div class="card">
     <div class="card-head">
-      <span class="card-title"><code>ad_auto_scale</code> — Reglas de escalado automático</span>
-      <span class="badge-pending">⏳ Pendiente</span>
-    </div>
-    <div class="card-body">
-      <div class="fields">
-        <p><strong>Campos afectados:</strong></p>
-        <span class="pill">dc</span>
-        <span class="pill">du</span>
-        <p style="margin-top:.5rem;font-size:.8rem;color:#888;"><code>du</code> solo donde no es NULL.</p>
+      <div>
+        <div class="card-title">âš ï¸ Revertir S-fix en cliente especÃ­fico</div>
+        <div class="card-sub">Resta 5h a <code>chats.dc</code> (tipo S) y <code>client_bot_meta.meta_value</code> (last_message_at)</div>
       </div>
-      <div class="counts">
-        <div class="count-box"><div class="count-num"><?= number_format($cnt['ad_auto_scale_total']) ?></div><div class="count-lbl">dc (total)</div></div>
-        <div class="count-box"><div class="count-num"><?= number_format($cnt['ad_auto_scale_du']) ?></div><div class="count-lbl">du (non-null)</div></div>
-      </div>
-      <form method="POST" onsubmit="return confirm('¿Migrar ad_auto_scale?\n\nNo se puede deshacer sin respaldo.')">
-        <input type="hidden" name="action" value="ad_auto_scale">
-        <button class="btn-run" type="submit">🚀 Migrar</button>
+      <form method="POST" onsubmit="return confirm('Â¿Restar 5h a chats S y meta del cliente?')">
+        <input type="hidden" name="action" value="undo_s_fix_client">
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <input type="number" name="client_id" placeholder="client_id" value="<?= $previewClientId ?>" style="width:90px">
+          <input type="number" name="bot_id" placeholder="bot_id" value="<?= $previewBotId ?>" style="width:70px">
+          <button class="btn btn-red">â–¶ Revertir -5h</button>
+        </div>
       </form>
     </div>
-  </div>
-
-
-  <!-- 3. ad_auto_scale_history -->
-  <div class="card">
-    <div class="card-head">
-      <span class="card-title"><code>ad_auto_scale_history</code> — Historial de ejecuciones</span>
-      <span class="badge-pending">⏳ Pendiente</span>
-    </div>
     <div class="card-body">
-      <div class="fields">
-        <p><strong>Campos afectados:</strong></p>
-        <span class="pill">executed_at</span>
-        <span class="pill">dc</span>
-      </div>
-      <div class="counts">
-        <div class="count-box"><div class="count-num"><?= number_format($cnt['ad_auto_scale_history']) ?></div><div class="count-lbl">registros</div></div>
-      </div>
-      <form method="POST" onsubmit="return confirm('¿Migrar ad_auto_scale_history?\n\nNo se puede deshacer sin respaldo.')">
-        <input type="hidden" name="action" value="ad_auto_scale_history">
-        <button class="btn-run" type="submit">🚀 Migrar</button>
-      </form>
-    </div>
-  </div>
+      <p class="info">
+        <strong>Â¿Por quÃ©?</strong> El S-fix anterior sumÃ³ +5h a <em>todos</em> los chats S de hoy,
+        incluyendo los que ya estaban en UTC correcto (mensajes de checkout/pago).
+        Este botÃ³n deshace ese cambio para un cliente especÃ­fico.<br>
+        <strong>Resultado esperado:</strong> <code>18:55 UTC â†’ 13:55 UTC</code> â†’ sidebar mostrarÃ¡ <code>08:55 ECU</code>
+      </p>
 
+      <?php if (!empty($sampS)): ?>
+        <strong style="font-size:.82rem">Chats S hoy (client_id=<?= $previewClientId ?>, bot=<?= $previewBotId ?>):</strong>
+        <table>
+          <thead><tr><th>ID</th><th>mensaje</th><th>dc (actual)</th><th>dc ECU</th></tr></thead>
+          <tbody>
+            <?php foreach ($sampS as $r): ?>
+            <tr>
+              <td><?= $r['id'] ?></td>
+              <td><?= htmlspecialchars($r['msg']) ?></td>
+              <td class="dc"><?= $r['dc'] ?></td>
+              <td class="ok"><?= $r['dc_ecu'] ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php else: ?>
+        <p style="color:#27ae60;font-size:.85rem;margin-top:.5rem">âœ… Sin chats S hoy para este cliente.</p>
+      <?php endif; ?>
 
-  <!-- 4. ad_budget_resets -->
-  <div class="card">
-    <div class="card-head">
-      <span class="card-title"><code>ad_budget_resets</code> — Historial de resets de presupuesto</span>
-      <span class="badge-pending">⏳ Pendiente</span>
-    </div>
-    <div class="card-body">
-      <div class="fields">
-        <p><strong>Campos afectados:</strong></p>
-        <span class="pill">reset_at</span>
-        <span class="pill">reset_date</span>
-        <p style="margin-top:.5rem;font-size:.8rem;color:#888;">
-          <code>reset_date</code> (DATE) se recalcula como <code>DATE(reset_at + 5h)</code>
-          a partir del valor original antes del desplazamiento.
-        </p>
-      </div>
-      <div class="counts">
-        <div class="count-box"><div class="count-num"><?= number_format($cnt['ad_budget_resets']) ?></div><div class="count-lbl">registros</div></div>
-      </div>
-      <form method="POST" onsubmit="return confirm('¿Migrar ad_budget_resets?\n\nNo se puede deshacer sin respaldo.')">
-        <input type="hidden" name="action" value="ad_budget_resets">
-        <button class="btn-run" type="submit">🚀 Migrar</button>
-      </form>
-    </div>
-  </div>
-
-
-  <!-- 5. ad_metrics_daily -->
-  <div class="card">
-    <div class="card-head">
-      <span class="card-title"><code>ad_metrics_daily</code> — Métricas diarias</span>
-      <span class="badge-pending">⏳ Pendiente</span>
-    </div>
-    <div class="card-body">
-      <div class="fields">
-        <p><strong>Campos afectados:</strong></p>
-        <span class="pill">generated_at</span>
-        <span class="pill">dc</span>
-        <span class="pill note">metric_date — NO se toca</span>
-        <p style="margin-top:.5rem;font-size:.8rem;color:#888;">
-          <code>metric_date</code> es fecha de negocio (el día al que pertenecen las métricas) — independiente de timezone, no se migra.
-        </p>
-      </div>
-      <div class="counts">
-        <div class="count-box"><div class="count-num"><?= number_format($cnt['ad_metrics_daily']) ?></div><div class="count-lbl">registros</div></div>
-      </div>
-      <form method="POST" onsubmit="return confirm('¿Migrar ad_metrics_daily?\n\nNo se puede deshacer sin respaldo.')">
-        <input type="hidden" name="action" value="ad_metrics_daily">
-        <button class="btn-run" type="submit">🚀 Migrar</button>
-      </form>
-    </div>
-  </div>
-
-
-  <!-- 6. ad_metrics_hourly -->
-  <div class="card">
-    <div class="card-head">
-      <span class="card-title"><code>ad_metrics_hourly</code> — Métricas por hora</span>
-      <span class="badge-pending">⏳ Pendiente</span>
-    </div>
-    <div class="card-body">
-      <div class="fields">
-        <p><strong>Campos afectados:</strong></p>
-        <span class="pill">query_date</span>
-        <span class="pill">query_hour</span>
-        <span class="pill">dc</span>
-        <p style="margin-top:.5rem;font-size:.8rem;color:#888;">
-          <code>query_date</code> + <code>query_hour</code> se combinan, se suman 5h y se re-extraen
-          en una sola sentencia (ej: hora 21 → 2 del día siguiente).
-        </p>
-      </div>
-      <div class="counts">
-        <div class="count-box"><div class="count-num"><?= number_format($cnt['ad_metrics_hourly']) ?></div><div class="count-lbl">registros</div></div>
-      </div>
-      <form method="POST" onsubmit="return confirm('¿Migrar ad_metrics_hourly?\n\nNo se puede deshacer sin respaldo.')">
-        <input type="hidden" name="action" value="ad_metrics_hourly">
-        <button class="btn-run" type="submit">🚀 Migrar</button>
-      </form>
+      <?php if (!empty($sampMeta)): ?>
+        <strong style="font-size:.82rem;display:block;margin-top:.9rem">client_bot_meta last_message_at:</strong>
+        <table>
+          <thead><tr><th>meta_key</th><th>meta_value (actual)</th><th>meta_value ECU</th></tr></thead>
+          <tbody>
+            <?php foreach ($sampMeta as $r): ?>
+            <tr>
+              <td><?= $r['meta_key'] ?></td>
+              <td class="dc"><?= $r['meta_value'] ?></td>
+              <td class="ok"><?= $r['meta_ecu'] ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
     </div>
   </div>
 
 </div>
 </body>
 </html>
-

@@ -172,7 +172,7 @@ class FollowupHandler {
         'max_send_at' => $maxSendAt,
         'processed' => 0,
         'status' => 1,
-        'dc' => date('Y-m-d H:i:s'),
+        'dc' => gmdate('Y-m-d H:i:s'),
         'tc' => time()
       ];
 
@@ -390,12 +390,8 @@ class FollowupHandler {
 
     // Convertir siempre a UTC antes de guardar en DB.
     // El CRON compara con date('Y-m-d H:i:s') que ahora también es UTC.
-    $isImmediateType = in_array($timeType, ['minuto', 'hora']);
-    $movedToNextDay = $baseDate->format('Y-m-d') > $dateBeforeRestrictions->format('Y-m-d');
-
-    if (!$isImmediateType || $movedToNextDay) {
-      $baseDate->setTimezone($utcTz);
-    }
+    // Siempre convertir a UTC antes de guardar en DB
+    $baseDate->setTimezone($utcTz);
 
     return [
       'future_date' => $baseDate->format('Y-m-d H:i:s'),
@@ -435,7 +431,7 @@ class FollowupHandler {
 
   // Obtener followups pendientes organizados por bot
   static function getPending() {
-    $now = date('Y-m-d H:i:s');
+    $now = gmdate('Y-m-d H:i:s');
     $botsConfig = [];
     $allFollowups = [];
     $seenNumbers = [];
@@ -512,7 +508,7 @@ class FollowupHandler {
       ->where('id', $id)
       ->update([
         'processed' => 1,
-        'du' => date('Y-m-d H:i:s'),
+        'du' => gmdate('Y-m-d H:i:s'),
         'tu' => time()
       ]);
   }
@@ -524,7 +520,7 @@ class FollowupHandler {
       ->where('processed', 0)
       ->update([
         'processed' => 2,
-        'du' => date('Y-m-d H:i:s'),
+        'du' => gmdate('Y-m-d H:i:s'),
         'tu' => time()
       ]);
   }

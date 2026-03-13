@@ -110,7 +110,7 @@ class UpsellHandler {
       'processed' => 0,
       'status' => 1,
       'special' => 'upsell',
-      'dc' => date('Y-m-d H:i:s'),
+      'dc' => gmdate('Y-m-d H:i:s'),
       'tc' => time()
     ];
 
@@ -182,6 +182,7 @@ class UpsellHandler {
     $timeValue = (int)($upsell['time_value'] ?? 5);
 
     $botTz = new DateTimeZone($botTimezone);
+    $utcTz = new DateTimeZone('UTC');
     $baseDate = new DateTime('now', $botTz);
 
     switch ($timeType) {
@@ -199,6 +200,8 @@ class UpsellHandler {
         break;
     }
 
+    // Siempre convertir a UTC antes de guardar en DB
+    $baseDate->setTimezone($utcTz);
     return $baseDate->format('Y-m-d H:i:s');
   }
 

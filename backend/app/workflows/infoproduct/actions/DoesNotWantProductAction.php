@@ -59,7 +59,7 @@ class DoesNotWantProductAction implements ActionHandler {
         ->where('id', $saleId)
         ->update([
           'process_status' => 'cancelled',
-          'du' => date('Y-m-d H:i:s'),
+          'du' => gmdate('Y-m-d H:i:s'),
           'tu' => time()
         ]);
 
@@ -76,7 +76,7 @@ class DoesNotWantProductAction implements ActionHandler {
     $metadata = [
       'action' => 'sale_cancelled_by_client',
       'sale_id' => $saleId,
-      'cancelled_at' => date('Y-m-d H:i:s')
+      'cancelled_at' => gmdate('Y-m-d H:i:s')
     ];
 
     ogApp()->loadHandler('chat');

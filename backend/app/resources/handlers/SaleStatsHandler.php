@@ -12,7 +12,7 @@ class SaleStatsHandler {
     $range = $params['range'] ?? 'last_7_days';
     $botId = $params['bot_id'] ?? null;
     $productId = $params['product_id'] ?? null;
-    $dates = ogApp()->helper('date')::getDateRange($range);
+    $dates = ogApp()->helper('date')::getDateRange($range, ogApp()->helper('date')::getUserTimezone());
 
     if (!$dates) {
       return ['success' => false, 'error' => 'Rango inválido'];
@@ -186,7 +186,7 @@ class SaleStatsHandler {
     $userId = $GLOBALS['auth_user_id'];
 
     $range = $params['range'] ?? 'last_7_days';
-    $dates = ogApp()->helper('date')::getDateRange($range);
+    $dates = ogApp()->helper('date')::getDateRange($range, ogApp()->helper('date')::getUserTimezone());
 
     if (!$dates) {
       return ['success' => false, 'error' => 'Rango inválido'];
@@ -289,7 +289,7 @@ class SaleStatsHandler {
     $userId = $GLOBALS['auth_user_id'];
 
     // Parámetros requeridos
-    $date = $params['date'] ?? date('Y-m-d'); // Fecha específica (hoy por defecto)
+    $date = $params['date'] ?? date('Y-m-d');
     $botId = $params['bot_id'] ?? null;
     $productId = $params['product_id'] ?? null;
 
@@ -297,10 +297,15 @@ class SaleStatsHandler {
       return ['success' => false, 'error' => 'bot_id es requerido'];
     }
 
+    // Convertir fecha local a rango UTC
+    $userTz   = ogApp()->helper('date')::getUserTimezone();
+    $utcRange = ogApp()->helper('date')::localDateToUtcRange($date, $userTz);
+    $offsetSec = (int)$utcRange['offset_sec'];
+
     // Construir query
     $sql = "
       SELECT
-        HOUR(payment_date) as hour,
+        HOUR(DATE_ADD(payment_date, INTERVAL {$offsetSec} SECOND)) as hour,
         COUNT(*) as sales_count,
         SUM(billed_amount) as revenue,
         SUM(CASE WHEN tracking_funnel_id IS NULL AND (origin != 'upsell' OR origin IS NULL) THEN billed_amount ELSE 0 END) as direct_revenue,
@@ -312,12 +317,12 @@ class SaleStatsHandler {
       FROM " . ogDb::t('sales', true) . "
       WHERE user_id = ?
         AND bot_id = ?
-        AND DATE(payment_date) = ?
+        AND payment_date >= ? AND payment_date <= ?
         AND process_status = 'sale_confirmed'
         AND status = 1
     ";
 
-    $queryParams = [$userId, $botId, $date];
+    $queryParams = [$userId, $botId, $utcRange['start'], $utcRange['end']];
 
     // Filtrar por producto si se proporciona
     if ($productId) {
@@ -328,7 +333,7 @@ class SaleStatsHandler {
     }
 
     $sql .= "
-      GROUP BY HOUR(payment_date)
+      GROUP BY HOUR(DATE_ADD(payment_date, INTERVAL {$offsetSec} SECOND))
       ORDER BY hour ASC
     ";
 
