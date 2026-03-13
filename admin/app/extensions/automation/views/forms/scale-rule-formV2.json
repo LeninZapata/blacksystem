@@ -564,13 +564,13 @@
             {
               "name": "period_fields_group",
               "type": "group",
-              "columns": 2,
+              "columns": 1,
               "gap": "normal",
               "condition": [
                 {
                   "field": "action_type",
                   "operator": "any",
-                  "value": "increase_budget,decrease_budget,adjust_to_spend"
+                  "value": "increase_budget,decrease_budget,adjust_to_spend,pause"
                 }
               ],
               "conditionContext": "repeatable",
@@ -608,7 +608,23 @@
                   ],
                   "validation": "required",
                   "help": "i18n:automation.scale_rules.field.time_period_help"
-                },
+                }
+              ]
+            },
+            {
+              "name": "budget_type_group",
+              "type": "group",
+              "columns": 1,
+              "gap": "normal",
+              "condition": [
+                {
+                  "field": "action_type",
+                  "operator": "any",
+                  "value": "increase_budget,decrease_budget,adjust_to_spend"
+                }
+              ],
+              "conditionContext": "repeatable",
+              "fields": [
                 {
                   "name": "budget_type",
                   "label": "i18n:automation.scale_rules.field.budget_type",

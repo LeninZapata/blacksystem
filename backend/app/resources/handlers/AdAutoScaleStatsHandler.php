@@ -19,8 +19,9 @@ class AdAutoScaleStatsHandler {
         return ogResponse::error('asset_id es requerido');
       }
 
-      // Obtener fechas según rango
-      $dates = self::getDateRange($range);
+      // Obtener fechas según rango (respetando timezone del usuario)
+      $userTz = ogApp()->helper('date')::getUserTimezone();
+      $dates = self::getDateRangeUtc($range, $userTz);
 
       // Consultar historial de cambios - incluir conditions_result y metrics_snapshot
       $sql = "
@@ -51,7 +52,7 @@ class AdAutoScaleStatsHandler {
         $assetId,
         $userId,
         $dates['from'],
-        $dates['to'] . ' 23:59:59'
+        $dates['to']
       ]);
 
       // Formatear datos - extraer desde action_result, incluir conditions y metrics
@@ -103,7 +104,8 @@ class AdAutoScaleStatsHandler {
           'budget_change' => round((float)$adjustmentAmount, 2),
           'conditions_result' => $conditionsResult,
           'metrics_snapshot' => $metricsSnapshot,
-          'executed_at' => $row['executed_at'],
+          // Sufijo Z = UTC explícito; el browser lo convierte a hora local del usuario
+          'executed_at' => str_replace(' ', 'T', $row['executed_at']) . 'Z',
           'execution_time_ms' => $row['execution_time_ms']
         ];
       }, $results);
@@ -122,7 +124,55 @@ class AdAutoScaleStatsHandler {
     }
   }
 
-  // Convertir rango a fechas
+  // Convertir rango a fechas UTC respetando la timezone del usuario.
+  // Retorna ['from' => UTC datetime, 'to' => UTC datetime]
+  private static function getDateRangeUtc($range, $userTz) {
+    $dateHelper = ogApp()->helper('date');
+
+    // Fecha personalizada enviada por el frontend (ej: custom:2026-02-13, ya en timezone local del usuario)
+    if (strpos($range, 'custom:') === 0) {
+      $customDate = substr($range, 7);
+      if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $customDate)) {
+        $utcRange = $dateHelper::localDateToUtcRange($customDate, $userTz);
+        return ['from' => $utcRange['start'], 'to' => $utcRange['end']];
+      }
+    }
+
+    // Rangos nombrados: ogDate::getDateRange ya devuelve UTC start/end con timezone del usuario
+    $utcRange = $dateHelper::getDateRange($range, $userTz);
+    if ($utcRange) {
+      return ['from' => $utcRange['start'], 'to' => $utcRange['end']];
+    }
+
+    // Fallback: hoy en UTC
+    return ['from' => date('Y-m-d') . ' 00:00:00', 'to' => date('Y-m-d') . ' 23:59:59'];
+  }
+
+  // Convertir un datetime UTC a la timezone local del usuario
+  private static function utcToLocal($utcDatetime, $timezone) {
+    try {
+      $dt = new DateTime($utcDatetime, new DateTimeZone('UTC'));
+      $dt->setTimezone(new DateTimeZone($timezone));
+      return $dt->format('Y-m-d H:i:s');
+    } catch (\Exception $e) {
+      return $utcDatetime;
+    }
+  }
+
+  // Obtener el offset de timezone como string para CONVERT_TZ de MySQL (ej: '-05:00')
+  private static function getTzOffsetStr($timezone) {
+    try {
+      $tz = new DateTimeZone($timezone);
+      $offsetSec = $tz->getOffset(new DateTime('now', new DateTimeZone('UTC')));
+      $sign = $offsetSec >= 0 ? '+' : '-';
+      $abs  = abs($offsetSec);
+      return sprintf('%s%02d:%02d', $sign, intdiv($abs, 3600), ($abs % 3600) / 60);
+    } catch (\Exception $e) {
+      return '+00:00';
+    }
+  }
+
+  // [DEPRECATED] Mantener por compatibilidad — usar getDateRangeUtc en código nuevo
   private static function getDateRange($range) {
     $today = date('Y-m-d');
     $yesterday = date('Y-m-d', strtotime('-1 day'));
@@ -186,13 +236,15 @@ class AdAutoScaleStatsHandler {
         return ogResponse::error('asset_id es requerido');
       }
 
-      // Obtener fechas según rango
-      $dates = self::getDateRange($range);
+      // Obtener fechas según rango (respetando timezone del usuario)
+      $userTz = ogApp()->helper('date')::getUserTimezone();
+      $tzOffset = self::getTzOffsetStr($userTz);
+      $dates = self::getDateRangeUtc($range, $userTz);
 
-      // Consultar historial agrupado por día
+      // Consultar historial agrupado por día (en hora local del usuario)
       $sql = "
         SELECT 
-          DATE(h.executed_at) as date,
+          DATE(CONVERT_TZ(h.executed_at, '+00:00', ?)) as date,
           COUNT(CASE WHEN h.action_type = 'increase_budget' THEN 1 END) as positive_rules_count,
           COUNT(CASE WHEN h.action_type = 'decrease_budget' THEN 1 END) as negative_rules_count,
           COUNT(CASE WHEN h.action_type = 'pause' THEN 1 END) as pause_count,
@@ -211,15 +263,17 @@ class AdAutoScaleStatsHandler {
           AND h.action_type IN ('increase_budget', 'decrease_budget', 'pause')
           AND h.executed_at >= ?
           AND h.executed_at <= ?
-        GROUP BY DATE(h.executed_at)
+        GROUP BY DATE(CONVERT_TZ(h.executed_at, '+00:00', ?))
         ORDER BY date ASC
       ";
 
       $results = ogDb::raw($sql, [
+        $tzOffset,
         $assetId,
         $userId,
         $dates['from'],
-        $dates['to'] . ' 23:59:59'
+        $dates['to'],
+        $tzOffset
       ]);
 
       // Formatear datos

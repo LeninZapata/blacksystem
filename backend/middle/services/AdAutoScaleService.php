@@ -22,6 +22,12 @@ class AdAutoScaleService {
         ->where('status', 1)
         ->first();
 
+      // Inyectar rule_id en el asset para que canExecuteAction pueda filtrar
+      // el cooldown por regla y no mezclar tiempos entre reglas distintas
+      if ($asset) {
+        $asset['rule_id'] = $ruleId;
+      }
+
       if (!$asset) {
         ogLog::warning('processRule - Activo no encontrado o inactivo', [
           'asset_id' => $assetId
@@ -750,11 +756,21 @@ class AdAutoScaleService {
     $spend = !empty($result) ? (float)($result[0]['spend'] ?? 0) : 0;
     $results = !empty($result) ? (int)($result[0]['results'] ?? 0) : 0;
     
-    // Calcular revenue y profit hasta esa hora (convertir local→UTC para comparar con payment_date)
+    // Calcular revenue y profit hasta esa hora.
+    // $hour = query_hour = hora UTC. $date = fecha local del asset.
+    // Necesitamos: desde inicio del día local (en UTC) hasta el fin del $hour UTC.
     $assetTimezone = $this->getAssetTimezone($asset);
-    $utcRange = ogApp()->helper('date')::localDateToUtcRange($date, $assetTimezone);
-    $utcHourEnd = (new DateTime($date . ' ' . str_pad($hour, 2, '0', STR_PAD_LEFT) . ':59:59', new DateTimeZone($assetTimezone)))->setTimezone(new DateTimeZone('UTC'));
-    $revenue = $this->calculateRevenue($productId, $utcRange['start'], $utcHourEnd->format('Y-m-d H:i:s'));
+    $utcRange   = ogApp()->helper('date')::localDateToUtcRange($date, $assetTimezone);
+    $utcStartDt = new DateTime($utcRange['start'], new DateTimeZone('UTC'));
+    $utcStartH  = (int)$utcStartDt->format('H');
+    $utcBaseDate = $utcStartDt->format('Y-m-d');
+    // Si query_hour < hora UTC de inicio del día local → pertenece al DÍA UTC siguiente
+    // (ej: ECU UTC-5: horas 0-4 UTC = 19-23h ECU = mismo día local pero siguiente UTC date)
+    $utcDateForHour = ($hour < $utcStartH)
+      ? date('Y-m-d', strtotime($utcBaseDate . ' +1 day'))
+      : $utcBaseDate;
+    $utcEndStr = $utcDateForHour . ' ' . str_pad($hour, 2, '0', STR_PAD_LEFT) . ':59:59';
+    $revenue = $this->calculateRevenue($productId, $utcRange['start'], $utcEndStr);
     $roas = $spend > 0 ? $revenue / $spend : 0;
     $profit = $revenue - $spend;
     
@@ -971,6 +987,10 @@ class AdAutoScaleService {
       if (!$actionType) continue;
 
       $result = $this->executeAction($asset, $action, $metrics);
+      // Garantizar que 'action' siempre esté presente (pauseAsset no lo incluye en su return)
+      if (!isset($result['action'])) {
+        $result['action'] = $actionType;
+      }
       $results[] = $result;
 
       if ($result['success']) {
@@ -1049,12 +1069,14 @@ class AdAutoScaleService {
 
     $assetId = $asset['ad_asset_id'];
     $actionType = $action['action_type'];
-    $ruleId = $asset['rule_id'] ?? 0; // Necesitamos el rule_id del contexto
+    $ruleId = $asset['rule_id'] ?? 0; // Inyectado en processRule
 
-    // Obtener última ejecución exitosa de esta acción para este activo
-    // Intentar con columna 'success' si existe, sino usar action_executed
+    // Obtener última ejecución exitosa de esta acción para ESTA REGLA y activo.
+    // Se filtra por rule_id para que el cooldown de una regla no afecte a otra
+    // regla distinta que opere sobre el mismo activo con la misma acción.
     $query = ogDb::t('ad_auto_scale_history')
       ->select('executed_at')
+      ->where('rule_id', $ruleId)
       ->where('ad_asset_id', $assetId)
       ->where('action_executed', 1)
       ->where('action_type', $actionType);
@@ -1068,6 +1090,7 @@ class AdAutoScaleService {
       // Si falla (columna no existe), buscar cualquier acción ejecutada
       $lastExecution = ogDb::t('ad_auto_scale_history')
         ->select('executed_at')
+        ->where('rule_id', $ruleId)
         ->where('ad_asset_id', $assetId)
         ->where('action_executed', 1)
         ->where('action_type', $actionType)
@@ -1091,8 +1114,16 @@ class AdAutoScaleService {
         return false;
 
       case 'daily':
-        // Verificar que haya pasado al menos 24 horas
-        return $elapsedHours >= 24;
+        // Comparar días en la timezone del activo (no UTC) para respetar el día local
+        // Ej: pausa a las 20:00 ECU (01:00 UTC+1) → a las 21:00 ECU sigue siendo el mismo día ECU
+        try {
+          $assetTz = new DateTimeZone($asset['timezone'] ?? 'UTC');
+        } catch (\Exception $e) {
+          $assetTz = new DateTimeZone('UTC');
+        }
+        $lastExecutedDay = (new DateTime('@' . $lastExecutedAt))->setTimezone($assetTz)->format('Y-m-d');
+        $todayInAssetTz  = (new DateTime('now', $assetTz))->format('Y-m-d');
+        return $lastExecutedDay !== $todayInAssetTz;
 
       case 'every_2h':
         // Verificar que hayan pasado al menos 2 horas
@@ -1553,13 +1584,19 @@ class AdAutoScaleService {
           ];
         }
         
-        // VALIDACIÓN 3: Mínimo de actividad
-        if ($adMetrics['results'] < 2) {
-          return [
-            'success' => false,
-            'error' => "Actividad insuficiente en {$timeRange}: {$adMetrics['results']} resultados (mínimo: 2)"
-          ];
-        }
+        // VALIDACIÓN 3: Mínimo de actividad (DESACTIVADA)
+        // Esta validación exigía >= 2 resultados para evitar que el sistema
+        // tomara decisiones agresivas (ej: escalar presupuesto) con muy poca
+        // actividad del día. Se desactivó porque bloquea reglas legítimas que
+        // usan la condición "results <= 1" como criterio (ej: acelerar por CPR bajo).
+        // Para replicar la protección basta con agregar en la propia regla:
+        //   "results > 2" como condición adicional.
+        // if ($adMetrics['results'] < 2) {
+        //   return [
+        //     'success' => false,
+        //     'error' => "Actividad insuficiente en {$timeRange}: {$adMetrics['results']} resultados (mínimo: 2)"
+        //   ];
+        // }
 
         // Calcular ROAS y revenue personalizado (convertir fechas locales→UTC para payment_date)
         $utcSalesRange = ogApp()->helper('date')::localDateToUtcRange($dates['from'], $assetTimezone);
