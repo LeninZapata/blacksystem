@@ -261,13 +261,14 @@ class FollowupHandler {
         ], self::$logMeta);
       }
 
-      // Actualizar fecha
-      $newDate = new DateTime('@' . $newTimestamp);
-      $newDate->setTimezone($botTz);
+      // Actualizar fecha — guardar future_date en UTC para consistencia con el CRON
+      $newDate = new DateTime('@' . $newTimestamp); // DateTime desde unix timestamp siempre es UTC
+      $newDateBotTz = clone $newDate;
+      $newDateBotTz->setTimezone($botTz);
 
-      $item['future_date'] = $newDate->format('Y-m-d H:i:s');
+      $item['future_date'] = $newDate->format('Y-m-d H:i:s'); // UTC
       $item['future_timestamp'] = $newTimestamp;
-      $item['date_in_bot_tz'] = $newDate->format('Y-m-d H:i:s');
+      $item['date_in_bot_tz'] = $newDateBotTz->format('Y-m-d H:i:s'); // para logs
 
       ogLog::info("adjustFor70Hours - Followup ajustado", [
         'index' => $item['index'],
@@ -285,7 +286,7 @@ class FollowupHandler {
 
   // Calcular fecha futura según timezone del bot
   private static function calculateFutureDate($fup, $botTimezone) {
-    $ecuadorTz = new DateTimeZone('America/Guayaquil');
+    $utcTz = new DateTimeZone('UTC');
     $botTz = new DateTimeZone($botTimezone);
 
     // Fecha base según si ya calculamos alguna anterior
@@ -387,12 +388,13 @@ class FollowupHandler {
 
     $dateInBotTz = $baseDate->format('Y-m-d H:i:s');
 
-    // Determinar si debe convertirse a Ecuador
+    // Convertir siempre a UTC antes de guardar en DB.
+    // El CRON compara con date('Y-m-d H:i:s') que ahora también es UTC.
     $isImmediateType = in_array($timeType, ['minuto', 'hora']);
     $movedToNextDay = $baseDate->format('Y-m-d') > $dateBeforeRestrictions->format('Y-m-d');
 
     if (!$isImmediateType || $movedToNextDay) {
-      $baseDate->setTimezone($ecuadorTz);
+      $baseDate->setTimezone($utcTz);
     }
 
     return [

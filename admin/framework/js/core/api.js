@@ -27,8 +27,13 @@ class ogApi {
 
   static getHeaders(options = {}) {
     const config = this.getConfig(options);
+    const auth = ogModule('auth');
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timezone = auth?.userPreferences?.timezone || browserTimezone;
+
     return {
       'Content-Type': 'application/json',
+      'X-User-Timezone': timezone,
       ...config.api?.headers
     };
   }

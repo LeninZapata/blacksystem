@@ -71,6 +71,7 @@ class admin {
       status: data.status == 1 || data.status === true ? 'on' : '',
       preferences_theme: config.preferences?.theme || 'light',
       preferences_language: config.preferences?.language || 'es',
+      preferences_timezone: config.preferences?.timezone || 'America/Guayaquil',
       preferences_notifications: config.preferences?.notifications ? 'on' : ''
     });
   }
@@ -129,6 +130,7 @@ class admin {
       preferences: {
         theme: formData.preferences_theme || 'light',
         language: formData.preferences_language || 'es',
+        timezone: formData.preferences_timezone || 'America/Guayaquil',
         notifications: formData.preferences_notifications === 'on' || formData.preferences_notifications === true
       }
     };

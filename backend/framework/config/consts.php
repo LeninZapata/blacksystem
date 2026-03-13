@@ -2,7 +2,9 @@
 // Constantes del FRAMEWORK (genéricas, reutilizables)
 
 // Configuración de zona horaria
-define('OG_TIMEZONE', 'America/Guayaquil');
+// El backend siempre opera en UTC. La conversión al timezone del usuario
+// se hace en el frontend usando config.preferences.timezone del usuario.
+define('OG_TIMEZONE', 'UTC');
 date_default_timezone_set(OG_TIMEZONE);
 
 // Constantes de tiempo (en segundos)

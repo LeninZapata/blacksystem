@@ -1,13 +1,22 @@
 URGENTE:
-☐ Sigue le problema del nombre del cliente, el bot en el recibo del campo del pichincha lo esta tomando a dannes como nombre del cliente
+✔ Sigue le problema del nombre del cliente, el bot en el recibo del campo del pichincha lo esta tomando a dannes como nombre del cliente @done(12-03-2026 11:23)
+☐ Hora en general usar UTC para todos, hay que probarlo en todos los casos..
+☐ Moneda Local -> USD, ver en ambas monedas
+☐ Resumen mejorado
 ☐ La hora del reseteo del presupuesto es por bot y no por activo publicitario
   porque tengo DIGAMOS DE mi cuenta de ecuador  manejo la publicidad en otros paises entonces
   el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
+☐ COmo se manejan muchos productos uno se puede confundir con las reglas de escalas creadas o no Hay que agregar un aviso
+QUE PRODUCTO no tiene reglas de escalas con eso podemos crerlas.... y que no se nos pase por alto
 RAPIDO:
 ☐ Si llega un nuevo producto que genera un sale_id osea es nuevo los anteriores de ese cliente y bot deben
   PROCESAR los seguimientos para que ya no se envien porque entro en una nueva veta.
 ☐ agregar trigger de plantillas
 ☐ agrear botnes en los mensajes puede ser de bienvenida o se seguimiento
+
+Backend:
+☐ Revisa el cron que borras los registros los JSON o Logs temporales (problemas con Middle)
+☐ Revisa si hay hay una forma de borrar datos de la DB periodicamente, REVISA LAS TABLAS CON MUCHOS REGISTROS
 
 FRONTEND:
 ☐ Agrega la opcion de parar los seguimiento de una persona en caso ocurra algo

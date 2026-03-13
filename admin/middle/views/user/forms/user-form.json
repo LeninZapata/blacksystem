@@ -123,6 +123,17 @@
               ]
             },
             {
+              "name": "preferences_timezone",
+              "label": "Zona Horaria",
+              "type": "select",
+              "required": true,
+              "source": "api/credential/timezones",
+              "sourceValue": "value",
+              "sourceLabel": "label",
+              "defaultValue": "America/Guayaquil",
+              "help": "Zona horaria en la que se mostrarán las fechas al usuario"
+            },
+            {
               "name": "preferences_notifications",
               "label": "Habilitar notificaciones del sistema",
               "type": "checkbox"

@@ -42,6 +42,14 @@ class chat {
     this._lastMsgId       = null;
     this._activeExpiry    = null;
     this._clientsKnown    = new Map();
+
+    // Configurar timezone del usuario en bsDate para mostrar fechas correctas
+    if (window.bsDate) {
+      const auth = ogModule('auth');
+      bsDate.timezone = auth?.userPreferences?.timezone
+        || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+
     this._initBotFilter();
   }
 
