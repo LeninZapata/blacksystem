@@ -234,20 +234,37 @@ class ClientController extends ogController {
       }
       unset($client);
 
-      // Monto acumulado de ventas confirmadas por cliente+bot
+      // Ventas confirmadas por cliente+bot, separadas en: hoy (local) vs anteriores
+      $userTz      = ogApp()->helper('date')::getUserTimezone();
+      $offsetSec   = (new DateTime('now', new DateTimeZone('UTC')))->diff(new DateTime('now', new DateTimeZone($userTz)))->s
+                     + ((new DateTime('now', new DateTimeZone('UTC')))->diff(new DateTime('now', new DateTimeZone($userTz)))->h * 3600)
+                     + ((new DateTime('now', new DateTimeZone('UTC')))->diff(new DateTime('now', new DateTimeZone($userTz)))->i * 60);
+      $offsetSec   = (new DateTimeZone($userTz))->getOffset(new DateTime('now', new DateTimeZone('UTC')));
+      $todayLocal  = (new DateTime('now', new DateTimeZone($userTz)))->format('Y-m-d');
+
       $confirmedSales = ogDb::raw(
-        "SELECT client_id, bot_id, SUM(COALESCE(billed_amount, amount)) AS confirmed_amount
+        "SELECT client_id, bot_id,
+           SUM(CASE WHEN DATE(DATE_ADD(payment_date, INTERVAL {$offsetSec} SECOND)) = ?
+                    THEN COALESCE(billed_amount, amount) ELSE 0 END) AS today_amount,
+           SUM(CASE WHEN DATE(DATE_ADD(payment_date, INTERVAL {$offsetSec} SECOND)) < ?
+                    THEN COALESCE(billed_amount, amount) ELSE 0 END) AS prev_amount
          FROM sales
          WHERE client_id IN ($placeholders) AND status = 1 AND process_status = 'sale_confirmed'
          GROUP BY client_id, bot_id",
-        $ids
+        array_merge([$todayLocal, $todayLocal], $ids)
       );
       $confirmedMap = [];
       foreach ($confirmedSales as $row) {
-        $confirmedMap[$row['client_id'] . '_' . $row['bot_id']] = $row['confirmed_amount'];
+        $key = $row['client_id'] . '_' . $row['bot_id'];
+        $confirmedMap[$key] = [
+          'today_amount' => $row['today_amount'] > 0 ? (float)$row['today_amount'] : null,
+          'prev_amount'  => $row['prev_amount']  > 0 ? (float)$row['prev_amount']  : null,
+        ];
       }
       foreach ($data as &$client) {
-        $client['confirmed_amount'] = $confirmedMap[$client['id'] . '_' . $client['chat_bot_id']] ?? null;
+        $entry = $confirmedMap[$client['id'] . '_' . $client['chat_bot_id']] ?? null;
+        $client['today_amount'] = $entry['today_amount'] ?? null;
+        $client['prev_amount']  = $entry['prev_amount']  ?? null;
       }
       unset($client);
     }

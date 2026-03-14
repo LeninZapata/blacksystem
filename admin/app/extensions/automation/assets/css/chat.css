@@ -169,6 +169,11 @@
     line-height: 1.4;
   }
 
+  .bs-chat-sale-badge--old {
+    background: var(--og-gray-100, #f3f4f6);
+    color: var(--og-gray-500, #6b7280);
+  }
+
   .bs-chat-item-date {
     font-size: var(--og-font-xs);
     color: var(--og-gray-500);

@@ -24,13 +24,15 @@ class PerformanceStatsHandler {
     $utcRange = ogApp()->helper('date')::localDateToUtcRange($date, $userTz);
     $offsetHours = $utcRange['offset_hours'];
 
-    // Anchor: estado agregado de la hora UTC inmediatamente anterior al inicio del día ECU.
-    // Se usa como baseline para el primer delta, evitando mostrar el acumulado completo
-    // del día anterior en ECU 00:00 cuando Facebook tiene carry-over de atribución.
-    // Ej: ECU 23:00 ayer (UTC 04:xx) → results=45. ECU 00:00 hoy (UTC 05:xx) → results=45 → delta=0.
+    // Anchor: estado agregado de la hora UTC inmediatamente anterior al inicio del día local.
+    // IMPORTANTE: query_date en BD está en timezone LOCAL del activo; query_hour es UTC.
+    // El anchor (UTC 04:xx = ECU 23:xx del día anterior) tiene query_date en fecha LOCAL anterior.
     $anchorHourUtc = date('Y-m-d H:i:s', strtotime($utcRange['start']) - 3600);
-    $anchorDate    = substr($anchorHourUtc, 0, 10);
     $anchorHour    = (int)substr($anchorHourUtc, 11, 2);
+    // Fecha LOCAL del anchor (query_date se guarda en local, no UTC)
+    $anchorDt   = new DateTime($anchorHourUtc, new DateTimeZone('UTC'));
+    $anchorDt->setTimezone(new DateTimeZone($userTz));
+    $anchorDate = $anchorDt->format('Y-m-d');
 
     $anchorSql = "
         SELECT SUM(h.link_clicks) as link_clicks, SUM(h.reach) as reach, SUM(h.results) as results
@@ -40,6 +42,7 @@ class PerformanceStatsHandler {
           SELECT ad_asset_id, MAX(id) as max_id
           FROM ad_metrics_hourly
           WHERE user_id = ? AND query_date = ? AND query_hour = ?
+            AND HOUR(dc) = query_hour
           GROUP BY ad_asset_id
         ) latest ON h.ad_asset_id = latest.ad_asset_id AND h.id = latest.max_id
         WHERE h.user_id = ?
@@ -55,14 +58,18 @@ class PerformanceStatsHandler {
     $anchorRows = ogDb::raw($anchorSql, $anchorParams);
     $prevRow    = (!empty($anchorRows) && $anchorRows[0]['results'] !== null) ? $anchorRows[0] : null;
 
-    // Filtro de datetime UTC para ad_metrics_hourly
+    // Umbral UTC de inicio del día local: horas UTC por debajo de este valor pertenecen
+    // al "final del día local" (tras la medianoche UTC) y deben ordenarse al final.
+    // ECU (UTC-5): local day starts at UTC 05:00 → threshold = 5
+    // UTC+3: local day starts at UTC 21:00 (prev UTC day) → threshold = 21
+    $utcDayStartHour = (int)((24 - $offsetHours) % 24);
 
-    // Construir query para métricas de ads (hourly)
-    // Se incluye query_date en SELECT y GROUP BY para poder calcular deltas
-    // correctamente por día UTC de Facebook (los datos son acumulativos por día UTC)
+    // Construir query filtrando por query_date LOCAL (no por rango UTC construido con CONCAT).
+    // Motivo: query_date se guarda en tz LOCAL y query_hour en UTC, por lo que el CONCAT
+    // producía timestamps incorrectos para las horas ECU 19:00-23:59 (UTC 00-04 del día siguiente),
+    // que con CONCAT resultaban "2026-03-14 00:00:00" < "2026-03-14 05:00:00" → excluidas.
     $sql = "
       SELECT
-        h.query_date,
         h.query_hour as hour,
         SUM(h.link_clicks) as link_clicks,
         SUM(h.reach) as reach,
@@ -70,14 +77,13 @@ class PerformanceStatsHandler {
       FROM ad_metrics_hourly h
       INNER JOIN product_ad_assets pa ON h.ad_asset_id = pa.ad_asset_id
       INNER JOIN (
-        SELECT ad_asset_id, query_date, query_hour, MAX(id) as max_id
+        SELECT ad_asset_id, query_hour, MAX(id) as max_id
         FROM ad_metrics_hourly
         WHERE user_id = ?
-          AND CONCAT(query_date, ' ', LPAD(query_hour, 2, '0'), ':00:00') >= ?
-          AND CONCAT(query_date, ' ', LPAD(query_hour, 2, '0'), ':00:00') <= ?
-        GROUP BY ad_asset_id, query_date, query_hour
+          AND query_date = ?
+          AND HOUR(dc) = query_hour
+        GROUP BY ad_asset_id, query_hour
       ) latest ON h.ad_asset_id = latest.ad_asset_id
-                 AND h.query_date = latest.query_date
                  AND h.query_hour = latest.query_hour
                  AND h.id = latest.max_id
       WHERE h.user_id = ?
@@ -85,14 +91,13 @@ class PerformanceStatsHandler {
           SELECT id FROM " . ogDb::t('products', true) . "
           WHERE user_id = ? AND bot_id = ? AND status = 1" . $envFilter . "
         )
-        AND CONCAT(h.query_date, ' ', LPAD(h.query_hour, 2, '0'), ':00:00') >= ?
-        AND CONCAT(h.query_date, ' ', LPAD(h.query_hour, 2, '0'), ':00:00') <= ?
+        AND h.query_date = ?
     ";
 
     $queryParams = [
-      $userId, $utcRange['start'], $utcRange['end'],
-      $userId, $userId, $botId,
-      $utcRange['start'], $utcRange['end'],
+      $userId, $date,           // subquery: user_id, fecha local
+      $userId, $userId, $botId, // main WHERE: user_id, productos
+      $date,                    // h.query_date = fecha local
     ];
 
     if ($productId) {
@@ -100,10 +105,13 @@ class PerformanceStatsHandler {
       $queryParams[] = $productId;
     }
 
+    // Orden cronológico con wrap: horas UTC < utcDayStartHour son el "final del día local"
+    // y deben ir después de las horas >= utcDayStartHour.
     $sql .= "
-      GROUP BY h.query_date, h.query_hour
-      ORDER BY h.query_date ASC, h.query_hour ASC
+      GROUP BY h.query_hour
+      ORDER BY CASE WHEN h.query_hour < ? THEN h.query_hour + 24 ELSE h.query_hour END ASC
     ";
+    $queryParams[] = $utcDayStartHour;
 
     $results = ogDb::raw($sql, $queryParams);
 
@@ -119,6 +127,10 @@ class PerformanceStatsHandler {
       $hourlyData[$h] = ['hour' => $h, 'chats_initiated' => 0, 'whatsapp_clicks' => 0, 'reach' => 0];
     }
 
+    // Facebook acumula continuamente durante todo el día ECU, SIN resetear al cambiar fecha UTC.
+    // El orden con "wrap" garantiza secuencia cronológica: UTC 05→23 (ECU 00-18), luego UTC 00→04 (ECU 19-23).
+    // Los deltas son siempre contra el registro inmediatamente anterior en esa secuencia.
+    // El anchor (estado en UTC 04 del día anterior) sirve como baseline del primer registro.
     foreach ($results as $row) {
       $utcHour   = (int)$row['hour'];
       $localHour = (int)((($utcHour + $offsetHours) % 24 + 24) % 24);
@@ -132,7 +144,7 @@ class PerformanceStatsHandler {
           'reach'           => (int)$row['reach'],
         ];
       } else {
-        // Delta vs registro anterior (orden cronológico UTC, cruzando medianoche UTC si aplica)
+        // Delta vs registro anterior — continuo aunque cruce medianoche UTC
         $hourlyData[$localHour] = [
           'hour'            => $localHour,
           'chats_initiated' => max(0, (int)$row['results']     - (int)$prevRow['results']),

@@ -1,9 +1,6 @@
 URGENTE:
-✔ Sigue le problema del nombre del cliente, el bot en el recibo del campo del pichincha lo esta tomando a dannes como nombre del cliente @done(12-03-2026 11:23)
-☐ Hora en general usar UTC para todos, hay que probarlo en todos los casos..
 ☐ Moneda Local -> USD, ver en ambas monedas
 ☐ Resumen mejorado
-☐ La hora del reseteo del presupuesto es por bot y no por activo publicitario
   porque tengo DIGAMOS DE mi cuenta de ecuador  manejo la publicidad en otros paises entonces
   el seteo es por hora del bot no de la cuenta publicitaria, revisa este tema..
 ☐ COmo se manejan muchos productos uno se puede confundir con las reglas de escalas creadas o no Hay que agregar un aviso
@@ -24,6 +21,9 @@ Backend:
 ☐ Revisa si hay hay una forma de borrar datos de la DB periodicamente, REVISA LAS TABLAS CON MUCHOS REGISTROS
 
 FRONTEND:
+☐ Agregar un buscador de numero de chat o cliente en la seccion de chats
+☐ Obtener el link del producto en el listado del producto o a su vez agregar un panel
+que permita tener mas herramientas de ese chat como el link del producto, cancelar venta, parar segumientos. etc...
 ☐ Agrega la opcion de parar los seguimiento de una persona en caso ocurra algo
 ☐ graficas de chats vs ventas
 ☐ separa el menu de herrramientas de DEV con administracion/config es un relajo

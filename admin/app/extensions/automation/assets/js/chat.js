@@ -43,11 +43,12 @@ class chat {
     this._activeExpiry    = null;
     this._clientsKnown    = new Map();
 
-    // Configurar timezone del usuario en bsDate para mostrar fechas correctas
+    // Configurar timezone del usuario en bsDate para mostrar fechas correctas.
+    // Solo setear si viene en userPreferences (sesión actual con timezone guardado).
+    // Si no viene (sesión antigua sin timezone), queda null y _initBotFilter lo completa.
     if (window.bsDate) {
       const auth = ogModule('auth');
-      bsDate.timezone = auth?.userPreferences?.timezone
-        || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      bsDate.timezone = auth?.userPreferences?.timezone || null;
     }
 
     this._initBotFilter();
@@ -61,6 +62,13 @@ class chat {
     try {
       const json = await ogModule('api').get(`${this.apis.bot}?per_page=50`);
       const bots = json.data?.data ?? json.data ?? [];
+
+      // Fallback: si userPreferences.timezone no vino en la sesión (sesión antigua),
+      // usar el timezone del bot como fuente confiable desde DB.
+      if (bots.length > 0 && window.bsDate && !bsDate.timezone) {
+        const botTz = bots[0].config?.timezone;
+        if (botTz) bsDate.timezone = botTz;
+      }
 
       if (bots.length > 1) {
         // Solo mostrar el select si hay más de 1 bot (con 1 no tiene sentido filtrar)
@@ -748,8 +756,13 @@ class chat {
     const date     = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
     const unreadCls = unread > 0 ? ' unread' : '';
     const badge    = unread > 0 ? `<span class="bs-chat-unread-badge">${unread > 99 ? '99+' : unread}</span>` : '';
-    const confirmedAmt = c.confirmed_amount ? parseFloat(c.confirmed_amount) : null;
-    const saleBadge = confirmedAmt ? `<span class="bs-chat-sale-badge">+$${confirmedAmt % 1 === 0 ? confirmedAmt : confirmedAmt.toFixed(2)}</span>` : '';
+    const todayAmt = c.today_amount ? parseFloat(c.today_amount) : null;
+    const prevAmt  = c.prev_amount  ? parseFloat(c.prev_amount)  : null;
+    const fmtAmt   = v => `+$${v % 1 === 0 ? v : v.toFixed(2)}`;
+    const saleBadge = [
+      prevAmt  ? `<span class="bs-chat-sale-badge bs-chat-sale-badge--old">${fmtAmt(prevAmt)}</span>`  : '',
+      todayAmt ? `<span class="bs-chat-sale-badge">${fmtAmt(todayAmt)}</span>` : '',
+    ].join('');
     return `
       <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${number}', ${clientId})">
         <div class="bs-chat-item-header">

@@ -61,6 +61,7 @@ class ProfitStatsHandler {
           AND h2.query_date = ?
           AND h2.ad_asset_id = h.ad_asset_id
           AND h2.query_hour = h.query_hour
+          AND HOUR(h2.dc) = h2.query_hour
         GROUP BY h2.ad_asset_id, h2.query_hour
       )";
 
@@ -177,9 +178,9 @@ class ProfitStatsHandler {
       }
 
       // PASO 3.5: Forzar monotonía en spend.
-      // El SUM(spend) por hora puede bajar si algún activo no tiene snapshot en esa hora exacta
-      // (spend es acumulado por activo, pero no todos reportan a cada hora).
-      // El gasto del día solo puede crecer, nunca decrecer.
+      // Facebook acumula spend por día en timezone de la cuenta (ECU), así que el acumulado
+      // es continuo durante todo el día ECU sin resetear en medianoche UTC.
+      // La monotonía protege contra snapshots faltantes de algún activo en cierta hora.
       $runMaxSpend = 0;
       foreach ($results as &$row) {
         if ($row['spend'] > $runMaxSpend) {
@@ -187,7 +188,6 @@ class ProfitStatsHandler {
         } else {
           $row['spend'] = $runMaxSpend;
         }
-        // Recalcular profit y roas con el spend corregido
         $row['profit'] = round($row['revenue'] - $row['spend'], 2);
         $row['roas']   = $row['spend'] > 0 ? round($row['revenue'] / $row['spend'], 2) : 0;
       }
