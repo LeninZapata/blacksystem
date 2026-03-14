@@ -16,25 +16,6 @@ $router->group('/api/followup', function($router) {
 
     $logMeta = ['module' => 'followup', 'layer' => 'app/routes'];
 
-    // Validar horario de no molestar (22:30 - 6:00 AM)
-    $currentHour = (int)date('H');
-    $currentMinute = (int)date('i');
-    $currentTime = $currentHour + ($currentMinute / 60);
-
-    // Si está entre 22:30 (22.5) y medianoche (24.0) o entre medianoche (0.0) y 6:00 (6.0)
-    if ($currentTime >= 22.5 || $currentTime < 6.0) {
-      ogLog::info("CRON Followup - Proceso detenido por horario de no molestar", [
-        'current_hour' => date('H:i')
-      ], $logMeta);
-      
-      ogResponse::json([
-        'success' => true,
-        'message' => 'Proceso detenido por horario de no molestar (22:30 - 6:00 AM)',
-        'current_time' => date('H:i')
-      ]);
-      return;
-    }
-
     $list = ogRequest::query('list', null);
 
     ogApp()->loadHandler('followup');
@@ -61,6 +42,26 @@ $router->group('/api/followup', function($router) {
       }
 
       $botData = $botsConfig[$botId];
+
+      // Validar horario de no molestar (22:30 - 6:00 AM) en el timezone del bot
+      $botTimezone = $botData['config']['timezone'] ?? 'UTC';
+      try {
+        $botTz = new DateTimeZone($botTimezone);
+      } catch (Exception $tzEx) {
+        $botTz = new DateTimeZone('UTC');
+      }
+      $botNow  = new DateTime('now', $botTz);
+      $botTime = (int)$botNow->format('H') + ((int)$botNow->format('i') / 60);
+      if ($botTime >= 22.5 || $botTime < 6.0) {
+        ogLog::info("CRON Followup - Followup omitido por horario de no molestar", [
+          'followup_id'     => $fup['id'],
+          'bot_id'          => $botId,
+          'timezone'        => $botTimezone,
+          'current_time_local' => $botNow->format('H:i'),
+          'current_time_utc'   => date('H:i')
+        ], $logMeta);
+        continue;
+      }
 
       try {
         // DETECTAR FOLLOWUP ESPECIAL: Upsell
