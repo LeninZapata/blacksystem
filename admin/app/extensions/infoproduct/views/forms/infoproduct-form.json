@@ -639,6 +639,38 @@
           ]
         },
         {
+          "name": "validation_group",
+          "title": "i18n:infoproduct.products.tab.validation",
+          "fields": [
+            {
+              "name": "config.fb_ad_copy",
+              "label": "i18n:infoproduct.products.field.fb_ad_copy",
+              "type": "textarea",
+              "validation": "max:5000",
+              "placeholder": "i18n:infoproduct.products.field.fb_ad_copy.placeholder",
+              "rows": 4,
+              "className": "textarea-expandable"
+            },
+            {
+              "name": "config.fb_welcome_text",
+              "label": "i18n:infoproduct.products.field.fb_welcome_text",
+              "type": "text",
+              "validation": "max:500",
+              "placeholder": "i18n:infoproduct.products.field.fb_welcome_text.placeholder"
+            },
+            {
+              "type": "button",
+              "label": "Validar Bienvenida",
+              "style": "secondary",
+              "onclick": "infoproductProduct.validateWelcome();"
+            },
+            {
+              "type": "html",
+              "content": "<div id=\"validate-welcome-result\"></div>"
+            }
+          ]
+        },
+        {
           "name": "templates_group",
           "title": "i18n:infoproduct.products.tab.templates",
           "fields": [

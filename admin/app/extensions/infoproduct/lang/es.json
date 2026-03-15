@@ -263,12 +263,21 @@
             "hint": "Opcional: Código alfanumérico para referenciar esta plantilla"
           }
         },
-        "status": "Activo"
+        "status": "Activo",
+        "fb_ad_copy": {
+          "label": "Copy del anuncio de Facebook",
+          "placeholder": "Pega aquí el copy del anuncio de Facebook que verá el cliente..."
+        },
+        "fb_welcome_text": {
+          "label": "Texto de bienvenida de Facebook",
+          "placeholder": "Texto que incluirá el cliente al iniciar la conversación desde el anuncio..."
+        }
       },
       "tab": {
         "welcome": "Bienvenida",
         "tracking": "Seguimiento",
-        "templates": "📝 Plantillas"
+        "templates": "📝 Plantillas",
+        "validation": "✅ Validación"
       },
       "column": {
         "id": "ID",

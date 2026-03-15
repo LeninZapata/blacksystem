@@ -46,7 +46,52 @@ class CreateSaleAction {
       }
     }
 
-    $countryCode = $bot['country_code'] ?? 'EC';
+    $countryCode  = $bot['country_code'] ?? 'EC';
+    $countryInfo  = ogApp()->helper('country')::get($countryCode);
+    $currencyCode = $countryInfo['currency'] ?? 'USD';
+
+    // Cargar tasas de cambio; si el archivo no existe, generarlo en caliente como fallback
+    $exchangeJsonPath = ogApp()->getPath('storage/json/system') . '/exchangerate.json';
+    $exchangeData = ogApp()->helper('file')::getJson($exchangeJsonPath, function() use ($exchangeJsonPath) {
+      $result = ogApp()->helper('http')::get(
+        'https://v6.exchangerate-api.com/v6/8c5b0f3061aeb24c65a6456c/latest/USD'
+      );
+      if (!$result['success'] || ($result['data']['result'] ?? '') !== 'success') {
+        ogLog::warning('CreateSaleAction - Exchange rate API no disponible, usando 1:1', [], self::$logMeta);
+        return null;
+      }
+      $apiRates = $result['data']['conversion_rates'];
+      $rates    = [];
+      foreach (ogApp()->helper('country')::all() as $country => $info) {
+        $currency   = $info['currency'];
+        $usdToLocal = $apiRates[$currency] ?? null;
+        if (!$usdToLocal) continue;
+        $rates[$country] = [
+          'currency'   => $currency,
+          'usd_rate'   => $currency === 'USD' ? 1.0 : round(1 / $usdToLocal, 8),
+          'local_rate' => $currency === 'USD' ? 1.0 : round($usdToLocal, 4),
+        ];
+      }
+      $payload = ['updated_at' => date('Y-m-d H:i:s'), 'base' => 'USD', 'rates' => $rates];
+      $dir = dirname($exchangeJsonPath);
+      if (!is_dir($dir)) mkdir($dir, 0755, true);
+      file_put_contents($exchangeJsonPath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+      ogLog::info('CreateSaleAction - Exchange rate generado vía fallback', [], self::$logMeta);
+      return $payload;
+    });
+
+    $localPrice = (float)($context['price'] ?? $product['price'] ?? 0);
+    $usdRate    = (float)($exchangeData['rates'][$countryCode]['usd_rate'] ?? 1.0);
+    $usdPrice   = round($localPrice * $usdRate, 2);
+
+    ogLog::info('CreateSaleAction - Conversión de moneda', [
+      'country_code'  => $countryCode,
+      'currency_code' => $currencyCode,
+      'local_price'   => $localPrice,
+      'usd_price'     => $usdPrice,
+      'usd_rate'      => $usdRate,
+    ], self::$logMeta);
+
     ogApp()->loadHandler('client');
     $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device, $userId);
 
@@ -79,7 +124,11 @@ class CreateSaleAction {
       'bot_type' => $botType,
       'bot_mode' => $botMode,
       'client_id' => $clientId,
-      'amount' => $context['price'] ?? $product['price'] ?? 0,
+      'amount'              => $usdPrice,
+      'billed_amount'       => $usdPrice,
+      'local_amount'        => $localPrice,
+      'local_billed_amount' => $localPrice,
+      'currency_code'       => $currencyCode,
       'process_status' => 'initiated',
       'source_app' => $context['source_app'] ?? null,
       'source_url' => $context['ad_data']['source_url'] ?? null,

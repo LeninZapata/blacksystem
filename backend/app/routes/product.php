@@ -137,4 +137,121 @@ $router->group('/api/product', function($router) {
     }
 
   })->middleware(['auth', 'json']);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Validar Bienvenida: POST /api/product/validate-welcome
+  // Body: { product_id: int, bot_id: int, fb_ad_copy: string, fb_welcome_text: string }
+  // Verifica si los welcome_triggers del producto actual coinciden con el
+  // fb_ad_copy o fb_welcome_text de otros productos del mismo bot, lo que
+  // indicaría un conflicto de activación cruzada.
+  // ─────────────────────────────────────────────────────────────────────────
+  $router->post('/validate-welcome', function() {
+    $logMeta = ['module' => 'route/product/validate-welcome', 'layer' => 'app/routes'];
+    $data = ogRequest::data();
+
+    $productId     = isset($data['product_id']) ? (int)$data['product_id'] : 0;
+    $botId         = isset($data['bot_id'])      ? (int)$data['bot_id']    : 0;
+    $fbAdCopy      = trim($data['fb_ad_copy']      ?? '');
+    $fbWelcomeText = trim($data['fb_welcome_text'] ?? '');
+
+    if (!$botId) {
+      ogResponse::json(['success' => false, 'error' => 'bot_id es obligatorio'], 400);
+      return;
+    }
+
+    if (!$productId) {
+      ogResponse::json(['success' => false, 'error' => 'product_id es obligatorio'], 400);
+      return;
+    }
+
+    // ── Obtener welcome_triggers del producto actual ────────────────────────
+    $currentProductQuery = ogDb::table('products')
+      ->where('id', $productId)
+      ->where('bot_id', $botId);
+
+    $currentProduct = $currentProductQuery->first();
+
+    if (!$currentProduct) {
+      ogResponse::json(['success' => false, 'error' => 'Producto no encontrado',
+        'product_id' => $productId, 'bot_id' => $botId
+      ], 201);
+      return;
+    }
+
+    $currentConfig = is_string($currentProduct['config'])
+      ? json_decode($currentProduct['config'], true)
+      : ($currentProduct['config'] ?? []);
+
+    $triggersRaw    = $currentConfig['welcome_triggers'] ?? '';
+    $triggerPhrases = array_values(array_filter(array_map('trim', explode(',', $triggersRaw))));
+
+    if (empty($triggerPhrases)) {
+      ogResponse::success(['is_valid' => true, 'conflicts' => [], 'note' => 'Sin activadores configurados']);
+      return;
+    }
+
+    // ── Obtener los demás productos del mismo bot ──────────────────────────
+    $otherProducts = ogDb::table('products')
+      ->where('bot_id', $botId)
+      ->where('context', 'infoproductws')
+      ->get();
+
+    $str = ogApp()->helper('str');
+
+    $conflicts = [];
+
+    foreach ($otherProducts as $other) {
+      if ((int)$other['id'] === $productId) continue;
+
+      $otherConfig = is_string($other['config'])
+        ? json_decode($other['config'], true)
+        : ($other['config'] ?? []);
+
+      $otherAdCopy      = $otherConfig['fb_ad_copy']      ?? '';
+      $otherWelcomeText = $otherConfig['fb_welcome_text'] ?? '';
+
+      if (empty($otherAdCopy) && empty($otherWelcomeText)) continue;
+
+      foreach ($triggerPhrases as $phrase) {
+        $matchedIn   = null;
+        $matchedText = null;
+
+        if (!empty($otherAdCopy) && $str::containsAllWords($phrase, $otherAdCopy)) {
+          $matchedIn   = 'fb_ad_copy';
+          $matchedText = $otherAdCopy;
+        } elseif (!empty($otherWelcomeText) && $str::containsAllWords($phrase, $otherWelcomeText)) {
+          $matchedIn   = 'fb_welcome_text';
+          $matchedText = $otherWelcomeText;
+        }
+
+        if ($matchedIn) {
+          // Extraer las palabras del trigger que aparecen en el texto (misma lógica que containsAllWords)
+          $unwanted = ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','à'=>'a','è'=>'e','ì'=>'i','ò'=>'o',
+                       'ù'=>'u','â'=>'a','ê'=>'e','î'=>'i','ô'=>'o','û'=>'u','ä'=>'a','ë'=>'e','ï'=>'i',
+                       'ö'=>'o','ü'=>'u','ã'=>'a','õ'=>'o','ç'=>'c','ñ'=>'n'];
+          $normalizeLocal = fn($t) => strtr(mb_strtolower($t, 'UTF-8'), $unwanted);
+          $phraseNorm     = $normalizeLocal($phrase);
+          $textNorm       = $normalizeLocal($matchedText);
+          $words          = preg_split('/\s+/', $phraseNorm, -1, PREG_SPLIT_NO_EMPTY);
+          $matchedWords   = array_values(array_filter($words, fn($w) => strpos($textNorm, $w) !== false));
+
+          $conflicts[] = [
+            'product_id'    => (int)$other['id'],
+            'product_name'  => $other['name'],
+            'trigger'       => $phrase,
+            'matched_in'    => $matchedIn,
+            'matched_text'  => $matchedText,
+            'matched_words' => $matchedWords,
+          ];
+          break; // Un conflicto por trigger es suficiente
+        }
+      }
+    }
+
+    ogResponse::success([
+      'is_valid'  => empty($conflicts),
+      'conflicts' => $conflicts,
+    ]);
+
+  })->middleware(['auth', 'json']);
 });

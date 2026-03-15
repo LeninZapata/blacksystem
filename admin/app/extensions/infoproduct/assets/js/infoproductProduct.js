@@ -5,6 +5,7 @@ class infoproductProduct {
   };
 
   static currentId = null;
+  static currentFormId = null;
   static currentProductName = null;
   static context = 'infoproductws';
 
@@ -88,6 +89,7 @@ class infoproductProduct {
   // Abrir form con datos
   static async openEdit(formId, id) {
     this.currentId = id;
+    this.currentFormId = formId;
     const formEl = document.getElementById(formId);
     const realId = formEl?.getAttribute('data-real-id') || formId;
 
@@ -119,6 +121,8 @@ class infoproductProduct {
       'config.tracking_messages_upsell': messagesData.tracking_messages_upsell || [],
       'config.upsell_products': messagesData.upsell_products || [],
       'config.templates': messagesData.templates || [],
+      'config.fb_ad_copy': configData.fb_ad_copy || '',
+      'config.fb_welcome_text': configData.fb_welcome_text || '',
       context: data.context || this.context
     });
   }
@@ -247,6 +251,14 @@ class infoproductProduct {
       config.prompt = formData.config.prompt;
     }
 
+    if (formData.config?.fb_ad_copy) {
+      config.fb_ad_copy = formData.config.fb_ad_copy;
+    }
+
+    if (formData.config?.fb_welcome_text) {
+      config.fb_welcome_text = formData.config.fb_welcome_text;
+    }
+
     // Agrupar todos los repeatables del grouper en messages
     const messages = {};
 
@@ -359,6 +371,88 @@ class infoproductProduct {
   // Refrescar datatable
   static refresh() {
     if (window.ogDatatable) ogDatatable.refreshFirst();
+  }
+
+  // ── Validar Bienvenida ────────────────────────────────────────────────────
+  static async validateWelcome() {
+    const formId = this.currentFormId;
+    const form = formId ? document.getElementById(formId) : null;
+    const resultEl = form ? form.querySelector('#validate-welcome-result') : null;
+
+    if (!form) return;
+
+    const botIdEl      = form.querySelector('[name="bot_id"]');
+    const fbAdCopyEl   = form.querySelector('[name="config.fb_ad_copy"]');
+    const fbWelcomeEl  = form.querySelector('[name="config.fb_welcome_text"]');
+
+    const botId        = botIdEl?.  value;
+    const fbAdCopy     = fbAdCopyEl?.value?.trim()   || '';
+    const fbWelcomeText = fbWelcomeEl?.value?.trim() || '';
+    const productId    = this.currentId;
+
+    if (resultEl) resultEl.innerHTML = '';
+
+    if (!botId) {
+      ogToast.error('Debes seleccionar un bot primero');
+      return;
+    }
+
+    if (!productId) {
+      ogToast.error('Guarda el producto antes de validar');
+      return;
+    }
+
+    if (!fbAdCopy && !fbWelcomeText) {
+      ogToast.error('Ingresa el texto del anuncio o el texto de bienvenida');
+      return;
+    }
+
+    try {
+      const res = await ogApi.post('/api/product/validate-welcome', {
+        product_id: parseInt(productId),
+        bot_id: parseInt(botId),
+        fb_ad_copy: fbAdCopy,
+        fb_welcome_text: fbWelcomeText,
+      });
+
+      if (res.success === false) {
+        ogToast.error(res.error || 'Error al validar');
+        return;
+      }
+
+      const data = res.data ?? res;
+
+      if (!resultEl) return;
+
+      if (data.is_valid) {
+        resultEl.innerHTML = `
+          <div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:6px;margin-top:8px;color:#15803d;font-size:0.88rem;">
+            ✅ Sin conflictos detectados. Los activadores no chocan con otros productos del bot.
+          </div>`;
+      } else {
+        const rows = data.conflicts.map(c => {
+          const campo = c.matched_in === 'fb_ad_copy' ? 'Texto del anuncio' : 'Texto de bienvenida';
+          const excerpt = c.matched_text?.length > 120 ? c.matched_text.substring(0, 120) + '…' : c.matched_text;
+          const wordsHtml = (c.matched_words || []).map(w =>
+            `<span style="display:inline-block;padding:1px 6px;background:#fecaca;border-radius:3px;font-weight:600;font-size:0.8rem;margin:2px 2px 0 0;">${w}</span>`
+          ).join('');
+          const wordsRow = wordsHtml ? `<div style="margin-top:4px;">Palabras que coinciden: ${wordsHtml}</div>` : '';
+          return `<li style="margin-bottom:8px;">
+            El activador <strong>"${c.trigger}"</strong> coincide con el <strong>${campo}</strong> del producto <strong>"${c.product_name}"</strong>
+            <div style="margin-top:3px;padding:4px 8px;background:#fff1f2;border-radius:4px;font-size:0.82rem;color:#9f1239;word-break:break-word;">${excerpt}</div>
+            ${wordsRow}
+          </li>`;
+        }).join('');
+
+        resultEl.innerHTML = `
+          <div style="padding:10px 14px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;margin-top:8px;">
+            <strong style="color:#dc2626;font-size:0.88rem;">⚠️ Se encontraron ${data.conflicts.length} conflicto(s)</strong>
+            <ul style="margin:8px 0 0;padding-left:18px;font-size:0.85rem;color:#374151;">${rows}</ul>
+          </div>`;
+      }
+    } catch (err) {
+      ogToast.error('Error al conectar con el servidor');
+    }
   }
 }
 

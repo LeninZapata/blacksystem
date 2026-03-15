@@ -68,7 +68,7 @@ class PaymentStrategy implements ConversationStrategyInterface {
     ogLog::info("execute - Procesando pago válido", [ 'sale_id' => $saleId, 'amount' => $paymentData['amount'] ], $this->logMeta);
 
     // 1. Actualizar venta (billed_amount)
-    $this->updateSale($paymentData, $saleId);
+    $this->updateSale($paymentData, $saleId, $bot['country_code'] ?? 'EC');
 
     // 2. Actualizar cliente (nombre, total_purchases, amount_spent)
     $this->updateClient($chatData['client_id'], $paymentData, $validation, $bot);
@@ -354,21 +354,30 @@ class PaymentStrategy implements ConversationStrategyInterface {
     return null;
   }
 
-  private function updateSale($paymentData, $saleId) {
+  private function updateSale($paymentData, $saleId, $countryCode = 'EC') {
     $billedAmount = $paymentData['amount'] ?? 0;
+
+    // Convertir el monto local (detectado por IA en el recibo) a USD
+    $exchangeJsonPath = ogApp()->getPath('storage/json/system') . '/exchangerate.json';
+    $exchangeData = ogApp()->helper('file')::getJson($exchangeJsonPath);
+    $usdRate      = (float)($exchangeData['rates'][$countryCode]['usd_rate'] ?? 1.0);
+    $billedUsd    = round($billedAmount * $usdRate, 2);
 
     try {
       ogDb::t('sales')
         ->where('id', $saleId)
         ->update([
-          'billed_amount' => $billedAmount,
+          'billed_amount'       => $billedUsd,
+          'local_billed_amount' => $billedAmount,
           'du' => gmdate('Y-m-d H:i:s'),
           'tu' => time()
         ]);
 
       ogLog::info("updateSale - billed_amount actualizado", [
-        'sale_id' => $saleId,
-        'billed_amount' => $billedAmount
+        'sale_id'             => $saleId,
+        'local_billed_amount' => $billedAmount,
+        'billed_amount'       => $billedUsd,
+        'country_code'        => $countryCode,
       ], $this->logMeta);
 
       return true;
