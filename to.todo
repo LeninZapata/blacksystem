@@ -1,7 +1,8 @@
 URGENTE:
 
 RAPIDO:
-
+☐ Mostrar un icono de admiracion en el chat cuando el ultimo chat sea de P porque significa que el bot
+no le respondio, esto debe ser por un rango de tiempo de 1MIN ya eso alli ya no es respondido
 
 Backend:
 ☐ Revisa el cron que borras los registros los JSON o Logs temporales (problemas con Middle)

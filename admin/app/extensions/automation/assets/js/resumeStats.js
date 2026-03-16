@@ -70,7 +70,7 @@
     document.querySelectorAll('#resume-products-container .resume-stat-value').forEach(el => {
       el.textContent = '⏳';
     });
-    ['resume-balance-ingresos', 'resume-balance-gastos', 'resume-balance-profit'].forEach(id => {
+    ['resume-balance-ingresos', 'resume-balance-gastos', 'resume-balance-profit', 'resume-balance-chats'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = '⏳';
     });
@@ -90,7 +90,7 @@
 
       const fmt = v => `$${parseFloat(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
-      let totalRevenue = 0, totalSpend = 0;
+      let totalRevenue = 0, totalSpend = 0, totalChats = 0, totalSalesCount = 0;
 
       state.products.forEach(product => {
         const row = document.querySelector(`#resume-products-container [data-product-id="${product.id}"]`);
@@ -102,8 +102,10 @@
         const profit      = totalRev - parseFloat(s.spend || 0);
         const profitColor = profit >= 0 ? 'var(--og-green-600)' : 'var(--og-gray-900)';
 
-        totalRevenue += totalRev;
-        totalSpend   += parseFloat(s.spend || 0);
+        totalRevenue    += totalRev;
+        totalSpend      += parseFloat(s.spend || 0);
+        totalChats      += parseInt(s.chats || 0);
+        totalSalesCount += parseInt(s.sales_count || 0);
 
         const set = (key, text, color) => {
           const el = row.querySelector(`[data-key="${key}"]`);
@@ -136,12 +138,19 @@
       const elI = document.getElementById('resume-balance-ingresos');
       const elG = document.getElementById('resume-balance-gastos');
       const elP = document.getElementById('resume-balance-profit');
+      const elC = document.getElementById('resume-balance-chats');
 
       if (elI) elI.textContent = fmtB(totalRevenue);
       if (elG) elG.textContent = fmtB(totalSpend);
       if (elP) {
         elP.textContent  = fmtB(totalProfit);
         elP.style.color  = totalProfit >= 0 ? 'var(--og-green-600)' : 'var(--og-red-600)';
+      }
+      if (elC) {
+        const conversion = totalChats > 0 ? ((totalSalesCount / totalChats) * 100).toFixed(1) : '0.0';
+        const chatSvg  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+        const checkSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>`;
+        elC.innerHTML = `${chatSvg} ${totalChats} (${totalSalesCount} ${checkSvg} / ${conversion}%)`;
       }
 
     } catch (err) {
@@ -178,7 +187,7 @@
     const rows = products.map(p => renderProductRow(p)).join('');
     return `
       <div class="resume-env-section og-mb-3" id="resume-section-${sectionId}">
-        <h4 style="margin:0.75rem 0 0.4rem; font-size:0.95rem; font-weight:600; color:#374151;">${title}</h4>
+        <h4 style="margin:0.75rem 0 0.4rem; font-size:1.075rem; font-weight:600; color:#374151;">${title}</h4>
         <div class="resume-product-list">
           ${rows}
         </div>
@@ -199,27 +208,27 @@
 
     const statCells = stats.map(s => `
       <div class="og-flex og-between og-items-center og-bg-gray-50 og-rounded" style="padding:0.22rem 0.45rem;">
-        <span style="font-size:0.72rem; color:var(--og-gray-500); white-space:nowrap;">${s.icon} ${s.label}</span>
+        <span style="font-size:0.845rem; color:var(--og-gray-500); white-space:nowrap;">${s.icon} ${s.label}</span>
         <span class="resume-stat-value" data-key="${s.key}"
-              style="font-weight:${s.bold ? '700' : '400'}; font-size:0.8rem; color:${s.color}; margin-left:0.5rem; white-space:nowrap;">—</span>
+              style="font-weight:${s.bold ? '700' : '400'}; font-size:0.925rem; color:${s.color}; margin-left:0.5rem; white-space:nowrap;">—</span>
       </div>`);
 
     // Fila upsell: ocupa ancho completo (col-span-2), oculta por defecto
     const upsellCell = `
       <div data-upsell-row style="display:none; grid-column:span 2; background:rgba(250,245,255,0.8); border-radius:5px; padding:0.22rem 0.45rem;"
            class="og-flex og-between og-items-center og-rounded">
-        <span style="font-size:0.72rem; color:var(--og-gray-500); white-space:nowrap;">⬆️ Upsell</span>
+        <span style="font-size:0.845rem; color:var(--og-gray-500); white-space:nowrap;">⬆️ Upsell</span>
         <span class="resume-stat-value" data-key="upsell"
-              style="font-weight:700; font-size:0.8rem; color:var(--og-green-600); margin-left:0.5rem; white-space:nowrap;">—</span>
+              style="font-weight:700; font-size:0.925rem; color:var(--og-green-600); margin-left:0.5rem; white-space:nowrap;">—</span>
       </div>`;
 
     return `
       <div class="resume-product-row" data-product-id="${product.id}"
            style="background:#fff; border:1px solid var(--og-gray-200); border-radius:8px; padding:0.55rem 0.7rem; margin-bottom:0.4rem;">
         <div class="og-flex og-between og-items-center" style="margin-bottom:0.35rem; padding-bottom:0.3rem; border-bottom:1px solid var(--og-gray-100);">
-          <span style="font-weight:600; font-size:0.85rem; color:var(--og-gray-900);">📦 ${escHtml(product.name)}</span>
+          <span style="font-weight:600; font-size:0.975rem; color:var(--og-gray-900);">📦 ${escHtml(product.name)}</span>
           <span class="og-bg-gray-100 og-rounded-full og-text-gray-400"
-                style="font-size:0.68rem; padding:0.05rem 0.4rem;">#${product.id}</span>
+                style="font-size:0.805rem; padding:0.05rem 0.4rem;">#${product.id}</span>
         </div>
         <div class="og-grid og-cols-2 og-gap-xs">
           ${statCells[0]}
@@ -241,14 +250,15 @@
 
     const cells = balanceStats.map(b => `
       <div class="og-flex og-between og-items-center" style="padding:0.3rem 0.5rem; background:rgba(255,255,255,0.7); border-radius:6px;">
-        <span style="font-size:0.75rem; color:var(--og-gray-500);">${b.icon} ${b.label}</span>
-        <span id="${b.id}" style="font-weight:700; font-size:0.92rem; color:${b.color};">$—</span>
+        <span style="font-size:var(--og-font-sm); color:var(--og-gray-500);">${b.icon} ${b.label}</span>
+        <span id="${b.id}" style="font-weight:700; font-size:1.045rem; color:${b.color};">$—</span>
       </div>`).join('');
 
     return `
       <div id="resume-balance-general" class="og-bg-gray-100 og-rounded-lg" style="padding:0.6rem 0.7rem; margin-top:0.6rem; border:1px solid var(--og-gray-200);">
         <div class="og-flex og-between og-items-center" style="margin-bottom:0.4rem;">
-          <span style="font-weight:700; font-size:0.85rem; color:var(--og-gray-800);">📊 Balance General</span>
+          <span style="font-weight:700; font-size:0.975rem; color:var(--og-gray-800);">📊 Balance General</span>
+          <span id="resume-balance-chats" style="font-size:0.72rem; color:var(--og-gray-400); display:inline-flex; align-items:center; gap:0.2rem;">—</span>
         </div>
         <div style="display:flex; flex-direction:column; gap:0.2rem;">
           ${cells}

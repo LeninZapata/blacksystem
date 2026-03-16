@@ -328,8 +328,29 @@ class AdAutoScaleStatsHandler {
         return ogResponse::error('asset_id es requerido');
       }
 
-      // Obtener fechas según rango
-      $dates = self::getDateRange($range);
+      // Obtener fechas según rango usando timezone local del usuario (no UTC del servidor)
+      $userTz     = ogApp()->helper('date')::getUserTimezone();
+      $localToday = (new DateTime('now', new DateTimeZone($userTz)))->format('Y-m-d');
+      $localYest  = date('Y-m-d', strtotime($localToday . ' -1 day'));
+
+      // Calcular rango de fechas locales (reset_date se almacena en hora local)
+      $dates = (function() use ($range, $localToday, $localYest) {
+        if (strpos($range, 'custom:') === 0) {
+          $d = substr($range, 7);
+          return preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) ? ['from' => $d, 'to' => $d] : ['from' => $localToday, 'to' => $localToday];
+        }
+        switch ($range) {
+          case 'today':            return ['from' => $localToday, 'to' => $localToday];
+          case 'yesterday':        return ['from' => $localYest,  'to' => $localYest];
+          case 'yesterday_today':  return ['from' => $localYest,  'to' => $localToday];
+          case 'last_3_days':      return ['from' => date('Y-m-d', strtotime($localToday . ' -3 days')), 'to' => $localYest];
+          case 'last_7_days':      return ['from' => date('Y-m-d', strtotime($localToday . ' -7 days')), 'to' => $localYest];
+          case 'last_15_days':     return ['from' => date('Y-m-d', strtotime($localToday . ' -15 days')), 'to' => $localYest];
+          case 'last_30_days':     return ['from' => date('Y-m-d', strtotime($localToday . ' -30 days')), 'to' => $localYest];
+          case 'this_month':       return ['from' => date('Y-m-01', strtotime($localToday)), 'to' => $localToday];
+          default:                 return ['from' => $localToday, 'to' => $localToday];
+        }
+      })();
 
       // Consultar reseteos de presupuesto
       // Si hay múltiples resets en un día, tomar el último (el que quedó al final del día)

@@ -104,13 +104,16 @@ class ProfitStatsHandler {
       }
 
       if ($productId) {
-        $sqlSales .= " AND s.product_id = ?";
+        // Incluir ventas directas del producto Y upsell cuyo padre pertenece a este producto
+        $sqlSales .= " AND (s.product_id = ? OR (s.origin = 'upsell' AND s.parent_sale_id IN (SELECT id FROM sales ps WHERE ps.product_id = ? AND ps.user_id = ?)))";
         $salesParams[] = $productId;
+        $salesParams[] = $productId;
+        $salesParams[] = $userId;
       } else {
         $sqlSales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
       }
 
-      $sqlSales .= " GROUP BY HOUR(DATE_ADD(s.payment_date, INTERVAL {$offsetSec} SECOND))";
+      $sqlSales .= " GROUP BY HOUR(DATE_ADD(s.payment_date, INTERVAL {$offsetSec} SECOND));";
 
       $salesData = ogDb::raw($sqlSales, $salesParams);
 
@@ -251,7 +254,8 @@ class ProfitStatsHandler {
     $productId = $params['product_id'] ?? ogRequest::query('product_id');
     $userId = $GLOBALS['auth_user_id'];
 
-    $dates = ogApp()->helper('date')::getDateRange($range, ogApp()->helper('date')::getUserTimezone());
+    $userTz = ogApp()->helper('date')::getUserTimezone();
+    $dates = ogApp()->helper('date')::getDateRange($range, $userTz);
     if (!$dates) {
       return [
         'success' => false,
@@ -260,14 +264,15 @@ class ProfitStatsHandler {
     }
 
     try {
-      $today = date('Y-m-d');
+      // Fecha local del usuario (no UTC del servidor) para query_date y detección de hoy/ayer
+      $localToday = (new DateTime('now', new DateTimeZone($userTz)))->format('Y-m-d');
       
       // Extraer solo la fecha (sin hora) para comparación correcta
-      $endDateOnly = substr($dates['end'], 0, 10); // Extrae 'YYYY-MM-DD' de 'YYYY-MM-DD HH:MM:SS'
+      $endDateOnly   = substr($dates['end'],   0, 10);
       $startDateOnly = substr($dates['start'], 0, 10);
       
-      $needsToday = ($endDateOnly >= $today);
-      $historicEnd = $needsToday ? date('Y-m-d', strtotime($today . ' -1 day')) : $endDateOnly;
+      $needsToday  = ($endDateOnly >= $localToday);
+      $historicEnd = $needsToday ? date('Y-m-d', strtotime($localToday . ' -1 day')) : $endDateOnly;
 
       $results = [];
 
@@ -382,17 +387,18 @@ class ProfitStatsHandler {
       // PASO 1.5: FALLBACK para AYER si no hay datos en ad_metrics_daily
       // Si consultamos ayer y no hay datos (porque el cron de las 2am aún no corrió), 
       // usar ad_metrics_hourly como fallback
-      $yesterday = date('Y-m-d', strtotime('-1 day'));
+      $yesterday = date('Y-m-d', strtotime($localToday . ' -1 day'));
       $isYesterdayOnly = ($startDateOnly === $yesterday && $endDateOnly === $yesterday);
       
       if ($isYesterdayOnly && !isset($results[$yesterday])) {
-        // No hay datos de ayer en ad_metrics_daily, intentar fallback a hourly
+        // No hay datos de ayer en ad_metrics_daily, intentar fallback a hourly.
+        // IMPORTANTE: h.spend es acumulativo (crece durante el día), por lo que se debe
+        // tomar MAX(h.spend) por activo (valor final del día), no SUM de todas las horas.
         $sqlYesterdayAds = "
-          SELECT
-            SUM(h.spend) as spend,
-            SUM(h.purchase) as ad_purchases,
-            SUM(h.purchase_value) as ad_purchase_value
-          FROM ad_metrics_hourly h
+          SELECT SUM(asset_spend) as spend
+          FROM (
+            SELECT h.ad_asset_id, MAX(h.spend) as asset_spend
+            FROM ad_metrics_hourly h
         ";
 
         if ($botId || $productId) {
@@ -402,22 +408,12 @@ class ProfitStatsHandler {
           ";
         }
 
-        // Tomar el último snapshot de cada hora de ayer
         $sqlYesterdayAds .= "
-          WHERE h.user_id = ?
-            AND h.query_date = ?
-            AND h.id IN (
-              SELECT MAX(h2.id)
-              FROM ad_metrics_hourly h2
-              WHERE h2.user_id = ? 
-                AND h2.query_date = ?
-                AND h2.ad_asset_id = h.ad_asset_id
-                AND h2.query_hour = h.query_hour
-              GROUP BY h2.ad_asset_id, h2.query_hour
-            )
+            WHERE h.user_id = ?
+              AND h.query_date = ?
         ";
 
-        $paramsYesterdayAds = [$userId, $yesterday, $userId, $yesterday];
+        $paramsYesterdayAds = [$userId, $yesterday];
 
         if ($botId) {
           $sqlYesterdayAds .= " AND p.bot_id = ?";
@@ -431,21 +427,27 @@ class ProfitStatsHandler {
           $sqlYesterdayAds .= " AND paa.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
+        $sqlYesterdayAds .= "
+            GROUP BY h.ad_asset_id
+          ) max_spends
+        ";
+
         $yesterdayAdsData = ogDb::raw($sqlYesterdayAds, $paramsYesterdayAds);
 
-        // Ventas de ayer
+        // Ventas de ayer — usar rango UTC para no perder ventas nocturnas (payment_date está en UTC)
+        $utcRangeYest = ogApp()->helper('date')::localDateToUtcRange($yesterday, $userTz);
         $sqlYesterdaySales = "
           SELECT
             COUNT(DISTINCT s.id) as real_purchases,
             COALESCE(SUM(s.billed_amount), 0) as revenue
           FROM sales s
           WHERE s.user_id = ?
-            AND DATE(s.payment_date) = ?
+            AND s.payment_date >= ? AND s.payment_date <= ?
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
         ";
 
-        $paramsYesterdaySales = [$userId, $yesterday];
+        $paramsYesterdaySales = [$userId, $utcRangeYest['start'], $utcRangeYest['end']];
 
         if ($botId) {
           $sqlYesterdaySales .= " AND s.bot_id = ?";
@@ -453,8 +455,11 @@ class ProfitStatsHandler {
         }
 
         if ($productId) {
-          $sqlYesterdaySales .= " AND s.product_id = ?";
+          // Incluir ventas directas Y upsell del mismo producto
+          $sqlYesterdaySales .= " AND (s.product_id = ? OR (s.origin = 'upsell' AND s.parent_sale_id IN (SELECT id FROM sales ps WHERE ps.product_id = ? AND ps.user_id = ?)))";
           $paramsYesterdaySales[] = $productId;
+          $paramsYesterdaySales[] = $productId;
+          $paramsYesterdaySales[] = $userId;
         } else {
           $sqlYesterdaySales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
@@ -505,7 +510,7 @@ class ProfitStatsHandler {
             AND h.is_latest = 1
         ";
 
-        $paramsTodayAds = [$userId, $today];
+        $paramsTodayAds = [$userId, $localToday];
 
         if ($botId) {
           $sqlTodayAds .= " AND p.bot_id = ?";
@@ -523,19 +528,20 @@ class ProfitStatsHandler {
 
         $todayAdsData = ogDb::raw($sqlTodayAds, $paramsTodayAds);
 
-        // Query 2: Ventas de hoy
+        // Query 2: Ventas de hoy — usar rango UTC para no perder ventas nocturnas (payment_date está en UTC)
+        $utcRangeToday = ogApp()->helper('date')::localDateToUtcRange($localToday, $userTz);
         $sqlTodaySales = "
           SELECT
             COUNT(DISTINCT s.id) as real_purchases,
             COALESCE(SUM(s.billed_amount), 0) as revenue
           FROM sales s
           WHERE s.user_id = ?
-            AND DATE(s.payment_date) = ?
+            AND s.payment_date >= ? AND s.payment_date <= ?
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
         ";
 
-        $paramsTodaySales = [$userId, $today];
+        $paramsTodaySales = [$userId, $utcRangeToday['start'], $utcRangeToday['end']];
 
         if ($botId) {
           $sqlTodaySales .= " AND s.bot_id = ?";
@@ -543,8 +549,11 @@ class ProfitStatsHandler {
         }
 
         if ($productId) {
-          $sqlTodaySales .= " AND s.product_id = ?";
+          // Incluir ventas directas Y upsell del mismo producto
+          $sqlTodaySales .= " AND (s.product_id = ? OR (s.origin = 'upsell' AND s.parent_sale_id IN (SELECT id FROM sales ps WHERE ps.product_id = ? AND ps.user_id = ?)))";
           $paramsTodaySales[] = $productId;
+          $paramsTodaySales[] = $productId;
+          $paramsTodaySales[] = $userId;
         } else {
           $sqlTodaySales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
@@ -559,8 +568,8 @@ class ProfitStatsHandler {
           $revenue = (float)$salesRow['revenue'];
           $profit = $revenue - $spend;
 
-          $results[$today] = [
-            'date' => $today,
+          $results[$localToday] = [
+            'date' => $localToday,
             'spend' => round($spend, 2),
             'revenue' => round($revenue, 2),
             'profit' => round($profit, 2),

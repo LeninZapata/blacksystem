@@ -210,14 +210,40 @@ const budgetResetStats = {
       }
       
       const productId = asset.product_id;
-      
+
       console.log('loadStats - Asset:', { assetId: this.currentAssetId, productId, range: this.currentRange });
-      
+
+      // Para rangos de un solo día usar /hourly (mismo cálculo que la gráfica de Profit por Hora).
+      // Para rangos multi-día usar /daily.
+      const singleDayRanges = ['today', 'yesterday'];
+      const isSingleDay = singleDayRanges.includes(this.currentRange)
+        || this.currentRange === 'custom_date';
+
+      // Construir URL de profit según rango
+      let profitUrl;
+      let targetDate = null;
+      if (isSingleDay) {
+        // Calcular fecha local según el rango
+        const today = new Date();
+        const toLocalISO = d => d.toISOString().slice(0, 10);
+        if (this.currentRange === 'yesterday') {
+          const yest = new Date(today); yest.setDate(yest.getDate() - 1);
+          targetDate = toLocalISO(yest);
+        } else if (this.currentRange === 'custom_date' && this.customDate) {
+          targetDate = this.customDate;
+        } else {
+          targetDate = toLocalISO(today);
+        }
+        profitUrl = `/api/profit/hourly?date=${targetDate}&product_id=${productId}`;
+      } else {
+        profitUrl = `/api/profit/daily?range=${this.currentRange}&product_id=${productId}`;
+      }
+
       // Llamar a ambos endpoints en paralelo
       const [profitResponse, resetsResponse] = await Promise.all([
-        // 1. Profit diario (desde ProfitStatsHandler)
-        ogApi.get(`/api/profit/daily?range=${this.currentRange}&product_id=${productId}`),
-        
+        // 1. Profit (hourly para día único, daily para multi-día)
+        ogApi.get(profitUrl),
+
         // 2. Reseteos de presupuesto (desde AdAutoScaleStatsHandler)
         ogApi.get(`/api/adAutoScale/stats/budget-resets-daily?asset_id=${this.currentAssetId}&range=${this.currentRange}`)
       ]);
@@ -238,16 +264,31 @@ const budgetResetStats = {
         return;
       }
       
-      const profitData = profitResponse.data || [];
+      // Normalizar respuesta de profit: hourly devuelve {data:[{hour,...}], summary:{...}},
+      // daily devuelve {data:[{date, profit,...}], summary:{...}}.
+      // Necesitamos data como array de {date, profit} para combineData.
+      let profitData;
+      let profitSummary;
+      if (isSingleDay) {
+        // Hourly: convertir summary a un único registro con la fecha objetivo
+        profitSummary = profitResponse.summary || { total_profit: 0, total_revenue: 0, total_spend: 0, total_roas: 0 };
+        profitData = profitSummary
+          ? [{ date: profitResponse.filters?.date || targetDate, profit: profitSummary.total_profit }]
+          : [];
+      } else {
+        profitData    = profitResponse.data    || [];
+        profitSummary = profitResponse.summary || {};
+      }
+
       const resetsData = resetsResponse.data || [];
-      
+
       // Combinar datos por fecha
       const combinedData = this.combineData(profitData, resetsData);
-      
+
       console.log('Combined data:', combinedData);
-      
+
       // Renderizar gráfica
-      this.renderChart(combinedData, profitResponse.summary);
+      this.renderChart(combinedData, profitSummary);
       
     } catch (error) {
       console.error('Error loadStats:', error);
