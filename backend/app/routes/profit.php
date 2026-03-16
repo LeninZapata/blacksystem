@@ -19,4 +19,14 @@ $router->group('/api/profit', function($router) {
     );
   })->middleware(['auth', 'throttle:100,1']);
 
+  // Resumen de profit por producto - Para tab Resumen en Automation
+  // GET /api/profit/summary-by-product?bot_id=1&range=today
+  // GET /api/profit/summary-by-product?bot_id=1&range=last_7_days
+  // GET /api/profit/summary-by-product?bot_id=1&range=custom_date&date=2026-03-10
+  $router->get('/summary-by-product', function() {
+    ogResponse::json(
+      ogApp()->handler('ProfitStats')::getSummaryByProduct([])
+    );
+  })->middleware(['auth', 'throttle:100,1']);
+
 });

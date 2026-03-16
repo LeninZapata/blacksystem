@@ -619,4 +619,267 @@ class ProfitStatsHandler {
       ];
     }
   }
+
+  /**
+   * Resumen de profit por producto — para la tab Resumen del módulo Automation.
+   * Devuelve chats iniciados, ingresos confirmados y gasto publicitario por producto
+   * del bot dado, en el rango de fechas solicitado.
+   *
+   * GET /api/profit/summary-by-product?bot_id=1&range=today&date=YYYY-MM-DD
+   */
+  static function getSummaryByProduct($params) {
+    $range     = $params['range']   ?? ogRequest::query('range',   'today');
+    $inputDate = $params['date']    ?? ogRequest::query('date',    date('Y-m-d'));
+    $botId     = $params['bot_id']  ?? ogRequest::query('bot_id');
+    $userId    = $GLOBALS['auth_user_id'];
+
+    if (!$botId) {
+      return ['success' => false, 'error' => 'bot_id es obligatorio'];
+    }
+
+    $userTz     = ogApp()->helper('date')::getUserTimezone();
+    // Fecha local del usuario (no UTC del servidor) para query_date y detección de hoy/ayer
+    $localToday  = (new DateTime('now', new DateTimeZone($userTz)))->format('Y-m-d');
+    $isSingleDay = in_array($range, ['today', 'yesterday', 'custom_date']);
+
+    // ── Calcular rango UTC ─────────────────────────────────────────────────
+    if ($isSingleDay) {
+      if      ($range === 'today')     $targetDate = $localToday;
+      else if ($range === 'yesterday') $targetDate = date('Y-m-d', strtotime($localToday . ' -1 day'));
+      else                             $targetDate = $inputDate ?: $localToday;
+
+      $utcRange    = ogApp()->helper('date')::localDateToUtcRange($targetDate, $userTz);
+      $startUtc    = $utcRange['start'];
+      $endUtc      = $utcRange['end'];
+      $isToday     = ($targetDate === $localToday);
+      $startDate   = $targetDate;
+      $historicEnd = $isToday ? date('Y-m-d', strtotime($localToday . ' -1 day')) : $targetDate;
+      $needsToday  = $isToday;
+    } else {
+      $dates = ogApp()->helper('date')::getDateRange($range, $userTz);
+      if (!$dates) {
+        return ['success' => false, 'error' => 'Rango de fechas inválido'];
+      }
+      $startUtc    = $dates['start'];
+      $endUtc      = $dates['end'];
+      $startDate   = substr($startUtc, 0, 10);
+      $historicEnd = (substr($endUtc, 0, 10) >= $localToday)
+        ? date('Y-m-d', strtotime($localToday . ' -1 day'))
+        : substr($endUtc, 0, 10);
+      $needsToday  = (substr($endUtc, 0, 10) >= $localToday);
+      $isToday     = false;
+      $targetDate  = null;
+    }
+
+    try {
+      // 1. Productos activos del bot ────────────────────────────────────────
+      $products = ogDb::table('products')
+        ->where('bot_id',  (int)$botId)
+        ->where('user_id', $userId)
+        ->where('status',  1)
+        ->where('context', 'infoproductws')
+        ->get();
+
+      if (empty($products)) {
+        return ['success' => true, 'data' => [],
+          'summary' => ['total_revenue' => 0, 'total_spend' => 0, 'total_profit' => 0]];
+      }
+
+      $productIds   = array_column($products, 'id');
+      $productMap   = [];
+      foreach ($products as $p) {
+        $productMap[(int)$p['id']] = [
+          'id'            => (int)$p['id'],
+          'name'          => $p['name'],
+          'env'           => $p['env'] ?? null,
+          'chats'         => 0,
+          'revenue'       => 0.0,
+          'sales_count'   => 0,
+          'upsell_revenue'=> 0.0,
+          'upsell_count'  => 0,
+          'spend'         => 0.0,
+          'profit'        => 0.0,
+        ];
+      }
+
+      $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+
+      // 2. Chats iniciados (solo ventas directas, sin upsell) ──────────────
+      $chatsData = ogDb::raw("
+        SELECT s.product_id, COUNT(DISTINCT s.id) AS chats
+        FROM sales s
+        WHERE s.user_id = ? AND s.product_id IN ($placeholders)
+          AND s.dc >= ? AND s.dc <= ?
+          AND (s.origin IS NULL OR s.origin != 'upsell')
+        GROUP BY s.product_id
+      ", array_merge([$userId], $productIds, [$startUtc, $endUtc]));
+
+      foreach ($chatsData as $row) {
+        if (isset($productMap[(int)$row['product_id']])) {
+          $productMap[(int)$row['product_id']]['chats'] = (int)$row['chats'];
+        }
+      }
+
+      // 3. Ingresos directos (ventas confirmadas, sin upsell) ───────────────
+      $revenueData = ogDb::raw("
+        SELECT s.product_id,
+               COUNT(DISTINCT s.id)             AS sales_count,
+               COALESCE(SUM(s.billed_amount), 0) AS revenue
+        FROM sales s
+        WHERE s.user_id = ? AND s.product_id IN ($placeholders)
+          AND s.payment_date >= ? AND s.payment_date <= ?
+          AND s.process_status = 'sale_confirmed'
+          AND s.status = 1
+          AND (s.origin IS NULL OR s.origin != 'upsell')
+        GROUP BY s.product_id
+      ", array_merge([$userId], $productIds, [$startUtc, $endUtc]));
+
+      foreach ($revenueData as $row) {
+        if (isset($productMap[(int)$row['product_id']])) {
+          $productMap[(int)$row['product_id']]['revenue']     = round((float)$row['revenue'], 2);
+          $productMap[(int)$row['product_id']]['sales_count'] = (int)$row['sales_count'];
+        }
+      }
+
+      // 3b. Ingresos por upsell (via parent_sale_id → product del padre) ────
+      // Identifica ventas con origin=upsell cuyo padre pertenece a este producto
+      $upsellData = ogDb::raw("
+        SELECT parent.product_id,
+               COUNT(DISTINCT s.id)              AS upsell_count,
+               COALESCE(SUM(s.billed_amount), 0) AS upsell_revenue
+        FROM sales s
+        INNER JOIN sales parent ON s.parent_sale_id = parent.id
+        WHERE s.user_id = ? AND parent.product_id IN ($placeholders)
+          AND s.origin = 'upsell'
+          AND s.process_status = 'sale_confirmed'
+          AND s.status = 1
+          AND s.payment_date >= ? AND s.payment_date <= ?
+        GROUP BY parent.product_id
+      ", array_merge([$userId], $productIds, [$startUtc, $endUtc]));
+
+      foreach ($upsellData as $row) {
+        if (isset($productMap[(int)$row['product_id']])) {
+          $productMap[(int)$row['product_id']]['upsell_revenue'] = round((float)$row['upsell_revenue'], 2);
+          $productMap[(int)$row['product_id']]['upsell_count']   = (int)$row['upsell_count'];
+        }
+      }
+
+      // 4. Gastos publicitarios por producto ────────────────────────────────
+      $spendByProduct = [];
+
+      if ($isSingleDay && $isToday) {
+        // Hoy: último acumulado por activo (is_latest = 1)
+        $spendData = ogDb::raw("
+          SELECT paa.product_id, SUM(h.spend) AS spend
+          FROM ad_metrics_hourly h
+          INNER JOIN product_ad_assets paa ON h.ad_asset_id = paa.ad_asset_id
+          WHERE h.user_id = ? AND h.query_date = ? AND h.is_latest = 1
+            AND paa.product_id IN ($placeholders)
+          GROUP BY paa.product_id
+        ", array_merge([$userId, $targetDate], $productIds));
+
+        foreach ($spendData as $row) {
+          $spendByProduct[(int)$row['product_id']] = (float)$row['spend'];
+        }
+
+      } elseif ($isSingleDay && !$isToday) {
+        // Día histórico: ad_metrics_daily con fallback a hourly
+        $spendData = ogDb::raw("
+          SELECT paa.product_id, SUM(d.spend) AS spend
+          FROM ad_metrics_daily d
+          INNER JOIN product_ad_assets paa ON d.ad_asset_id = paa.ad_asset_id
+          WHERE d.user_id = ? AND d.metric_date = ?
+            AND paa.product_id IN ($placeholders)
+          GROUP BY paa.product_id
+        ", array_merge([$userId, $targetDate], $productIds));
+
+        if (empty($spendData)) {
+          // Fallback: último snapshot de cada hora (ayer sin cron)
+          $spendData = ogDb::raw("
+            SELECT paa.product_id, SUM(h.spend) AS spend
+            FROM ad_metrics_hourly h
+            INNER JOIN product_ad_assets paa ON h.ad_asset_id = paa.ad_asset_id
+            WHERE h.user_id = ? AND h.query_date = ?
+              AND paa.product_id IN ($placeholders)
+              AND h.id IN (
+                SELECT MAX(h2.id) FROM ad_metrics_hourly h2
+                WHERE h2.user_id = ? AND h2.query_date = ?
+                  AND h2.ad_asset_id = h.ad_asset_id
+                  AND h2.query_hour  = h.query_hour
+                GROUP BY h2.ad_asset_id, h2.query_hour
+              )
+            GROUP BY paa.product_id
+          ", array_merge([$userId, $targetDate], $productIds, [$userId, $targetDate]));
+        }
+
+        foreach ($spendData as $row) {
+          $spendByProduct[(int)$row['product_id']] = (float)$row['spend'];
+        }
+
+      } else {
+        // Multi-día: daily (hasta ayer) + hourly de hoy si aplica
+        if ($startDate <= $historicEnd) {
+          $spendData = ogDb::raw("
+            SELECT paa.product_id, SUM(d.spend) AS spend
+            FROM ad_metrics_daily d
+            INNER JOIN product_ad_assets paa ON d.ad_asset_id = paa.ad_asset_id
+            WHERE d.user_id = ? AND d.metric_date >= ? AND d.metric_date <= ?
+              AND paa.product_id IN ($placeholders)
+            GROUP BY paa.product_id
+          ", array_merge([$userId, $startDate, $historicEnd], $productIds));
+
+          foreach ($spendData as $row) {
+            $pid = (int)$row['product_id'];
+            $spendByProduct[$pid] = ($spendByProduct[$pid] ?? 0) + (float)$row['spend'];
+          }
+        }
+
+        if ($needsToday) {
+          $spendTodayData = ogDb::raw("
+            SELECT paa.product_id, SUM(h.spend) AS spend
+            FROM ad_metrics_hourly h
+            INNER JOIN product_ad_assets paa ON h.ad_asset_id = paa.ad_asset_id
+            WHERE h.user_id = ? AND h.query_date = ? AND h.is_latest = 1
+              AND paa.product_id IN ($placeholders)
+            GROUP BY paa.product_id
+          ", array_merge([$userId, $localToday], $productIds));
+
+          foreach ($spendTodayData as $row) {
+            $pid = (int)$row['product_id'];
+            $spendByProduct[$pid] = ($spendByProduct[$pid] ?? 0) + (float)$row['spend'];
+          }
+        }
+      }
+
+      // 5. Asignar gastos y calcular profit (upsell suma al ingreso) ─────────
+      $totalRevenue = 0;
+      $totalSpend   = 0;
+      foreach ($productMap as $pid => &$p) {
+        $p['spend']  = round($spendByProduct[$pid] ?? 0, 2);
+        $p['profit'] = round($p['revenue'] + $p['upsell_revenue'] - $p['spend'], 2);
+        $totalRevenue += $p['revenue'] + $p['upsell_revenue'];
+        $totalSpend   += $p['spend'];
+      }
+      unset($p);
+
+      return [
+        'success' => true,
+        'data'    => array_values($productMap),
+        'summary' => [
+          'total_revenue' => round($totalRevenue, 2),
+          'total_spend'   => round($totalSpend,   2),
+          'total_profit'  => round($totalRevenue - $totalSpend, 2),
+        ],
+        'filters' => ['bot_id' => $botId, 'range' => $range],
+      ];
+
+    } catch (Exception $e) {
+      ogLog::error('getSummaryByProduct - Error', ['error' => $e->getMessage()], self::$logMeta);
+      return [
+        'success' => false,
+        'error'   => 'Error al obtener resumen por producto',
+        'details' => OG_IS_DEV ? $e->getMessage() : null
+      ];
+    }
+  }
 }

@@ -126,6 +126,12 @@ class ProductController extends ogController {
 
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
+      // Soporte para filtros de negación: sale_type_mode_not=2 → WHERE sale_type_mode != 2
+      if (str_ends_with($key, '_not')) {
+        $col = substr($key, 0, -4);
+        $query = $query->where("products.{$col}", '!=', $value);
+        continue;
+      }
       $query = $query->where("products.{$key}", $value);
     }
 
