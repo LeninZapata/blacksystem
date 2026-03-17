@@ -751,6 +751,21 @@ class chat {
     const botId    = c.chat_bot_id ?? '';
     const name      = (c.name ?? '').trim().replace(/'/g, '&#39;');
     const salesList = c.sales ?? [];
+
+    // Icono de advertencia: último mensaje fue del cliente (P), formato relevante y > 1 min sin respuesta
+    const relevantFormats   = ['text', 'image', 'emoji', 'audio'];
+    const lastMsgType       = c.last_msg_type ?? '';              // tipo del último mensaje (P/B/S)
+    const lastClientMsgAt   = c.last_client_message_at  ?? '';   // dc del último mensaje P
+    const lastClientFormat  = c.last_client_message_format ?? '';
+    const lastClientMs      = lastClientMsgAt ? new Date(lastClientMsgAt.replace(' ', 'T') + 'Z').getTime() : 0;
+    const elapsedMin        = lastClientMs ? (Date.now() - lastClientMs) / 60000 : 0;
+    const lastIsFromClient  = lastMsgType === 'P';
+    const isRelevantFormat  = relevantFormats.includes(lastClientFormat);
+    const showWarning       = lastIsFromClient && isRelevantFormat && elapsedMin > 1;
+    const warnClass         = showWarning ? ' bs-chat-item--no-reply' : '';
+    const warningIcon       = showWarning
+      ? `<span class="bs-chat-warn-icon" title="Sin respuesta del bot (${Math.floor(elapsedMin)} min)">⚠️</span>`
+      : '';
     const unread    = parseInt(c.unread_count ?? 0);
     const dateStr  = c.last_message_at ?? c.dc ?? '';
     const date     = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
@@ -764,9 +779,10 @@ class chat {
       todayAmt ? `<span class="bs-chat-sale-badge">${fmtAmt(todayAmt)}</span>` : '',
     ].join('');
     return `
-      <div class="bs-chat-item${unreadCls}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${number}', ${clientId})">
+      <div class="bs-chat-item${unreadCls}${warnClass}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${number}', ${clientId})">
         <div class="bs-chat-item-header">
           <div class="bs-chat-item-left">
+            ${warningIcon}
             ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">+${number}</span>`}
             ${saleBadge}
           </div>

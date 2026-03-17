@@ -144,7 +144,7 @@ class ClientController extends ogController {
 
     // Cláusula extra para filtro "solo ventas confirmadas"
     $confirmedJoin  = $confirmedOnly ? "INNER JOIN sales sc ON sc.client_id = c.id AND sc.status = 1 AND sc.process_status = 'sale_confirmed'" : '';
-    $confirmedGroup = $confirmedOnly ? "GROUP BY c.id, cbm_lm.bot_id, cbm_lm.meta_value, cbm_lc.meta_value, cbm_u.meta_value" : '';
+    $confirmedGroup = $confirmedOnly ? "GROUP BY c.id, cbm_lm.bot_id, cbm_lm.meta_value, cbm_u.meta_value" : '';
 
     if ($botId) {
       // Filtro por bot específico
@@ -152,13 +152,16 @@ class ClientController extends ogController {
         "SELECT c.*,
            cbm_lm.bot_id          AS chat_bot_id,
            cbm_lm.meta_value      AS last_message_at,
-           cbm_lc.meta_value      AS last_client_message_at,
-           COALESCE(CAST(cbm_u.meta_value AS UNSIGNED), 0) AS unread_count
+           COALESCE(CAST(cbm_u.meta_value AS UNSIGNED), 0) AS unread_count,
+           (SELECT ch.type FROM chats ch
+            WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.status = 1
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_msg_type,
+           (SELECT ch.format FROM chats ch
+            WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.type = 'P' AND ch.status = 1
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_client_message_format
          FROM clients c
          INNER JOIN client_bot_meta cbm_lm
            ON cbm_lm.client_id = c.id AND cbm_lm.meta_key = 'last_message_at' AND cbm_lm.bot_id = ?
-         LEFT JOIN client_bot_meta cbm_lc
-           ON cbm_lc.client_id = c.id AND cbm_lc.bot_id = cbm_lm.bot_id AND cbm_lc.meta_key = 'last_client_message_at'
          LEFT JOIN client_bot_meta cbm_u
            ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
          {$confirmedJoin}
@@ -180,13 +183,16 @@ class ClientController extends ogController {
         "SELECT c.*,
            cbm_lm.bot_id          AS chat_bot_id,
            cbm_lm.meta_value      AS last_message_at,
-           cbm_lc.meta_value      AS last_client_message_at,
-           COALESCE(CAST(cbm_u.meta_value AS UNSIGNED), 0) AS unread_count
+           COALESCE(CAST(cbm_u.meta_value AS UNSIGNED), 0) AS unread_count,
+           (SELECT ch.type FROM chats ch
+            WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.status = 1
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_msg_type,
+           (SELECT ch.format FROM chats ch
+            WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.type = 'P' AND ch.status = 1
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_client_message_format
          FROM clients c
          INNER JOIN client_bot_meta cbm_lm ON cbm_lm.client_id = c.id AND cbm_lm.meta_key = 'last_message_at'
          INNER JOIN bots b ON b.id = cbm_lm.bot_id AND b.user_id = ?
-         LEFT JOIN client_bot_meta cbm_lc
-           ON cbm_lc.client_id = c.id AND cbm_lc.bot_id = cbm_lm.bot_id AND cbm_lc.meta_key = 'last_client_message_at'
          LEFT JOIN client_bot_meta cbm_u
            ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
          {$confirmedJoin}

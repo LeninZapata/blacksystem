@@ -114,10 +114,18 @@
           if (color) el.style.color = color;
         };
 
-        set('chats',    `${s.chats}  (${s.sales_count} ✓)`);
         set('ingresos', fmt(s.revenue));
         set('gastos',   fmt(s.spend));
         set('profit',   fmt(profit), profitColor);
+
+        // Chats con formato svg igual que balance header
+        const chatEl = row.querySelector('[data-key="chats"]');
+        if (chatEl) {
+          const conv     = parseInt(s.chats) > 0 ? ((parseInt(s.sales_count) / parseInt(s.chats)) * 100).toFixed(1) : '0.0';
+          const chatSvg  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;vertical-align:middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+          const checkSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg>`;
+          chatEl.innerHTML = `${chatSvg} ${s.chats} (${s.sales_count} ${checkSvg} / ${conv}%)`;
+        }
 
         // Fila upsell: mostrar solo si hay ingresos por upsell
         const upsellRow = row.querySelector('[data-upsell-row]');
@@ -178,8 +186,7 @@
       return;
     }
 
-    html += renderBalanceGeneral();
-    container.innerHTML = html;
+    container.innerHTML = renderBalanceGeneral() + html;
   }
 
   // ── Sección por entorno ──────────────────────────────────────────────────
@@ -227,8 +234,6 @@
            style="background:#fff; border:1px solid var(--og-gray-200); border-radius:8px; padding:0.55rem 0.7rem; margin-bottom:0.4rem;">
         <div class="og-flex og-between og-items-center" style="margin-bottom:0.35rem; padding-bottom:0.3rem; border-bottom:1px solid var(--og-gray-100);">
           <span style="font-weight:600; font-size:0.975rem; color:var(--og-gray-900);">📦 ${escHtml(product.name)}</span>
-          <span class="og-bg-gray-100 og-rounded-full og-text-gray-400"
-                style="font-size:0.805rem; padding:0.05rem 0.4rem;">#${product.id}</span>
         </div>
         <div class="og-grid og-cols-2 og-gap-xs">
           ${statCells[0]}

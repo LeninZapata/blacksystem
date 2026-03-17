@@ -212,6 +212,30 @@
     background: var(--og-blue-50);
   }
 
+  /* Item sin respuesta del bot (cliente tuvo la última palabra > 1 min) */
+  @keyframes bs-shake {
+    0%, 100% { transform: rotate(0deg); }
+    20%       { transform: rotate(-18deg); }
+    40%       { transform: rotate(18deg); }
+    60%       { transform: rotate(-12deg); }
+    80%       { transform: rotate(8deg); }
+  }
+
+  .bs-chat-item--no-reply {
+    background: rgba(254, 226, 226, 0.45);
+    border-left-color: var(--og-red-400, #f87171);
+  }
+  .bs-chat-item--no-reply:hover {
+    background: rgba(254, 226, 226, 0.65);
+  }
+  .bs-chat-item--no-reply .bs-chat-warn-icon {
+    display: inline-block;
+    animation: bs-shake 1.4s ease-in-out infinite;
+    transform-origin: center;
+    font-size: 0.82rem;
+    line-height: 1;
+  }
+
   .bs-chat-item.unread .bs-chat-item-number {
     color: var(--og-accent-primary);
     font-weight: 700;

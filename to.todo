@@ -1,12 +1,12 @@
 URGENTE:
 
 RAPIDO:
-☐ Mostrar un icono de admiracion en el chat cuando el ultimo chat sea de P porque significa que el bot
+✔ Mostrar un icono de admiracion en el chat cuando el ultimo chat sea de P porque significa que el bot @done(16-03-2026 17:21)
 no le respondio, esto debe ser por un rango de tiempo de 1MIN ya eso alli ya no es respondido
 
 Backend:
 ☐ Revisa el cron que borras los registros los JSON o Logs temporales (problemas con Middle)
-☐ Revisa si hay hay una forma de borrar datos de la DB periodicamente, REVISA LAS TABLAS CON MUCHOS REGISTROS
+☐ Revisa si hay hay una for<ma de borrar datos de la DB periodicamente, REVISA LAS TABLAS CON MUCHOS REGISTROS
 ☐ Cuando hay un errror de pago, este ya no se activan los conjuntos de anuncios porque el reseteo ya paso y en el reseteo este prende los activos
 LO QUE SE PODRIA HACER ES MOSTRAR LOS ACTIVOS DE UN USUARIO Y VER QUE ESTA APAGADOY PRENDERLO DESDE EL SISTEMA.
 ☐ El sistema debe tener un reseteo de presupues a su base para media noche, y el reseteo de presupuesto basado en elROAS tipo 6am
@@ -14,7 +14,7 @@ con esto no gasta mucho en la noche, ya puede amanecer con un gasto que no quere
 
 FRONTEND:
 ☐ agregar trigger de plantillas
-☐ agrear botnes en los mensajes puede ser de bienvenida o se seguimiento
+☐ agrear botnes en los mensajes puede ser de bienvenidsa o se seguimiento
 ☐ Agregar un buscador de numero de chat o clie<nte en la seccion de chats
 ☐ Obtener el link del producto en el listado del producto o a su vez agregar un panel
 que permita tener mas herramientas de ese chat como el link del producto, cancelar venta, parar segumientos. etc...
