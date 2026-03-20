@@ -17,6 +17,7 @@ class chat {
   static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
   static _activeBotId        = null;  // Filtro de bot seleccionado (opcional)
   static _activeProductId    = null;  // Filtro de producto seleccionado (opcional)
+  static _filterNumber       = '';    // Filtro de número de cliente
   static _onlyConfirmed       = false; // Filtro "solo ventas confirmadas"
   static _onlyToday           = false; // Filtro "solo hoy"
 
@@ -41,6 +42,7 @@ class chat {
     this._activeBotNum    = null;
     this._activeBotId     = null;
     this._activeProductId = null;
+    this._filterNumber    = '';
     this._onlyConfirmed   = false;
     this._onlyToday       = false;
     this._lastMsgId       = null;
@@ -56,6 +58,12 @@ class chat {
     }
 
     this._initBotFilter();
+  }
+
+  // Convierte un country_code (ej: "EC") en emoji de bandera
+  static _countryFlag(countryCode) {
+    if (!countryCode) return '🌐';
+    return countryCode.toUpperCase().replace(/./g, c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0)));
   }
 
   // Carga bots del usuario e inserta el select como filtro opcional en el sidebar
@@ -80,7 +88,7 @@ class chat {
         panel.insertAdjacentHTML('beforeend',
           `<select id="bsChatBotSelect" onchange="chat.onBotFilter(this.value)">
             <option value="">Todos los bots</option>
-            ${bots.map(b => `<option value="${b.id}">+${b.number} — ${b.name}</option>`).join('')}
+            ${bots.map(b => `<option value="${b.id}">${this._countryFlag(b.country_code)} ${b.name} · +${b.number}</option>`).join('')}
           </select>
           <div id="bsChatProductWrap" class="og-mt-1" style="display:none">
             <select id="bsChatProductSelect" onchange="chat.onProductFilter(this.value)">
@@ -191,6 +199,22 @@ class chat {
     this.loadClients(true);
   }
 
+  // Ejecuta búsqueda por número al presionar Enter
+  static onNumberKeyDown(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.onNumberFilter();
+    }
+  }
+
+  // Aplica el filtro de número de cliente
+  static onNumberFilter() {
+    const input = document.getElementById('bsChatNumberInput');
+    this._filterNumber = input?.value?.trim() ?? '';
+    this._clientsKnown = new Map();
+    this.loadClients(true);
+  }
+
   // Cambia el filtro de solo chats del día de hoy
   static onTodayFilter(checked) {
     this._onlyToday    = checked;
@@ -220,11 +244,12 @@ class chat {
   // Fetch silencioso: detecta nuevos mensajes / nuevos contactos e inyecta en DOM
   static async _syncClients() {
     try {
-      const botParam       = this._activeBotId     ? `&bot_id=${this._activeBotId}`         : '';
-      const productParam   = this._activeProductId ? `&product_id=${this._activeProductId}` : '';
-      const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                    : '';
-      const todayParam      = this._onlyToday      ? `&today_only=1`                        : '';
-      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}${productParam}${confirmedParam}${todayParam}`;
+      const botParam       = this._activeBotId     ? `&bot_id=${this._activeBotId}`                              : '';
+      const productParam   = this._activeProductId ? `&product_id=${this._activeProductId}`                      : '';
+      const numberParam    = this._filterNumber     ? `&number_search=${encodeURIComponent(this._filterNumber)}` : '';
+      const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                                         : '';
+      const todayParam      = this._onlyToday      ? `&today_only=1`                                             : '';
+      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}${productParam}${numberParam}${confirmedParam}${todayParam}`;
       const json = await ogModule('api').get(url);
       if (!json.success) return;
 
@@ -384,11 +409,12 @@ class chat {
       if (btnRef) list.appendChild(btnRef);
     }
 
-    const botParam       = this._activeBotId     ? `&bot_id=${this._activeBotId}`         : '';
-    const productParam   = this._activeProductId ? `&product_id=${this._activeProductId}` : '';
-    const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                    : '';
-    const todayParam      = this._onlyToday      ? `&today_only=1`                        : '';
-    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}${productParam}${confirmedParam}${todayParam}`;
+    const botParam       = this._activeBotId     ? `&bot_id=${this._activeBotId}`                              : '';
+    const productParam   = this._activeProductId ? `&product_id=${this._activeProductId}`                      : '';
+    const numberParam    = this._filterNumber     ? `&number_search=${encodeURIComponent(this._filterNumber)}` : '';
+    const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                                         : '';
+    const todayParam      = this._onlyToday      ? `&today_only=1`                                             : '';
+    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}${productParam}${numberParam}${confirmedParam}${todayParam}`;
 
     try {
       const json = await ogModule('api').get(url);

@@ -72,15 +72,6 @@
     flex-direction: column;
     gap: 0.4rem;
 
-    /* Espacio entre el grid de checks y el select de bots */
-    .og-grid { margin-bottom: 0.25rem; }
-
-    /* Check izquierdo (Solo ventas): alinear a la izquierda */
-    .bs-chat-filter-confirmed:first-child {
-      margin-left: 0;
-      margin-right: 0;
-    }
-
     select {
       width: 100%;
       font-size: var(--og-font-xs);
@@ -93,6 +84,63 @@
       cursor: pointer;
 
       &:focus { border-color: var(--og-accent-primary); }
+    }
+  }
+
+  /* ── Fila de filtros rápidos: checkboxes + input de número ─────────────── */
+  .bs-chat-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+
+    .bs-chat-filter-confirmed {
+      margin-left: 0;
+      margin-right: 0;
+      flex-shrink: 0;
+    }
+  }
+
+  /* ── Input búsqueda por número ───────────────────────────────────────────── */
+  .bs-chat-number-filter {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--og-gray-200);
+    border-radius: 6px;
+    background: var(--og-gray-50);
+    overflow: hidden;
+    min-width: 0;
+
+    &:focus-within {
+      border-color: var(--og-accent-primary);
+      background: var(--og-layout-content-bg);
+    }
+
+    input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 0.3rem 0.4rem;
+      font-size: var(--og-font-xs);
+      color: var(--og-gray-700);
+      outline: none;
+      min-width: 0;
+      font-family: inherit;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--og-gray-400);
+      padding: 0 0.35rem;
+      display: flex;
+      align-items: center;
+      line-height: 1;
+      flex-shrink: 0;
+
+      &:hover { color: var(--og-accent-primary); }
     }
   }
 

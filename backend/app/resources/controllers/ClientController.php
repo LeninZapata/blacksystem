@@ -138,6 +138,7 @@ class ClientController extends ogController {
     $userId        = $GLOBALS['auth_user_id'] ?? null;
     $botId         = ogRequest::query('bot_id', null);
     $productId     = ogRequest::query('product_id', null);
+    $numberSearch  = trim(ogRequest::query('number_search', ''));
     $confirmedOnly = (int)ogRequest::query('confirmed_only', 0);
     $todayOnly     = (int)ogRequest::query('today_only', 0);
     $page          = (int)ogRequest::query('page', 1);
@@ -149,16 +150,26 @@ class ClientController extends ogController {
     $todayLocal = (new DateTime('now', new DateTimeZone($userTz)))->format('Y-m-d');
     $offsetSec  = (new DateTimeZone($userTz))->getOffset(new DateTime('now', new DateTimeZone('UTC')));
 
-    // Filtro "solo hoy": rango UTC del día actual en la zona horaria del usuario
+    // Construir cláusula WHERE combinando todos los filtros de fila
+    $whereParts      = [];
+    $wherePartsCount = [];
+    $todayParams     = [];
+
     if ($todayOnly) {
-      $todayRange      = ogApp()->helper('date')::localDateToUtcRange($todayLocal, $userTz);
-      $todayWhere      = "WHERE cbm_lm.meta_value BETWEEN ? AND ?";
-      $todayWhereCount = "WHERE cbm.meta_value BETWEEN ? AND ?";
-      $todayParams     = [$todayRange['start'], $todayRange['end']];
-    } else {
-      $todayWhere = $todayWhereCount = '';
-      $todayParams = [];
+      $todayRange        = ogApp()->helper('date')::localDateToUtcRange($todayLocal, $userTz);
+      $whereParts[]      = "cbm_lm.meta_value BETWEEN ? AND ?";
+      $wherePartsCount[] = "cbm.meta_value BETWEEN ? AND ?";
+      $todayParams       = [$todayRange['start'], $todayRange['end']];
     }
+
+    if ($numberSearch !== '') {
+      $whereParts[]      = "c.number LIKE ?";
+      $wherePartsCount[] = "c.number LIKE ?";
+      $todayParams[]     = "%{$numberSearch}%";
+    }
+
+    $todayWhere      = !empty($whereParts)      ? "WHERE " . implode(" AND ", $whereParts)      : '';
+    $todayWhereCount = !empty($wherePartsCount) ? "WHERE " . implode(" AND ", $wherePartsCount) : '';
 
     // Cláusula extra para filtro "solo producto"
     $productJoin      = $productId ? "INNER JOIN sales sp ON sp.client_id = c.id AND sp.bot_id = cbm_lm.bot_id AND sp.product_id = ? AND sp.status = 1" : '';
