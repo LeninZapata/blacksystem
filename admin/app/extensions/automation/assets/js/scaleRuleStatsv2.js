@@ -816,6 +816,10 @@ class scaleRuleStatsv2 {
 
       html += `
         <div class="timeline-item ${colorClass}">
+          <div class="timeline-accordion-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <span class="tl-acc-left">${icon} ${this.formatDateTime(item.executed_at)} &mdash; ${this.getActionLabel(item.action_type)} ${isManual ? '<span class="badge-manual">MANUAL</span>' : '<span class="badge-auto">AUTO</span>'}</span>
+            <span class="tl-acc-right data-change ${colorClass}">${budgetChange >= 0 ? '+' : ''}$${budgetChange.toFixed(2)} &nbsp; <span class="tl-acc-chevron">▼</span></span>
+          </div>
           <div class="timeline-grid">
             <!-- COLUMNA 1: DATOS -->
             <div class="timeline-col-data">

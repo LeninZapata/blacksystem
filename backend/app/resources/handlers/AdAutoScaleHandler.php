@@ -136,6 +136,7 @@ class AdAutoScaleHandler {
         pa.reset_type,
         pa.max_daily_budget,
         pa.credential_id,
+        pa.timezone as asset_timezone,
         p.bot_id,
         b.country_code,
         b.name as bot_name
@@ -167,9 +168,13 @@ class AdAutoScaleHandler {
     
     $assetsByTimezone = [];
     foreach ($assets as &$asset) {
-      // Obtener timezone según el país del bot
-      $countryData = ogCountry::get($asset['country_code']);
-      $timezone = $countryData ? $countryData['timezone'] : 'America/Guayaquil';
+      // Prioridad: timezone del activo publicitario → timezone del país del bot → fallback
+      if (!empty($asset['asset_timezone'])) {
+        $timezone = $asset['asset_timezone'];
+      } else {
+        $countryData = ogCountry::get($asset['country_code']);
+        $timezone = $countryData ? $countryData['timezone'] : 'America/Guayaquil';
+      }
       
       // Agregar timezone al asset para uso posterior
       $asset['bot_timezone'] = $timezone;
@@ -427,7 +432,7 @@ class AdAutoScaleHandler {
       $resetType = $asset['reset_type'] ?? 'fixed';
       
       if ($resetType === 'roas_based') {
-        $budgetAfter = self::calculateRoasBasedBudget($asset, $currentDate);
+        $budgetAfter = self::calculateRoasBasedBudget($asset, $currentDate, $timezone);
       } else {
         // Reset fijo tradicional
         $budgetAfter = (float)$asset['base_daily_budget'];
@@ -548,7 +553,7 @@ class AdAutoScaleHandler {
    * - Si ganancia > 0 → usar ganancia
    * - Si ganancia <= 0 → usar base_daily_budget (mínimo)
    */
-  private static function calculateRoasBasedBudget($asset, $currentDate) {
+  private static function calculateRoasBasedBudget($asset, $currentDate, $timezone = 'America/Guayaquil') {
     $logMeta = ['module' => 'AdAutoScaleHandler', 'layer' => 'app/resources', 'method' => 'calculateRoasBasedBudget'];
     
     $productId = $asset['product_id'];
@@ -556,12 +561,13 @@ class AdAutoScaleHandler {
     $baseBudget = (float)$asset['base_daily_budget'];
     $maxBudget = (float)($asset['max_daily_budget'] ?? $baseBudget);
     
-    // Fecha del día anterior
+    // Fecha del día anterior en el timezone local del activo
     $yesterday = date('Y-m-d', strtotime($currentDate . ' -1 day'));
     
     ogLog::info('calculateRoasBasedBudget - Iniciando cálculo', [
       'product_id' => $productId,
       'ad_asset_id' => $adAssetId,
+      'timezone' => $timezone,
       'yesterday' => $yesterday,
       'base_budget' => $baseBudget,
       'max_budget' => $maxBudget
@@ -604,12 +610,13 @@ class AdAutoScaleHandler {
 
       // 2. Obtener VENTAS CONFIRMADAS del día anterior
       // Incluye: Ventas del producto + Upsells relacionados (parent_sale_id)
+      // payment_date se guarda en UTC → convertir al timezone local del activo para comparar
       $sqlSales = "
         SELECT SUM(billed_amount) as total_sales
         FROM sales
         WHERE status = 1
           AND process_status = 'sale_confirmed'
-          AND DATE(payment_date) = ?
+          AND DATE(CONVERT_TZ(payment_date, 'UTC', ?)) = ?
           AND (
             product_id = ?
             OR parent_sale_id IN (
@@ -620,7 +627,7 @@ class AdAutoScaleHandler {
           )
       ";
       
-      $salesData = ogDb::raw($sqlSales, [$yesterday, $productId, $productId]);
+      $salesData = ogDb::raw($sqlSales, [$timezone, $yesterday, $productId, $productId]);
       $sales = !empty($salesData) ? (float)($salesData[0]['total_sales'] ?? 0) : 0;
 
       // 3. Calcular GANANCIA

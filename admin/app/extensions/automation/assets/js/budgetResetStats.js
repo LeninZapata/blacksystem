@@ -197,10 +197,10 @@ const budgetResetStats = {
       this.showPlaceholder();
       return;
     }
-    
+
     try {
       this.showLoading();
-      
+
       // Obtener datos del activo seleccionado
       const asset = this.assets.find(a => a.id == this.currentAssetId);
       if (!asset) {
@@ -208,31 +208,90 @@ const budgetResetStats = {
         this.showError();
         return;
       }
-      
+
       const productId = asset.product_id;
 
       console.log('loadStats - Asset:', { assetId: this.currentAssetId, productId, range: this.currentRange });
 
+      // Calcular fechas en el timezone del usuario (igual que el header X-User-Timezone de ogApi)
+      const auth = typeof ogModule === 'function' ? ogModule('auth') : null;
+      const userTz = auth?.userPreferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const toTzISO = d => new Intl.DateTimeFormat('en-CA', { timeZone: userTz }).format(d);
+      const todayInTz = toTzISO(new Date());
+      const yesterdayInTz = (() => {
+        const d = new Date(todayInTz + 'T12:00:00');
+        d.setDate(d.getDate() - 1);
+        return toTzISO(d);
+      })();
+
       // Para rangos de un solo día usar /hourly (mismo cálculo que la gráfica de Profit por Hora).
+      // Para yesterday_today también usar /hourly por cada día (daily da resultados distintos).
       // Para rangos multi-día usar /daily.
       const singleDayRanges = ['today', 'yesterday'];
-      const isSingleDay = singleDayRanges.includes(this.currentRange)
-        || this.currentRange === 'custom_date';
+      const isSingleDay = singleDayRanges.includes(this.currentRange) || this.currentRange === 'custom_date';
+      const isYesterdayToday = this.currentRange === 'yesterday_today';
 
-      // Construir URL de profit según rango
+      const resetsUrl = `/api/adAutoScale/stats/budget-resets-daily?asset_id=${this.currentAssetId}&range=${this.currentRange}`;
+
+      let profitData;
+      let profitSummary;
+
+      if (isYesterdayToday) {
+        // Llamar hourly para cada día en paralelo junto con los reseteos
+        const [yesterdayRes, todayRes, resetsResponse] = await Promise.all([
+          ogApi.get(`/api/profit/hourly?date=${yesterdayInTz}&product_id=${productId}`),
+          ogApi.get(`/api/profit/hourly?date=${todayInTz}&product_id=${productId}`),
+          ogApi.get(resetsUrl)
+        ]);
+
+        console.log('Yesterday profit response:', yesterdayRes);
+        console.log('Today profit response:', todayRes);
+        console.log('Resets response:', resetsResponse);
+
+        if (!yesterdayRes?.success || !todayRes?.success) {
+          ogToast.error('Error al cargar datos de profit');
+          this.showError();
+          return;
+        }
+        if (!resetsResponse?.success) {
+          ogToast.error('Error al cargar datos de reseteos');
+          this.showError();
+          return;
+        }
+
+        const ySummary = yesterdayRes.summary || {};
+        const tSummary = todayRes.summary   || {};
+        const totalRevenue = (ySummary.total_revenue || 0) + (tSummary.total_revenue || 0);
+        const totalSpend   = (ySummary.total_spend   || 0) + (tSummary.total_spend   || 0);
+
+        profitData = [
+          { date: yesterdayInTz, profit: ySummary.total_profit || 0 },
+          { date: todayInTz,     profit: tSummary.total_profit || 0 }
+        ];
+        profitSummary = {
+          total_profit:  (ySummary.total_profit || 0) + (tSummary.total_profit || 0),
+          total_revenue: totalRevenue,
+          total_spend:   totalSpend,
+          avg_roas:      totalSpend > 0 ? (totalRevenue / totalSpend).toFixed(2) : '0.00'
+        };
+
+        const resetsData = resetsResponse.data || [];
+        const combinedData = this.combineData(profitData, resetsData);
+        console.log('Combined data:', combinedData);
+        this.renderChart(combinedData, profitSummary);
+        return;
+      }
+
+      // Construir URL de profit para otros rangos
       let profitUrl;
       let targetDate = null;
       if (isSingleDay) {
-        // Calcular fecha local según el rango
-        const today = new Date();
-        const toLocalISO = d => d.toISOString().slice(0, 10);
         if (this.currentRange === 'yesterday') {
-          const yest = new Date(today); yest.setDate(yest.getDate() - 1);
-          targetDate = toLocalISO(yest);
+          targetDate = yesterdayInTz;
         } else if (this.currentRange === 'custom_date' && this.customDate) {
           targetDate = this.customDate;
         } else {
-          targetDate = toLocalISO(today);
+          targetDate = todayInTz;
         }
         profitUrl = `/api/profit/hourly?date=${targetDate}&product_id=${productId}`;
       } else {
@@ -241,37 +300,30 @@ const budgetResetStats = {
 
       // Llamar a ambos endpoints en paralelo
       const [profitResponse, resetsResponse] = await Promise.all([
-        // 1. Profit (hourly para día único, daily para multi-día)
         ogApi.get(profitUrl),
-
-        // 2. Reseteos de presupuesto (desde AdAutoScaleStatsHandler)
-        ogApi.get(`/api/adAutoScale/stats/budget-resets-daily?asset_id=${this.currentAssetId}&range=${this.currentRange}`)
+        ogApi.get(resetsUrl)
       ]);
-      
+
       console.log('Profit response:', profitResponse);
       console.log('Resets response:', resetsResponse);
-      
+
       // Validar respuestas
       if (!profitResponse || !profitResponse.success) {
         ogToast.error('Error al cargar datos de profit');
         this.showError();
         return;
       }
-      
+
       if (!resetsResponse || !resetsResponse.success) {
         ogToast.error('Error al cargar datos de reseteos');
         this.showError();
         return;
       }
-      
+
       // Normalizar respuesta de profit: hourly devuelve {data:[{hour,...}], summary:{...}},
       // daily devuelve {data:[{date, profit,...}], summary:{...}}.
-      // Necesitamos data como array de {date, profit} para combineData.
-      let profitData;
-      let profitSummary;
       if (isSingleDay) {
-        // Hourly: convertir summary a un único registro con la fecha objetivo
-        profitSummary = profitResponse.summary || { total_profit: 0, total_revenue: 0, total_spend: 0, total_roas: 0 };
+        profitSummary = profitResponse.summary || { total_profit: 0, total_revenue: 0, total_spend: 0, avg_roas: 0 };
         profitData = profitSummary
           ? [{ date: profitResponse.filters?.date || targetDate, profit: profitSummary.total_profit }]
           : [];
@@ -281,15 +333,10 @@ const budgetResetStats = {
       }
 
       const resetsData = resetsResponse.data || [];
-
-      // Combinar datos por fecha
       const combinedData = this.combineData(profitData, resetsData);
-
       console.log('Combined data:', combinedData);
-
-      // Renderizar gráfica
       this.renderChart(combinedData, profitSummary);
-      
+
     } catch (error) {
       console.error('Error loadStats:', error);
       ogToast.error('Error al cargar estadísticas');

@@ -325,20 +325,21 @@ class ProfitStatsHandler {
         $adsData = ogDb::raw($sqlAds, $paramsAds);
 
         // Query 2: Ventas reales del mismo rango
+        // payment_date se guarda en UTC → convertir al timezone local del usuario para agrupar por día correcto
         $sqlSales = "
           SELECT
-            DATE(s.payment_date) as date,
+            DATE(CONVERT_TZ(s.payment_date, 'UTC', ?)) as date,
             COUNT(DISTINCT s.id) as real_purchases,
             COALESCE(SUM(s.billed_amount), 0) as revenue
           FROM sales s
           WHERE s.user_id = ?
-            AND DATE(s.payment_date) >= ?
-            AND DATE(s.payment_date) <= ?
+            AND DATE(CONVERT_TZ(s.payment_date, 'UTC', ?)) >= ?
+            AND DATE(CONVERT_TZ(s.payment_date, 'UTC', ?)) <= ?
             AND s.process_status = 'sale_confirmed'
             AND s.status = 1
         ";
 
-        $paramsSales = [$userId, $startDateOnly, $historicEnd];
+        $paramsSales = [$userTz, $userId, $userTz, $startDateOnly, $userTz, $historicEnd];
 
         if ($botId) {
           $sqlSales .= " AND s.bot_id = ?";
@@ -352,7 +353,8 @@ class ProfitStatsHandler {
           $sqlSales .= " AND s.product_id NOT IN (SELECT id FROM products WHERE env = 'T')";
         }
 
-        $sqlSales .= " GROUP BY DATE(s.payment_date)";
+        $sqlSales .= " GROUP BY DATE(CONVERT_TZ(s.payment_date, 'UTC', ?))";
+        $paramsSales[] = $userTz;
 
         $salesData = ogDb::raw($sqlSales, $paramsSales);
 
