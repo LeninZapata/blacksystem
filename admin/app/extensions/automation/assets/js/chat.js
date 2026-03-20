@@ -16,7 +16,9 @@ class chat {
   static _activeId      = null;
   static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
   static _activeBotId        = null;  // Filtro de bot seleccionado (opcional)
+  static _activeProductId    = null;  // Filtro de producto seleccionado (opcional)
   static _onlyConfirmed       = false; // Filtro "solo ventas confirmadas"
+  static _onlyToday           = false; // Filtro "solo hoy"
 
   static _heartbeatTimer  = null;
   static _heartbeatCount  = 0;
@@ -38,7 +40,9 @@ class chat {
     this._activeId        = null;
     this._activeBotNum    = null;
     this._activeBotId     = null;
+    this._activeProductId = null;
     this._onlyConfirmed   = false;
+    this._onlyToday       = false;
     this._lastMsgId       = null;
     this._activeExpiry    = null;
     this._clientsKnown    = new Map();
@@ -70,16 +74,31 @@ class chat {
         if (botTz) bsDate.timezone = botTz;
       }
 
-      if (bots.length > 1) {
-        // Solo mostrar el select si hay más de 1 bot (con 1 no tiene sentido filtrar)
-        header.insertAdjacentHTML('afterend',
-          `<div class="bs-chat-bot-selector">
-            <select id="bsChatBotSelect" onchange="chat.onBotFilter(this.value)">
-              <option value="">Todos los bots</option>
-              ${bots.map(b => `<option value="${b.id}">+${b.number} — ${b.name}</option>`).join('')}
+      const panel = document.getElementById('bsChatFilterPanel');
+      if (panel && bots.length > 1) {
+        // Más de 1 bot: mostrar select de bot + select de producto (oculto hasta elegir bot)
+        panel.insertAdjacentHTML('beforeend',
+          `<select id="bsChatBotSelect" onchange="chat.onBotFilter(this.value)">
+            <option value="">Todos los bots</option>
+            ${bots.map(b => `<option value="${b.id}">+${b.number} — ${b.name}</option>`).join('')}
+          </select>
+          <div id="bsChatProductWrap" class="og-mt-1" style="display:none">
+            <select id="bsChatProductSelect" onchange="chat.onProductFilter(this.value)">
+              <option value="">Selecciona un bot primero</option>
             </select>
           </div>`
         );
+      } else if (panel && bots.length === 1) {
+        // Solo 1 bot: auto-seleccionarlo y mostrar directamente el select de productos
+        this._activeBotId = bots[0].id;
+        panel.insertAdjacentHTML('beforeend',
+          `<div id="bsChatProductWrap" class="og-mt-1">
+            <select id="bsChatProductSelect" onchange="chat.onProductFilter(this.value)">
+              <option value="">Cargando productos...</option>
+            </select>
+          </div>`
+        );
+        this._loadProductSelect(this._activeBotId);
       }
     } catch (_) { /* sin bots disponibles, igual continúa */ }
 
@@ -89,15 +108,93 @@ class chat {
 
   // Cambia el filtro de bot y recarga la lista
   static onBotFilter(botId) {
-    this._activeBotId  = botId ? parseInt(botId) : null;
-    this._clientsKnown = new Map();
+    this._activeBotId     = botId ? parseInt(botId) : null;
+    this._activeProductId = null;
+    this._clientsKnown    = new Map();
+    this._loadProductSelect(this._activeBotId);
     this.loadClients(true);
+  }
+
+  // Carga el select de productos según el bot seleccionado
+  static async _loadProductSelect(botId) {
+    const wrap   = document.getElementById('bsChatProductWrap');
+    const select = document.getElementById('bsChatProductSelect');
+    if (!wrap || !select) return;
+
+    if (!botId) {
+      select.innerHTML = `<option value="">Selecciona un bot primero</option>`;
+      wrap.style.display = 'none';
+      return;
+    }
+
+    wrap.style.display = 'block';
+    select.innerHTML = `<option value="">Cargando productos...</option>`;
+
+    try {
+      const json     = await ogModule('api').get(`/api/product?bot_id=${botId}&status=1&sort=sale_type_mode&order=ASC&per_page=100`);
+      const products = json.data?.data ?? json.data ?? [];
+
+      if (products.length === 0) {
+        select.innerHTML = `<option value="">Sin productos activos</option>`;
+        return;
+      }
+
+      // Agrupar por sale_type_mode; dentro de cada grupo: producción antes que testeo
+      const modeLabels = { 1: 'Principal', 2: 'Solo upsell', 3: 'Principal & Upsell' };
+      const groups     = { 1: [], 2: [], 3: [] };
+
+      for (const p of products) {
+        const mode = parseInt(p.sale_type_mode) || 3;
+        const label = p.env === 'T' ? `[testeo] ${p.name}` : p.name;
+        groups[mode]?.push({ id: p.id, label, isTest: p.env === 'T' });
+      }
+
+      // Dentro de cada grupo: producción primero, testeo al final
+      for (const mode of [1, 2, 3]) {
+        groups[mode].sort((a, b) => a.isTest - b.isTest);
+      }
+
+      let html = `<option value="">Todos los productos</option>`;
+      for (const mode of [1, 2, 3]) {
+        if (groups[mode].length === 0) continue;
+        html += `<optgroup label="${modeLabels[mode]}">`;
+        html += groups[mode].map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+        html += `</optgroup>`;
+      }
+      select.innerHTML = html;
+    } catch (_) {
+      select.innerHTML = `<option value="">Error cargando productos</option>`;
+    }
+  }
+
+  // Cambia el filtro de producto y recarga la lista
+  static onProductFilter(productId) {
+    this._activeProductId = productId ? parseInt(productId) : null;
+    this._clientsKnown    = new Map();
+    this.loadClients(true);
+  }
+
+  // Abre/cierra el panel de filtros (bot + solo ventas)
+  static toggleFilterPanel() {
+    const panel = document.getElementById('bsChatFilterPanel');
+    const btn   = document.getElementById('bsChatFilterBtn');
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    btn?.classList.toggle('active', !isOpen);
   }
 
   // Cambia el filtro de solo ventas confirmadas
   static onConfirmedFilter(checked) {
     this._onlyConfirmed = checked;
     this._clientsKnown  = new Map();
+    this.loadClients(true);
+  }
+
+  // Cambia el filtro de solo chats del día de hoy
+  static onTodayFilter(checked) {
+    this._onlyToday    = checked;
+    this._clientsKnown = new Map();
     this.loadClients(true);
   }
 
@@ -123,9 +220,11 @@ class chat {
   // Fetch silencioso: detecta nuevos mensajes / nuevos contactos e inyecta en DOM
   static async _syncClients() {
     try {
-      const botParam       = this._activeBotId  ? `&bot_id=${this._activeBotId}` : '';
-      const confirmedParam  = this._onlyConfirmed ? `&confirmed_only=1`             : '';
-      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}${confirmedParam}`;
+      const botParam       = this._activeBotId     ? `&bot_id=${this._activeBotId}`         : '';
+      const productParam   = this._activeProductId ? `&product_id=${this._activeProductId}` : '';
+      const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                    : '';
+      const todayParam      = this._onlyToday      ? `&today_only=1`                        : '';
+      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}${productParam}${confirmedParam}${todayParam}`;
       const json = await ogModule('api').get(url);
       if (!json.success) return;
 
@@ -285,9 +384,11 @@ class chat {
       if (btnRef) list.appendChild(btnRef);
     }
 
-    const botParam      = this._activeBotId  ? `&bot_id=${this._activeBotId}` : '';
-    const confirmedParam = this._onlyConfirmed ? `&confirmed_only=1`             : '';
-    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}${confirmedParam}`;
+    const botParam       = this._activeBotId     ? `&bot_id=${this._activeBotId}`         : '';
+    const productParam   = this._activeProductId ? `&product_id=${this._activeProductId}` : '';
+    const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                    : '';
+    const todayParam      = this._onlyToday      ? `&today_only=1`                        : '';
+    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}${productParam}${confirmedParam}${todayParam}`;
 
     try {
       const json = await ogModule('api').get(url);

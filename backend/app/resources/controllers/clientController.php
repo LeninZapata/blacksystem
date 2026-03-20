@@ -135,16 +135,39 @@ class ClientController extends ogController {
 
   // Lista de clientes para el panel de chat, con last_message_at/unread_count desde client_bot_meta
   function listChat() {
-    $userId  = $GLOBALS['auth_user_id'] ?? null;
-    $botId         = ogRequest::query('bot_id', null);        // opcional: filtra por bot
-    $confirmedOnly = (int)ogRequest::query('confirmed_only', 0); // 1 = solo con sale_confirmed
-    $page    = (int)ogRequest::query('page', 1);
-    $perPage = (int)ogRequest::query('per_page', 50);
-    $offset  = ($page - 1) * $perPage;
+    $userId        = $GLOBALS['auth_user_id'] ?? null;
+    $botId         = ogRequest::query('bot_id', null);
+    $productId     = ogRequest::query('product_id', null);
+    $confirmedOnly = (int)ogRequest::query('confirmed_only', 0);
+    $todayOnly     = (int)ogRequest::query('today_only', 0);
+    $page          = (int)ogRequest::query('page', 1);
+    $perPage       = (int)ogRequest::query('per_page', 50);
+    $offset        = ($page - 1) * $perPage;
+
+    // Timezone del usuario (necesaria para filtro hoy y para ventas confirmadas)
+    $userTz     = ogApp()->helper('date')::getUserTimezone();
+    $todayLocal = (new DateTime('now', new DateTimeZone($userTz)))->format('Y-m-d');
+    $offsetSec  = (new DateTimeZone($userTz))->getOffset(new DateTime('now', new DateTimeZone('UTC')));
+
+    // Filtro "solo hoy": rango UTC del día actual en la zona horaria del usuario
+    if ($todayOnly) {
+      $todayRange      = ogApp()->helper('date')::localDateToUtcRange($todayLocal, $userTz);
+      $todayWhere      = "WHERE cbm_lm.meta_value BETWEEN ? AND ?";
+      $todayWhereCount = "WHERE cbm.meta_value BETWEEN ? AND ?";
+      $todayParams     = [$todayRange['start'], $todayRange['end']];
+    } else {
+      $todayWhere = $todayWhereCount = '';
+      $todayParams = [];
+    }
+
+    // Cláusula extra para filtro "solo producto"
+    $productJoin      = $productId ? "INNER JOIN sales sp ON sp.client_id = c.id AND sp.bot_id = cbm_lm.bot_id AND sp.product_id = ? AND sp.status = 1" : '';
+    $productJoinCount = $productId ? "INNER JOIN sales sp ON sp.client_id = c.id AND sp.bot_id = cbm.bot_id    AND sp.product_id = ? AND sp.status = 1" : '';
+    $productParam     = $productId ? [(int)$productId] : [];
 
     // Cláusula extra para filtro "solo ventas confirmadas"
     $confirmedJoin  = $confirmedOnly ? "INNER JOIN sales sc ON sc.client_id = c.id AND sc.status = 1 AND sc.process_status = 'sale_confirmed'" : '';
-    $confirmedGroup = $confirmedOnly ? "GROUP BY c.id, cbm_lm.bot_id, cbm_lm.meta_value, cbm_u.meta_value" : '';
+    $confirmedGroup = ($confirmedOnly || $productId) ? "GROUP BY c.id, cbm_lm.bot_id, cbm_lm.meta_value, cbm_u.meta_value" : '';
 
     if ($botId) {
       // Filtro por bot específico
@@ -164,18 +187,22 @@ class ClientController extends ogController {
            ON cbm_lm.client_id = c.id AND cbm_lm.meta_key = 'last_message_at' AND cbm_lm.bot_id = ?
          LEFT JOIN client_bot_meta cbm_u
            ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
+         {$productJoin}
          {$confirmedJoin}
+         {$todayWhere}
          {$confirmedGroup}
          ORDER BY cbm_lm.meta_value DESC
          LIMIT ? OFFSET ?",
-        [(int)$botId, $perPage, $offset]
+        array_merge([(int)$botId], $productParam, $todayParams, [$perPage, $offset])
       );
 
       $totalRow = ogDb::raw(
         "SELECT COUNT(DISTINCT c.id) as cnt FROM clients c
          INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at' AND cbm.bot_id = ?
-         {$confirmedJoin}",
-        [(int)$botId]
+         {$productJoinCount}
+         {$confirmedJoin}
+         {$todayWhereCount}",
+        array_merge([(int)$botId], $productParam, $todayParams)
       );
     } else {
       // Todos los bots del usuario — bots se une primero para poder filtrar por user_id
@@ -195,19 +222,23 @@ class ClientController extends ogController {
          INNER JOIN bots b ON b.id = cbm_lm.bot_id AND b.user_id = ?
          LEFT JOIN client_bot_meta cbm_u
            ON cbm_u.client_id  = c.id AND cbm_u.bot_id  = cbm_lm.bot_id AND cbm_u.meta_key  = 'unread_count'
+         {$productJoin}
          {$confirmedJoin}
+         {$todayWhere}
          {$confirmedGroup}
          ORDER BY cbm_lm.meta_value DESC
          LIMIT ? OFFSET ?",
-        [(int)$userId, $perPage, $offset]
+        array_merge([(int)$userId], $productParam, $todayParams, [$perPage, $offset])
       );
 
       $totalRow = ogDb::raw(
         "SELECT COUNT(DISTINCT c.id) as cnt FROM clients c
          INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at'
          INNER JOIN bots b ON b.id = cbm.bot_id AND b.user_id = ?
-         {$confirmedJoin}",
-        [(int)$userId]
+         {$productJoinCount}
+         {$confirmedJoin}
+         {$todayWhereCount}",
+        array_merge([(int)$userId], $productParam, $todayParams)
       );
     }
     $total = $totalRow[0]['cnt'] ?? 0;
@@ -241,13 +272,6 @@ class ClientController extends ogController {
       unset($client);
 
       // Ventas confirmadas por cliente+bot, separadas en: hoy (local) vs anteriores
-      $userTz      = ogApp()->helper('date')::getUserTimezone();
-      $offsetSec   = (new DateTime('now', new DateTimeZone('UTC')))->diff(new DateTime('now', new DateTimeZone($userTz)))->s
-                     + ((new DateTime('now', new DateTimeZone('UTC')))->diff(new DateTime('now', new DateTimeZone($userTz)))->h * 3600)
-                     + ((new DateTime('now', new DateTimeZone('UTC')))->diff(new DateTime('now', new DateTimeZone($userTz)))->i * 60);
-      $offsetSec   = (new DateTimeZone($userTz))->getOffset(new DateTime('now', new DateTimeZone('UTC')));
-      $todayLocal  = (new DateTime('now', new DateTimeZone($userTz)))->format('Y-m-d');
-
       $confirmedSales = ogDb::raw(
         "SELECT client_id, bot_id,
            SUM(CASE WHEN DATE(DATE_ADD(payment_date, INTERVAL {$offsetSec} SECOND)) = ?

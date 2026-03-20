@@ -36,11 +36,50 @@
     justify-content: space-between;
   }
 
-  .bs-chat-bot-selector {
+/* ── Botón de filtro (icono embudo) ───────────────────────────────────── */
+  .bs-chat-filter-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--og-gray-400);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.2rem 0.35rem;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .bs-chat-filter-btn:hover {
+    color: var(--og-accent-primary);
+    background: var(--og-blue-50);
+  }
+
+  .bs-chat-filter-btn.active {
+    color: var(--og-accent-primary);
+    background: var(--og-blue-100);
+  }
+
+  /* ── Panel de filtros (desplegable bajo el header) ─────────────────────── */
+  .bs-chat-filter-panel {
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--og-gray-200);
     background: var(--og-layout-content-bg);
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    /* Espacio entre el grid de checks y el select de bots */
+    .og-grid { margin-bottom: 0.25rem; }
+
+    /* Check izquierdo (Solo ventas): alinear a la izquierda */
+    .bs-chat-filter-confirmed:first-child {
+      margin-left: 0;
+      margin-right: 0;
+    }
 
     select {
       width: 100%;
