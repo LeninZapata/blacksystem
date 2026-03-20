@@ -1,0 +1,10 @@
+{
+  "id": "chat-options-form",
+  "title": "Opciones del chat",
+  "fields": [
+    {
+      "type": "html",
+      "content": "<p>Aqui vamos agregar opciones de este chat</p>"
+    }
+  ]
+}

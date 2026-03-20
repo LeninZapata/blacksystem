@@ -478,8 +478,9 @@
   }
 
   .bs-chat-panel-header .bs-chat-header-number {
-    font-weight: 600;
-    color: var(--og-gray-800);
+    font-size: var(--og-font-xs);
+    color: var(--og-gray-400);
+    font-weight: 400;
     font-variant-numeric: tabular-nums;
   }
 
@@ -493,6 +494,23 @@
     font-size: var(--og-font-xs);
     color: var(--og-gray-400);
     font-weight: 400;
+  }
+
+  /* Flag emoji dentro del header del panel */
+  .bs-chat-header-flag {
+    opacity: 0.55;
+    filter: saturate(0.4);
+    font-style: normal;
+  }
+
+  /* Lista de ventas debajo del header row */
+  .bs-chat-header-sales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.5rem;
+    padding: 0.3rem 0 0.4rem;
+    border-top: 1px solid var(--og-gray-100);
+    margin-top: 0.1rem;
   }
 
   /* Barra de ventana gratuita WhatsApp */
@@ -719,6 +737,16 @@
   .bs-chat-send-btn {
     flex-shrink: 0;
     align-self: flex-end;
+  }
+
+  .bs-chat-options-btn {
+    flex-shrink: 0;
+    align-self: flex-end;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem;
+    line-height: 1.5;
   }
 
   /* ── Botón volver (mobile) ──────────────────────────────────────────────── */

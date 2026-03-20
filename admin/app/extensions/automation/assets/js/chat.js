@@ -17,6 +17,8 @@ class chat {
   static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
   static _activeBotId        = null;  // Filtro de bot seleccionado (opcional)
   static _activeProductId    = null;  // Filtro de producto seleccionado (opcional)
+  static _botsById           = {};    // Mapa botId → bot object (cargado en _initBotFilter)
+  static _clientCache        = new Map(); // clientId → client data (para el header del panel)
   static _filterNumber       = '';    // Filtro de número de cliente
   static _onlyConfirmed       = false; // Filtro "solo ventas confirmadas"
   static _onlyToday           = false; // Filtro "solo hoy"
@@ -43,6 +45,7 @@ class chat {
     this._activeBotId     = null;
     this._activeProductId = null;
     this._filterNumber    = '';
+    this._clientCache     = new Map();
     this._onlyConfirmed   = false;
     this._onlyToday       = false;
     this._lastMsgId       = null;
@@ -60,6 +63,20 @@ class chat {
     this._initBotFilter();
   }
 
+  // Genera el HTML de ventas reutilizable (item + panel header)
+  static _salesHtml(salesList) {
+    if (!salesList || salesList.length === 0) return '';
+    return salesList.map(s => {
+      const ok   = s.process_status === 'sale_confirmed';
+      const icon = ok ? '✓' : '⊙';
+      const nm   = (s.product_name ?? '').replace(/</g, '&lt;');
+      const amt  = ok && s.amount != null
+        ? ` <span class="bs-sale-amt">$${parseFloat(s.amount) % 1 === 0 ? parseFloat(s.amount) : parseFloat(s.amount).toFixed(2)}</span>`
+        : '';
+      return `<span class="bs-sale-item ${ok ? 'bs-sale-ok' : 'bs-sale-pending'}"><span class="bs-sale-icon">${icon}</span> ${nm}${amt}</span>`;
+    }).join('');
+  }
+
   // Convierte un country_code (ej: "EC") en emoji de bandera
   static _countryFlag(countryCode) {
     if (!countryCode) return '🌐';
@@ -74,6 +91,7 @@ class chat {
     try {
       const json = await ogModule('api').get(`${this.apis.bot}?per_page=50`);
       const bots = json.data?.data ?? json.data ?? [];
+      bots.forEach(b => { this._botsById[String(b.id)] = b; });
 
       // Fallback: si userPreferences.timezone no vino en la sesión (sesión antigua),
       // usar el timezone del bot como fuente confiable desde DB.
@@ -526,13 +544,15 @@ class chat {
   static _showHeaderLoading(number, name) {
     const h = document.getElementById('bsChatHeader');
     if (!h) return;
+    const clientData = this._clientCache.get(String(this._activeId)) ?? {};
+    const clientFlag = this._countryFlag(clientData.country_code ?? '');
     h.className = 'bs-chat-panel-header';
     h.innerHTML = `
       <div class="bs-chat-header-row">
         <button class="bs-chat-back-btn" onclick="chat.backToList()" title="Volver">&#8592;</button>
         <div class="bs-chat-header-main">
-          <span class="bs-chat-header-number">+${number}</span>
           ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
+          <span class="bs-chat-header-bot"><span class="bs-chat-header-flag">${clientFlag}</span> +${number}</span>
         </div>
         <div class="bs-chat-header-sub">
           <span class="bs-chat-header-bot">Cargando...</span>
@@ -545,26 +565,34 @@ class chat {
     `;
   }
 
-  static _showHeader(number, name, botNumber) {
+  static _showHeader(number, name, botNumber, botId = null) {
     const h = document.getElementById('bsChatHeader');
     if (!h) return;
     h.className = 'bs-chat-panel-header';
-    const botInfo = botNumber ? `Bot: +${botNumber}` : 'Sin bot asociado';
+
+    const clientData = this._clientCache.get(String(this._activeId)) ?? {};
+    const clientFlag = this._countryFlag(clientData.country_code ?? '');
+    const botData    = botId ? (this._botsById[String(botId)] ?? {}) : {};
+    const botFlag    = this._countryFlag(botData.country_code ?? '');
+    const botInfo    = botNumber ? `Bot: +${botNumber}` : 'Sin bot asociado';
+    const salesHtml  = this._salesHtml(clientData.sales ?? []);
+
     h.innerHTML = `
       <div class="bs-chat-header-row">
         <button class="bs-chat-back-btn" onclick="chat.backToList()" title="Volver">&#8592;</button>
         <div class="bs-chat-header-main">
-          <span class="bs-chat-header-number">+${number}</span>
           ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
+          <span class="bs-chat-header-bot"><span class="bs-chat-header-flag">${clientFlag}</span> +${number}</span>
         </div>
         <div class="bs-chat-header-sub">
-          <span class="bs-chat-header-bot">${botInfo}</span>
+          <span class="bs-chat-header-bot"><span class="bs-chat-header-flag">${botFlag}</span> ${botInfo}</span>
           <div class="bs-chat-open-bar-wrap" id="bsChatOpenBarWrap" style="display:none">
             <div class="bs-chat-open-bar-track"><div class="bs-chat-open-bar" id="bsChatOpenBar"></div></div>
             <span class="bs-chat-open-bar-label"></span>
           </div>
         </div>
       </div>
+      ${salesHtml ? `<div class="bs-chat-header-sales">${salesHtml}</div>` : ''}
     `;
   }
 
@@ -626,7 +654,7 @@ class chat {
 
     const activeEl = document.querySelector('.bs-chat-item.active');
     const name = activeEl ? (activeEl.dataset.name ?? '') : '';
-    this._showHeader(this._activeNum, name, botNumber);
+    this._showHeader(this._activeNum, name, botNumber, botId);
     this._loadOpenChatBar(clientId, botId);
 
     const compose = document.getElementById('bsChatCompose');
@@ -802,6 +830,15 @@ class chat {
   }
   // ─── Envío de mensajes ────────────────────────────────────────────────────────────────
 
+  static openOptions() {
+    ogModal.open('automation|forms/chat-options-form', {
+      title: '⚙️ Opciones del chat',
+      width: '90%',
+      maxWidth: '500px',
+      showFooter: false
+    });
+  }
+
   static onKeyDown(event) {
     // Enter sin shift = enviar; Shift+Enter = nueva línea
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -877,7 +914,9 @@ class chat {
     const clientId = c.id ?? '';
     const botId    = c.chat_bot_id ?? '';
     const name      = (c.name ?? '').trim().replace(/'/g, '&#39;');
+    const flag      = this._countryFlag(c.country_code ?? '');
     const salesList = c.sales ?? [];
+    this._clientCache.set(String(clientId), c);
 
     // Icono de advertencia: último mensaje fue del cliente (P), formato relevante y > 1 min sin respuesta
     const relevantFormats   = ['text', 'image', 'emoji', 'audio'];
@@ -910,7 +949,7 @@ class chat {
         <div class="bs-chat-item-header">
           <div class="bs-chat-item-left">
             ${warningIcon}
-            ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">+${number}</span>`}
+            ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">${flag} +${number}</span>`}
             ${saleBadge}
           </div>
           <div class="bs-chat-item-right">
@@ -920,17 +959,9 @@ class chat {
         </div>
         <div class="bs-chat-item-meta">
           <div class="bs-chat-item-sales">
-            ${salesList.length > 0
-              ? salesList.map(s => {
-                  const ok   = s.process_status === 'sale_confirmed';
-                  const icon = ok ? '✓' : '⊙';
-                  const nm   = (s.product_name ?? '').replace(/</g, '&lt;');
-                  const amt  = ok && s.amount != null ? ` <span class="bs-sale-amt">$${parseFloat(s.amount) % 1 === 0 ? parseFloat(s.amount) : parseFloat(s.amount).toFixed(2)}</span>` : '';
-                  return `<span class="bs-sale-item ${ok ? 'bs-sale-ok' : 'bs-sale-pending'}"><span class="bs-sale-icon">${icon}</span> ${nm}${amt}</span>`;
-                }).join('')
-              : '<span class="bs-chat-item-noproduct">sin venta</span>'}
+            ${salesList.length > 0 ? this._salesHtml(salesList) : '<span class="bs-chat-item-noproduct">sin venta</span>'}
           </div>
-          ${name ? `<span class="bs-chat-item-name">+${number}</span>` : ''}
+          ${name ? `<span class="bs-chat-item-name">${flag} +${number}</span>` : ''}
         </div>
       </div>`;
   }
