@@ -11,7 +11,7 @@ RAPIDO:
 
 Backend:
 ✔ Revisa el cron que borras los registros los JSON o Logs temporales (problemas con Middle) @done(20-03-2026 21:20)
-☐ Revisa si hay hay una for<ma de borrar datos de la DB periodicamente, REVISA LAS TABLAS CON MUCHOS REGISTROS
+✔ Revisa si hay hay una for<ma de borrar datos de la DB periodicamente, REVISA LAS TABLAS CON MUCHOS REGISTROS @done(20-03-2026 21:42)
 ✘ Cuando hay un errror de pago, este ya no se activan los conjuntos de anuncios porque el reseteo ya paso y en el reseteo este prende los activos @cancelled(20-03-2026 21:20)
 LO QUE SE PODRIA HACER ES MOSTRAR LOS ACTIVOS DE UN USUARIO Y VER QUE ESTA APAGADOY PRENDERLO DESDE EL SISTEMA.
 ESTO HAY QUE RESOLVERLO MANULAMENTE MEJOR.....
