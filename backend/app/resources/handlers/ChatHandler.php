@@ -81,6 +81,9 @@ class ChatHandler {
         $currentBot = ogApp()->helper('cache')::memoryGet('current_bot');
         $botConfig  = $currentBot['config'] ?? [];
 
+        // Incrementar unread_count en client_bot_meta (lo que lee el badge del chat)
+        self::upsertBotMetaIncrement($clientId, $botId, 'unread_count');
+
         if (($botConfig['apis']['chat'][0]['config']['type_value'] ?? null) === 'whatsapp-cloud-api') {
           $appPath = ogApp()->getPath();
           require_once $appPath . '/workflows/infoproduct/strategies/ChatWindowStrategy.php';
@@ -373,6 +376,22 @@ class ChatHandler {
     });
 
     return null;
+  }
+
+  // Inicializar unread_count = 0 en client_bot_meta (si no existe aún)
+  // Se llama durante el welcome para asegurar que el registro exista desde el inicio
+  static function initUnreadCount($clientId, $botId) {
+    $existing = ogDb::raw(
+      "SELECT id FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'unread_count'",
+      [$clientId, $botId]
+    );
+    if (empty($existing[0]['id'])) {
+      $now = gmdate('Y-m-d H:i:s');
+      ogDb::raw(
+        "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'unread_count', 0, ?, ?)",
+        [$clientId, $botId, $now, time()]
+      );
+    }
   }
 
   // Upsert simple de un meta key en client_bot_meta

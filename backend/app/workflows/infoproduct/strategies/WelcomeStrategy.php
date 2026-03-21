@@ -211,6 +211,12 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       ogLog::info("handleNewProductWelcome - Chats registrados (DB + JSON)", [ 'client_id' => $clientId, 'sale_id' => $saleId, 'product_id' => $productId ], $this->logMeta);
     }
 
+    // Inicializar unread_count = 0 en client_bot_meta (para que el badge funcione desde el primer mensaje del cliente)
+    if ($clientId) {
+      ogApp()->loadHandler('chat');
+      ChatHandler::initUnreadCount($clientId, $bot['id']);
+    }
+
     // Abrir ventana +72h solo si viene de anuncio (Meta da 72h en ad-initiated)
     if ($clientId) {
       $this->openChatWindow($clientId, $bot['id'], $bot['config'] ?? [], $rawContext);

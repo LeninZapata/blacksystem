@@ -237,7 +237,7 @@ class InfoproductV2Handler {
 
     if ($isImage) {
       ogLog::info("continueConversation - Imagen detectada, procesando SIN buffer", [
-        'number' => $person['number'],
+        'number' => $person['number'], 
         'bypass_reason' => 'image_type'
       ], ['module' => 'infoproduct_v2']);
 
