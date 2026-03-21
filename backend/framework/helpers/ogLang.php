@@ -34,7 +34,7 @@ class ogLang {
 
     // Reemplazar variables {var}
     foreach ($replace as $k => $v) {
-      $value = str_replace("{{$k}}", $v, $value);
+      $value = str_replace("{{$k}}", (string)($v ?? ''), $value);
     }
 
     return $value;

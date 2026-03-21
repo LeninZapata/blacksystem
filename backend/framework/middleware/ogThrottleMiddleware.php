@@ -7,7 +7,7 @@ class ogThrottleMiddleware {
   function __construct() {
     $middlewareDir = ogApp()->getPath('storage') . '/middleware';
     if (!is_dir($middlewareDir)) {
-      mkdir($middlewareDir, 0755, true);
+      @mkdir($middlewareDir, 0755, true);
     }
     $this->storageFile = $middlewareDir . '/throttle_data.json';
   }
@@ -86,7 +86,8 @@ class ogThrottleMiddleware {
       return [];
     }
 
-    $json = file_get_contents($this->storageFile);
+    $json = @file_get_contents($this->storageFile);
+    if ($json === false) return [];
     $data = json_decode($json, true);
 
     return is_array($data) ? $data : [];
@@ -105,6 +106,10 @@ class ogThrottleMiddleware {
       }
     }
 
-    file_put_contents($this->storageFile, json_encode($data));
+    $dir = dirname($this->storageFile);
+    if (!is_dir($dir)) {
+      @mkdir($dir, 0755, true);
+    }
+    @file_put_contents($this->storageFile, json_encode($data), LOCK_EX);
   }
 }

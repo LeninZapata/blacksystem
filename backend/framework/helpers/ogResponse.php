@@ -4,6 +4,7 @@ class ogResponse {
   private static $logMeta = ['module' => 'Response', 'layer' => 'framework/helper'];
   // Respuesta JSON
   static function json($data, $code = 200) {
+    if (ob_get_level() > 0) ob_end_clean();
     if ($code !== 200) {
       // Limitar tamaño de datos logueados para evitar consumo excesivo de memoria
       $logData = $data;

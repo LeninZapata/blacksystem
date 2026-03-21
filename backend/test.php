@@ -1,321 +1,162 @@
-﻿<?php
+<?php
 /**
- * Herramientas de corrección de datos
- * 1. Fix query_hour LOCAL→UTC en ad_metrics_hourly
- * 2. UNDO S-fix: revertir +5h en chats S
+ * Preview: tablas volátiles — registros que se borrarían
  */
 
 require_once __DIR__ . '/../wp.php';
 require_once __DIR__ . '/bootstrap.php';
 
-$today  = gmdate('Y-m-d');
-$action = $_POST['action'] ?? null;
-$results = [];
+// ── Configuración ──────────────────────────────────────────────────────────
+$DAYS_TO_KEEP = (int)($_GET['days'] ?? 30);  // editable aquí o por ?days=N
+if ($DAYS_TO_KEEP < 1) $DAYS_TO_KEEP = 1;
 
-$pdo = ogDb::table('chats')->getConnection();
+$cutoff  = gmdate('Y-m-d H:i:s', strtotime("-{$DAYS_TO_KEEP} days"));
+$nowUtc  = gmdate('Y-m-d H:i:s');
 
-function dbq($pdo, $sql, $params = []) {
-  $s = $pdo->prepare($sql);
-  $s->execute($params);
-  return $s;
+// ── Tablas volátiles a limpiar ─────────────────────────────────────────────
+$tables = [
+  'ad_metrics_hourly' => [
+    'col'   => 'dc',
+    'label' => 'Métricas horarias publicitarias',
+    'color' => '#2980b9',
+  ],
+  'ad_auto_scale_history' => [
+    'col'   => 'dc',
+    'label' => 'Historial de auto-escalado',
+    'color' => '#8e44ad',
+  ],
+];
+
+// ── Queries ────────────────────────────────────────────────────────────────
+$pdo = ogDb::table('ad_metrics_hourly')->getConnection();
+
+function dbCount($pdo, $table, $col, $op, $cutoff) {
+  $s = $pdo->prepare("SELECT COUNT(*) AS cnt FROM `{$table}` WHERE `{$col}` {$op} ?");
+  $s->execute([$cutoff]);
+  return (int)($s->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
 }
-function dba($pdo, $sql, $params = []) {
-  return dbq($pdo, $sql, $params)->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// ─── ACCION 1: Corregir query_hour LOCAL → UTC en ad_metrics_hourly ──────────
-if ($action === 'fix_query_hour_utc') {
-  $fixDate = $_POST['fix_date'] ?? $today;
-  try {
-    $stmt = dbq($pdo,
-      "UPDATE `ad_metrics_hourly`
-       SET `query_hour` = HOUR(`dc`)
-       WHERE `query_date` = ?
-         AND `query_hour` != HOUR(`dc`)",
-      [$fixDate]
-    );
-    $results['fix_qh'] = [
-      'type' => 'fix_qh',
-      'ok'   => true,
-      'rows' => $stmt->rowCount(),
-      'date' => $fixDate,
-    ];
-  } catch (Exception $e) {
-    $results['fix_qh'] = ['type' => 'fix_qh', 'ok' => false, 'err' => $e->getMessage()];
-  }
+function dbOldest($pdo, $table, $col) {
+  $s = $pdo->prepare("SELECT MIN(`{$col}`) AS oldest, MAX(`{$col}`) AS newest FROM `{$table}`");
+  $s->execute();
+  return $s->fetch(PDO::FETCH_ASSOC);
 }
 
-// ─── ACCION 2: UNDO S-fix ─────────────────────────────────────────────────────
-if ($action === 'undo_s_fix_client') {
-  $clientId = (int)($_POST['client_id'] ?? 0);
-  $botId    = (int)($_POST['bot_id']    ?? 0);
-  if ($clientId && $botId) {
-    try {
-      $s1 = dbq($pdo,
-        "UPDATE `chats`
-         SET `dc` = DATE_SUB(`dc`, INTERVAL 5 HOUR)
-         WHERE `type` = 'S' AND `client_id` = ? AND `bot_id` = ?
-           AND DATE(`dc`) = ?",
-        [$clientId, $botId, $today]
-      );
-      $s2 = dbq($pdo,
-        "UPDATE `client_bot_meta`
-         SET `meta_value` = DATE_SUB(`meta_value`, INTERVAL 5 HOUR)
-         WHERE `meta_key` = 'last_message_at'
-           AND `client_id` = ? AND `bot_id` = ?",
-        [$clientId, $botId]
-      );
-      $results['undo_s'] = [
-        'type'      => 'undo_s',
-        'ok'        => true,
-        'rows_chat' => $s1->rowCount(),
-        'rows_meta' => $s2->rowCount(),
-        'label'     => "UNDO — client_id={$clientId}, bot_id={$botId}",
-      ];
-    } catch (Exception $e) {
-      $results['undo_s'] = ['type' => 'undo_s', 'ok' => false, 'err' => $e->getMessage()];
-    }
-  }
+$stats = [];
+foreach ($tables as $tbl => $cfg) {
+  $toDelete = dbCount($pdo, $tbl, $cfg['col'], '<',  $cutoff);
+  $toKeep   = dbCount($pdo, $tbl, $cfg['col'], '>=', $cutoff);
+  $range    = dbOldest($pdo, $tbl, $cfg['col']);
+  $stats[$tbl] = [
+    'label'     => $cfg['label'],
+    'color'     => $cfg['color'],
+    'to_delete' => $toDelete,
+    'to_keep'   => $toKeep,
+    'total'     => $toDelete + $toKeep,
+    'oldest'    => $range['oldest'] ?? '—',
+    'newest'    => $range['newest'] ?? '—',
+  ];
 }
-
-// ─── Preview: registros con query_hour LOCAL (mal salvados) ───────────────────
-$fixDate     = $_POST['fix_date'] ?? $today;
-$mixedRows   = dba($pdo,
-  "SELECT id, ad_asset_id, query_date, query_hour,
-     HOUR(dc) AS hora_utc_dc, spend, dc,
-     IF(query_hour = HOUR(dc), 'UTC OK', 'LOCAL MAL') AS tipo
-   FROM ad_metrics_hourly
-   WHERE query_date = ?
-     AND query_hour != HOUR(dc)
-   ORDER BY dc ASC",
-  [$fixDate]
-);
-$mixedAssets = dba($pdo,
-  "SELECT ad_asset_id, COUNT(*) AS registros_malos
-   FROM ad_metrics_hourly
-   WHERE query_date = ?
-     AND query_hour != HOUR(dc)
-   GROUP BY ad_asset_id",
-  [$fixDate]
-);
-
-// ─── Preview: chats S del cliente ─────────────────────────────────────────────
-$previewClientId = (int)($_POST['client_id'] ?? 1545);
-$previewBotId    = (int)($_POST['bot_id']    ?? 11);
-
-$sampS = dba($pdo,
-  "SELECT id, type, LEFT(message,60) msg, dc,
-     CONVERT_TZ(dc,'UTC','America/Guayaquil') as dc_ecu
-   FROM `chats`
-   WHERE `type` = 'S' AND `client_id` = ? AND `bot_id` = ?
-     AND DATE(`dc`) = ?
-   ORDER BY id DESC LIMIT 10",
-  [$previewClientId, $previewBotId, $today]
-);
-
-$sampMeta = dba($pdo,
-  "SELECT meta_key, meta_value,
-     CONVERT_TZ(meta_value,'UTC','America/Guayaquil') as meta_ecu
-   FROM `client_bot_meta`
-   WHERE `meta_key` = 'last_message_at' AND `client_id` = ? AND `bot_id` = ?",
-  [$previewClientId, $previewBotId]
-);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Herramientas de corrección</title>
+<title>Preview limpieza volátil</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;padding:2rem;color:#2c3e50}
-  .wrap{max-width:900px;margin:0 auto}
-  h1{font-size:1.35rem;margin-bottom:.3rem}
-  .subtitle{color:#6c757d;font-size:.85rem;margin-bottom:.5rem}
-  .badge{display:inline-block;background:#fff3cd;color:#7d5a00;border-radius:20px;font-size:.78rem;font-weight:700;padding:.2rem .8rem;margin-bottom:1.5rem}
-  .alert{padding:.85rem 1.2rem;border-radius:6px;margin-bottom:.75rem;font-size:.88rem}
-  .alert-ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
-  .alert-err{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+  .wrap{max-width:820px;margin:0 auto}
+  h1{font-size:1.3rem;margin-bottom:.25rem}
+  .meta{color:#6c757d;font-size:.82rem;margin-bottom:1.5rem;line-height:1.7}
+  .meta code{background:#e9ecef;padding:1px 5px;border-radius:3px;font-size:.8rem}
   .card{background:#fff;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:1.25rem;overflow:hidden}
-  .card.red{border:2px solid #e74c3c}
-  .card.blue{border:2px solid #2980b9}
-  .card-head{padding:.85rem 1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;border-bottom:1px solid #f0f0f0;flex-wrap:wrap}
-  .card-title.red{font-size:.95rem;font-weight:700;color:#e74c3c}
-  .card-title.blue{font-size:.95rem;font-weight:700;color:#2980b9}
-  .card-sub{font-size:.78rem;color:#888;margin-top:.2rem}
+  .card-head{padding:.8rem 1.2rem;display:flex;align-items:center;gap:.75rem;border-bottom:1px solid #f0f0f0}
+  .card-title{font-size:.95rem;font-weight:700}
+  .card-sub{font-size:.78rem;color:#888;margin-top:.15rem}
   .card-body{padding:1rem 1.2rem}
-  .btn{padding:.55rem 1.3rem;font-size:.85rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;white-space:nowrap}
-  .btn-red{background:#e74c3c;color:#fff}.btn-red:hover{background:#c0392b}
-  .btn-blue{background:#2980b9;color:#fff}.btn-blue:hover{background:#1a5276}
-  input[type=number],input[type=date],input[type=text]{padding:.4rem .5rem;border:1px solid #ccc;border-radius:4px;font-size:.85rem}
-  table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.75rem}
-  th{background:#f8f9fa;padding:.4rem .55rem;text-align:left;border-bottom:2px solid #dee2e6;color:#555}
-  td{padding:.38rem .55rem;border-bottom:1px solid #f4f4f4}
-  tr:last-child td{border-bottom:none}
-  td.bad{font-family:monospace;color:#c0392b;font-weight:600}
-  td.ok{font-family:monospace;color:#27ae60;font-weight:600}
-  td.mono{font-family:monospace}
-  .info{font-size:.82rem;color:#555;margin-bottom:.6rem;line-height:1.5}
-  .tag-bad{background:#f8d7da;color:#721c24;border-radius:3px;padding:1px 5px;font-size:.75rem;font-weight:700}
-  .tag-ok{background:#d4edda;color:#155724;border-radius:3px;padding:1px 5px;font-size:.75rem;font-weight:700}
+  .row-stats{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.9rem}
+  .stat{flex:1;min-width:120px;padding:.65rem .9rem;border-radius:6px;text-align:center}
+  .stat-num{font-size:1.55rem;font-weight:700;line-height:1.1}
+  .stat-lbl{font-size:.72rem;color:#666;margin-top:.2rem;text-transform:uppercase;letter-spacing:.03em}
+  .stat-delete{background:#fdecea;color:#c0392b}
+  .stat-keep{background:#e8f8f0;color:#1e8449}
+  .stat-total{background:#eaf3fb;color:#1a5276}
+  .range{font-size:.8rem;color:#666;border-top:1px solid #f4f4f4;padding-top:.6rem;margin-top:.2rem;line-height:1.8}
+  .range code{font-family:monospace;font-size:.78rem}
+  .bar-wrap{height:8px;background:#e9ecef;border-radius:4px;overflow:hidden;margin:.5rem 0 .35rem}
+  .bar-fill{height:100%;border-radius:4px;transition:width .4s}
+  .bar-lbl{font-size:.72rem;color:#888}
+  .endpoint{background:#2c3e50;color:#ecf0f1;border-radius:6px;padding:.75rem 1rem;font-size:.8rem;font-family:monospace;margin-top:1.5rem;line-height:2}
+  .endpoint a{color:#5dade2;text-decoration:none}
+  .endpoint a:hover{text-decoration:underline}
+  .form-days{display:inline-flex;align-items:center;gap:.5rem;background:#fff;padding:.4rem .75rem;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:1.2rem}
+  .form-days label{font-size:.82rem;color:#555}
+  .form-days input{width:65px;padding:.3rem .4rem;border:1px solid #ccc;border-radius:4px;font-size:.82rem}
+  .form-days button{padding:.3rem .8rem;background:#2980b9;color:#fff;border:none;border-radius:4px;font-size:.82rem;cursor:pointer}
+  .form-days button:hover{background:#1a5276}
+  .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🔧 Herramientas de corrección de datos</h1>
-  <div class="badge">📅 Hoy UTC: <?= $today ?></div>
-
-  <?php foreach ($results as $r): ?>
-    <?php if ($r['ok']): ?>
-      <?php if ($r['type'] === 'fix_qh'): ?>
-        <div class="alert alert-ok">
-          ✅ <strong>query_hour corregido — fecha: <?= htmlspecialchars($r['date']) ?></strong><br>
-          &nbsp;&nbsp;• Registros actualizados: <strong><?= $r['rows'] ?></strong>
-        </div>
-      <?php else: ?>
-        <div class="alert alert-ok">
-          ✅ <strong><?= htmlspecialchars($r['label']) ?></strong><br>
-          &nbsp;&nbsp;• chats S corregidos: <strong><?= $r['rows_chat'] ?></strong><br>
-          &nbsp;&nbsp;• client_bot_meta corregidos: <strong><?= $r['rows_meta'] ?></strong>
-        </div>
-      <?php endif; ?>
-    <?php else: ?>
-      <div class="alert alert-err">❌ <?= htmlspecialchars($r['err'] ?? 'Error desconocido') ?></div>
-    <?php endif; ?>
-  <?php endforeach; ?>
-
-  <!-- === CARD 1: Fix query_hour LOCAL→UTC === -->
-  <div class="card blue">
-    <div class="card-head">
-      <div>
-        <div class="card-title blue">🕐 Fix query_hour LOCAL → UTC en ad_metrics_hourly</div>
-        <div class="card-sub">
-          Corrige registros donde query_hour se guardó en hora local (ECU) en vez de UTC.
-          La columna <code>dc</code> siempre es UTC del servidor → se usa como referencia.
-        </div>
-      </div>
-      <form method="POST" onsubmit="return confirm('¿Corregir query_hour para la fecha seleccionada?')">
-        <input type="hidden" name="action" value="fix_query_hour_utc">
-        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-          <input type="date" name="fix_date" value="<?= htmlspecialchars($fixDate) ?>">
-          <button class="btn btn-blue">▶ Corregir query_hour</button>
-        </div>
-      </form>
-    </div>
-    <div class="card-body">
-      <p class="info">
-        <strong>¿Qué hace?</strong> Ejecuta:<br>
-        <code>UPDATE ad_metrics_hourly SET query_hour = HOUR(dc) WHERE query_date = '{fecha}' AND query_hour != HOUR(dc)</code><br>
-        Solo afecta registros guardados con hora local (los de hoy guardados antes del fix UTC).
-      </p>
-
-      <?php if (!empty($mixedAssets)): ?>
-        <strong style="font-size:.82rem;color:#c0392b">
-          ⚠️ Registros con query_hour LOCAL (mal) en fecha <?= htmlspecialchars($fixDate) ?>:
-        </strong>
-        <table>
-          <thead><tr><th>ad_asset_id</th><th>Registros malos</th></tr></thead>
-          <tbody>
-            <?php foreach ($mixedAssets as $a): ?>
-            <tr>
-              <td class="mono"><?= htmlspecialchars($a['ad_asset_id']) ?></td>
-              <td class="bad"><?= $a['registros_malos'] ?></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-
-        <table style="margin-top:1rem">
-          <thead>
-            <tr>
-              <th>ID</th><th>ad_asset_id</th>
-              <th>query_hour<br>(guardado)</th>
-              <th>HOUR(dc)<br>(UTC real)</th>
-              <th>spend</th><th>dc</th><th>Tipo</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($mixedRows as $r): ?>
-            <tr>
-              <td><?= $r['id'] ?></td>
-              <td class="mono"><?= htmlspecialchars($r['ad_asset_id']) ?></td>
-              <td class="bad"><?= $r['query_hour'] ?></td>
-              <td class="ok"><?= $r['hora_utc_dc'] ?></td>
-              <td>$<?= $r['spend'] ?></td>
-              <td class="mono"><?= $r['dc'] ?></td>
-              <td><span class="tag-bad"><?= $r['tipo'] ?></span></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php else: ?>
-        <p style="color:#27ae60;font-size:.85rem;margin-top:.5rem">
-          ✅ Sin registros con query_hour LOCAL para la fecha <?= htmlspecialchars($fixDate) ?>.
-          Todos los datos están en UTC.
-        </p>
-      <?php endif; ?>
-    </div>
+  <h1>🧹 Preview — limpieza de tablas volátiles</h1>
+  <div class="meta">
+    Hora UTC actual: <code><?= $nowUtc ?></code> &nbsp;·&nbsp;
+    Corte: <code><?= $cutoff ?></code> &nbsp;·&nbsp;
+    Retención: <strong><?= $DAYS_TO_KEEP ?> días</strong>
   </div>
 
-  <!-- === CARD 2: UNDO S-fix === -->
-  <div class="card red">
+  <form class="form-days" method="GET">
+    <label>Días a retener:</label>
+    <input type="number" name="days" value="<?= $DAYS_TO_KEEP ?>" min="1" max="365">
+    <button type="submit">Recalcular</button>
+  </form>
+
+  <?php foreach ($stats as $tbl => $s):
+    $pctDelete = $s['total'] > 0 ? round($s['to_delete'] / $s['total'] * 100) : 0;
+    $pctKeep   = 100 - $pctDelete;
+  ?>
+  <div class="card">
     <div class="card-head">
+      <div class="dot" style="background:<?= $s['color'] ?>"></div>
       <div>
-        <div class="card-title red">⚠️ UNDO — Revertir S-fix en cliente específico</div>
-        <div class="card-sub">Resta 5h a <code>chats.dc</code> (tipo S) y <code>client_bot_meta.meta_value</code> (last_message_at)</div>
+        <div class="card-title" style="color:<?= $s['color'] ?>"><?= $s['label'] ?></div>
+        <div class="card-sub"><code><?= $tbl ?></code></div>
       </div>
-      <form method="POST" onsubmit="return confirm('¿Restar 5h a chats S y meta del cliente?')">
-        <input type="hidden" name="action" value="undo_s_fix_client">
-        <div style="display:flex;gap:.5rem;align-items:center">
-          <input type="number" name="client_id" placeholder="client_id" value="<?= $previewClientId ?>" style="width:90px">
-          <input type="number" name="bot_id"    placeholder="bot_id"    value="<?= $previewBotId ?>"    style="width:70px">
-          <button class="btn btn-red">▶ Revertir -5h</button>
-        </div>
-      </form>
     </div>
     <div class="card-body">
-      <p class="info">
-        <strong>¿Por qué?</strong> El S-fix anterior sumó +5h a <em>todos</em> los chats S de hoy,
-        incluyendo los que ya estaban en UTC correcto (mensajes de checkout/pago).
-        Este botón deshace ese cambio para un cliente específico.<br>
-        <strong>Resultado esperado:</strong> <code>18:55 UTC → 13:55 UTC</code> → sidebar mostrará <code>08:55 ECU</code>
-      </p>
-
-      <?php if (!empty($sampS)): ?>
-        <strong style="font-size:.82rem">Chats S hoy (client_id=<?= $previewClientId ?>, bot=<?= $previewBotId ?>):</strong>
-        <table>
-          <thead><tr><th>ID</th><th>mensaje</th><th>dc (actual)</th><th>dc ECU</th></tr></thead>
-          <tbody>
-            <?php foreach ($sampS as $r): ?>
-            <tr>
-              <td><?= $r['id'] ?></td>
-              <td><?= htmlspecialchars($r['msg']) ?></td>
-              <td class="bad"><?= $r['dc'] ?></td>
-              <td class="ok"><?= $r['dc_ecu'] ?></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php else: ?>
-        <p style="color:#27ae60;font-size:.85rem;margin-top:.5rem">✅ Sin chats S hoy para este cliente.</p>
-      <?php endif; ?>
-
-      <?php if (!empty($sampMeta)): ?>
-        <strong style="font-size:.82rem;display:block;margin-top:.9rem">client_bot_meta last_message_at:</strong>
-        <table>
-          <thead><tr><th>meta_key</th><th>meta_value (actual)</th><th>meta_value ECU</th></tr></thead>
-          <tbody>
-            <?php foreach ($sampMeta as $r): ?>
-            <tr>
-              <td><?= $r['meta_key'] ?></td>
-              <td class="bad"><?= $r['meta_value'] ?></td>
-              <td class="ok"><?= $r['meta_ecu'] ?></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      <?php endif; ?>
+      <div class="row-stats">
+        <div class="stat stat-delete">
+          <div class="stat-num"><?= number_format($s['to_delete']) ?></div>
+          <div class="stat-lbl">Se borrarían</div>
+        </div>
+        <div class="stat stat-keep">
+          <div class="stat-num"><?= number_format($s['to_keep']) ?></div>
+          <div class="stat-lbl">Se conservan</div>
+        </div>
+        <div class="stat stat-total">
+          <div class="stat-num"><?= number_format($s['total']) ?></div>
+          <div class="stat-lbl">Total actual</div>
+        </div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-fill" style="width:<?= $pctDelete ?>%;background:<?= $s['color'] ?>;opacity:.55"></div>
+      </div>
+      <div class="bar-lbl"><?= $pctDelete ?>% a eliminar &nbsp;·&nbsp; <?= $pctKeep ?>% a conservar</div>
+      <div class="range">
+        Registro más antiguo: <code><?= htmlspecialchars($s['oldest']) ?></code> &nbsp;·&nbsp;
+        Registro más reciente: <code><?= htmlspecialchars($s['newest']) ?></code>
+      </div>
     </div>
+  </div>
+  <?php endforeach; ?>
+
+  <div class="endpoint">
+    🔗 Endpoints de la ruta:<br>
+    <a href="/api/volatile-cleanup/preview?days=<?= $DAYS_TO_KEEP ?>">/api/volatile-cleanup/preview?days=<?= $DAYS_TO_KEEP ?></a> — Preview JSON<br>
+    <a href="/api/volatile-cleanup/run?days=<?= $DAYS_TO_KEEP ?>">/api/volatile-cleanup/run?days=<?= $DAYS_TO_KEEP ?></a> — ⚠️ Ejecutar limpieza real<br><br>
+    📅 CRON sugerido (03:00 UTC diario):<br>
+    <span style="color:#abebc6">0 3 * * * wget --timeout=120 --tries=1 -q -O - "https://dominio.com/api/volatile-cleanup/run?days=<?= $DAYS_TO_KEEP ?>" > /dev/null 2>&1</span>
   </div>
 
 </div>

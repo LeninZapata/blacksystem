@@ -834,9 +834,126 @@ class chat {
     ogModal.open('automation|forms/chat-options-form', {
       title: '⚙️ Opciones del chat',
       width: '90%',
-      maxWidth: '500px',
-      showFooter: false
+      maxWidth: '580px',
+      showFooter: false,
+      afterRender: () => chat._renderOptionsModal()
     });
+  }
+
+  static async _renderOptionsModal() {
+    const container = document.getElementById('chat-options-sales');
+    if (!container) return;
+
+    const clientData = this._clientCache.get(String(this._activeId)) ?? {};
+    const botId      = clientData.chat_bot_id ?? null;
+
+    if (!this._activeId) {
+      container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem">No hay cliente activo.</p>';
+      return;
+    }
+
+    try {
+      const json  = await ogModule('api').get(`/api/sale?client_id=${this._activeId}&bot_id=${botId}&status=1`);
+      const sales = json?.data ?? [];
+
+      if (!sales.length) {
+        container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem">Sin ventas registradas.</p>';
+        return;
+      }
+
+      const statusOpts = (current) => [
+        { v: 'initiated',      l: 'En proceso' },
+        { v: 'sale_confirmed', l: 'Venta confirmada' },
+        { v: 'cancelled',      l: 'Cancelado' }
+      ].map(o => `<option value="${o.v}" ${o.v === current ? 'selected' : ''}>${o.l}</option>`).join('');
+
+      const rows = sales.map(s => {
+        const confirmed = s.process_status === 'sale_confirmed';
+        const amtVal    = s.local_billed_amount != null ? parseFloat(s.local_billed_amount).toFixed(2) : '';
+        const name      = (s.product_name ?? '').replace(/</g, '&lt;');
+        return `
+          <tr data-sale-id="${s.id}">
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</td>
+            <td style="min-width:90px">
+              <input type="number" class="chat-sale-amount" value="${amtVal}" step="0.01" placeholder="—"
+                style="width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:3px 6px;font-size:0.8125rem;background:${confirmed ? '#fff' : '#f9fafb'};color:${confirmed ? '#111827' : '#9ca3af'}"
+                ${confirmed ? '' : 'disabled'}>
+            </td>
+            <td style="min-width:130px">
+              <select class="chat-sale-status" onchange="chat.onSaleStatusChange(this)"
+                style="width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:3px 6px;font-size:0.8125rem;background:#fff">
+                ${statusOpts(s.process_status)}
+              </select>
+            </td>
+            <td style="text-align:center;width:36px">
+              <button class="btn btn-success btn-sm chat-sale-save-btn" onclick="chat.updateSale(${s.id}, this)" title="Guardar"
+                style="padding:3px 7px;font-size:0.75rem">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                </svg>
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      container.innerHTML = `
+        <h6 style="font-size:0.8125rem;font-weight:600;margin:0 0 0.5rem;color:#374151">Ventas actuales</h6>
+        <div class="og-table-responsive">
+          <table class="og-table og-table-compact">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Valor local</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+
+    } catch (_) {
+      container.innerHTML = '<p style="color:#ef4444;text-align:center;padding:1rem">Error al cargar ventas.</p>';
+    }
+  }
+
+  static onSaleStatusChange(select) {
+    const row      = select.closest('tr');
+    const amtInput = row?.querySelector('.chat-sale-amount');
+    if (!amtInput) return;
+    const confirmed = select.value === 'sale_confirmed';
+    amtInput.disabled = !confirmed;
+    amtInput.style.background = confirmed ? '#fff' : '#f9fafb';
+    amtInput.style.color      = confirmed ? '#111827' : '#9ca3af';
+  }
+
+  static async updateSale(saleId, btn) {
+    const row     = btn.closest('tr');
+    const status  = row.querySelector('.chat-sale-status')?.value;
+    const amtRaw  = row.querySelector('.chat-sale-amount')?.value;
+
+    const payload = { process_status: status };
+    if (status === 'sale_confirmed' && amtRaw !== '') {
+      payload.local_billed_amount = parseFloat(amtRaw);
+    }
+
+    btn.disabled = true;
+    try {
+      await ogModule('api').put(`/api/sale/${saleId}`, payload);
+
+      // Reconstruir el JSON del chat para que el bot tenga el contexto actualizado
+      const clientData = this._clientCache.get(String(this._activeId)) ?? {};
+      const botId      = clientData.chat_bot_id ?? null;
+      if (this._activeNum && botId) {
+        ogModule('api').get(`/api/chat/rebuild/${this._activeNum}/${botId}`).catch(() => {});
+      }
+
+      btn.classList.add('btn-success-temp');
+      setTimeout(() => { btn.disabled = false; btn.classList.remove('btn-success-temp'); }, 1500);
+    } catch (_) {
+      btn.disabled = false;
+      if (window.ogToast) ogToast.error('Error al actualizar la venta.');
+    }
   }
 
   static onKeyDown(event) {
@@ -932,11 +1049,14 @@ class chat {
     const warningIcon       = showWarning
       ? `<span class="bs-chat-warn-icon" title="Sin respuesta del bot (${Math.floor(elapsedMin)} min)">⚠️</span>`
       : '';
-    const unread    = parseInt(c.unread_count ?? 0);
-    const dateStr  = c.last_message_at ?? c.dc ?? '';
-    const date     = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
-    const unreadCls = unread > 0 ? ' unread' : '';
-    const badge    = unread > 0 ? `<span class="bs-chat-unread-badge">${unread > 99 ? '99+' : unread}</span>` : '';
+    const unread      = parseInt(c.unread_count ?? 0);
+    const dateStr     = c.last_message_at ?? c.dc ?? '';
+    const date        = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
+    const isFollowup  = unread > 0 && lastMsgType === 'S';
+    const unreadCls   = unread > 0 ? (isFollowup ? ' unread-followup' : ' unread') : '';
+    const badge       = unread > 0
+      ? `<span class="bs-chat-unread-badge${isFollowup ? ' bs-chat-unread-badge--followup' : ''}">${unread > 99 ? '99+' : unread}</span>`
+      : '';
     const todayAmt = c.today_amount ? parseFloat(c.today_amount) : null;
     const prevAmt  = c.prev_amount  ? parseFloat(c.prev_amount)  : null;
     const fmtAmt   = v => `+$${v % 1 === 0 ? v : v.toFixed(2)}`;

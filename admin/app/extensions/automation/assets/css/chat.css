@@ -294,9 +294,18 @@
     flex-shrink: 0;
   }
 
-  /* Item con mensajes no leídos */
+  /* Item con mensajes no leídos reales */
   .bs-chat-item.unread {
     background: var(--og-blue-50);
+  }
+
+  /* Item cuyo último mensaje es un seguimiento (S) — badge gris, sin resalte azul */
+  .bs-chat-item.unread-followup {
+    background: var(--og-gray-50);
+  }
+
+  .bs-chat-unread-badge--followup {
+    background: var(--og-gray-400);
   }
 
   /* Item sin respuesta del bot (cliente tuvo la última palabra > 1 min) */

@@ -103,7 +103,7 @@ $router->group('/api/cleanup', function($router) {
         }
       }
 
-      return rmdir($dir);
+      return @rmdir($dir);
     };
 
     try {
