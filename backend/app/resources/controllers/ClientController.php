@@ -192,7 +192,10 @@ class ClientController extends ogController {
             ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_msg_type,
            (SELECT ch.format FROM chats ch
             WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.type = 'P' AND ch.status = 1
-            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_client_message_format
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_client_message_format,
+           (SELECT JSON_UNQUOTE(JSON_EXTRACT(ch.metadata, '$.action')) FROM chats ch
+            WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.type = 'S' AND ch.status = 1
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_sys_msg_action
          FROM clients c
          INNER JOIN client_bot_meta cbm_lm
            ON cbm_lm.client_id = c.id AND cbm_lm.meta_key = 'last_message_at' AND cbm_lm.bot_id = ?
@@ -227,7 +230,10 @@ class ClientController extends ogController {
             ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_msg_type,
            (SELECT ch.format FROM chats ch
             WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.type = 'P' AND ch.status = 1
-            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_client_message_format
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_client_message_format,
+           (SELECT JSON_UNQUOTE(JSON_EXTRACT(ch.metadata, '$.action')) FROM chats ch
+            WHERE ch.client_id = c.id AND ch.bot_id = cbm_lm.bot_id AND ch.type = 'S' AND ch.status = 1
+            ORDER BY ch.tc DESC, ch.id DESC LIMIT 1) AS last_sys_msg_action
          FROM clients c
          INNER JOIN client_bot_meta cbm_lm ON cbm_lm.client_id = c.id AND cbm_lm.meta_key = 'last_message_at'
          INNER JOIN bots b ON b.id = cbm_lm.bot_id AND b.user_id = ?
