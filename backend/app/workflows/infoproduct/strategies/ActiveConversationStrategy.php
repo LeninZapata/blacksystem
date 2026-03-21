@@ -238,7 +238,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       'B',
       'text',
       $metadata,
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true
     );
 
     ChatHandler::addMessage([

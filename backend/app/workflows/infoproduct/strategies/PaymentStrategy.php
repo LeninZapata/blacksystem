@@ -51,7 +51,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
         'B',
         'text',
         ['action' => 'invalid_receipt_format', 'errors' => $validation['errors']],
-        $chatData['current_sale']['sale_id'] ?? null
+        $chatData['current_sale']['sale_id'] ?? null,
+        true
       );
 
       return [
@@ -479,7 +480,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'S',
       'text',
       $metadata,
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true
     );
 
     // Guardar en JSON
@@ -660,7 +662,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'B',
       'text',
       $metadata,
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true
     );
 
     ChatHandler::addMessage([

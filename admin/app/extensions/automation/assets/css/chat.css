@@ -302,6 +302,7 @@
   /* Item cuyo último mensaje es un seguimiento (S) — badge gris, sin resalte azul */
   .bs-chat-item.unread-followup {
     background: var(--og-gray-50);
+    background: var(--og-gray-150);
   }
 
   .bs-chat-unread-badge--followup {

@@ -390,7 +390,8 @@ class UpsellHandler {
         'origin' => 'upsell',
         'parent_sale_id' => $rootSaleId
       ],
-      $newSaleId
+      $newSaleId,
+      true
     );
 
     ChatHandler::addMessage([

@@ -121,7 +121,8 @@ class DocumentMessageProcessor implements MessageProcessorInterface {
         'action' => 'document_rejected',
         'reason' => 'document_not_supported'
       ],
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true
     );
 
     ChatHandler::addMessage([

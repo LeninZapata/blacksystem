@@ -154,7 +154,8 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'S',
       'text',
       $metadata,
-      0
+      0,
+      true
       // NO PASAR user_id - ChatHandler lo resuelve automáticamente
     );
 
@@ -304,7 +305,8 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       'S',
       'text',
       $metadata,
-      $saleId
+      $saleId,
+      true
       // NO PASAR user_id - ChatHandler lo resuelve automáticamente
     );
 

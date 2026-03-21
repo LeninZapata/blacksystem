@@ -89,7 +89,8 @@ class DoesNotWantProductAction implements ActionHandler {
       'S',
       'text',
       $metadata,
-      $saleId
+      $saleId,
+      true
     );
 
     ChatHandler::addMessage([

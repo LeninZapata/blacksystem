@@ -96,7 +96,8 @@ class AudioMessageProcessor implements MessageProcessorInterface {
       'B',
       'text',
       ['action' => 'wait_audio_transcription'],
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true
     );
     ChatHandler::addMessage([
       'number'    => $to,

@@ -1055,7 +1055,7 @@ class chat {
     const lastSysMsgAction = c.last_sys_msg_action ?? '';
     const isFollowup  = unread > 0 && lastMsgType === 'S' && lastSysMsgAction === 'followup_sent';
     const unreadCls   = unread > 0 ? (isFollowup ? ' unread-followup' : ' unread') : '';
-    const badge       = unread > 0
+    const badge       = unread > 1
       ? `<span class="bs-chat-unread-badge${isFollowup ? ' bs-chat-unread-badge--followup' : ''}">${unread > 99 ? '99+' : unread}</span>`
       : '';
     const todayAmt = c.today_amount ? parseFloat(c.today_amount) : null;

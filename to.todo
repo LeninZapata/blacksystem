@@ -2,19 +2,12 @@ URGENTE:
 
 RAPIDO:
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
-  ✘ eliminar ultima venta @cancelled(20-03-2026 17:50)
-  LO QUE HACE que puedes actualizar las ventas del chat
   ☐ aprar los seguimientos
   ☐ enviar plantilla de link del producto
   ☐ ejecutar una venta y enviar el producto (sirve para lo que se viene de validar el nombre del titular en el recibo)
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
 
 Backend:
-✔ Revisa el cron que borras los registros los JSON o Logs temporales (problemas con Middle) @done(20-03-2026 21:20)
-✔ Revisa si hay hay una for<ma de borrar datos de la DB periodicamente, REVISA LAS TABLAS CON MUCHOS REGISTROS @done(20-03-2026 21:42)
-✘ Cuando hay un errror de pago, este ya no se activan los conjuntos de anuncios porque el reseteo ya paso y en el reseteo este prende los activos @cancelled(20-03-2026 21:20)
-LO QUE SE PODRIA HACER ES MOSTRAR LOS ACTIVOS DE UN USUARIO Y VER QUE ESTA APAGADOY PRENDERLO DESDE EL SISTEMA.
-ESTO HAY QUE RESOLVERLO MANULAMENTE MEJOR.....
 ☐ El sistema debe tener un reseteo de presupues a su base para media noche, y el reseteo de presupuesto basado en elROAS tipo 6am
 con esto no gasta mucho en la noche, ya puede amanecer con un gasto que no queremos....
 ☐ hacer uqe se pueda validar el nombre del titular en recibo y en caso no lo tenga entonces parar el proceso, envar un correo para avisar que se necesita

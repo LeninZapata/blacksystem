@@ -89,7 +89,8 @@ class ImageMessageProcessor implements MessageProcessorInterface {
       'B',
       'text',
       ['action' => 'wait_image_validation'],
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true
     );
     ChatHandler::addMessage([
       'number'   => $to,
