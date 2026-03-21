@@ -131,10 +131,12 @@ class AdAutoScaleHandler {
         pa.ad_asset_id,
         pa.ad_asset_name,
         pa.base_daily_budget,
+        pa.max_daily_budget,
         pa.last_reset_date,
         pa.reset_time,
         pa.reset_type,
-        pa.max_daily_budget,
+        pa.profit_reset_time,
+        pa.last_profit_reset_date,
         pa.credential_id,
         pa.timezone as asset_timezone,
         p.bot_id,
@@ -225,114 +227,107 @@ class AdAutoScaleHandler {
         ], self::$logMeta);
 
         foreach ($timezoneAssets as $asset) {
-          ogLog::debug('resetDailyBudgets - Evaluando activo', [
-            'asset_id' => $asset['id'],
-            'ad_asset_id' => $asset['ad_asset_id'],
-            'bot_name' => $asset['bot_name'],
-            'bot_country' => $asset['bot_country_code'],
-            'bot_timezone' => $timezone,
-            'last_reset_date' => $asset['last_reset_date'],
-            'current_date' => $currentDate,
-            'dates_match' => ($asset['last_reset_date'] === $currentDate),
-            'reset_time' => $asset['reset_time'] ?? '00:00:00',
-            'current_hour' => $currentHour
-          ], self::$logMeta);
-
-          // Validar si ya se reseteó hoy
-          if ($asset['last_reset_date'] === $currentDate) {
-            ogLog::debug('resetDailyBudgets - Ya se reseteó hoy', [
-              'asset_id' => $asset['id'],
-              'last_reset_date' => $asset['last_reset_date']
-            ], self::$logMeta);
-            $debugInfo[] = [
-              'asset_id' => $asset['id'],
-              'ad_asset_id' => $asset['ad_asset_id'],
-              'bot_name' => $asset['bot_name'],
-              'bot_country' => $asset['bot_country_code'],
-              'reason' => 'already_reset_today',
-              'last_reset_date' => $asset['last_reset_date'],
-              'current_date' => $currentDate
-            ];
-            $skipped++;
-            continue;
-          }
 
           // Validar que tenga base_daily_budget configurado
           if (!$asset['base_daily_budget'] || $asset['base_daily_budget'] <= 0) {
-            ogLog::warning('resetDailyBudgets - Activo sin base_daily_budget', [
-              'asset_id' => $asset['id'],
-              'ad_asset_id' => $asset['ad_asset_id']
-            ], self::$logMeta);
-            $debugInfo[] = [
-              'asset_id' => $asset['id'],
-              'ad_asset_id' => $asset['ad_asset_id'],
-              'bot_name' => $asset['bot_name'],
-              'bot_country' => $asset['bot_country_code'],
-              'reason' => 'no_base_budget',
-              'base_daily_budget' => $asset['base_daily_budget']
-            ];
+            $debugInfo[] = ['asset_id' => $asset['id'], 'reason' => 'no_base_budget'];
             $skipped++;
             continue;
           }
 
-          // Si last_reset_date es anterior a hoy, debe resetear (ya pasó el día completo)
-          $shouldReset = false;
-          $resetReason = '';
-          
-          if ($asset['last_reset_date'] === null || $asset['last_reset_date'] < $currentDate) {
-            // Nunca se ha reseteado O ya pasó el día → debe resetear
-            $shouldReset = true;
-            $resetReason = $asset['last_reset_date'] === null 
-              ? 'first_reset' 
-              : 'previous_day';
-          } else {
-            // last_reset_date == currentDate → Ya se verificó arriba, no debería llegar aquí
-            $shouldReset = false;
-            $resetReason = 'same_day';
+          // ── BASE RESET ───────────────────────────────────────────────────────
+          // Se ejecuta a la hora reset_time, siempre pone base_daily_budget
+          $needsBaseReset = false;
+          $baseReason     = '';
+
+          if ($asset['last_reset_date'] !== $currentDate) {
+            $resetTime = $asset['reset_time'] ?? '00:00:00';
+            if ($currentHour >= $resetTime) {
+              $needsBaseReset = true;
+              $baseReason = $asset['last_reset_date'] === null ? 'first_reset' : 'previous_day';
+            }
           }
-          
-          if ($shouldReset) {
-            ogLog::debug('resetDailyBudgets - Reseteando activo', [
-              'asset_id' => $asset['id'],
+
+          // ── PROFIT RESET ─────────────────────────────────────────────────────
+          // Solo si reset_type=roas_based y profit_reset_time configurado.
+          // Es independiente del base reset (usa last_profit_reset_date propio).
+          $needsProfitReset = false;
+
+          if (
+            $asset['reset_type'] === 'roas_based' &&
+            !empty($asset['profit_reset_time']) &&
+            $asset['last_profit_reset_date'] !== $currentDate
+          ) {
+            if ($currentHour >= $asset['profit_reset_time']) {
+              $needsProfitReset = true;
+            }
+          }
+
+          // Si ninguno aplica, skip
+          if (!$needsBaseReset && !$needsProfitReset) {
+            $skipped++;
+            continue;
+          }
+
+          // Ejecutar base reset
+          if ($needsBaseReset) {
+            ogLog::debug('resetDailyBudgets - Ejecutando base reset', [
+              'asset_id'    => $asset['id'],
               'ad_asset_id' => $asset['ad_asset_id'],
-              'timezone' => $timezone,
-              'reset_reason' => $resetReason,
-              'last_reset_date' => $asset['last_reset_date'],
-              'current_date' => $currentDate,
-              'current_time' => $currentTime->format('Y-m-d H:i:s')
+              'base_reason' => $baseReason,
+              'reset_time'  => $asset['reset_time'],
+              'current_hour'=> $currentHour,
             ], self::$logMeta);
 
             $result = self::resetAssetBudget($asset, $timezone, $currentDate);
-            
+
             if ($result['success']) {
               $debugInfo[] = [
-                'asset_id' => $asset['id'],
-                'ad_asset_id' => $asset['ad_asset_id'],
-                'bot_name' => $asset['bot_name'],
-                'bot_country' => $asset['bot_country_code'],
-                'action' => 'reset_success',
-                'reset_reason' => $resetReason,
-                'timezone' => $timezone,
-                'budget_before' => $result['budget_before'] ?? null,
-                'budget_after' => $result['budget_after'] ?? null
+                'asset_id'     => $asset['id'],
+                'ad_asset_id'  => $asset['ad_asset_id'],
+                'action'       => 'base_reset_success',
+                'budget_before'=> $result['budget_before'] ?? null,
+                'budget_after' => $result['budget_after'] ?? null,
               ];
               $resetCount++;
             } else {
-              $debugInfo[] = [
-                'asset_id' => $asset['id'],
-                'ad_asset_id' => $asset['ad_asset_id'],
-                'bot_name' => $asset['bot_name'],
-                'bot_country' => $asset['bot_country_code'],
-                'action' => 'reset_error',
-                'error' => $result['error']
-              ];
-              $errors[] = [
-                'asset_id' => $asset['id'],
-                'ad_asset_id' => $asset['ad_asset_id'],
-                'bot_name' => $asset['bot_name'],
-                'bot_country' => $asset['bot_country_code'],
-                'error' => $result['error']
-              ];
+              $debugInfo[] = ['asset_id' => $asset['id'], 'action' => 'base_reset_error', 'error' => $result['error']];
+              $errors[]    = ['asset_id' => $asset['id'], 'ad_asset_id' => $asset['ad_asset_id'], 'error' => $result['error']];
+            }
+          }
+
+          // Ejecutar profit reset
+          if ($needsProfitReset) {
+            ogLog::debug('resetDailyBudgets - Ejecutando profit reset', [
+              'asset_id'         => $asset['id'],
+              'ad_asset_id'      => $asset['ad_asset_id'],
+              'profit_reset_time'=> $asset['profit_reset_time'],
+              'current_hour'     => $currentHour,
+            ], self::$logMeta);
+
+            $result = self::resetAssetBudgetProfit($asset, $timezone, $currentDate);
+
+            if ($result['success']) {
+              if ($result['executed']) {
+                $debugInfo[] = [
+                  'asset_id'     => $asset['id'],
+                  'ad_asset_id'  => $asset['ad_asset_id'],
+                  'action'       => 'profit_reset_success',
+                  'budget_before'=> $result['budget_before'] ?? null,
+                  'budget_after' => $result['budget_after'] ?? null,
+                ];
+                $resetCount++;
+              } else {
+                $debugInfo[] = [
+                  'asset_id'   => $asset['id'],
+                  'ad_asset_id'=> $asset['ad_asset_id'],
+                  'action'     => 'profit_reset_skipped',
+                  'reason'     => $result['reason'] ?? 'profit_not_above_base',
+                ];
+              }
+            } else {
+              $debugInfo[] = ['asset_id' => $asset['id'], 'action' => 'profit_reset_error', 'error' => $result['error']];
+              $errors[]    = ['asset_id' => $asset['id'], 'ad_asset_id' => $asset['ad_asset_id'], 'error' => $result['error']];
             }
           }
         }
@@ -428,15 +423,8 @@ class AdAutoScaleHandler {
 
       $budgetBefore = $currentBudgetData['budget'] ?? 0;
       
-      // 4. Determinar presupuesto según tipo de reset
-      $resetType = $asset['reset_type'] ?? 'fixed';
-      
-      if ($resetType === 'roas_based') {
-        $budgetAfter = self::calculateRoasBasedBudget($asset, $currentDate, $timezone);
-      } else {
-        // Reset fijo tradicional
-        $budgetAfter = (float)$asset['base_daily_budget'];
-      }
+      // 4. Base reset: siempre usa base_daily_budget (el profit reset es independiente)
+      $budgetAfter = (float)$asset['base_daily_budget'];
 
       // 5. Actualizar presupuesto en la plataforma
       $updateResult = $provider->updateBudget(
@@ -477,17 +465,18 @@ class AdAutoScaleHandler {
 
       // 6. Guardar en historial
       ogDb::t('ad_budget_resets')->insert([
-        'user_id' => $asset['user_id'],
+        'user_id'             => $asset['user_id'],
         'product_ad_asset_id' => $asset['id'],
-        'ad_asset_id' => $asset['ad_asset_id'],
-        'budget_before' => $budgetBefore,
-        'budget_after' => $budgetAfter,
-        'reset_date' => $currentDate,
-        'reset_at' => date('Y-m-d H:i:s'),
-        'timezone' => $timezone,
-        'execution_time_ms' => $executionTime,
-        'status' => 'success',
-        'tc' => time()
+        'ad_asset_id'         => $asset['ad_asset_id'],
+        'budget_before'       => $budgetBefore,
+        'budget_after'        => $budgetAfter,
+        'reset_date'          => $currentDate,
+        'reset_at'            => date('Y-m-d H:i:s'),
+        'timezone'            => $timezone,
+        'execution_time_ms'   => $executionTime,
+        'status'              => 'success',
+        'reset_kind'          => 'base',
+        'tc'                  => time()
       ]);
 
       // 7. Actualizar last_reset_date en product_ad_assets
@@ -542,6 +531,106 @@ class AdAutoScaleHandler {
         'success' => false,
         'error' => $e->getMessage()
       ];
+    }
+  }
+
+  /**
+   * Reset de presupuesto basado en profit del día anterior.
+   * Solo se ejecuta cuando el profit supera el base_daily_budget.
+   * Registra en ad_budget_resets con reset_kind='profit'.
+   */
+  private static function resetAssetBudgetProfit($asset, $timezone, $currentDate) {
+    $startTime = microtime(true);
+
+    try {
+      $baseBudget      = (float)$asset['base_daily_budget'];
+      $calculatedBudget = self::calculateRoasBasedBudget($asset, $currentDate, $timezone);
+
+      // Siempre marcar last_profit_reset_date para no reintentar en la misma hora
+      ogDb::t('product_ad_assets')
+        ->where('id', $asset['id'])
+        ->update(['last_profit_reset_date' => $currentDate]);
+
+      // Si el profit calculado no supera la base, no hay nada que hacer
+      if ($calculatedBudget <= $baseBudget) {
+        ogLog::info('resetAssetBudgetProfit - Profit no supera base, sin cambio', [
+          'asset_id'         => $asset['id'],
+          'calculated_budget'=> $calculatedBudget,
+          'base_budget'      => $baseBudget,
+        ], self::$logMeta);
+        return ['success' => true, 'executed' => false, 'reason' => 'profit_not_above_base', 'calculated' => $calculatedBudget];
+      }
+
+      // Cargar credencial y provider (igual que resetAssetBudget)
+      $credential = ogDb::t('credentials')->find($asset['credential_id']);
+      if (!$credential) {
+        return ['success' => false, 'error' => "Credencial no encontrada: {$asset['credential_id']}"];
+      }
+
+      $credConfig = is_string($credential['config']) ? json_decode($credential['config'], true) : $credential['config'];
+      $credConfig['credential_value'] = $credConfig['credential_value'] ?? $credConfig['access_token'] ?? '';
+
+      $platform      = strtolower($asset['ad_platform']);
+      $providerClass = ucfirst($platform) . 'AdProvider';
+      $basePath      = ogCache::memoryGet('path_middle') . '/services/integrations/ads';
+
+      if (!interface_exists('adProviderInterface')) require_once "{$basePath}/adProviderInterface.php";
+      if (!class_exists('baseAdProvider'))          require_once "{$basePath}/baseAdProvider.php";
+
+      $providerFile = "{$basePath}/{$platform}/{$platform}AdProvider.php";
+      if (!file_exists($providerFile)) {
+        return ['success' => false, 'error' => "Provider no encontrado: {$platform}"];
+      }
+      require_once $providerFile;
+      if (!class_exists($providerClass)) {
+        return ['success' => false, 'error' => "Clase provider no encontrada: {$providerClass}"];
+      }
+
+      $provider = new $providerClass($credConfig);
+
+      // Obtener presupuesto actual
+      $currentBudgetData = $provider->getBudget($asset['ad_asset_id'], $asset['ad_asset_type']);
+      if (!$currentBudgetData['success']) {
+        return ['success' => false, 'error' => $currentBudgetData['error'] ?? 'Error obteniendo presupuesto actual'];
+      }
+      $budgetBefore = $currentBudgetData['budget'] ?? 0;
+
+      // Actualizar presupuesto en la plataforma
+      $updateResult = $provider->updateBudget($asset['ad_asset_id'], $asset['ad_asset_type'], $calculatedBudget, 'daily');
+      if (!$updateResult['success']) {
+        return ['success' => false, 'error' => $updateResult['error'] ?? 'Error actualizando presupuesto'];
+      }
+
+      $executionTime = round((microtime(true) - $startTime) * 1000);
+
+      // Registrar en historial
+      ogDb::t('ad_budget_resets')->insert([
+        'user_id'             => $asset['user_id'],
+        'product_ad_asset_id' => $asset['id'],
+        'ad_asset_id'         => $asset['ad_asset_id'],
+        'budget_before'       => $budgetBefore,
+        'budget_after'        => $calculatedBudget,
+        'reset_date'          => $currentDate,
+        'reset_at'            => date('Y-m-d H:i:s'),
+        'timezone'            => $timezone,
+        'execution_time_ms'   => $executionTime,
+        'status'              => 'success',
+        'reset_kind'          => 'profit',
+        'tc'                  => time()
+      ]);
+
+      ogLog::success('resetAssetBudgetProfit - Presupuesto actualizado por profit', [
+        'asset_id'      => $asset['id'],
+        'ad_asset_id'   => $asset['ad_asset_id'],
+        'budget_before' => $budgetBefore,
+        'budget_after'  => $calculatedBudget,
+      ], self::$logMeta);
+
+      return ['success' => true, 'executed' => true, 'budget_before' => $budgetBefore, 'budget_after' => $calculatedBudget];
+
+    } catch (Exception $e) {
+      ogLog::error('resetAssetBudgetProfit - Error', ['asset_id' => $asset['id'], 'error' => $e->getMessage()], self::$logMeta);
+      return ['success' => false, 'error' => $e->getMessage()];
     }
   }
 

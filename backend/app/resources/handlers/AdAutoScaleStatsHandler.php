@@ -355,13 +355,14 @@ class AdAutoScaleStatsHandler {
       // Consultar reseteos de presupuesto
       // Si hay múltiples resets en un día, tomar el último (el que quedó al final del día)
       $sql = "
-        SELECT 
+        SELECT
           r.reset_date as date,
           r.budget_before,
           r.budget_after,
           r.reset_at,
           r.status,
-          r.execution_time_ms
+          r.execution_time_ms,
+          r.reset_kind
         FROM ad_budget_resets r
         INNER JOIN (
           SELECT reset_date, MAX(reset_at) as max_reset_at
@@ -397,6 +398,7 @@ class AdAutoScaleStatsHandler {
           'budget_after' => round((float)$row['budget_after'], 2),
           'budget_change' => round((float)$row['budget_after'] - (float)$row['budget_before'], 2),
           'reset_at' => $row['reset_at'],
+          'reset_kind' => $row['reset_kind'] ?? 'base',
           'execution_time_ms' => (int)$row['execution_time_ms']
         ];
       }, $results);

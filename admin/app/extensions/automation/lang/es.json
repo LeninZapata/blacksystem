@@ -338,7 +338,9 @@
         "reset_time_help": "Hora local (según timezone de la cuenta) a la que resetear el presupuesto",
         "auto_reset_budget": "Auto reset presupuesto",
         "reset_type": "Tipo de Reset",
-        "reset_type_help": "Fijo: usa siempre el presupuesto base. Basado en ROAS: calcula el presupuesto según ganancias del día anterior"
+        "reset_type_help": "Fijo: usa siempre el presupuesto base. Basado en ROAS: calcula el presupuesto según ganancias del día anterior",
+        "profit_reset_time": "Hora Reset Profit",
+        "profit_reset_time_help": "Hora local (según timezone de la cuenta) en que se calculará el presupuesto basado en el profit del día anterior"
       },
       "asset_type": {
         "campaign": "Campaña",
@@ -347,7 +349,7 @@
       },
       "reset_type": {
         "fixed": "Presupuesto fijo",
-        "roas_based": "Presupuesto basado en ROAS"
+        "roas_based": "Presupuesto basado en Profit"
       },
       "ogModal": {
         "new": {

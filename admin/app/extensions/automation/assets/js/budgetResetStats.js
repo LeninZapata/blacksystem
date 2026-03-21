@@ -353,24 +353,25 @@ const budgetResetStats = {
     profitData.forEach(profit => {
       profitMap[profit.date] = profit.profit;
     });
-    
-    // Crear mapa de reseteos por fecha
+
+    // Crear mapa de reseteos por fecha (budget_after + reset_kind)
     const resetsMap = {};
     resetsData.forEach(reset => {
-      resetsMap[reset.date] = reset.budget_after;
+      resetsMap[reset.date] = { budget_after: reset.budget_after, reset_kind: reset.reset_kind || 'base' };
     });
-    
+
     // Obtener todas las fechas únicas (de profit y reseteos)
     const allDates = new Set([
       ...profitData.map(p => p.date),
       ...resetsData.map(r => r.date)
     ]);
-    
+
     // Crear array combinado con todas las fechas
     const combined = Array.from(allDates).map(date => ({
       date,
       profit: profitMap[date] !== undefined ? profitMap[date] : 0,
-      budget_reset: resetsMap[date] || null
+      budget_reset: resetsMap[date]?.budget_after || null,
+      reset_kind: resetsMap[date]?.reset_kind || null
     }));
     
     // Ordenar por fecha
@@ -584,10 +585,25 @@ const budgetResetStats = {
                 return this.formatDateFull(data[idx].date);
               },
               label: (context) => {
-                const label = context.dataset.label || '';
+                const idx = context.dataIndex;
                 const value = context.parsed.y;
+                if (context.datasetIndex === 1) {
+                  // Línea de presupuesto reset
+                  if (value === null) return 'Presupuesto Reset: Sin datos';
+                  const kind = data[idx].reset_kind;
+                  const kindLabel = kind === 'profit' ? 'Reset Profit' : 'Reset Base';
+                  return `${kindLabel}: $${value.toFixed(2)}`;
+                }
+                const label = context.dataset.label || '';
                 if (value === null) return label + ': Sin datos';
                 return label + ': $' + value.toFixed(2);
+              },
+              afterLabel: (context) => {
+                const idx = context.dataIndex;
+                if (context.datasetIndex === 1 && data[idx].reset_kind === 'profit') {
+                  return '  ↑ Ajustado por profit del día anterior';
+                }
+                return null;
               }
             },
             backgroundColor: 'rgba(0, 0, 0, 0.8)',

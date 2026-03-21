@@ -73,7 +73,7 @@ class ogFormRender {
       }
 
       if (normalizedField.type === 'group') {
-        return this.renderGroup(normalizedField, path);
+        return this.renderGroup(normalizedField, path, index);
       }
 
       if (normalizedField.type === 'grouper') {
@@ -165,14 +165,16 @@ class ogFormRender {
     }
   }
 
-  static renderGroup(field, basePath) {
+  static renderGroup(field, basePath, index = 0) {
     const core = ogModule('formCore');
     const inputs = ogModule('formInputs');
     const columns = field.columns || 2;
     const gap = field.gap || 'normal';
 
-    const groupFieldPath = field.name ? (basePath ? `${basePath}.${field.name}` : field.name) : '';
-    const dataPath = groupFieldPath ? `data-field-path="${groupFieldPath}"` : '';
+    const groupFieldPath = field.name
+      ? (basePath ? `${basePath}.${field.name}` : field.name)
+      : (basePath ? `${basePath}.__field_${index}` : `__field_${index}`);
+    const dataPath = `data-field-path="${groupFieldPath}"`;
 
     const groupClass = `og-form-group-cols og-form-group-cols-${columns} og-form-group-gap-${gap}`;
 
