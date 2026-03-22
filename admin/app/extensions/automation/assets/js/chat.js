@@ -1053,8 +1053,9 @@ class chat {
     const dateStr     = c.last_message_at ?? c.dc ?? '';
     const date        = window.bsDate ? bsDate.relativeShort(dateStr) : dateStr.substring(0, 10);
     const lastSysMsgAction = c.last_sys_msg_action ?? '';
-    const isFollowup  = unread > 0 && lastMsgType === 'S' && lastSysMsgAction === 'followup_sent';
-    const unreadCls   = unread > 0 ? (isFollowup ? ' unread-followup' : ' unread') : '';
+    const isFollowup      = unread > 0 && lastMsgType === 'S' && lastSysMsgAction === 'followup_sent';
+    const isLastFollowup  = lastMsgType === 'S' && lastSysMsgAction === 'followup_sent';
+    const unreadCls       = unread > 0 ? (isFollowup ? ' unread-followup' : ' unread') : '';
     const badge       = unread > 0
       ? `<span class="bs-chat-unread-badge${isFollowup ? ' bs-chat-unread-badge--followup' : ''}">${unread > 99 ? '99+' : unread}</span>`
       : '';
@@ -1070,7 +1071,7 @@ class chat {
         <div class="bs-chat-item-header">
           <div class="bs-chat-item-left">
             ${warningIcon}
-            ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">${flag} +${number}</span>`}
+            ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">${flag} +${number}</span>`}${isLastFollowup ? `<span class="bs-chat-followup-icon" title="Último mensaje: seguimiento">📨</span>` : ''}
             ${saleBadge}
           </div>
           <div class="bs-chat-item-right">

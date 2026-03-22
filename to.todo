@@ -1,5 +1,6 @@
 URGENTE:
-☐ test con ARGENTINA!
+☐ Whatapp en el webhook cambiara numero por user o sera hibrido entonces el sistema debe soportar esto.
+✔ Los seguimientos si ultima mensaje es un seguimiento pues motrar un icono en lado del ombre ligero que demuestro seguimineto @done(22-03-2026 10:55)
 
 RAPIDO:
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
@@ -9,12 +10,37 @@ RAPIDO:
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
 
 Backend:
-✔ El sistema debe tener un reseteo de presupues a su base para media noche, y el reseteo de presupuesto basado en elROAS tipo 6am @done(21-03-2026 15:49)
-con esto no gasta mucho en la noche, ya puede amanecer con un gasto que no queremos....
-☐ solo ADMIN44 tiene ajsute de sumar en la regla numero 2, zdannes no tiene, si pasa mas pruebas admin44 entonces la regla de ajuste
-debe ser corregida para zdannes porque ha estdao restando en vez de sumar, entonces se debe corregir esto para que sea justo para ambos.
 ☐ hacer uqe se pueda validar el nombre del titular en recibo y en caso no lo tenga entonces parar el proceso, envar un correo para avisar que se necesita
 enviar este producto y compeltar la venta, por lo general hay recibo como el banco del pacifico que no tiene el nombre del titular, entonces se debe validar esto para evitar problemas de fraude o de que el cliente no reciba su producto.
+
+✔ ACTUALIZAR EL SISTEMA basado lo nuevo de facebook (BSUID - Business-Scoped User IDs) @done(22-03-2026)
+  ✔ ALTER TABLE: clients.bsuid, chats.client_bsuid, sales.bsuid, followups.bsuid @done(22-03-2026)
+  ✔ facebookNormalizer: extraer from_user_id, contacts[0].user_id, contacts[0].profile.username @done(22-03-2026)
+  ✔ facebookNormalizer: person incluye bsuid, username; id usa bsuid si existe @done(22-03-2026)
+  ✔ WebhookController: aceptar webhook sin numero si hay bsuid @done(22-03-2026)
+  ✔ ClientHandler::registerOrUpdate: buscar/crear cliente por bsuid cuando no hay numero @done(22-03-2026)
+  ✔ CreateSaleAction: pasar bsuid a ClientHandler, guardarlo en sales @done(22-03-2026)
+  ✔ SendWelcomeAction: guard si no hay numero (no se puede enviar aun), pasar bsuid a followups @done(22-03-2026)
+  ✔ infoproduct-v2: clientKey() para usar bsuid como clave de chat cuando no hay numero @done(22-03-2026)
+  ✔ FollowupHandler: guardar bsuid en followups @done(22-03-2026)
+
+  --- FASE 2: Abril 2026 (Contact Book de Meta) ---
+  ☐ ANALIZAR: Meta lanzara Contact Book en abril — emparejamiento automatico telefono+BSUID
+    ☐ Cuando llegue un webhook con numero Y bsuid juntos por primera vez:
+      ☐ ClientHandler: si cliente existe por numero sin bsuid → actualizarle el bsuid
+      ☐ ClientHandler: si cliente existe por bsuid sin numero → actualizarle el numero
+      ☐ Validar que no haya dos registros del mismo cliente (uno por numero, otro por bsuid) → merge
+    ☐ chats.client_bsuid: actualmente no se guarda al crear el chat, revisar ChatHandler::register y addMessage
+    ☐ sales.bsuid: verificar que se guarde correctamente cuando llega con numero (hoy solo se guarda en welcome sin numero)
+
+  --- FASE 3: Junio 2026 (Meta API soporta envios por BSUID) ---
+  ☐ ANALIZAR: Cuando Meta habilite enviar mensajes usando BSUID como destino:
+    ☐ ChatApiService: send() aceptar bsuid como $to cuando number esta vacio
+    ☐ ChatApiService: validateChatWindow() buscar cliente por bsuid como fallback
+    ☐ SendWelcomeAction: quitar guard de "no_phone_number", usar bsuid para enviar
+    ☐ FollowupHandler (cron de envio): si number vacio, intentar enviar por bsuid
+    ☐ ActiveConversationStrategy / PaymentStrategy: respuestas a usuarios sin numero
+
 FRONTEND:
 ☐ agregar trigger de plantillas
 ☐ agrear botnes en los mensajes puede ser de bienvenidsa o se seguimiento

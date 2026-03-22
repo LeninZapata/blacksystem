@@ -69,7 +69,7 @@ class WebhookController {
         ]);
       }
 
-      if (!$person['number']) {
+      if (!$person['number'] && !($person['bsuid'] ?? null)) {
         ogResponse::json(['success' => false, 'error' => 'Person no encontrado'], 400);
       }
 

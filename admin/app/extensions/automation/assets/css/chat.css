@@ -242,6 +242,13 @@
     white-space: nowrap;
   }
 
+  .bs-chat-followup-icon {
+    font-size: 0.85rem;
+    filter: grayscale(1) opacity(1);
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
   .bs-chat-sale-badge {
     display: inline-flex;
     align-items: center;

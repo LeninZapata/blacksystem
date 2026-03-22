@@ -9,9 +9,18 @@ class SendWelcomeAction {
     $person = $dataSale['person'];
     $product = $dataSale['product'];
     $productId = $dataSale['product_id'];
-    $from = $person['number'];
+    $from  = $person['number'];
+    $bsuid = $person['bsuid'] ?? null;
 
-    self::cancelPendingSaleFollowups($from, $bot['id'], $productId);
+    // Sin número de teléfono no se puede enviar via Cloud API (BSUID como destino aún no soportado)
+    if (!$from) {
+      ogLog::warning("send - No hay número de teléfono, no se puede enviar welcome (usuario con username privacy)", [
+        'bsuid' => $bsuid, 'product_id' => $productId
+      ], self::$logMeta);
+      return ['success' => false, 'error' => 'no_phone_number'];
+    }
+
+    self::cancelPendingSaleFollowups($from, $bsuid, $bot['id'], $productId);
 
     ogApp()->loadHandler('product');
     $messages = ProductHandler::getMessagesFile('welcome', $productId);
@@ -119,6 +128,7 @@ class SendWelcomeAction {
                 'client_id'   => $clientId,
                 'bot_id'      => $bot['id'],
                 'number'      => $from,
+                'bsuid'       => $bsuid,
                 'max_send_at' => $maxSendAt
               ], $followups, $bot['config']['timezone'] ?? 'America/Guayaquil', $bot);
             }
@@ -248,10 +258,17 @@ class SendWelcomeAction {
     }
   }
 
-  private static function cancelPendingSaleFollowups($number, $botId, $newProductId) {
+  private static function cancelPendingSaleFollowups($number, $bsuid, $botId, $newProductId) {
     try {
-      $pendingSales = ogDb::t('sales')
-        ->where('number', $number)
+      $query = ogDb::t('sales');
+      if ($number) {
+        $query = $query->where('number', $number);
+      } elseif ($bsuid) {
+        $query = $query->where('bsuid', $bsuid);
+      } else {
+        return;
+      }
+      $pendingSales = $query
         ->where('bot_id', $botId)
         ->whereNotIn('process_status', ['sale_confirmed', 'cancelled', 'refunded'])
         ->where('product_id', '!=', $newProductId)

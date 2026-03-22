@@ -9,8 +9,9 @@ class CreateSaleAction {
     $person = $dataSale['person'];
     $context = $dataSale['context'];
 
-    $from = $person['number'];
-    $name = $person['name'];
+    $from  = $person['number'];
+    $bsuid = $person['bsuid'] ?? null;
+    $name  = $person['name'];
     $device = $person['platform'] ?? null;
 
     // OBTENER USER_ID DEL BOT
@@ -27,8 +28,13 @@ class CreateSaleAction {
     // Solo verificar duplicados si NO es upsell y NO es bienvenida forzada
     $isForcedWelcome = ($context['force_welcome'] ?? 0) === 1;
     if (!$isUpsell && !$isForcedWelcome) {
-      $existingSale = ogDb::table('sales')
-        ->where('number', $from)
+      $dupQuery = ogDb::table('sales');
+      if ($from) {
+        $dupQuery = $dupQuery->where('number', $from);
+      } elseif ($bsuid) {
+        $dupQuery = $dupQuery->where('bsuid', $bsuid);
+      }
+      $existingSale = $dupQuery
         ->where('bot_id', $bot['id'])
         ->where('product_id', $product['id'])
         ->whereNotIn('process_status', ['sale_confirmed', 'cancelled', 'refunded'])
@@ -93,7 +99,7 @@ class CreateSaleAction {
     ], self::$logMeta);
 
     ogApp()->loadHandler('client');
-    $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device, $userId);
+    $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device, $userId, $bsuid);
 
     if (!$clientResult['success']) {
       ogLog::error("CreateSaleAction - Error al crear o actualizar cliente", [ 'number' => $from, 'error' => $clientResult['error'] ?? null, 'details' => $clientResult['details'] ?? null ], self::$logMeta);
@@ -113,10 +119,11 @@ class CreateSaleAction {
     ogLog::info("CreateSaleAction - Origen de la venta detectado: {$origin}", [], self::$logMeta);
 
     $saleData = [
-      'user_id' => $userId, // AGREGAR USER_ID
+      'user_id' => $userId,
       'sale_type' => 'main',
       'context' => 'whatsapp',
       'number' => $from,
+      'bsuid' => $bsuid,
       'country_code' => $countryCode,
       'product_name' => $product['name'],
       'product_id' => $dataSale['product_id'],

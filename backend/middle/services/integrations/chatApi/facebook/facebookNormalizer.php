@@ -25,7 +25,14 @@ class facebookNormalizer {
     $contacts = $value['contacts'][0] ?? [];
 
     // Extraer datos básicos
-    $from = $message['from'] ?? '';
+    $from        = $message['from'] ?? '';
+    $fromUserId  = $message['from_user_id'] ?? '';         // BSUID (desde marzo 2026)
+    $contactWaId = $contacts['wa_id'] ?? '';
+    $contactUserId = $contacts['user_id'] ?? '';           // BSUID alternativo en contacts
+    $username    = $contacts['profile']['username'] ?? ''; // username público (opcional)
+    $phone       = $from ?: $contactWaId;                  // puede venir vacío si el usuario activó username privacy
+    $bsuid       = $fromUserId ?: $contactUserId;          // preferir from_user_id, fallback a contacts[0].user_id
+
     $messageId = $message['id'] ?? '';
     $timestamp = $message['timestamp'] ?? time();
     $type = $message['type'] ?? 'text';
@@ -186,7 +193,9 @@ class facebookNormalizer {
     return [
       'provider' => 'whatsapp-cloud-api',
       'message_id' => $messageId,
-      'from' => $from,
+      'from'     => $phone,
+      'bsuid'    => $bsuid,
+      'username' => $username,
       'push_name' => $pushName,
       'timestamp' => $timestamp,
       'type' => $type,
@@ -417,10 +426,12 @@ class facebookNormalizer {
         'instance' => $normalized['phone_number_id']
       ],
       'person' => [
-        'id' => $normalized['from'],
-        'number' => $normalized['from'],
-        'name' => $normalized['push_name'],
-        'is_me' => false,
+        'id'       => $normalized['bsuid'] ?: $normalized['from'],
+        'number'   => $normalized['from'],
+        'bsuid'    => $normalized['bsuid'],
+        'username' => $normalized['username'],
+        'name'     => $normalized['push_name'],
+        'is_me'    => false,
         'platform' => 'whatsapp'
       ],
       'message' => [

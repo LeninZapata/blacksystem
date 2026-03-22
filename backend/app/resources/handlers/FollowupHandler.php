@@ -164,6 +164,7 @@ class FollowupHandler {
         'bot_id' => $saleData['bot_id'],
         'context' => 'whatsapp',
         'number' => $saleData['number'],
+        'bsuid'  => $saleData['bsuid'] ?? null,
         'name' => $fup['tracking_id'] ?? null,
         'instruction' => !empty($fup['instruction']) ? $fup['instruction'] : '',
         'text' => $fullMessage ?: null,

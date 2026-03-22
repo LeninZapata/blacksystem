@@ -151,7 +151,8 @@ class InfoproductV2Handler {
     $messageType = MessageClassifier::classify($message);
     ogLog::info("handle - Mensaje clasificado", [ 'type' => $messageType, 'person number' => $person['number'] ?? 'N/A' ], $this->logMeta);
 
-    $hasConversation = ConversationValidator::quickCheck( $person['number'], $bot['id'], $this->maxConversationDays );
+    $clientKey = $this->clientKey($person);
+    $hasConversation = ConversationValidator::quickCheck( $clientKey, $bot['id'], $this->maxConversationDays );
     ogLog::info("handle - Conversación activa verificada", [ 'has_conversation' => $hasConversation['exists'] ?? false, 'messages_count' => isset($hasConversation['chat']['messages']) ? count($hasConversation['chat']['messages']) : null ], $this->logMeta);
 
     // ✅ 2. DETECTAR WELCOME
@@ -230,7 +231,7 @@ class InfoproductV2Handler {
   private function continueConversation($bot, $person, $message, $messageType) {
     ogLog::info("continueConversation - INICIO", [], ['module' => 'infoproduct_v2']);
 
-    $chatData = ConversationValidator::getChatData($person['number'], $bot['id']);
+    $chatData = ConversationValidator::getChatData($this->clientKey($person), $bot['id']);
 
     // BYPASS del buffer para imágenes (respuesta inmediata)
     $isImage = strtoupper($messageType) === 'IMAGE';
@@ -309,7 +310,7 @@ class InfoproductV2Handler {
 
     $buffer = new MessageBuffer($this->bufferDelay);
     // NOTA: cleanOld() removido - causaba bloqueo con múltiples webhooks simultáneos
-    $result = $buffer->process($person['number'], $bot['id'], $message);
+    $result = $buffer->process($this->clientKey($person), $bot['id'], $message);
 
     if ($result === null) {
       ogLog::info("continueConversation - Mensaje agregado a buffer, esperando más", [], ['module' => 'infoproduct_v2']);
@@ -644,6 +645,15 @@ class InfoproductV2Handler {
     }
 
     return $shouldProcess;
+  }
+
+  /**
+   * Clave de identificación del cliente para chat/buffer/validator.
+   * Cuando el número está disponible (caso normal) → el número.
+   * Cuando está vacío (username privacy activo desde marzo 2026) → prefijo bsuid_.
+   */
+  private function clientKey(array $person): string {
+    return $person['number'] ?: ('bsuid_' . ($person['bsuid'] ?? ''));
   }
 
   /**

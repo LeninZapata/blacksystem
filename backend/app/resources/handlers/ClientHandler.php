@@ -182,12 +182,27 @@ class ClientHandler {
   // Registrar o actualizar cliente
   // Si existe, actualiza última interacción
   // Si no existe, lo crea
-  static function registerOrUpdate($number, $name, $countryCode, $device = null, $userId = null) {
+  // $bsuid: Business-Scoped User ID de Meta (desde marzo 2026)
+  //         Se usa como identificador alternativo cuando el número no está disponible
+  static function registerOrUpdate($number, $name, $countryCode, $device = null, $userId = null, $bsuid = null) {
     try {
-      // Buscar cliente existente por number + user_id (un cliente es único por usuario)
-      $query = ogDb::t('clients')->where('number', $number);
-      if ($userId) $query = $query->where('user_id', $userId);
-      $existing = $query->first();
+      // Buscar cliente existente: primero por número, luego por bsuid si no hay número
+      $existing = null;
+      if ($number) {
+        $query = ogDb::t('clients')->where('number', $number);
+        if ($userId) $query = $query->where('user_id', $userId);
+        $existing = $query->first();
+      }
+      if (!$existing && $bsuid) {
+        $query = ogDb::t('clients')->where('bsuid', $bsuid);
+        if ($userId) $query = $query->where('user_id', $userId);
+        $existing = $query->first();
+      }
+
+      if (!$existing && !$number && !$bsuid) {
+        ogLog::error("registerOrUpdate - Sin number ni bsuid, no se puede identificar al cliente", [], self::$logMeta);
+        return ['success' => false, 'error' => 'no_identifier'];
+      }
 
       if ($existing) {
         // Actualizar cliente existente
@@ -196,9 +211,16 @@ class ClientHandler {
           'du' => date('Y-m-d H:i:s'),
           'tu' => time()
         ];
-        // Solo actualizar nombre si viene uno no vacío
         if (!empty(trim((string)$name))) {
           $updateData['name'] = $name;
+        }
+        // Guardar bsuid si llega y aún no estaba registrado
+        if ($bsuid && empty($existing['bsuid'])) {
+          $updateData['bsuid'] = $bsuid;
+        }
+        // Si llegó el número y el cliente fue encontrado solo por bsuid, guardarlo
+        if ($number && empty($existing['number'])) {
+          $updateData['number'] = $number;
         }
 
         ogDb::t('clients')
@@ -207,7 +229,8 @@ class ClientHandler {
 
         ogLog::info("registerOrUpdate - Cliente actualizado", [
           'client_id' => $existing['id'],
-          'number' => $number
+          'number' => $number,
+          'bsuid' => $bsuid
         ], self::$logMeta);
 
         return [
@@ -219,8 +242,9 @@ class ClientHandler {
 
       // Crear nuevo cliente
       $clientData = [
-        'user_id' => $userId, // AGREGAR USER_ID
+        'user_id' => $userId,
         'number' => $number,
+        'bsuid' => $bsuid,
         'name' => $name,
         'country_code' => $countryCode,
         'device' => $device,
@@ -236,6 +260,7 @@ class ClientHandler {
       ogLog::info("registerOrUpdate - Cliente creado", [
         'client_id' => $clientId,
         'number' => $number,
+        'bsuid' => $bsuid,
         'user_id' => $userId
       ], self::$logMeta);
 

@@ -12,7 +12,8 @@ class ContextBuilder {
       'has_active_conversation' => false
     ];
 
-    $chatData = self::loadChatData($person['number'], $bot['id']);
+    $clientKey = $person['number'] ?: ('bsuid_' . ($person['bsuid'] ?? ''));
+    $chatData = self::loadChatData($clientKey, $bot['id']);
     
     if ($chatData) {
       $context['chat_data'] = $chatData;
