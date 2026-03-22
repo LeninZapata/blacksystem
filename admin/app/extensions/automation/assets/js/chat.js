@@ -16,9 +16,10 @@ class chat {
   static _activeId      = null;
   static _activeBotNum  = null;  // Se obtiene del primer mensaje al cargar
   static _activeBotId        = null;  // Filtro de bot seleccionado (opcional)
+  static _activeChatBotId    = null;  // Bot del chat actualmente abierto (distinto del filtro)
   static _activeProductId    = null;  // Filtro de producto seleccionado (opcional)
   static _botsById           = {};    // Mapa botId → bot object (cargado en _initBotFilter)
-  static _clientCache        = new Map(); // clientId → client data (para el header del panel)
+  static _clientCache        = new Map(); // "clientId_botId" → client data (para el header del panel)
   static _filterNumber       = '';    // Filtro de número de cliente
   static _onlyConfirmed       = false; // Filtro "solo ventas confirmadas"
   static _onlyToday           = false; // Filtro "solo hoy"
@@ -41,9 +42,10 @@ class chat {
     this._total           = 0;
     this._activeNum       = null;
     this._activeId        = null;
-    this._activeBotNum    = null;
-    this._activeBotId     = null;
-    this._activeProductId = null;
+    this._activeBotNum      = null;
+    this._activeBotId       = null;
+    this._activeChatBotId   = null;
+    this._activeProductId   = null;
     this._filterNumber    = '';
     this._clientCache     = new Map();
     this._onlyConfirmed   = false;
@@ -277,12 +279,16 @@ class chat {
 
       items.forEach(async c => {
         const cId    = String(c.id ?? '');
-        const known  = this._clientsKnown.get(cId);
-        const el     = list.querySelector(`.bs-chat-item[data-client-id="${cId}"]`);
+        const botId  = String(c.chat_bot_id ?? '');
+        const key    = `${cId}_${botId}`; // clave única por cliente+bot
+        const known  = this._clientsKnown.get(key);
+        const el     = botId
+          ? list.querySelector(`.bs-chat-item[data-client-id="${cId}"][data-bot-id="${botId}"]`)
+          : list.querySelector(`.bs-chat-item[data-client-id="${cId}"]`);
 
         if (!known) {
           // Registrar en mapa siempre; insertar en DOM solo si realmente no existe
-          this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
+          this._clientsKnown.set(key, { last_message_at: c.last_message_at, unread_count: c.unread_count });
           if (!el) list.insertBefore(this._itemNode(c), list.firstChild);
           return;
         }
@@ -293,10 +299,10 @@ class chat {
         if (!dateChanged && !unreadChanged) return;
 
         // Actualizar estado conocido
-        this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
+        this._clientsKnown.set(key, { last_message_at: c.last_message_at, unread_count: c.unread_count });
 
-        // Si el chat está activo y hay nuevos mensajes o unread, marcar como leído automáticamente
-        if (String(this._activeId) === cId && (dateChanged || unreadChanged) && parseInt(c.unread_count ?? 0) > 0) {
+        // Si el chat está activo (mismo cliente Y mismo bot) y hay nuevos mensajes, marcar como leído
+        if (String(this._activeId) === cId && String(this._activeChatBotId) === botId && (dateChanged || unreadChanged) && parseInt(c.unread_count ?? 0) > 0) {
           // Llamar al endpoint para marcar como leído
           await ogModule('api').post(`/api/client/${cId}/read`, { bot_id: c.chat_bot_id ?? this._activeBotId });
           // Quitar badge y clase unread del DOM
@@ -306,7 +312,7 @@ class chat {
             oldBadge?.remove();
           }
           // También actualizar el objeto conocido
-          this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: 0 });
+          this._clientsKnown.set(key, { last_message_at: c.last_message_at, unread_count: 0 });
           return;
         }
 
@@ -372,7 +378,9 @@ class chat {
   static async _syncMessages(clientId) {
     if (!clientId) return;
     try {
-      const url     = `/api/chat?client_id=${clientId}&sort=tc&order=ASC&per_page=500`;
+      const botId   = this._activeChatBotId;
+      const botParam = botId ? `&bot_id=${botId}` : '';
+      const url     = `/api/chat?client_id=${clientId}${botParam}&sort=tc&order=ASC&per_page=500`;
       const json    = await ogModule('api').get(url);
       if (!json.success || clientId !== this._activeId) return;
 
@@ -383,7 +391,7 @@ class chat {
         : [];
 
       // Actualizar cache siempre
-      ogCache.setMemory(this._cacheMsgs(clientId), allMsgs, 10 * 60 * 1000);
+      ogCache.setMemory(this._cacheMsgs(clientId, botId), allMsgs, 10 * 60 * 1000);
 
       // Avanzar el puntero
       if (allMsgs.length > 0) {
@@ -406,8 +414,8 @@ class chat {
 
       // Si llegó mensaje del cliente (type P), invalidar cache de ventana open_chat
       if (newMsgs.some(m => m.type === 'P')) {
-        ogCache.delete(this._cacheOpen(clientId));
         const botId = allMsgs.find(m => m.bot_id)?.bot_id ?? null;
+        ogCache.delete(this._cacheOpen(clientId, botId));
         if (botId) this._loadOpenChatBar(clientId, botId);
       }
     } catch (_) { /* silencioso */ }
@@ -458,9 +466,10 @@ class chat {
 
       // Insertar items ANTES del botón para que siempre quede al final
       items.forEach(c => {
-        const cId = String(c.id ?? '');
-        // Registrar en el mapa de conocidos
-        this._clientsKnown.set(cId, { last_message_at: c.last_message_at, unread_count: c.unread_count });
+        const cId   = String(c.id ?? '');
+        const botId = String(c.chat_bot_id ?? '');
+        // Registrar en el mapa de conocidos usando clave cliente+bot
+        this._clientsKnown.set(`${cId}_${botId}`, { last_message_at: c.last_message_at, unread_count: c.unread_count });
         if (btnMore) list.insertBefore(this._itemNode(c), btnMore);
         else         list.insertAdjacentHTML('beforeend', this._itemHtml(c));
       });
@@ -489,20 +498,24 @@ class chat {
   // Claves: chat_msgs_{clientId} · chat_open_{clientId}
   // TTL  : mensajes 10 min, ventana 5 min — solo memoryCache (se limpia al refrescar)
 
-  static _cacheMsgs(clientId)  { return `chat_msgs_${clientId}`; }
-  static _cacheOpen(clientId)  { return `chat_open_${clientId}`; }
+  static _cacheMsgs(clientId, botId = '')  { return `chat_msgs_${clientId}_${botId}`; }
+  static _cacheOpen(clientId, botId = '')  { return `chat_open_${clientId}_${botId}`; }
 
-  static _invalidateClient(clientId) {
-    ogCache.delete(this._cacheMsgs(clientId));
-    ogCache.delete(this._cacheOpen(clientId));
+  static _invalidateClient(clientId, botId = '') {
+    ogCache.delete(this._cacheMsgs(clientId, botId));
+    ogCache.delete(this._cacheOpen(clientId, botId));
   }
 
   // ─── Seleccionar contacto ──────────────────────────────────────────────────
 
-  static select(number, clientId) {
+  static select(number, clientId, botId = null) {
     document.querySelectorAll('.bs-chat-item').forEach(el => el.classList.remove('active'));
 
-    const el = document.querySelector(`.bs-chat-item[data-number="${number}"]`);
+    // Seleccionar el item específico del bot correcto para evitar activar siempre el primero
+    const sel = botId
+      ? `.bs-chat-item[data-number="${number}"][data-client-id="${clientId}"][data-bot-id="${botId}"]`
+      : `.bs-chat-item[data-number="${number}"][data-client-id="${clientId}"]`;
+    const el = document.querySelector(sel);
     const name = el ? (el.dataset.name ?? '') : '';
 
     // Comprobar ANTES de quitar la clase si hay mensajes sin leer
@@ -515,18 +528,17 @@ class chat {
       if (badge) badge.remove();
     }
 
-    this._activeNum    = number;
-    this._activeId     = clientId;
-    this._activeBotNum  = null; // se actualiza al cargar mensajes
-    this._activeExpiry  = null; // se actualiza al cargar barra open_chat
+    this._activeNum       = number;
+    this._activeId        = clientId;
+    this._activeChatBotId = botId ? parseInt(botId) : null; // bot del chat abierto
+    this._activeBotNum    = null; // se actualiza al cargar mensajes
+    this._activeExpiry    = null; // se actualiza al cargar barra open_chat
 
     // Si había mensajes sin leer significa que llegaron nuevos → invalidar cache
-    if (hasUnread) this._invalidateClient(clientId);
+    if (hasUnread) this._invalidateClient(clientId, botId);
 
-    // Marcar como leído en el servidor — bot_id viene del item del sidebar
-    const itemEl = document.querySelector(`.bs-chat-item[data-client-id="${clientId}"]`);
-    const botIdForRead = itemEl?.dataset.botId ?? this._activeBotId;
-    ogModule('api').post(`/api/client/${clientId}/read`, { bot_id: botIdForRead }).catch(() => {});
+    // Marcar como leído en el servidor
+    ogModule('api').post(`/api/client/${clientId}/read`, { bot_id: botId ?? this._activeBotId }).catch(() => {});
 
     // Mobile: mostrar panel de mensajes
     document.querySelector('.bs-chat')?.classList.add('mobile-chat-open');
@@ -544,7 +556,7 @@ class chat {
   static _showHeaderLoading(number, name) {
     const h = document.getElementById('bsChatHeader');
     if (!h) return;
-    const clientData = this._clientCache.get(String(this._activeId)) ?? {};
+    const clientData = this._clientCache.get(`${this._activeId}_${this._activeChatBotId ?? ''}`) ?? {};
     const clientFlag = this._countryFlag(clientData.country_code ?? '');
     h.className = 'bs-chat-panel-header';
     h.innerHTML = `
@@ -570,7 +582,7 @@ class chat {
     if (!h) return;
     h.className = 'bs-chat-panel-header';
 
-    const clientData = this._clientCache.get(String(this._activeId)) ?? {};
+    const clientData = this._clientCache.get(`${this._activeId}_${botId ?? ''}`) ?? {};
     const clientFlag = this._countryFlag(clientData.country_code ?? '');
     const botData    = botId ? (this._botsById[String(botId)] ?? {}) : {};
     const botFlag    = this._countryFlag(botData.country_code ?? '');
@@ -600,7 +612,7 @@ class chat {
     if (!clientId || !botId) return;
     try {
       // Intentar desde caché primero (5 min, solo memoria)
-      let cached = ogCache.getMemory(this._cacheOpen(clientId));
+      let cached = ogCache.getMemory(this._cacheOpen(clientId, botId));
 
       if (!cached) {
         const json   = await ogModule('api').get(`/api/client/${clientId}/open-chat/${botId}`);
@@ -609,7 +621,7 @@ class chat {
         const srvNow = json?.data?.server_now ?? null;
         if (expiry && tc) {
           cached = { expiry, tc, server_now: srvNow };
-          ogCache.setMemory(this._cacheOpen(clientId), cached, 5 * 60 * 1000);
+          ogCache.setMemory(this._cacheOpen(clientId, botId), cached, 5 * 60 * 1000);
         }
       }
 
@@ -729,8 +741,10 @@ class chat {
     const main = document.getElementById('bsChatMain');
     if (!main) return;
 
+    const botId = this._activeChatBotId;
+
     // Intentar desde caché primero
-    const cached = ogCache.getMemory(this._cacheMsgs(clientId));
+    const cached = ogCache.getMemory(this._cacheMsgs(clientId, botId));
     if (cached) {
       this._renderMsgs(main, cached, clientId);
       return;
@@ -739,7 +753,8 @@ class chat {
     main.innerHTML = '<div class="bs-msg-loading">Cargando mensajes...</div>';
 
     try {
-      const url  = `/api/chat?client_id=${clientId}&sort=tc&order=ASC&per_page=500`;
+      const botParam = botId ? `&bot_id=${botId}` : '';
+      const url  = `/api/chat?client_id=${clientId}${botParam}&sort=tc&order=ASC&per_page=500`;
       const json = await ogModule('api').get(url);
 
       if (!json.success) throw new Error('not success');
@@ -747,7 +762,7 @@ class chat {
       const msgs = json.data ?? [];
 
       // Guardar en caché (10 min, solo memoria)
-      ogCache.setMemory(this._cacheMsgs(clientId), msgs, 10 * 60 * 1000);
+      ogCache.setMemory(this._cacheMsgs(clientId, botId), msgs, 10 * 60 * 1000);
 
       this._renderMsgs(main, msgs, clientId);
 
@@ -844,8 +859,8 @@ class chat {
     const container = document.getElementById('chat-options-sales');
     if (!container) return;
 
-    const clientData = this._clientCache.get(String(this._activeId)) ?? {};
-    const botId      = clientData.chat_bot_id ?? null;
+    const clientData = this._clientCache.get(`${this._activeId}_${this._activeChatBotId ?? ''}`) ?? {};
+    const botId      = this._activeChatBotId ?? clientData.chat_bot_id ?? null;
 
     if (!this._activeId) {
       container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem">No hay cliente activo.</p>';
@@ -942,8 +957,8 @@ class chat {
       await ogModule('api').put(`/api/sale/${saleId}`, payload);
 
       // Reconstruir el JSON del chat para que el bot tenga el contexto actualizado
-      const clientData = this._clientCache.get(String(this._activeId)) ?? {};
-      const botId      = clientData.chat_bot_id ?? null;
+      const clientData = this._clientCache.get(`${this._activeId}_${this._activeChatBotId ?? ''}`) ?? {};
+      const botId      = this._activeChatBotId ?? clientData.chat_bot_id ?? null;
       if (this._activeNum && botId) {
         ogModule('api').get(`/api/chat/rebuild/${this._activeNum}/${botId}`).catch(() => {});
       }
@@ -1033,7 +1048,7 @@ class chat {
     const name      = (c.name ?? '').trim().replace(/'/g, '&#39;');
     const flag      = this._countryFlag(c.country_code ?? '');
     const salesList = c.sales ?? [];
-    this._clientCache.set(String(clientId), c);
+    this._clientCache.set(`${clientId}_${botId}`, c);
 
     // Icono de advertencia: último mensaje fue del cliente (P), formato relevante y > 1 min sin respuesta
     const relevantFormats   = ['text', 'image', 'emoji', 'audio'];
@@ -1067,7 +1082,7 @@ class chat {
       todayAmt ? `<span class="bs-chat-sale-badge">${fmtAmt(todayAmt)}</span>` : '',
     ].join('');
     return `
-      <div class="bs-chat-item${unreadCls}${warnClass}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${number}', ${clientId})">
+      <div class="bs-chat-item${unreadCls}${warnClass}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${number}', ${clientId}, ${botId || 0})">
         <div class="bs-chat-item-header">
           <div class="bs-chat-item-left">
             ${warningIcon}

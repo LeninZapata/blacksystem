@@ -1,5 +1,5 @@
 URGENTE:
-☐ Whatapp en el webhook cambiara numero por user o sera hibrido entonces el sistema debe soportar esto.
+✔ Whatapp en el webhook cambiara numero por user o sera hibrido entonces el sistema debe soportar esto. @done(22-03-2026 14:20)
 ✔ Los seguimientos si ultima mensaje es un seguimiento pues motrar un icono en lado del ombre ligero que demuestro seguimineto @done(22-03-2026 10:55)
 
 RAPIDO:
@@ -13,6 +13,8 @@ Backend:
 ☐ hacer uqe se pueda validar el nombre del titular en recibo y en caso no lo tenga entonces parar el proceso, envar un correo para avisar que se necesita
 enviar este producto y compeltar la venta, por lo general hay recibo como el banco del pacifico que no tiene el nombre del titular, entonces se debe validar esto para evitar problemas de fraude o de que el cliente no reciba su producto.
 
+☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
+https://i.imgur.com/IG8BZXz.png
 ✔ ACTUALIZAR EL SISTEMA basado lo nuevo de facebook (BSUID - Business-Scoped User IDs) @done(22-03-2026)
   ✔ ALTER TABLE: clients.bsuid, chats.client_bsuid, sales.bsuid, followups.bsuid @done(22-03-2026)
   ✔ facebookNormalizer: extraer from_user_id, contacts[0].user_id, contacts[0].profile.username @done(22-03-2026)
