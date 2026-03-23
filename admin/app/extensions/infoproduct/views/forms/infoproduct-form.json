@@ -87,7 +87,7 @@
           "name": "config.prompt",
           "label": "i18n:infoproduct.products.field.prompt",
           "type": "textarea",
-          "validation": "max:550",
+          "validation": "max:850",
           "placeholder": "i18n:infoproduct.products.field.prompt.placeholder",
           "hint": "i18n:infoproduct.products.field.prompt.hint",
           "rows": 2,
