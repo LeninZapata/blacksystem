@@ -10,6 +10,58 @@ $router->group('/api/product', function($router) {
     ogResponse::success($products);
   })->middleware(['auth']);
 
+  // Productos que aparecen en ventas dentro de un rango: GET /api/product/sales-in-range
+  // Params: bot_id, range, date (solo para custom_date)
+  // Retorna productos (activos e inactivos) con sus datos para el resumen de stats
+  $router->get('/sales-in-range', function() {
+    $userId = $GLOBALS['auth_user_id'] ?? null;
+    if (!$userId) {
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
+
+    $botId = ogRequest::query('bot_id');
+    $range = ogRequest::query('range', 'today');
+    $date  = ogRequest::query('date');
+
+    if (!$botId) {
+      ogResponse::json(['success' => false, 'error' => 'bot_id es requerido'], 400);
+    }
+
+    // Resolver rango de fechas
+    if ($range === 'custom_date' && $date) {
+      $dates = ['start' => $date . ' 00:00:00', 'end' => $date . ' 23:59:59'];
+    } else {
+      $dates = ogApp()->helper('date')::getDateRange($range);
+    }
+
+    if (!$dates) {
+      ogResponse::json(['success' => false, 'error' => 'Rango de fechas inválido'], 400);
+    }
+
+    $sql = "
+      SELECT DISTINCT
+        p.id,
+        p.name,
+        p.env,
+        p.status,
+        p.sale_type_mode
+      FROM " . ogDb::t('sales', true) . " s
+      LEFT JOIN " . ogDb::t('products', true) . " p ON s.product_id = p.id
+      WHERE s.user_id = ?
+        AND s.bot_id  = ?
+        AND s.dc BETWEEN ? AND ?
+        AND s.status  = 1
+        AND p.id IS NOT NULL
+        AND p.context = 'infoproductws'
+        AND p.sale_type_mode != 2
+      ORDER BY p.status DESC, p.name ASC
+    ";
+
+    $products = ogDb::raw($sql, [$userId, (int)$botId, $dates['start'], $dates['end']]);
+    ogResponse::success($products ?: []);
+
+  })->middleware(['auth']);
+
   // Clonar producto: POST /api/product/clone
   // Body: { product_id: X, target_user_id: Y }
   $router->post('/clone', function() {

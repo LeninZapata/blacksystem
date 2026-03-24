@@ -683,13 +683,19 @@ class ProfitStatsHandler {
     }
 
     try {
-      // 1. Productos activos del bot ────────────────────────────────────────
-      $products = ogDb::table('products')
-        ->where('bot_id',  (int)$botId)
-        ->where('user_id', $userId)
-        ->where('status',  1)
-        ->where('context', 'infoproductws')
-        ->get();
+      // 1. Productos con ventas en el rango (activos e inactivos) ──────────
+      $products = ogDb::raw("
+        SELECT DISTINCT p.id, p.name, p.env, p.status, p.sale_type_mode
+        FROM " . ogDb::t('sales', true) . " s
+        LEFT JOIN " . ogDb::t('products', true) . " p ON s.product_id = p.id
+        WHERE s.user_id = ?
+          AND s.bot_id  = ?
+          AND s.dc BETWEEN ? AND ?
+          AND s.status  = 1
+          AND p.id IS NOT NULL
+          AND p.context = 'infoproductws'
+          AND p.sale_type_mode != 2
+      ", [$userId, (int)$botId, $startUtc, $endUtc]);
 
       if (empty($products)) {
         return ['success' => true, 'data' => [],
