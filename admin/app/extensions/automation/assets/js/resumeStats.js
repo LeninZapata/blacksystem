@@ -144,6 +144,7 @@
       });
 
       recalcTotals();
+      sortByProfit();
 
     } catch (err) {
       console.error('resumeStats: error en loadStats', err);
@@ -184,6 +185,22 @@
       const conversion = totalChats > 0 ? ((totalSalesCount / totalChats) * 100).toFixed(1) : '0.0';
       elC.innerHTML = `${SVG_CHAT} ${totalChats} (${totalSalesCount} ${SVG_CHECK} / ${conversion}%)`;
     }
+  }
+
+  // ── Ordenar filas por profit desc dentro de cada sección ────────────────
+  function sortByProfit() {
+    document.querySelectorAll('#resume-products-container .resume-product-list').forEach(list => {
+      const rows = Array.from(list.querySelectorAll('.resume-product-row'));
+      rows.sort((a, b) => {
+        const profit = row => {
+          const id = parseInt(row.dataset.productId);
+          const s  = state.statsMap[id] || {};
+          return parseFloat(s.revenue || 0) + parseFloat(s.upsell_revenue || 0) - parseFloat(s.spend || 0);
+        };
+        return profit(b) - profit(a);
+      });
+      rows.forEach(row => list.appendChild(row));
+    });
   }
 
   // ── Toggle visibilidad de producto ───────────────────────────────────────
