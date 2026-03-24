@@ -325,4 +325,30 @@ class ProductHandler {
     $path = ogApp()->getPath('storage/json/bots/infoproduct/rapid') . '/activators_' . $botNumber . '.json';
     return ogApp()->helper('file')::saveJsonItems($path, $activators, 'product', $action);
   }
+
+  /**
+   * Obtener productos con el código de país del bot enlazado concatenado al nombre.
+   * Retorna cada producto con un campo `display_name` = "[CC] Nombre del producto".
+   * Útil para selects donde se necesita identificar el país de cada producto.
+   */
+  static function getProductsWithCountry($userId = null) {
+    $query = ogDb::t('products')
+      ->select(['products.id', 'products.name', 'products.status', 'bots.country_code'])
+      ->leftJoin('bots', 'products.bot_id', '=', 'bots.id')
+      ->where('products.status', 1)
+      ->orderBy('bots.country_code', 'ASC')
+      ->orderBy('products.name', 'ASC');
+
+    if ($userId) {
+      $query = $query->where('products.user_id', (int)$userId);
+    }
+
+    $products = $query->get();
+
+    return array_map(function($p) {
+      $code = !empty($p['country_code']) ? $p['country_code'] : '??';
+      $p['display_name'] = '[' . $code . '] ' . $p['name'];
+      return $p;
+    }, $products ?: []);
+  }
 }

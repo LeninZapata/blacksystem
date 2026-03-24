@@ -82,7 +82,11 @@ const budgetResetStats = {
       // Construir nombre legible
       const assetTypeLabel = this.getAssetTypeLabel(asset.ad_asset_type);
       const platformLabel = this.getPlatformLabel(asset.ad_platform);
-      option.textContent = `${asset.ad_asset_name || asset.ad_asset_id} [${assetTypeLabel} - ${platformLabel}]`;
+      const countryCode = (asset.country_code || '').toUpperCase();
+      const flag = countryCode.length === 2
+        ? countryCode.split('').map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('')
+        : '';
+      option.textContent = `${flag ? flag + ' ' : ''}${asset.ad_asset_name || asset.ad_asset_id} [${assetTypeLabel} - ${platformLabel}]`;
       
       select.appendChild(option);
     });

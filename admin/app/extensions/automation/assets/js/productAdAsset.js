@@ -156,14 +156,33 @@ class productAdAsset {
       return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
     });
 
-    // Formatter para nombre con plataforma/tipo y ID del activo
+    // Formatter para nombre con bandera de país, producto y ID del activo
     dataTable.registerFormatter('product-ad-asset-name-with-details', (value, row) => {
       const name = value ?? '';
-      const platform = row.ad_platform ?? '';
-      const assetType = row.ad_asset_type ?? '';
       const assetId = row.ad_asset_id ?? '';
-      
-      // Mapeo de plataformas y tipos
+      const countryCode = (row.country_code ?? '').toUpperCase();
+      const productName = row.product_name ?? '';
+
+      // Convertir código de país (2 letras) a emoji de bandera
+      const toFlag = code => code.length === 2
+        ? code.split('').map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('')
+        : '';
+      const flag = countryCode ? toFlag(countryCode) : '';
+
+      return `
+        <div>
+          <div style="font-weight: 500;">${flag ? flag + ' ' : ''}${name}</div>
+          ${productName ? `<div style="font-size: 0.8em; color: var(--og-gray-500); margin-top: 2px;">📦 ${productName}</div>` : ''}
+          <div style="font-size: 0.8em; color: var(--og-gray-500); margin-top: 2px; font-family: monospace;">${assetId}</div>
+        </div>
+      `;
+    });
+
+    // Formatter para plataforma y tipo de activo
+    dataTable.registerFormatter('product-ad-asset-platform', (value, row) => {
+      const platform = value ?? '';
+      const assetType = row.ad_asset_type ?? '';
+
       const platformLabels = {
         'facebook': 'Facebook',
         'google': 'Google',
@@ -171,21 +190,20 @@ class productAdAsset {
         'instagram': 'Instagram',
         'other': 'Otra'
       };
-      
+
       const typeLabels = {
         'campaign': __('automation.product_ad_assets.asset_type.campaign'),
         'adset': __('automation.product_ad_assets.asset_type.adset'),
         'ad': __('automation.product_ad_assets.asset_type.ad')
       };
-      
+
       const platformText = platformLabels[platform] || platform;
       const typeText = typeLabels[assetType] || assetType;
-      
+
       return `
         <div>
-          <div style="font-weight: 500;">${name}</div>
-          <div style="font-size: 0.85em; color: var(--og-gray-600); margin-top: 2px;">${platformText} / ${typeText}</div>
-          <div style="font-size: 0.8em; color: var(--og-gray-500); margin-top: 2px; font-family: monospace;">${assetId}</div>
+          <div style="font-weight: 500;">${platformText}</div>
+          <div style="font-size: 0.85em; color: var(--og-gray-600); margin-top: 2px;">${typeText}</div>
         </div>
       `;
     });

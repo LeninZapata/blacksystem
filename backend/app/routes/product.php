@@ -2,6 +2,14 @@
 // Las rutas CRUD se auto-registran desde product.json
 
 $router->group('/api/product', function($router) {
+  // Listar productos con código de país: GET /api/product/with-country
+  // Retorna id, name, display_name = "[CC] Nombre"
+  $router->get('/with-country', function() {
+    $userId = $GLOBALS['auth_user_id'] ?? null;
+    $products = ProductHandler::getProductsWithCountry($userId);
+    ogResponse::success($products);
+  })->middleware(['auth']);
+
   // Clonar producto: POST /api/product/clone
   // Body: { product_id: X, target_user_id: Y }
   $router->post('/clone', function() {

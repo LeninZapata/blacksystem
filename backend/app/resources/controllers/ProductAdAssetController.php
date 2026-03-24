@@ -109,21 +109,27 @@ class ProductAdAssetController extends ogController {
   }
 
   function list() {
-    $query = ogDb::t('product_ad_assets');
-
-    // Filtrar por user_id autenticado
-    if (isset($GLOBALS['auth_user_id'])) {
-      $query = $query->where('user_id', $GLOBALS['auth_user_id']);
-    } else {
+    if (!isset($GLOBALS['auth_user_id'])) {
       ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
     }
 
+    $query = ogDb::t('product_ad_assets')
+      ->select([
+        'product_ad_assets.*',
+        'products.name as product_name',
+        'bots.country_code'
+      ])
+      ->leftJoin('products', 'product_ad_assets.product_id', '=', 'products.id')
+      ->leftJoin('bots', 'products.bot_id', '=', 'bots.id')
+      ->where('product_ad_assets.user_id', $GLOBALS['auth_user_id']);
+
     foreach ($_GET as $key => $value) {
       if (in_array($key, ['page', 'per_page', 'sort', 'order'])) continue;
-      $query = $query->where($key, $value);
+      $query = $query->where('product_ad_assets.' . $key, $value);
     }
 
     $sort = ogRequest::query('sort', 'id');
+    if ($sort === 'id') $sort = 'product_ad_assets.id';
     $order = ogRequest::query('order', 'DESC');
     $query = $query->orderBy($sort, $order);
 
@@ -132,6 +138,11 @@ class ProductAdAssetController extends ogController {
     $data = $query->paginate($page, $perPage)->get();
 
     if (!is_array($data)) $data = [];
+    $data = array_map(function($item) {
+      $code = !empty($item['country_code']) ? $item['country_code'] : '??';
+      $item['display_name'] = '[' . $code . '] ' . ($item['ad_asset_name'] ?? '');
+      return $item;
+    }, $data);
     ogResponse::success($data);
   }
 

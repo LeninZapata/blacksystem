@@ -288,7 +288,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'P',
       'image',
       $imageAnalysis['metadata'],
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true // no incrementar unread_count: la imagen es procesada internamente por el bot
     );
 
     ChatHandler::addMessage([

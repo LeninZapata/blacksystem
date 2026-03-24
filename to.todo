@@ -1,8 +1,14 @@
 URGENTE:
 ✔ Whatapp en el webhook cambiara numero por user o sera hibrido entonces el sistema debe soportar esto. @done(22-03-2026 14:20)
 ✔ Los seguimientos si ultima mensaje es un seguimiento pues motrar un icono en lado del ombre ligero que demuestro seguimineto @done(22-03-2026 10:55)
-
+✔ En activos Publicitarios, y  Escala automatica, se debe saber de que pais es ese producto @done(24-03-2026 15:36)
+PARA DESCOOMPLICARME LA VIDA, HAY QUE CREAR UN METODO DONDE TRAIGA EL CODE_COUNTRY Y EL NOMBRE, con eso ya soy rey y se entiende 
+que mismo producto y activo es cada pais.
 RAPIDO:
+✔ 573108141189 cuando envian audio en el sistema no lo muestra, creo que si lo guarda el texto en el chat no lo esta mostrando @done(24-03-2026 15:43)
+la cual si deberi hacerlo
+☐ Cuando la gente compra en el proceso esta submando el contador de mensajes no visto, no deberia
+estosolo es cuado el cliente envia el mensaje, entiendo que espor la foto del recibo parece...
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
   ☐ aprar los seguimientos
   ☐ enviar plantilla de link del producto

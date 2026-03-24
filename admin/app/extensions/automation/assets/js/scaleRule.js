@@ -230,17 +230,23 @@ class scaleRule {
       return `<span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: ${statusColor}; background-color: ${statusBg};">${statusText}</span>`;
     });
 
-    // Formatter para nombre con activo publicitario
+    // Formatter para nombre con activo publicitario y bandera de país
     dataTable.registerFormatter('scale-rule-name-with-asset', (value, row) => {
       const name = value ?? '';
       const assetId = row.ad_assets_id ?? '';
       const assetName = row.product_ad_asset_name || row.ad_asset_name || '';
-      
+      const countryCode = (row.country_code ?? '').toUpperCase();
+
+      const toFlag = code => code.length === 2
+        ? code.split('').map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('')
+        : '';
+      const flag = countryCode ? toFlag(countryCode) : '';
+
       const assetText = assetName ? assetName : `Activo #${assetId}`;
-      
+
       return `
         <div>
-          <div style="font-weight: 500;">${name}</div>
+          <div style="font-weight: 500;">${flag ? flag + ' ' : ''}${name}</div>
           <div style="font-size: 0.85em; color: var(--og-gray-600); margin-top: 2px;">${assetText}</div>
         </div>
       `;

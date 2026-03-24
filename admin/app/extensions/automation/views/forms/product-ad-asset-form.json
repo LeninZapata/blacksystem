@@ -6,9 +6,9 @@
       "label": "i18n:automation.product_ad_assets.field.product_id",
       "type": "select",
       "required": true,
-      "source": "api/product?per_page=1000",
+      "source": "api/product/with-country",
       "sourceValue": "id",
-      "sourceLabel": "name",
+      "sourceLabel": "display_name",
       "validation": "required"
     },
     {

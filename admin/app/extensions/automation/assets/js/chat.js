@@ -817,7 +817,10 @@ class chat {
           : `<span>📷 ${resume || 'Imagen'}</span>`;
       }
     } else if (format === 'audio') {
-      content = `<span>🎵 Audio</span>`;
+      const transcription = text ? text.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+      content = transcription
+        ? `<span>🎵 <em style="opacity:.7;font-size:.9em;">Audio</em><br><span style="font-size:.92em;">${transcription}</span></span>`
+        : `<span>🎵 Audio</span>`;
     } else if (format === 'video') {
       content = `<span>🎬 Video</span>`;
     } else if (format === 'document') {

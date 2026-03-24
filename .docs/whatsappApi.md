@@ -11,19 +11,73 @@
 
 ---
 
+## Arquitectura para múltiples BMs
+
+### ⚠️ Limitación crítica: Webhooks entre BMs diferentes
+
+**No es posible recibir webhooks de un número de BM B usando la App de BM A**, aunque tengas:
+- ✅ "Control total" asignado en el System User
+- ✅ El número visible en BM A
+- ✅ Token con todos los permisos
+- ✅ Puedas enviar mensajes desde BM A con ese número
+
+Nada de esto te da acceso a los webhooks. Meta enruta los webhooks **siempre al BM dueño del número**, independientemente de los permisos cruzados que tengas.
+
+Los permisos cruzados entre BMs solo sirven para:
+- Enviar mensajes
+- Ver/crear plantillas
+- Administrar el perfil del número
+
+**Nunca sirven para recibir webhooks.**
+
+Esto fue confirmado también por la documentación oficial: los números no pueden migrar entre BMs distintos, y los webhooks siguen al BM dueño del número.
+
+---
+
+### El modelo correcto para escalar
+
+Cada BM necesita su propia App. Todas apuntan al mismo webhook URL de tu servidor:
+
+```
+BM A  →  App propia  →  misma Webhook URL tuya
+BM B  →  App propia  →  misma Webhook URL tuya
+BM C  →  App propia  →  misma Webhook URL tuya
+```
+
+Tu servidor recibe todo en un solo lugar y distingue los números por el `phone_number_id` del payload.
+
+### Token por número
+
+Cada número debe tener su propio token en tu base de datos:
+
+```sql
+tabla: whatsapp_numbers
+├── phone_number_id   -- ej: 961973587007174
+├── waba_id           -- ej: 4322425164664526
+├── display_number    -- ej: +54 9 2262 50-4753
+├── nombre            -- ej: Erika
+├── access_token      -- token permanente de SU App/BM
+├── app_id            -- App a la que pertenece
+└── activo
+```
+
+---
+
 ## Paso 1 — Agregar el número al Business Manager
 
 1. Ve a **business.facebook.com → Configuración → Cuentas de WhatsApp**
-2. Selecciona tu WABA (ej. "Erika - aquí para ayudarte")
+2. Selecciona tu WABA
 3. Ve a la pestaña **Números de teléfono → Agregar número de teléfono**
 4. Ingresa el número y verifica vía **SMS o llamada** con el código que llega
 5. El número quedará en estado **"Pendiente"** — esto es normal, falta el siguiente paso
 
 ---
 
-## Paso 2 — Registrar el número en la API (Cloud API)
+## Paso 2 — Registrar el número en la API (Cloud API) ⚠️ OBLIGATORIO
 
-Este paso es el más importante y el que no es obvio. Sin esto el número queda en "Pendiente" para siempre.
+Este paso es **el más importante** y el que no es obvio. Sin esto el número queda en "Pendiente" y **no existe en la red de WhatsApp** (los mensajes llegan con 1 solo visto).
+
+> **⚠️ Importante:** Este paso es obligatorio para **TODOS los números nuevos**, sin excepción, incluso si la WABA ya existe y ya tiene otros números configurados.
 
 Ve al **Graph API Explorer**: `developers.facebook.com/tools/explorer`
 
@@ -41,24 +95,24 @@ Body JSON:
 }
 ```
 
-> **Nota:** Si no tienes PIN configurado (verificación en dos pasos desactivada), usa `000000`. Si tienes PIN propio, úsalo.
+> **Nota sobre el PIN:** Si el número nunca tuvo verificación en dos pasos activada, usa `000000`. Si tenía PIN propio configurado antes de eliminar WhatsApp, úsalo. Si no recuerdas el PIN, reinstala WhatsApp, activa verificación en dos pasos con un PIN nuevo, anótalo, elimina la cuenta y luego usa ese PIN aquí.
 
 **Respuesta esperada:**
 ```json
 { "success": true }
 ```
 
-Luego de esto el número cambia de **"Pendiente"** a **"Conectado"** en el Administrador de WhatsApp.
+Luego de esto el número cambia de **"Pendiente"** a **"Conectado"** en el Administrador de WhatsApp y aparece activo en la red de WhatsApp (los mensajes llegan con 2 vistos).
 
-> **Atajo:** Una vez que la WABA está configurada y suscrita, los números nuevos que agregues a esa misma WABA quedan **conectados automáticamente** sin necesitar este paso de `register`. Solo es necesario la primera vez o al migrar un número desde otra WABA.
+> **¿Por qué tarda unos segundos?** El endpoint `/register` propaga el número a la red de WhatsApp, por eso puede demorar 3-10 segundos en responder. Es normal.
 
 ---
 
-## Paso 3 — Suscribir la app a la WABA para recibir webhooks
+## Paso 3 — Suscribir la App a la WABA para recibir webhooks ⚠️ OBLIGATORIO
 
-Sin este paso los webhooks NO llegan aunque todo lo demás esté configurado.
+Sin este paso los webhooks **NO llegan** aunque todo lo demás esté configurado. Son 2 cosas completamente distintas: el `register` activa el número en WhatsApp, el `subscribed_apps` conecta los eventos a tu App.
 
-En el **Graph API Explorer** ejecuta:
+> **⚠️ Importante:** El endpoint correcto usa el **WABA ID**, NO el Phone Number ID.
 
 ```
 POST /{waba_id}/subscribed_apps
@@ -76,9 +130,16 @@ POST /2452367395218340/subscribed_apps
 { "success": true }
 ```
 
-> **Importante:** Este paso se debe repetir para cada WABA nueva que agregues.
+Para verificar que quedó correctamente suscrito:
+```
+GET /{waba_id}/subscribed_apps?access_token={TOKEN}
+```
 
-> **Clave:** Debes usar el **token permanente del Usuario del Sistema** (no el token personal del Graph API Explorer). Pégalo manualmente en el campo "Token de acceso" del explorador antes de ejecutar. Con el token personal da error 100 porque no tiene permisos sobre la WABA.
+Debe devolver tu App en la respuesta.
+
+> **Importante:** Este paso se debe repetir para cada WABA nueva que agregues. Una App puede estar suscrita a múltiples WABAs.
+
+> **Clave:** Debes usar el **token permanente del Usuario del Sistema** (no el token personal del Graph API Explorer). Con el token personal da error 100 porque no tiene permisos sobre la WABA.
 
 ---
 
@@ -92,21 +153,17 @@ Asegúrate que:
 
 ---
 
-## Paso 5 — Agregar número nuevo a un WABA existente
+## Paso 5 — Números de BM diferente (clientes o WABAs externas)
 
-Cuando el WABA ya está configurado, agregar un número nuevo es más simple:
+Cuando el número pertenece a otro BM (cliente), el proceso es el mismo pero usando el token del System User de **ese BM**:
 
-1. Agrega el número en **business.facebook.com → Configuración → Cuentas de WhatsApp → [tu WABA] → Números de teléfono → Agregar**
-2. Verifica con SMS o llamada — el número quedará **conectado directamente** sin necesitar el paso de `register`
-3. Ve a **Usuarios del sistema → Bot Optimizador → Administrar activos** y agrega la nueva **Cuenta de WhatsApp** con **Control total**
-4. **Regenera el token** del usuario del sistema para que incluya los nuevos permisos
-5. Obtén el **Phone Number ID** real del número nuevo en:
-   ```
-   https://business.facebook.com/latest/whatsapp_manager/phone_numbers?business_id=2908180592788929&asset_id={waba_id}
-   ```
-6. Prueba enviando un mensaje con ese Phone Number ID y el token nuevo
+1. El cliente crea un System User en su BM con permisos `whatsapp_business_messaging` y `whatsapp_business_management`
+2. Te pasa el token permanente y el WABA ID
+3. Ejecutas el `register` con el token del cliente
+4. Ejecutas el `subscribed_apps` con el token del cliente apuntando a **su App**
+5. Guardas en tu sistema: `phone_number_id` + token del cliente
 
-> **Importante:** El token debe regenerarse después de asignar permisos — el token anterior no incluye los nuevos activos aunque el usuario ya los tenga asignados.
+> **Nota:** No es posible recibir webhooks de un número de otro BM usando tu propia App. Cada BM necesita su propia App suscrita.
 
 ---
 
@@ -212,6 +269,8 @@ Content-Type: application/json
 }
 ```
 
+> **Nota sobre números nuevos sin WhatsApp previo:** Si el número nunca tuvo WhatsApp instalado, no aparecerá en búsquedas de WhatsApp Web y los mensajes llegarán con 1 solo visto hasta completar el `register`. Una vez registrado vía API queda activo en la red. Para poder escribirle primero necesitarás una plantilla aprobada por Meta.
+
 ---
 
 ## Estructura del webhook entrante (mensaje de cliente)
@@ -259,17 +318,31 @@ Content-Type: application/json
 
 ---
 
+## Diferencia entre register y subscribed_apps
+
+| Endpoint | Para qué sirve | Sin esto... |
+|---|---|---|
+| `POST /{phone_number_id}/register` | Activa el número en la red de WhatsApp | El número no existe en WA, 1 solo visto |
+| `POST /{waba_id}/subscribed_apps` | Conecta los webhooks a tu App | El número existe pero no llegan webhooks |
+
+**Ambos son obligatorios. No son opcionales ni se reemplazan entre sí.**
+
+---
+
 ## Checklist para agregar un número nuevo
 
 - [ ] Agregar número al BM y verificar con SMS/llamada
-- [ ] Si es la primera vez: ejecutar POST `/{phone_number_id}/register` con pin
+- [ ] Ejecutar `POST /{phone_number_id}/register` con pin (usar `000000` si no hay PIN propio)
 - [ ] Verificar que el estado cambió a **"Conectado"**
-- [ ] Si es WABA nueva: ejecutar POST `/{waba_id}/subscribed_apps`
+- [ ] Verificar que los mensajes llegan con **2 vistos** (no 1 solo)
+- [ ] Si es WABA nueva: ejecutar `POST /{waba_id}/subscribed_apps`
+- [ ] Verificar suscripción con `GET /{waba_id}/subscribed_apps`
 - [ ] Asignar la nueva Cuenta de WhatsApp al usuario del sistema con Control total
 - [ ] Regenerar el token del usuario del sistema
-- [ ] Obtener el Phone Number ID real desde el WhatsApp Manager
+- [ ] Obtener el **Phone Number ID** real desde el WhatsApp Manager
 - [ ] Verificar que el campo `messages` en webhooks está suscrito
 - [ ] Hacer prueba: escribir al número y confirmar que llega el webhook
+- [ ] Guardar en tu sistema: `phone_number_id`, `waba_id`, `access_token`, `app_id`
 - [ ] Configurar PIN de verificación en dos pasos (recomendado por seguridad)
 
 ---
@@ -285,3 +358,67 @@ Permisos necesarios:
 - `whatsapp_business_management`
 
 > **Recuerda:** Cada vez que asignes un activo nuevo al usuario del sistema debes regenerar el token para que los nuevos permisos queden incluidos.
+
+---
+
+## Usar número de BM B en campañas del BM A (Click-to-WhatsApp)
+
+Cuando tienes números en distintos BMs pero quieres correr todas las campañas desde un BM principal (BM A), necesitas hacer una vinculación especial. Los webhooks y el bot siguen funcionando desde BM B, pero el número aparece disponible para anuncios en BM A.
+
+### El flujo completo paso a paso
+
+**En BM B (dueño del número):**
+1. Ve a **Configuración → Cuentas de WhatsApp → selecciona la cuenta del número**
+2. Haz clic en **"Asignar socio"**
+3. Ingresa el ID del BM A y asígnalo como socio con los permisos necesarios
+
+**En BM A (donde corres las campañas):**
+1. Ve a **Configuración → Cuentas de WhatsApp**
+2. El número de BM B ya debe aparecer ahí como cuenta compartida
+3. Selecciónalo y asigna acceso a las personas/usuarios del sistema de BM A que necesiten usarlo
+
+**Vinculación con el Fanpage (para anuncios):**
+1. Entra al Fanpage que vas a usar para publicar y ve a:
+   `https://www.facebook.com/settings/?tab=linked_whatsapp`
+2. Ahí aparecerá una **"Solicitud de conexión pendiente"** con el número de BM B
+   > **Nota:** No está del todo claro qué paso exactamente dispara esta solicitud — posiblemente sea asignar permisos al número desde BM A o haberlo asignado como socio. Lo que sí es claro es que la solicitud aparece en esa URL y desde ahí se puede ver el número para conectarlo al Fanpage.
+3. Selecciona el número y confirma la conexión
+4. Esto genera una solicitud que debe ser aprobada por BM B
+
+**En BM B — Aprobar la solicitud:**
+1. Ve a **BM B → Configuración → Solicitudes → Requieren revisión**
+2. Aparecerá la solicitud: *"BM A solicitó conectar la página [Fanpage] con la cuenta de WhatsApp [número]"*
+3. Haz clic en **"Responder" → "Aprobar"**
+
+✅ Una vez aprobada, el número aparece disponible en el selector de anuncios de BM A sin estado "Pendiente".
+
+### Lo que puedes hacer desde BM A con el número de BM B
+
+| Acción | ¿Funciona? |
+|---|---|
+| Crear campañas Click-to-WhatsApp | ✅ Sí |
+| Usar el número como destino de anuncios | ✅ Sí |
+| Enviar mensajes via API con token de BM A | ✅ Sí |
+| Ver estadísticas | ✅ Sí |
+| Recibir webhooks en App de BM A | ❌ No — siempre van al BM dueño |
+
+### Checklist para número de otro BM en campañas de BM A
+
+- [ ] En BM B: asignar BM A como socio de la cuenta de WhatsApp
+- [ ] En BM A: verificar que el número aparece en Cuentas de WhatsApp
+- [ ] En BM A: asignar acceso a personas/usuarios del sistema
+- [ ] Desde el Fanpage: solicitar conexión con el número
+- [ ] En BM B: aprobar la solicitud en **Configuración → Solicitudes**
+- [ ] Verificar que el número aparece sin "Pendiente" en el selector de anuncios
+
+---
+
+## Errores comunes y soluciones
+
+| Error | Causa | Solución |
+|---|---|---|
+| `Tried accessing nonexisting field (subscribed_apps)` | Token sin permisos o usando Phone Number ID en vez de WABA ID | Usar WABA ID y token del System User correcto |
+| `Object does not exist or missing permissions` | Token de BM A intentando operar sobre número de BM B | Usar token del BM dueño del número |
+| Mensaje con 1 solo visto | Número no registrado en la red de WhatsApp | Ejecutar `POST /{phone_number_id}/register` |
+| Webhooks no llegan aunque número funciona | WABA no suscrita a la App | Ejecutar `POST /{waba_id}/subscribed_apps` |
+| `Template name does not exist` | Plantilla en PENDING o no existe en ese idioma | Esperar aprobación o verificar nombre/idioma |

@@ -89,7 +89,8 @@ class DeliverProductAction {
       'S',
       'text',
       $metadata,
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true // no incrementar unread_count: mensaje de sistema interno
     );
 
     chatHandler::addMessage([

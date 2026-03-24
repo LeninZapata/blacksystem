@@ -85,9 +85,12 @@ class AdAutoScaleController extends ogController {
         'ad_auto_scale.du',
         'ad_auto_scale.tc',
         'ad_auto_scale.tu',
-        'product_ad_assets.ad_asset_name as product_ad_asset_name'
+        'product_ad_assets.ad_asset_name as product_ad_asset_name',
+        'bots.country_code'
       ])
-      ->leftJoin('product_ad_assets', 'ad_auto_scale.ad_assets_id', '=', 'product_ad_assets.id');
+      ->leftJoin('product_ad_assets', 'ad_auto_scale.ad_assets_id', '=', 'product_ad_assets.id')
+      ->leftJoin('products', 'product_ad_assets.product_id', '=', 'products.id')
+      ->leftJoin('bots', 'products.bot_id', '=', 'bots.id');
 
     if (isset($GLOBALS['auth_user_id'])) {
       $query = $query->where('ad_auto_scale.user_id', $GLOBALS['auth_user_id']);

@@ -70,11 +70,18 @@ class ChatHandler {
       $clientUpdate = ['last_message_at' => $now];
       if ($type === 'P') {
         $clientUpdate['last_client_message_at'] = $now;
-        // Incrementar contador de no leídos
-        ogDb::raw(
-          "UPDATE " . ogDb::t('clients', true) . " SET unread_count = unread_count + 1, last_client_message_at = ?, last_message_at = ? WHERE id = ?",
-          [$now, $now, $clientId]
-        );
+        if ($skipUnreadCount) {
+          // Solo actualizar timestamps, sin incrementar unread_count
+          ogDb::raw(
+            "UPDATE " . ogDb::t('clients', true) . " SET last_client_message_at = ?, last_message_at = ? WHERE id = ?",
+            [$now, $now, $clientId]
+          );
+        } else {
+          ogDb::raw(
+            "UPDATE " . ogDb::t('clients', true) . " SET unread_count = unread_count + 1, last_client_message_at = ?, last_message_at = ? WHERE id = ?",
+            [$now, $now, $clientId]
+          );
+        }
 
         // Refrescar ventana de conversación: cliente responde → +24h solo si expiró
         // (solo WhatsApp Cloud API — Evolution API no tiene restricción de ventana)
@@ -82,7 +89,9 @@ class ChatHandler {
         $botConfig  = $currentBot['config'] ?? [];
 
         // Incrementar unread_count en client_bot_meta (lo que lee el badge del chat)
-        self::upsertBotMetaIncrement($clientId, $botId, 'unread_count');
+        if (!$skipUnreadCount) {
+          self::upsertBotMetaIncrement($clientId, $botId, 'unread_count');
+        }
 
         if (($botConfig['apis']['chat'][0]['config']['type_value'] ?? null) === 'whatsapp-cloud-api') {
           $appPath = ogApp()->getPath();

@@ -13,7 +13,6 @@
   async function init() {
     await loadBots();
     bindEvents();
-    await loadProducts();
   }
 
   // ── Cargar bots en el select ─────────────────────────────────────────────
@@ -29,7 +28,7 @@
       bots.forEach(bot => {
         const opt = document.createElement('option');
         opt.value = bot.id;
-        opt.textContent = bot.name;
+        opt.textContent = `${countryFlag(bot.country_code)} ${bot.name}`;
         select.appendChild(opt);
       });
     } catch (err) {
@@ -41,6 +40,11 @@
   async function loadProducts() {
     const container = document.getElementById('resume-products-container');
     if (!container) return;
+
+    if (!state.botId) {
+      container.innerHTML = `<p class='og-text-center og-text-gray-400 og-p-2' style='font-size:0.85rem;'>👆 Selecciona un bot para ver el resumen.</p>`;
+      return;
+    }
 
     container.innerHTML = `<p class='og-text-center og-text-gray-400 og-p-2' style='font-size:0.85rem;'>⏳ Cargando productos...</p>`;
 
@@ -269,6 +273,12 @@
           ${cells}
         </div>
       </div>`;
+  }
+
+  // ── Utilidad: bandera de país ────────────────────────────────────────────
+  function countryFlag(countryCode) {
+    if (!countryCode) return '🌐';
+    return countryCode.toUpperCase().replace(/./g, c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0)));
   }
 
   // ── Utilidad: escapar HTML ───────────────────────────────────────────────

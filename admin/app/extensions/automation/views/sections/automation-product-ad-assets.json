@@ -38,6 +38,14 @@
             }
           },
           {
+            "ad_platform": {
+              "name": "i18n:automation.product_ad_assets.column.ad_platform",
+              "format": "product-ad-asset-platform",
+              "sortable": false,
+              "width": "120px"
+            }
+          },
+          {
             "is_active": {
               "name": "i18n:automation.product_ad_assets.column.status",
               "format": "product-ad-asset-status",
