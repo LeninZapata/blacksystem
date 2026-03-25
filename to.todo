@@ -9,6 +9,7 @@ RAPIDO:
 la cual si deberi hacerlo
 ✔ Cuando la gente compra en el proceso esta submando el contador de mensajes no visto, no deberia @done(24-03-2026 16:19)
 estosolo es cuado el cliente envia el mensaje, entiendo que espor la foto del recibo parece...
+☐ Los chats json se han acumulado no se han borrado, esto debe borrarse automaticamente solo dejar los ultimos 15 dias...
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
   ☐ aprar los seguimientos
   ☐ enviar plantilla de link del producto

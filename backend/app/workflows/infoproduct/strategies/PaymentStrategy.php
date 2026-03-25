@@ -34,32 +34,15 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // PASO 4: Validar recibo (solo si hay venta activa)
     if (!$validation['is_valid']) {
-      $errorMessage = "Lo siento, no pude validar el comprobante de pago. Por favor, envía una foto clara del recibo.";
+      ogLog::info("execute - Recibo inválido (con venta activa)", [ 'number' => $person['number'], 'current_sale' => $currentSale['sale_id'] ?? null, 'errors' => $validation['errors'], 'ai_analysis' => $validation['data'] ] , $this->logMeta );
 
-      ogLog::info("execute - Recibo inválido (con venta activa)", [ 'number' => $person['number'], 'current_sale' => $currentSale['sale_id'] ?? null, 'errors' => $validation['errors'], 'ai_analysis' => $validation['data'] ] , $this->logMeta );  // JSON completo de la IA ], $this->logMeta);
+      // Antes: mensaje hardcodeado directo
+      // $errorMessage = "Lo siento, no pude validar el comprobante de pago. Por favor, envía una foto clara del recibo.";
+      // $chatapi = ogApp()->service('chatApi');
+      // $chatapi::send($person['number'], $errorMessage);
 
-      $chatapi = ogApp()->service('chatApi');
-      $chatapi::send($person['number'], $errorMessage);
-
-      oglog::debug("execute - Registrando mensaje de error por recibo inválido", [ 'number' => $person['number'], 'chatData' => $chatData ], $this->logMeta);
-      ogApp()->handler('chat')::register(
-        $bot['id'],
-        $bot['number'],
-        $chatData['client_id'],
-        $person['number'],
-        $errorMessage,
-        'B',
-        'text',
-        ['action' => 'invalid_receipt_format', 'errors' => $validation['errors']],
-        $chatData['current_sale']['sale_id'] ?? null,
-        true
-      );
-
-      return [
-        'success' => false,
-        'error' => 'Invalid payment proof',
-        'validation' => $validation
-      ];
+      // Ahora: dejar que la IA responda con el resume de la imagen como contexto
+      return $this->handleInvalidReceipt($context, $imageAnalysis, $validation);
     }
 
     $paymentData = $validation['data'];
@@ -91,6 +74,59 @@ class PaymentStrategy implements ConversationStrategyInterface {
       'payment_data' => $paymentData,
       'sale_id' => $saleId
     ];
+  }
+
+  /**
+   * Manejar recibo inválido con venta activa.
+   * Invoca la IA con el resume de la imagen para que responda naturalmente.
+   */
+  private function handleInvalidReceipt($context, $imageAnalysis, $validation) {
+    $bot      = $context['bot'];
+    $person   = $context['person'];
+    $chatData = $context['chat_data'];
+
+    $resume  = $imageAnalysis['metadata']['description']['resume'] ?? 'Imagen recibida';
+    $caption = $imageAnalysis['metadata']['caption'] ?? '';
+
+    $aiText = !empty($caption)
+      ? "[image: descripción = '{$resume}', caption del usuario = '{$caption}']"
+      : "[image]: {$resume}";
+
+    ogApp()->loadHandler('chat');
+    $chat   = ChatHandler::getChat($person['number'], $bot['id'], true);
+    $prompt = $this->buildPrompt($bot, $chat, $aiText);
+
+    ogLog::info("handleInvalidReceipt - Invocando IA con resume de imagen", [
+      'number'  => $person['number'],
+      'resume'  => $resume,
+      'errors'  => $validation['errors'],
+    ], $this->logMeta);
+
+    $chatapi = ogApp()->service('chatApi');
+    try {
+      $chatapi::sendPresence($person['number'], 'composing', 3000);
+    } catch (Exception $e) {
+      sleep(3);
+    }
+
+    $aiResponse = $this->callAI($prompt, $bot);
+
+    if (!$aiResponse['success']) {
+      ogLog::error("handleInvalidReceipt - Error en IA: {$aiResponse['error']}", ['number' => $person['number']], $this->logMeta);
+      return ['success' => false, 'error' => $aiResponse['error'] ?? 'AI call failed'];
+    }
+
+    $parsedResponse = $this->parseResponse($aiResponse['response']);
+
+    if (!$parsedResponse) {
+      ogLog::error("handleInvalidReceipt - JSON inválido de IA", ['raw_response' => $aiResponse['response']], $this->logMeta);
+      return ['success' => false, 'error' => 'Invalid AI response'];
+    }
+
+    $this->sendMessages($parsedResponse, $context);
+    $this->saveBotMessages($parsedResponse, $context);
+
+    return ['success' => false, 'error' => 'Invalid payment proof', 'validation' => $validation];
   }
 
   /**

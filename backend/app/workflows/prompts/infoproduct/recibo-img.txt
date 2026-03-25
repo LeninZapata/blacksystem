@@ -1,15 +1,32 @@
 # Tu resultado debe ser un JSON (que inicie con { y termine con }) sin saltos de linea ni espacios innecesarios arriba o abajo,
 ni tampoco la tipica salida con '```json {....} ```'.
 
-1) Analiza esta image si es un comprobante de pago o no.
-Para verificar si es un comprobante de pago debe tener palabras como:
-"cuenta", "origen", "destino", "type de cuenta", "transacción", "transferencia", "concepto", "saldo", "valor", "date", "amount".
+1) Analiza esta imagen y determina si es un comprobante de pago COMPLETADO o no.
+
+PASO PREVIO OBLIGATORIO - DETECCIÓN DE PANTALLAS FALSAS:
+Antes de cualquier análisis, verifica si la imagen es una pantalla de confirmación/preview previa al pago.
+Si cumple UNO O MÁS de estos criterios → is_proof_payment: false de inmediato, sin seguir analizando:
+
+- Contiene frases como: "¿Todo está bien?", "Dale una revisada", "¿Deseas confirmar?",
+  "Vas a transferir", "Pasarás Plata", "Estás a punto de", "Confirmar envío",
+  "Revisa los datos", "última revisada", "Pasar Plata", "¿Todo correcto?".
+- Contiene botones visibles de acción pendiente como: "Confirmar", "Pasar Plata",
+  "Enviar", "Aceptar", "Modificar", "Cancelar", "Continuar".
+- No muestra fecha y hora de una transacción ya completada.
+- No muestra número de comprobante, número de transacción o código de referencia
+  generado por el sistema tras completarse el pago.
+
+Si NO cumple ninguno de los criterios anteriores, entonces para verificar si es un
+comprobante de pago real debe tener palabras como:
+"cuenta", "origen", "destino", "tipo de cuenta", "transacción", "transferencia",
+"concepto", "saldo", "valor", "fecha", "amount", "comprobante", "aprobado", "exitoso".
+
 { "is_proof_payment": true/false }
 
 2) Si is_proof_payment es TRUE, entonces ¿Contiene un amount/valor de pago con estos
 formatos: xx.xx ó xxx.xx ó xxxx.xx ó xx,xx ó xxx,xx ó xxxx,xx o es un amount valido ?
-{  "valid_amount": true/false }
-{  "amount_found": "{aqui va el amount encontrado es format con decimal y es numerico}" }
+{ "valid_amount": true/false }
+{ "amount_found": "{aqui va el amount encontrado en format con decimal y es numerico}" }
 
 3) Si valid_amount es TRUE, entonces ¿Aparece el nombre del REMITENTE (quien envía el dinero) en el comprobante?
 
@@ -19,38 +36,43 @@ formatos: xx.xx ó xxx.xx ó xxxx.xx ó xx,xx ó xxx,xx ó xxxx,xx o es un amoun
    NUNCA uses el nombre que aparece en los campos: "A", "Para", "Destino", "Destinatario", "Cuenta destino", "Beneficiario".
    El campo "A/Para/Destino" contiene el nombre del RECEPTOR (dueño del bot), NO el del cliente.
 
-   Si el nombre que encontraste está en el campo "De/Origen/Remitente" → valid_name: true, SALVO que ese nombre coincida (total o parcialmente) con el nombre del titular de la cuenta bot indicado en la sección "INFORMACIÓN ADICIONAL DEL BOT" → en ese caso valid_name: false y name_found: "".
-   Si el nombre solo aparece en el campo "A/Para/Destino" o no hay nombre de remitente → valid_name: false
+   Si el nombre que encontraste está en el campo "De/Origen/Remitente" → valid_name: true, SALVO que ese nombre coincida
+   (total o parcialmente) con el nombre del titular de la cuenta bot indicado en la sección "INFORMACIÓN ADICIONAL DEL BOT"
+   → en ese caso valid_name: false y name_found: "".
+   Si el nombre solo aparece en el campo "A/Para/Destino" o no hay nombre de remitente → valid_name: false.
 
 { "valid_name": true/false }
 { "name_found": "{nombre del remitente encontrado en campo De/Origen, vacío si coincide con el titular del bot}" }
 
-4) Si is_proof_payment es FALSE, entonces describe la image a text para que pueda entender,
-se descriptivo caso contrario si is_proof_payment es TRUE, entonces pon que es un "recibo de pago".
-{ "resume": "tu respuesta sobre la image" }
+4) Si is_proof_payment es FALSE, entonces describe la imagen en texto para que pueda entender,
+sé descriptivo. Caso contrario, si is_proof_payment es TRUE, entonces pon que es un "recibo de pago".
+{ "resume": "tu respuesta sobre la imagen" }
 
 5) Lista TODOS los nombres de persona que puedas ver en el comprobante, sin importar en qué campo aparezcan
 ("A", "De", "Origen", "Destinatario", etc.). Es una extracción cruda sin filtrar.
 Si no hay ningún nombre visible → array vacío.
 { "names_found": ["nombre1", "nombre2"] }
 
-Responde ÚNICAMENTE con un JSON en este format:{
+Responde ÚNICAMENTE con un JSON en este formato:
+{
   "is_proof_payment": true/false,
-  "valid_amount" : true/false,
-  "amount_found": "amount encontrado es format con decimal como punto '.'",
-  "valid_name" :true/false,
-  "name_found" : "name encontrado",
+  "valid_amount": true/false,
+  "amount_found": "amount encontrado en formato con decimal como punto '.'",
+  "valid_name": true/false,
+  "name_found": "nombre encontrado",
   "names_found": ["nombre completo 1", "nombre completo 2"],
-  "resume": "tu respuesta de analisis sobre la image",
-  "type" : "image"
+  "resume": "tu respuesta de analisis sobre la imagen",
+  "type": "image"
 }
 
-- Debe ser en un format JSON asi que debes usar comillas dobles para los key y para los valores.
-- No uses comillas simple dentro de un valor, puede que haya error en la salida del json y si vas a
-poner comilla simple hazlo como caracteres de escape como "\'" por ejemplo esta palabra: \'hola\'.
+- Debe ser en formato JSON así que debes usar comillas dobles para los key y para los valores.
+- No uses comillas simples dentro de un valor. Si necesitas usar comilla simple, escápala así: \'ejemplo\'.
 
 IMPORTANTE SOBRE EL NOMBRE:
 - Busca el nombre ÚNICAMENTE en el campo "De", "Origen", "Remitente", "Cuenta origen" o similar que indique quién ENVÍA el dinero.
 - El campo "A", "Para", "Cuenta destino" o "Beneficiario" es el receptor del dinero (el dueño del bot). JAMÁS uses ese nombre.
-- Si el comprobante muestra "A [nombre_destinatario]" pero no hay campo "De/Origen/Remitente" con un nombre, retorna valid_name: false y name_found: "".
-- Si el nombre encontrado en "De/Origen/Remitente" coincide (total o parcialmente) con el nombre del titular de la cuenta bot mencionado en "INFORMACIÓN ADICIONAL DEL BOT", NO es el nombre del cliente → retorna valid_name: false y name_found: "". El titular del bot nunca es el cliente.
+- Si el comprobante muestra "A [nombre_destinatario]" pero no hay campo "De/Origen/Remitente" con un nombre,
+  retorna valid_name: false y name_found: "".
+- Si el nombre encontrado en "De/Origen/Remitente" coincide (total o parcialmente) con el nombre del titular
+  de la cuenta bot mencionado en "INFORMACIÓN ADICIONAL DEL BOT", NO es el nombre del cliente →
+  retorna valid_name: false y name_found: "".

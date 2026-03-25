@@ -951,8 +951,11 @@ class chat {
     const amtRaw  = row.querySelector('.chat-sale-amount')?.value;
 
     const payload = { process_status: status };
-    if (status === 'sale_confirmed' && amtRaw !== '') {
-      payload.local_billed_amount = parseFloat(amtRaw);
+    if (status === 'sale_confirmed') {
+      // Setear payment_date en UTC para que el badge del chat lo contabilice correctamente
+      const now = new Date();
+      payload.payment_date = now.toISOString().slice(0, 19).replace('T', ' ');
+      if (amtRaw !== '') payload.local_billed_amount = parseFloat(amtRaw);
     }
 
     btn.disabled = true;

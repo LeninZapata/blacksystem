@@ -265,6 +265,29 @@ class ChatHandler {
         'messages' => []
       ];
 
+      // Fuente de verdad: obtener process_status real de la tabla sales para este cliente/bot
+      // Esto evita que cambios manuales de estado desde el admin queden desincronizados con el JSON
+      $saleIdsInChat = [];
+      foreach ($messages as $msg) {
+        $m = !empty($msg['metadata']) ? json_decode($msg['metadata'], true) : null;
+        if (($m['action'] ?? null) === 'start_sale' && !empty($m['sale_id'])) {
+          $saleIdsInChat[] = (int)$m['sale_id'];
+        }
+      }
+      $confirmedSaleIds = [];
+      if (!empty($saleIdsInChat)) {
+        $placeholders = implode(',', array_fill(0, count($saleIdsInChat), '?'));
+        $salesRows = ogDb::raw(
+          "SELECT id, process_status FROM " . ogDb::t('sales', true) . " WHERE id IN ($placeholders)",
+          $saleIdsInChat
+        );
+        foreach ($salesRows ?: [] as $row) {
+          if (($row['process_status'] ?? '') === 'sale_confirmed') {
+            $confirmedSaleIds[] = (int)$row['id'];
+          }
+        }
+      }
+
       // Procesar mensajes
       foreach ($messages as $msg) {
         $metadata = !empty($msg['metadata']) ? json_decode($msg['metadata'], true) : null;
@@ -288,20 +311,10 @@ class ChatHandler {
           $productName = $metadata['product_name'] ?? '';
 
           if ($saleId) {
-            // Verificar si esta venta fue confirmada
-            $isConfirmed = false;
-            foreach ($messages as $checkMsg) {
-              $checkMeta = !empty($checkMsg['metadata']) ? json_decode($checkMsg['metadata'], true) : null;
-              if (
-                ($checkMeta['action'] ?? null) === 'sale_confirmed' &&
-                ($checkMeta['sale_id'] ?? null) == $saleId
-              ) {
-                $isConfirmed = true;
-                break;
-              }
-            }
+            // Usar process_status real de la tabla sales (no mensajes de chat)
+            $isConfirmed = in_array((int)$saleId, $confirmedSaleIds);
 
-            // Solo actualizar current_sale si NO está confirmada
+            // Solo activar current_sale si la venta NO está confirmada en DB
             if (!$isConfirmed) {
               $chat['current_sale'] = [
                 'sale_id' => $saleId,
@@ -323,25 +336,46 @@ class ChatHandler {
           $saleId = $metadata['sale_id'] ?? null;
           $productId = $metadata['product_id'] ?? null;
 
-          if ($saleId && !in_array($saleId, $chat['summary']['sales_confirmed'])) {
-            $chat['summary']['sales_confirmed'][] = $saleId;
-          }
-
-          if ($productId && !in_array($productId, $chat['summary']['purchased_products'])) {
-            $chat['summary']['purchased_products'][] = $productId;
-          }
-
-          // Limpiar current_sale si es la venta actual
-          if (
-            $chat['current_sale'] &&
-            $chat['current_sale']['sale_id'] == $saleId
-          ) {
-            $chat['current_sale'] = null;
+          // Solo agregar al summary si la venta sigue confirmada en DB
+          if ($saleId && in_array((int)$saleId, $confirmedSaleIds)) {
+            if (!in_array($saleId, $chat['summary']['sales_confirmed'])) {
+              $chat['summary']['sales_confirmed'][] = $saleId;
+            }
+            if ($productId && !in_array($productId, $chat['summary']['purchased_products'])) {
+              $chat['summary']['purchased_products'][] = $productId;
+            }
+            // Limpiar current_sale si coincide
+            if ($chat['current_sale'] && $chat['current_sale']['sale_id'] == $saleId) {
+              $chat['current_sale'] = null;
+            }
           }
         }
       }
 
       $chat['summary']['total_messages'] = count($chat['messages']);
+
+      // Asegurar que ventas confirmadas en DB queden reflejadas en el summary aunque
+      // no exista mensaje sale_confirmed en chats (ej: confirmación manual desde el admin)
+      foreach ($confirmedSaleIds as $cSaleId) {
+        if (!in_array((string)$cSaleId, array_map('strval', $chat['summary']['sales_confirmed']))) {
+          $chat['summary']['sales_confirmed'][] = (string)$cSaleId;
+        }
+        // Limpiar current_sale si apunta a esta venta
+        if ($chat['current_sale'] && (int)$chat['current_sale']['sale_id'] === $cSaleId) {
+          $chat['current_sale'] = null;
+        }
+        // Buscar product_id en los mensajes start_sale para actualizar purchased_products
+        foreach ($chat['messages'] as $msg) {
+          $m = $msg['metadata'] ?? null;
+          if (($m['action'] ?? null) === 'start_sale' && (int)($m['sale_id'] ?? 0) === $cSaleId) {
+            $pId = $m['product_id'] ?? null;
+            if ($pId && !in_array($pId, $chat['summary']['purchased_products'])) {
+              $chat['summary']['purchased_products'][] = $pId;
+            }
+            break;
+          }
+        }
+      }
 
       // Guardar archivo reconstruido
       $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';

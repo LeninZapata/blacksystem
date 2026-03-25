@@ -27,11 +27,12 @@ $router->group('/api/product', function($router) {
       ogResponse::json(['success' => false, 'error' => 'bot_id es requerido'], 400);
     }
 
-    // Resolver rango de fechas
+    // Resolver rango de fechas usando el timezone del usuario (header X-User-Timezone)
+    $userTz = ogApp()->helper('date')::getUserTimezone();
     if ($range === 'custom_date' && $date) {
-      $dates = ['start' => $date . ' 00:00:00', 'end' => $date . ' 23:59:59'];
+      $dates = ogApp()->helper('date')::localDateToUtcRange($date, $userTz);
     } else {
-      $dates = ogApp()->helper('date')::getDateRange($range);
+      $dates = ogApp()->helper('date')::getDateRange($range, $userTz);
     }
 
     if (!$dates) {

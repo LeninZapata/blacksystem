@@ -267,7 +267,7 @@ $router->group('/api/chat', function($router) {
         ogResponse::error($result['error'] ?? 'Error al enviar', 500);
       }
 
-      // 4. Registrar en tabla chats como tipo 'B' (Bot/Manual)
+      // 4. Registrar en tabla chats como tipo 'B' (Bot/Manual) y reconstruir JSON
       if ($botId && $clientId) {
         ogApp()->loadHandler('chat');
         ChatHandler::setUserId($userId);
@@ -277,6 +277,8 @@ $router->group('/api/chat', function($router) {
           $message, 'B', 'text',
           ['source' => 'manual_send']
         );
+        // Reconstruir JSON para que el bot tenga contexto del mensaje enviado
+        ChatHandler::rebuildFromDB($clientNumber, $botId);
       }
 
       ogLog::success("manual-send - OK", [
