@@ -12,14 +12,19 @@ Si cumple UNO O MÁS de estos criterios → is_proof_payment: false de inmediato
   "Revisa los datos", "última revisada", "Pasar Plata", "¿Todo correcto?".
 - Contiene botones visibles de acción pendiente como: "Confirmar", "Pasar Plata",
   "Enviar", "Aceptar", "Modificar", "Cancelar", "Continuar".
-- No muestra fecha y hora de una transacción ya completada.
+  EXCEPCIÓN: "Verificar la transacción con este QR" o cualquier QR de verificación
+  NO es un botón de acción pendiente; es un elemento de consulta post-pago y se ignora.
+- No muestra fecha de una transacción ya completada (la fecha sola sin hora es suficiente;
+  no se requiere hora exacta para considerar la transacción como completada).
 - No muestra número de comprobante, número de transacción o código de referencia
   generado por el sistema tras completarse el pago.
 
 Si NO cumple ninguno de los criterios anteriores, entonces para verificar si es un
 comprobante de pago real debe tener palabras como:
 "cuenta", "origen", "destino", "tipo de cuenta", "transacción", "transferencia",
-"concepto", "saldo", "valor", "fecha", "amount", "comprobante", "aprobado", "exitoso".
+"concepto", "saldo", "valor", "fecha", "amount", "comprobante", "aprobado", "exitoso", "exitosa".
+Además, mensajes como "¡Transferencia exitosa!", "Pago exitoso", "Transferencia completada"
+son indicadores fuertes de que el pago YA se realizó → is_proof_payment: true.
 
 { "is_proof_payment": true/false }
 

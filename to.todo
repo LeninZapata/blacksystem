@@ -1,14 +1,9 @@
 URGENTE:
-✔ Whatapp en el webhook cambiara numero por user o sera hibrido entonces el sistema debe soportar esto. @done(22-03-2026 14:20)
-✔ Los seguimientos si ultima mensaje es un seguimiento pues motrar un icono en lado del ombre ligero que demuestro seguimineto @done(22-03-2026 10:55)
-✔ En activos Publicitarios, y  Escala automatica, se debe saber de que pais es ese producto @done(24-03-2026 15:36)
-PARA DESCOOMPLICARME LA VIDA, HAY QUE CREAR UN METODO DONDE TRAIGA EL CODE_COUNTRY Y EL NOMBRE, con eso ya soy rey y se entiende 
-que mismo producto y activo es cada pais.
+☐ En el chat cuando pones solo hoy (no recuerdo sin con el filtro solo ventas) muestra los de ayer parece que no esta filtrnado bien el UTC
+esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
 RAPIDO:
-✔ 573108141189 cuando envian audio en el sistema no lo muestra, creo que si lo guarda el texto en el chat no lo esta mostrando @done(24-03-2026 15:43)
+☐ al cambiar de estado de la compra entonces tambien se debe tener la opcion de parar los seguimientos del upsell porque se va activar
 la cual si deberi hacerlo
-✔ Cuando la gente compra en el proceso esta submando el contador de mensajes no visto, no deberia @done(24-03-2026 16:19)
-estosolo es cuado el cliente envia el mensaje, entiendo que espor la foto del recibo parece...
 ☐ Los chats json se han acumulado no se han borrado, esto debe borrarse automaticamente solo dejar los ultimos 15 dias...
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
   ☐ aprar los seguimientos

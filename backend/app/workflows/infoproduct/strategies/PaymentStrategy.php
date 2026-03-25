@@ -48,6 +48,17 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $paymentData = $validation['data'];
     $saleId = $chatData['current_sale']['sale_id'] ?? null;
 
+    // PASO 4.5: Verificar que el titular de la cuenta aparece en el recibo
+    if (!$this->isAccountHolderPresent($paymentData, $bot)) {
+      ogLog::info("execute - Titular de cuenta no encontrado en names_found", [
+        'number'         => $person['number'],
+        'sale_id'        => $saleId,
+        'names_found'    => $paymentData['names_found'] ?? [],
+        'account_holder' => $bot['config']['account_holder'] ?? null,
+      ], $this->logMeta);
+      return $this->handleAccountHolderNotFound($context, $imageAnalysis, $paymentData);
+    }
+
     // PASO 5: Procesar pago (solo si hay venta activa)
     ogLog::info("execute - Procesando pago válido", [ 'sale_id' => $saleId, 'amount' => $paymentData['amount'] ], $this->logMeta);
 
@@ -390,6 +401,112 @@ class PaymentStrategy implements ConversationStrategyInterface {
 
     // 0 candidatos = todos eran el titular | 2+ = ambiguo → no actualizar
     return null;
+  }
+
+  /**
+   * Verifica que el titular de la cuenta del bot (account_holder) aparece
+   * en el recibo. Al menos UN nombre de names_found debe compartir 2+ palabras
+   * con account_holder.
+   * Si no hay account_holder configurado → deja pasar (no bloquea).
+   * Si no hay names_found → bloquea (no se puede verificar).
+   */
+  private function isAccountHolderPresent(array $paymentData, array $bot): bool {
+    $accountHolder = trim($bot['config']['account_holder'] ?? '');
+
+    // Sin titular configurado → no se puede verificar, dejar pasar
+    if (empty($accountHolder)) {
+      ogLog::warning("isAccountHolderPresent - Sin account_holder configurado, se omite verificación", [], $this->logMeta);
+      return true;
+    }
+
+    $namesFound = $paymentData['names_found'] ?? [];
+
+    if (empty($namesFound)) {
+      ogLog::info("isAccountHolderPresent - names_found vacío, titular no verificable", [
+        'account_holder' => $accountHolder,
+      ], $this->logMeta);
+      return false;
+    }
+
+    $holderWords = array_values(array_filter(
+      array_map('mb_strtolower', preg_split('/\s+/', $accountHolder))
+    ));
+
+    foreach ($namesFound as $name) {
+      $nameWords   = array_values(array_filter(
+        array_map('mb_strtolower', preg_split('/\s+/', trim($name)))
+      ));
+      $coincidences = count(array_intersect($nameWords, $holderWords));
+      if ($coincidences >= 2) {
+        ogLog::info("isAccountHolderPresent - Titular encontrado en recibo", [
+          'matched_name'   => $name,
+          'account_holder' => $accountHolder,
+          'coincidences'   => $coincidences,
+        ], $this->logMeta);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * El recibo es válido (monto OK) pero no muestra el nombre del titular.
+   * Le pasa contexto específico a la IA para que pida al cliente
+   * una captura donde se vea el nombre del destinatario/titular.
+   */
+  private function handleAccountHolderNotFound($context, $imageAnalysis, $paymentData) {
+    $bot      = $context['bot'];
+    $person   = $context['person'];
+
+    $accountHolder = trim($bot['config']['account_holder'] ?? '');
+    $resume        = $imageAnalysis['metadata']['description']['resume'] ?? 'Recibo de pago';
+    $namesInReceipt = implode(', ', $paymentData['names_found'] ?? []);
+
+    $aiText  = "[image: descripción = '{$resume}']";
+    $aiText .= "\n[INSTRUCCIÓN INTERNA - NO revelar al cliente]: El recibo muestra monto válido, ";
+    $aiText .= "pero no se puede confirmar que la transferencia fue realizada a la cuenta del titular '{$accountHolder}'. ";
+    if (!empty($namesInReceipt)) {
+      $aiText .= "Los nombres visibles en el recibo son: {$namesInReceipt}. ";
+    }
+    $aiText .= "Pide amablemente al cliente que abra la app de su banco, ingrese al detalle de esa transacción ";
+    $aiText .= "y envíe una captura donde aparezca claramente el nombre del destinatario/beneficiario de la transferencia.";
+
+    ogApp()->loadHandler('chat');
+    $chat   = ChatHandler::getChat($person['number'], $bot['id'], true);
+    $prompt = $this->buildPrompt($bot, $chat, $aiText);
+
+    ogLog::info("handleAccountHolderNotFound - Invocando IA", [
+      'number'         => $person['number'],
+      'account_holder' => $accountHolder,
+      'names_found'    => $paymentData['names_found'] ?? [],
+    ], $this->logMeta);
+
+    $chatapi = ogApp()->service('chatApi');
+    try {
+      $chatapi::sendPresence($person['number'], 'composing', 3000);
+    } catch (Exception $_) {
+      sleep(3);
+    }
+
+    $aiResponse = $this->callAI($prompt, $bot);
+
+    if (!$aiResponse['success']) {
+      ogLog::error("handleAccountHolderNotFound - Error en IA", ['error' => $aiResponse['error'] ?? 'unknown'], $this->logMeta);
+      return ['success' => false, 'error' => $aiResponse['error'] ?? 'AI call failed'];
+    }
+
+    $parsedResponse = $this->parseResponse($aiResponse['response']);
+
+    if (!$parsedResponse) {
+      ogLog::error("handleAccountHolderNotFound - JSON inválido de IA", ['raw_response' => $aiResponse['response']], $this->logMeta);
+      return ['success' => false, 'error' => 'Invalid AI response'];
+    }
+
+    $this->sendMessages($parsedResponse, $context);
+    $this->saveBotMessages($parsedResponse, $context);
+
+    return ['success' => false, 'reason' => 'account_holder_not_found'];
   }
 
   private function updateSale($paymentData, $saleId, $countryCode = 'EC') {
