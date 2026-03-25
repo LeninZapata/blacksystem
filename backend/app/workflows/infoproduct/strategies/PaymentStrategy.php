@@ -377,13 +377,15 @@ class PaymentStrategy implements ConversationStrategyInterface {
       return null;
     }
 
+    $str = ogApp()->helper('str');
+
     $holderWords = array_filter(
-      array_map('mb_strtolower', preg_split('/\s+/', $accountHolder))
+      preg_split('/\s+/', $str::normalize($accountHolder))
     );
 
-    $candidates = array_values(array_filter($namesFound, function($name) use ($holderWords) {
+    $candidates = array_values(array_filter($namesFound, function($name) use ($holderWords, $str) {
       $nameWords = array_filter(
-        array_map('mb_strtolower', preg_split('/\s+/', trim($name)))
+        preg_split('/\s+/', $str::normalize(trim($name)))
       );
       $coincidences = count(array_intersect($nameWords, $holderWords));
       return $coincidences < 2; // descartar si 2+ palabras coinciden con el titular
@@ -428,13 +430,15 @@ class PaymentStrategy implements ConversationStrategyInterface {
       return false;
     }
 
+    $str = ogApp()->helper('str');
+
     $holderWords = array_values(array_filter(
-      array_map('mb_strtolower', preg_split('/\s+/', $accountHolder))
+      preg_split('/\s+/', $str::normalize($accountHolder))
     ));
 
     foreach ($namesFound as $name) {
       $nameWords   = array_values(array_filter(
-        array_map('mb_strtolower', preg_split('/\s+/', trim($name)))
+        preg_split('/\s+/', $str::normalize(trim($name)))
       ));
       $coincidences = count(array_intersect($nameWords, $holderWords));
       if ($coincidences >= 2) {
@@ -470,7 +474,8 @@ class PaymentStrategy implements ConversationStrategyInterface {
       $aiText .= "Los nombres visibles en el recibo son: {$namesInReceipt}. ";
     }
     $aiText .= "Pide amablemente al cliente que abra la app de su banco, ingrese al detalle de esa transacción ";
-    $aiText .= "y envíe una captura donde aparezca claramente el nombre del destinatario/beneficiario de la transferencia.";
+    $aiText .= "y envíe una captura donde aparezca claramente el nombre del destinatario/beneficiario de la transferencia. ";
+    $aiText .= "Si el recibo es en papel, pídele que le tome una foto clara donde se vea el nombre del titular y la hora de la transacción.";
 
     ogApp()->loadHandler('chat');
     $chat   = ChatHandler::getChat($person['number'], $bot['id'], true);
