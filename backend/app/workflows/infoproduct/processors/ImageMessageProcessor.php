@@ -73,7 +73,7 @@ class ImageMessageProcessor implements MessageProcessorInterface {
     $bot      = $context['bot'];
     $chatData = $context['chat_data'];
 
-    $randomDelayMs = rand(12, 17) * 100;
+    $randomDelayMs = rand(10, 12) * 100;
     $message = "Listo ✅\nUn momento por favor ☺️ (estoy abriendo la foto de pago que me enviaste){p}\n\n🕐 Si tardo en responder, no te preocupes.\nEstoy procesando los pagos y pronto te enviaré tu acceso Tu compra está garantizada. ¡Gracias por tu paciencia! 😊{e-like}";
     $chatapi::sendPresence($to, 'composing', $randomDelayMs);
     $chatapi::send($to, $message);

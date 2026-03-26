@@ -377,6 +377,25 @@ class ChatHandler {
         }
       }
 
+      // Cargar plantillas quick_reply del producto en venta actual
+      // Se almacenan en el JSON del chat para que el handler las lea sin I/O extra
+      $qrProductId = $chat['current_sale']['product_id'] ?? null;
+      $chat['summary']['quick_reply_templates'] = [];
+      if ($qrProductId) {
+        try {
+          ogApp()->loadHandler('product');
+          $rawTemplates = ProductHandler::getMessagesFile('template', $qrProductId) ?? [];
+          $appPath = ogApp()->getPath();
+          require_once $appPath . '/workflows/infoproduct/handlers/QuickReplyHandler.php';
+          $chat['summary']['quick_reply_templates'] = QuickReplyHandler::buildFromTemplates($rawTemplates);
+        } catch (Exception $e) {
+          ogLog::warning('rebuildFromDB - No se pudieron cargar quick_reply_templates', [
+            'product_id' => $qrProductId,
+            'error'      => $e->getMessage()
+          ], self::$logMeta);
+        }
+      }
+
       // Guardar archivo reconstruido
       $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
       $file = ogApp()->helper('file');

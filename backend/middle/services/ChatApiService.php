@@ -161,7 +161,8 @@ class chatApiService {
     }
   }
 
-  static function send(string $to, string $message, string $media = ''): array {
+  // $args opcionales: ['buttons' => [['text'=>'...'], ...]]
+  static function send(string $to, string $message, string $media = '', array $args = []): array {
     if (!self::$config) ogLog::throwError(__('services.ogChatApi.not_configured'), [], self::$logMeta);
 
     // Validar ventana de conversación gratuita (solo WhatsApp Cloud API)
@@ -169,11 +170,37 @@ class chatApiService {
       self::validateChatWindow($to);
     }
 
+    $decoded = ogApp()->helper('bsStr')::decodeMessagePatterns($message);
+    $buttons = self::buildButtons($args['buttons'] ?? []);
+    $footer  = trim($args['footer'] ?? '');
+
+    // Si hay botones válidos → mensaje interactivo (WhatsApp Cloud API)
+    if (!empty($buttons)) {
+      $interactive = [
+        'type'   => 'button',
+        'body'   => ['text' => $decoded],
+        'action' => ['buttons' => $buttons]
+      ];
+      if (!empty($media)) {
+        $interactive['header'] = self::buildMediaHeader($media);
+      }
+      if ($footer !== '') {
+        $interactive['footer'] = ['text' => mb_substr($footer, 0, 60)];
+      }
+      return self::sendInteractive($to, $interactive);
+    }
+
+    // Sin botones: el footer no existe en mensajes normales de WhatsApp,
+    // se anexa al cuerpo del mensaje como texto en cursiva.
+    if ($footer !== '') {
+      $decoded .= "\n\n\n\n_" . mb_substr($footer, 0, 60) . "_";
+    }
+
     $lastError = null;
     foreach (self::$config as $index => $apiConfig) {
       try {
         $provider = self::getProviderInstance($apiConfig);
-        $response = $provider->sendMessage($to, ogApp()->helper('bsStr')::decodeMessagePatterns($message), $media);
+        $response = $provider->sendMessage($to, $decoded, $media);
 
         if ($response['success']) {
           $response['used_fallback'] = $index > 0;
@@ -190,6 +217,35 @@ class chatApiService {
     }
 
     ogLog::throwError(__('services.ogChatApi.all_providers_failed'), ['error' => $lastError, 'to' => $to], self::$logMeta);
+  }
+
+  // Construye el header de media para mensajes interactivos.
+  // Detecta el tipo por extensión de la URL (imagen, video o documento).
+  private static function buildMediaHeader(string $url): array {
+    $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+    if (in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'])) {
+      return ['type' => 'video', 'video' => ['link' => $url]];
+    }
+    if (in_array($ext, ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip'])) {
+      return ['type' => 'document', 'document' => ['link' => $url]];
+    }
+    return ['type' => 'image', 'image' => ['link' => $url]];
+  }
+
+  // Construye los botones reply para WhatsApp Cloud API.
+  // Máx. 3 botones, título máx. 20 caracteres. Ignora entradas vacías.
+  private static function buildButtons(array $rawButtons): array {
+    $buttons = [];
+    foreach ($rawButtons as $i => $btn) {
+      $title = trim($btn['text'] ?? '');
+      if ($title === '') continue;
+      $buttons[] = [
+        'type'  => 'reply',
+        'reply' => ['id' => 'btn_' . $i, 'title' => mb_substr($title, 0, 20)]
+      ];
+      if (count($buttons) >= 3) break;
+    }
+    return $buttons;
   }
 
   // Validar ventana de conversación gratuita para WhatsApp Cloud API.

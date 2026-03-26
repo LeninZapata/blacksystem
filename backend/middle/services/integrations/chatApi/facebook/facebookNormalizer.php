@@ -143,6 +143,15 @@ class facebookNormalizer {
         }
         break;
 
+      case 'interactive':
+        $interactiveType = $message['interactive']['type'] ?? '';
+        if ($interactiveType === 'button_reply') {
+          $text = $message['interactive']['button_reply']['title'] ?? '';
+        } elseif ($interactiveType === 'list_reply') {
+          $text = $message['interactive']['list_reply']['title'] ?? '';
+        }
+        break;
+
       case 'unsupported':
         $errors = $message['errors'] ?? [];
         if (!empty($errors)) {

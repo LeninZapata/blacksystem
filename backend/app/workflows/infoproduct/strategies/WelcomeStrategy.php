@@ -129,7 +129,11 @@ class WelcomeStrategy implements ConversationStrategyInterface {
         }
       }
 
-      $chatapi->send($person['number'], $text, $url);
+      $chatapi->send($person['number'], $text, $url, [
+        'buttons' => $msg['buttons'] ?? [],
+        'footer'  => $msg['footer']  ?? ''
+      ]);
+
       $messagesSent++;
     }
 

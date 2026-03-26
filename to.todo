@@ -2,6 +2,8 @@ URGENTE:
 ✔ El listado de productos no debe ser por SALES sino por otra via porque un producto no puede tener chat entonces @done(26-03-2026 10:40)
 EL GASTO nose mostraria y no te da metricas como son..
 ✔ Menu inicial Dashboard que se vea el home.json para que sea conistente @done(26-03-2026 11:05)
+☐ LOS BOTONES SON DE TIPO 'interactive' EL CASO FUE  "593994614999" hay que validar este tipo de mensaje para convertirla en texto en si
+o validar primero con plantillas de respuesta rapida y si no es entonces convertirlo a texto normal, porque el mensaje de tipo interactivo no se esta mostrando en el chat, entonces hay que validar esto para mostrarlo como texto normal o como plantilla de respuesta rapida
 ☐ Hotmark, comienza con el sistema para operar con hotmark en el sistema.
 ☐ En el chat cuando pones solo hoy (no recuerdo sin con el filtro solo ventas) muestra los de ayer parece que no esta filtrnado bien el UTC
 esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso

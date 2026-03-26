@@ -295,6 +295,30 @@ class InfoproductV2Handler {
       return;
     }
 
+    // INTERACTIVE: botón de WhatsApp pulsado → buscar plantilla quick_reply
+    $isInteractive = strtoupper($messageType) === 'INTERACTIVE';
+
+    if ($isInteractive) {
+      require_once $this->appPath . '/workflows/infoproduct/handlers/QuickReplyHandler.php';
+      $buttonText = QuickReplyHandler::extractInteractiveText($message);
+
+      ogLog::info("continueConversation - Mensaje interactivo (botón pulsado)", [
+        'button_text' => $buttonText,
+        'number'      => $person['number']
+      ], ['module' => 'infoproduct_v2']);
+
+      if ($buttonText !== '') {
+        if (!$this->handleQuickReply($buttonText, $bot, $person, $chatData)) {
+          // Sin coincidencia de plantilla → procesar el texto del botón con IA
+          $this->processTextMessages(
+            [['type' => 'TEXT', 'text' => $buttonText]],
+            $bot, $person, $chatData
+          );
+        }
+      }
+      return;
+    }
+
     // BUFFER: Acumular mensajes antes de procesar
     $requiresBuffering = MessageClassifier::requiresBuffering($messageType);
 
@@ -304,7 +328,9 @@ class InfoproductV2Handler {
         'number' => $person['number']
       ], ['module' => 'infoproduct_v2']);
 
-      $this->processTextMessages([$message], $bot, $person, $chatData);
+      if (!$this->handleQuickReply($message['text'] ?? '', $bot, $person, $chatData)) {
+        $this->processTextMessages([$message], $bot, $person, $chatData);
+      }
       return;
     }
 
@@ -321,7 +347,77 @@ class InfoproductV2Handler {
       'total_messages' => $result['count']
     ], ['module' => 'infoproduct_v2']);
 
-    $this->processTextMessages($result['messages'], $bot, $person, $chatData);
+    $combinedText = trim(implode(' ', array_map(function($m) {
+      return trim($m['text'] ?? '');
+    }, $result['messages'])));
+
+    if (!$this->handleQuickReply($combinedText, $bot, $person, $chatData)) {
+      $this->processTextMessages($result['messages'], $bot, $person, $chatData);
+    }
+  }
+
+  /**
+   * Verifica si el texto coincide con algún trigger de quick_reply_templates del chat.
+   * Si hay coincidencia, envía la plantilla y retorna true.
+   * Si no, retorna false para que el flujo continúe hacia la IA.
+   */
+  private function handleQuickReply(string $text, array $bot, array $person, array $chatData): bool {
+    if ($text === '') return false;
+
+    require_once $this->appPath . '/workflows/infoproduct/handlers/QuickReplyHandler.php';
+
+    $match = QuickReplyHandler::findMatch($text, $chatData);
+    if (!$match) return false;
+
+    ogLog::info("handleQuickReply - Plantilla quick_reply activada", [
+      'text'        => $text,
+      'template_id' => $match['template_id'] ?? '',
+      'number'      => $person['number']
+    ], $this->logMeta);
+
+    $clientId = $chatData['client_id'] ?? null;
+    $saleId   = (int)($chatData['current_sale']['sale_id'] ?? 0);
+
+    ogApp()->loadHandler('chat');
+
+    // Registrar mensaje del cliente (botón pulsado o texto del trigger)
+    if ($clientId) {
+      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $text, 'P', 'text', null, $saleId, false);
+      ChatHandler::addMessage([
+        'number'    => $person['number'],
+        'bot_id'    => $bot['id'],
+        'client_id' => $clientId,
+        'sale_id'   => $saleId,
+        'message'   => $text,
+        'format'    => 'text',
+        'metadata'  => null
+      ], 'P');
+    }
+
+    // Enviar la plantilla
+    QuickReplyHandler::send($match, $person['number'], $bot);
+
+    // Registrar respuesta de la plantilla (bot)
+    if ($clientId) {
+      $templateMessage = $match['message'] ?? '';
+      $metadata = [
+        'action'         => 'quick_reply',
+        'template_id'    => $match['template_id'] ?? '',
+        'template_type'  => $match['template_type'] ?? 'quick_reply'
+      ];
+      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $templateMessage, 'S', 'text', $metadata, $saleId, true);
+      ChatHandler::addMessage([
+        'number'    => $person['number'],
+        'bot_id'    => $bot['id'],
+        'client_id' => $clientId,
+        'sale_id'   => $saleId,
+        'message'   => $templateMessage,
+        'format'    => 'text',
+        'metadata'  => $metadata
+      ], 'S');
+    }
+
+    return true;
   }
 
   private function processImageMessages($messages, $bot, $person, $chatData) {

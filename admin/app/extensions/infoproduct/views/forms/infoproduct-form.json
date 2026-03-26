@@ -194,6 +194,13 @@
                       "placeholder": "i18n:infoproduct.products.field.welcome_messages.buttons.text.placeholder"
                     }
                   ]
+                },
+                {
+                  "name": "footer",
+                  "label": "i18n:infoproduct.products.field.welcome_messages.footer",
+                  "type": "text",
+                  "validation": "max:60",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages.footer.placeholder"
                 }
               ]
             },
@@ -279,6 +286,13 @@
                       "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.buttons.text.placeholder"
                     }
                   ]
+                },
+                {
+                  "name": "footer",
+                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.footer",
+                  "type": "text",
+                  "validation": "max:60",
+                  "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.footer.placeholder"
                 }
               ]
             }
@@ -450,6 +464,13 @@
                       "placeholder": "i18n:infoproduct.products.field.tracking_messages.buttons.text.placeholder"
                     }
                   ]
+                },
+                {
+                  "name": "footer",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.footer",
+                  "type": "text",
+                  "validation": "max:60",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages.footer.placeholder"
                 }
               ]
             },
@@ -615,6 +636,13 @@
                       "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.buttons.text.placeholder"
                     }
                   ]
+                },
+                {
+                  "name": "footer",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.footer",
+                  "type": "text",
+                  "validation": "max:60",
+                  "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.footer.placeholder"
                 }
               ]
             },
@@ -776,6 +804,10 @@
                         {
                           "value": "link_media",
                           "label": "i18n:infoproduct.products.field.templates.template_type.link_media"
+                        },
+                        {
+                          "value": "quick_reply",
+                          "label": "i18n:infoproduct.products.field.templates.template_type.quick_reply"
                         }
                       ]
                     },
@@ -789,6 +821,21 @@
                       "transform": "slug"
                     }
                   ]
+                },
+                {
+                  "name": "quick_reply_trigger",
+                  "label": "i18n:infoproduct.products.field.templates.quick_reply_trigger",
+                  "type": "text",
+                  "placeholder": "i18n:infoproduct.products.field.templates.quick_reply_trigger.placeholder",
+                  "hint": "i18n:infoproduct.products.field.templates.quick_reply_trigger.hint",
+                  "condition": [
+                    {
+                      "field": "template_type",
+                      "operator": "==",
+                      "value": "quick_reply"
+                    }
+                  ],
+                  "conditionContext": "repeatable"
                 },
                 {
                   "name": "message",
@@ -844,6 +891,13 @@
                       "placeholder": "i18n:infoproduct.products.field.templates.buttons.text.placeholder"
                     }
                   ]
+                },
+                {
+                  "name": "footer",
+                  "label": "i18n:infoproduct.products.field.templates.footer",
+                  "type": "text",
+                  "validation": "max:60",
+                  "placeholder": "i18n:infoproduct.products.field.templates.footer.placeholder"
                 }
               ]
             }

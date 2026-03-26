@@ -133,6 +133,10 @@
               "label": "Texto del Botón",
               "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
             }
+          },
+          "footer": {
+            "label": "Pie de Mensaje",
+            "placeholder": "Ej: Oferta válida por tiempo limitado (máx. 60 caracteres)"
           }
         },
         "welcome_messages_upsell": {
@@ -162,6 +166,10 @@
               "label": "Texto del Botón",
               "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
             }
+          },
+          "footer": {
+            "label": "Pie de Mensaje",
+            "placeholder": "Ej: Oferta válida por tiempo limitado (máx. 60 caracteres)"
           }
         },
         "tracking_messages": {
@@ -195,6 +203,10 @@
               "label": "Texto del Botón",
               "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
             }
+          },
+          "footer": {
+            "label": "Pie de Mensaje",
+            "placeholder": "Ej: Oferta válida por tiempo limitado (máx. 60 caracteres)"
           },
           "time_type": {
             "label": "Tipo de Tiempo",
@@ -247,6 +259,10 @@
               "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
             }
           },
+          "footer": {
+            "label": "Pie de Mensaje",
+            "placeholder": "Ej: Oferta válida por tiempo limitado (máx. 60 caracteres)"
+          },
           "time_type": {
             "label": "Tipo de Tiempo",
             "minute": "Minuto",
@@ -274,7 +290,13 @@
             "link_product": "Link Producto",
             "link_payment_method": "Link Método de Pago",
             "link_review": "Link Reseña",
-            "link_media": "Link Media"
+            "link_media": "Link Media",
+            "quick_reply": "Respuesta Rápida"
+          },
+          "quick_reply_trigger": {
+            "label": "Lanzador de Plantilla",
+            "placeholder": "Ej: quiero el link de pago | dame el link",
+            "hint": "Texto exacto que activa esta plantilla. Para múltiples disparadores sepáralos con | (Ej: banco pichincha | pago pichincha)"
           },
           "message": {
             "label": "Mensaje",
@@ -296,6 +318,10 @@
               "label": "Texto del Botón",
               "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
             }
+          },
+          "footer": {
+            "label": "Pie de Mensaje",
+            "placeholder": "Ej: Oferta válida por tiempo limitado (máx. 60 caracteres)"
           },
           "template_id": {
             "label": "Plantilla ID",
