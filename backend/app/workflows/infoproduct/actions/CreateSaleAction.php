@@ -82,7 +82,6 @@ class CreateSaleAction {
       $dir = dirname($exchangeJsonPath);
       if (!is_dir($dir)) mkdir($dir, 0755, true);
       file_put_contents($exchangeJsonPath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-      ogLog::info('CreateSaleAction - Exchange rate generado vía fallback', [], self::$logMeta);
       return $payload;
     });
 
@@ -90,13 +89,6 @@ class CreateSaleAction {
     $usdRate    = (float)($exchangeData['rates'][$countryCode]['usd_rate'] ?? 1.0);
     $usdPrice   = round($localPrice * $usdRate, 2);
 
-    ogLog::info('CreateSaleAction - Conversión de moneda', [
-      'country_code'  => $countryCode,
-      'currency_code' => $currencyCode,
-      'local_price'   => $localPrice,
-      'usd_price'     => $usdPrice,
-      'usd_rate'      => $usdRate,
-    ], self::$logMeta);
 
     ogApp()->loadHandler('client');
     $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device, $userId, $bsuid);
@@ -116,7 +108,6 @@ class CreateSaleAction {
 
     // Detectar origen
     $origin = self::detectOrigin($context, $isUpsell, $parentSaleId);
-    ogLog::info("CreateSaleAction - Origen de la venta detectado: {$origin}", [], self::$logMeta);
 
     $saleData = [
       'user_id' => $userId,

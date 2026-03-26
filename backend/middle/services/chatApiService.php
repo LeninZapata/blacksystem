@@ -27,10 +27,6 @@ class chatApiService {
     self::$config = array_values($filtered);
     self::$provider = $providerType;
 
-    ogLog::info('setProvider - Provider configurado', [
-      'provider' => $providerType,
-      'total_apis' => count(self::$config)
-    ], self::$logMeta);
   }
 
   static function getProvider() {
@@ -103,8 +99,6 @@ class chatApiService {
     $provider = self::detect($rawData);
 
     if (!$provider) return null;
-
-    ogLog::info('detectAndNormalize - Provider detectado', ['provider' => $provider], self::$logMeta);
 
     return self::normalizeRaw($rawData, $provider);
   }
@@ -272,9 +266,6 @@ class chatApiService {
     // Sin ventana aún: cliente existe pero open_chat no se registró todavía.
     // Ocurre durante el welcome (cliente recién creado en msg 1, ventana se abre al final).
     if (empty($meta)) {
-      ogLog::info('validateChatWindow - Sin ventana registrada, permitiendo envío (welcome en curso)', [
-        'number' => $number, 'bot_id' => $botId
-      ], self::$logMeta);
       return;
     }
 
@@ -284,10 +275,6 @@ class chatApiService {
         'number' => $number, 'bot_id' => $botId, 'expired_at' => $expiry
       ], self::$logMeta);
     }
-
-    ogLog::info('validateChatWindow - Ventana válida', [
-      'number' => $number, 'bot_id' => $botId, 'expires_at' => $expiry
-    ], self::$logMeta);
   }
 
   // Enviar mensaje interactivo (botones, listas) — solo WhatsApp Cloud API lo soporta.
@@ -392,12 +379,8 @@ class chatApiService {
       'business_account_id' => $apiConfig['config']['business_account_id'] ?? '',
     ];
 
-    ogLog::info('getProviderInstance - Config extraído', ['type' => $type, 'config' => $config, 'apiConfig' => $apiConfig], self::$logMeta);
-
     // Cargar provider bajo demanda según el tipo
     $provider = self::loadProvider($type, $config);
-    
-    ogLog::info('getProviderInstance - Provider cargado', ['provider_type' => $type, 'provider_class' => get_class($provider)], self::$logMeta);
 
     self::$providers[$cacheKey] = $provider;
     return $provider;
@@ -462,11 +445,7 @@ class chatApiService {
       ogLog::throwError( 'loadProvider - ' . __('services.ogChatApi.provider_class_not_found', ['class' => $providerClass]), [], self::$logMeta);
     }
 
-    ogLog::info('loadProvider - Creando instancia del provider', ['class' => $providerClass, 'config_keys' => array_keys($config)], self::$logMeta);
-
     $instance = new $providerClass($config);
-    
-    ogLog::info('loadProvider - Instancia creada', ['class' => $providerClass, 'instance_class' => get_class($instance)], self::$logMeta);
 
     return $instance;
   }

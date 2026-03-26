@@ -64,8 +64,6 @@ class InfoproductV2Handler {
   private $followupMinutesAfter = 15;
 
   public function __construct() {
-    ogLog::info("__construct - Inicio", [], $this->logMeta);
-
     $this->appPath = ogApp()->getPath();
     $this->actionDispatcher = new ActionDispatcher();
 
@@ -73,8 +71,6 @@ class InfoproductV2Handler {
     FollowupHandler::setAllowedHours($this->followupStartHour, $this->followupEndHour);
     FollowupHandler::setMinutesVariation($this->followupMinutesBefore, $this->followupMinutesAfter);
     $this->registerActionHandlers();
-
-    ogLog::info("__construct - ActionHandlers registrados", [], $this->logMeta);
   }
 
   private function registerActionHandlers() {
@@ -83,13 +79,10 @@ class InfoproductV2Handler {
   }
 
   public function handle($webhook) {
-    ogLog::info("handle - Inicio", [],  $this->logMeta);
-
     // FILTRO: Ignorar eventos de tipo "presence"
     $event = $webhook['normalized']['body']['event'] ?? null;
 
     if ($event && ($event === 'presence.update' || stripos($event, 'presence') !== false)) {
-      ogLog::info("handle - Evento presence detectado, ignorando", [ 'event' => $event ], $this->logMeta);
       return;
     }
 
@@ -102,23 +95,12 @@ class InfoproductV2Handler {
 
     // FILTRO: Ignorar mensajes enviados por el propio bot/agente (fromMe=true)
     if ($person['is_me'] ?? false) {
-      ogLog::info("handle - Mensaje propio (fromMe=true), ignorando", [
-        'number' => $person['number'] ?? 'N/A',
-        'message_type' => $message['type'] ?? 'unknown'
-      ], $this->logMeta);
       return;
     }
 
     // ✅ 1. DETECTAR ORIGEN DEL WEBHOOK
     $webhookProvider = $standard['webhook']['provider'] ?? 'evolution';
     $webhookSource = $standard['webhook']['source'] ?? 'unknown';
-
-    ogLog::info("handle - Webhook recibido", [
-      'webhook_provider' => $webhookProvider,
-      'webhook_source' => $webhookSource,
-      'number' => $person['number'] ?? 'N/A',
-      'message_type' => $message['type'] ?? 'unknown'
-    ], $this->logMeta);
 
     if (!$botNumber) {
       ogLog::throwError("handle - Bot number missing in webhook", $bot ?? null, $this->logMeta);
@@ -139,26 +121,19 @@ class InfoproductV2Handler {
     if ($userId) {
       ogApp()->handler('chat')::setUserId($userId);
       ogApp()->handler('followup')::setUserId($userId);
-      ogLog::info("handle - user_id establecido globalmente", [ 'user_id' => $userId, 'bot_id' => $bot['id'] ], $this->logMeta);
     } else {
       ogLog::warning("handle - Bot sin user_id", [ 'bot_id' => $bot['id'] ?? 'N/A', 'bot_number' => $botNumber ], $this->logMeta);
     }
 
     $bot['prompt_recibo'] = $this->prompt_recibo;
     $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
-    ogLog::info("handle - Bot data cargado", [ 'bot_id' => $bot['id'] ?? 'N/A' ], $this->logMeta );
 
     $messageType = MessageClassifier::classify($message);
-    ogLog::info("handle - Mensaje clasificado", [ 'type' => $messageType, 'person number' => $person['number'] ?? 'N/A' ], $this->logMeta);
-
     $clientKey = $this->clientKey($person);
     $hasConversation = ConversationValidator::quickCheck( $clientKey, $bot['id'], $this->maxConversationDays );
-    ogLog::info("handle - Conversación activa verificada", [ 'has_conversation' => $hasConversation['exists'] ?? false, 'messages_count' => isset($hasConversation['chat']['messages']) ? count($hasConversation['chat']['messages']) : null ], $this->logMeta);
 
     // ✅ 2. DETECTAR WELCOME
-    ogLog::info("handle - Detectando welcome", [], $this->logMeta);
     $welcomeCheck = WelcomeValidator::detect($bot, $message, $context, $hasConversation['chat'] ?? null);
-    ogLog::info("handle - Resultado de welcome detection", [ 'welcome_check' => $welcomeCheck ], $this->logMeta);
 
     if ( ($welcomeCheck['is_welcome'] && !$hasConversation['exists']) || ($welcomeCheck['is_welcome_diff_product'] && $hasConversation['exists']) ) {
       // Provider real del bot (para filtrar el webhook — siempre del config)
@@ -166,19 +141,8 @@ class InfoproductV2Handler {
       // Provider de envío (puede ser forzado para testing)
       $selectedProvider = $this->forcedProvider ?? $botProvider;
 
-      ogLog::info("handle - Welcome detectado", [
-        'product_id' => $welcomeCheck['product_id'],
-        'bot_provider' => $botProvider,
-        'send_provider' => $selectedProvider,
-        'has_active_conversation' => $hasConversation['exists']
-      ], $this->logMeta);
-
       // Verificar si debe procesarse según el provider REAL del bot (no el forzado)
       if (!$this->shouldProcessWebhook($webhookProvider, $botProvider)) {
-        ogLog::info("handle - Welcome descartado (webhook incorrecto)", [
-          'webhook_source' => $webhookSource,
-          'bot_provider' => $botProvider
-        ], $this->logMeta);
         return;
       }
 
@@ -187,12 +151,6 @@ class InfoproductV2Handler {
 
       $welcomeResult = $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
 
-      // Mismo producto < 48h → ignorar (bienvenida ya enviada por otro proceso)
-      if ($welcomeResult['redirected_to_conversation'] ?? false) {
-        ogLog::info("handle - Welcome ignorado (mismo producto < 48h, bienvenida ya enviada)", [
-          'number' => $person['number'], 'product_id' => $welcomeCheck['product_id']
-        ], $this->logMeta);
-      }
       return;
     }
 
@@ -213,23 +171,12 @@ class InfoproductV2Handler {
       // Configurar servicio con el provider de envio
       $this->configureChatProvider($bot, $sendProvider);
 
-      ogLog::info("handle - No es welcome ➞ Continuar conversación", [
-        'bot_provider'  => $correctProvider,
-        'send_provider' => $sendProvider,
-        'webhook_provider' => $webhookProvider
-      ], $this->logMeta);
-
       $this->continueConversation($bot, $person, $message, $messageType);
       return;
     }
-
-    ogLog::info("No hacer nada, no hay conversacion iniciada y no es un welcome", [
-      'number' => $person['number']
-    ], ['module' => 'infoproduct_v2']);
   }
 
   private function continueConversation($bot, $person, $message, $messageType) {
-    ogLog::info("continueConversation - INICIO", [], ['module' => 'infoproduct_v2']);
 
     $chatData = ConversationValidator::getChatData($this->clientKey($person), $bot['id']);
 
@@ -237,11 +184,6 @@ class InfoproductV2Handler {
     $isImage = strtoupper($messageType) === 'IMAGE';
 
     if ($isImage) {
-      ogLog::info("continueConversation - Imagen detectada, procesando SIN buffer", [
-        'number' => $person['number'], 
-        'bypass_reason' => 'image_type'
-      ], ['module' => 'infoproduct_v2']);
-
       $this->processImageMessages([$message], $bot, $person, $chatData);
       return;
     }
@@ -250,11 +192,6 @@ class InfoproductV2Handler {
     $isDocument = strtoupper($messageType) === 'DOCUMENT';
 
     if ($isDocument) {
-      ogLog::info("continueConversation - Documento detectado, rechazando", [
-        'number' => $person['number'],
-        'reject_reason' => 'document_not_supported'
-      ], ['module' => 'infoproduct_v2']);
-
       $this->processDocumentMessages([$message], $bot, $person, $chatData);
       return;
     }
@@ -263,10 +200,6 @@ class InfoproductV2Handler {
     $isVideo = strtoupper($messageType) === 'VIDEO';
 
     if ($isVideo) {
-      ogLog::info("continueConversation - Video detectado", [
-        'number' => $person['number']
-      ], ['module' => 'infoproduct_v2']);
-
       $this->processVideoMessages([$message], $bot, $person, $chatData);
       return;
     }
@@ -275,10 +208,6 @@ class InfoproductV2Handler {
     $isSticker = strtoupper($messageType) === 'STICKER';
 
     if ($isSticker) {
-      ogLog::info("continueConversation - Sticker detectado, rechazando", [
-        'number' => $person['number']
-      ], ['module' => 'infoproduct_v2']);
-
       $this->processStickerMessages([$message], $bot, $person, $chatData);
       return;
     }
@@ -287,10 +216,6 @@ class InfoproductV2Handler {
     $isReaction = strtoupper($messageType) === 'REACTION';
 
     if ($isReaction) {
-      ogLog::info("continueConversation - Reaction detectada, rechazando", [
-        'number' => $person['number']
-      ], ['module' => 'infoproduct_v2']);
-
       $this->processReactionMessages([$message], $bot, $person, $chatData);
       return;
     }
@@ -301,11 +226,6 @@ class InfoproductV2Handler {
     if ($isInteractive) {
       require_once $this->appPath . '/workflows/infoproduct/handlers/QuickReplyHandler.php';
       $buttonText = QuickReplyHandler::extractInteractiveText($message);
-
-      ogLog::info("continueConversation - Mensaje interactivo (botón pulsado)", [
-        'button_text' => $buttonText,
-        'number'      => $person['number']
-      ], ['module' => 'infoproduct_v2']);
 
       if ($buttonText !== '') {
         if (!$this->handleQuickReply($buttonText, $bot, $person, $chatData)) {
@@ -323,11 +243,6 @@ class InfoproductV2Handler {
     $requiresBuffering = MessageClassifier::requiresBuffering($messageType);
 
     if (!$requiresBuffering) {
-      ogLog::info("continueConversation - Mensaje no requiere buffering, procesando directamente", [
-        'message_type' => $messageType,
-        'number' => $person['number']
-      ], ['module' => 'infoproduct_v2']);
-
       if (!$this->handleQuickReply($message['text'] ?? '', $bot, $person, $chatData)) {
         $this->processTextMessages([$message], $bot, $person, $chatData);
       }
@@ -339,13 +254,8 @@ class InfoproductV2Handler {
     $result = $buffer->process($this->clientKey($person), $bot['id'], $message);
 
     if ($result === null) {
-      ogLog::info("continueConversation - Mensaje agregado a buffer, esperando más", [], ['module' => 'infoproduct_v2']);
       return;
     }
-
-    ogLog::info("continueConversation - Buffer completado, procesando mensajes", [
-      'total_messages' => $result['count']
-    ], ['module' => 'infoproduct_v2']);
 
     $combinedText = trim(implode(' ', array_map(function($m) {
       return trim($m['text'] ?? '');
@@ -421,7 +331,6 @@ class InfoproductV2Handler {
   }
 
   private function processImageMessages($messages, $bot, $person, $chatData) {
-    ogLog::info("processImageMessages - INICIO", [], ['module' => 'infoproduct_v2']);
 
     require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/processors/ImageMessageProcessor.php';
@@ -452,7 +361,6 @@ class InfoproductV2Handler {
   }
 
   private function processDocumentMessages($messages, $bot, $person, $chatData) {
-    ogLog::info("processDocumentMessages - INICIO", [], ['module' => 'infoproduct_v2']);
 
     require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/processors/DocumentMessageProcessor.php';
@@ -471,13 +379,9 @@ class InfoproductV2Handler {
       return;
     }
 
-    ogLog::info("processDocumentMessages - Documento rechazado exitosamente", [
-      'caption' => $result['caption'] ?? ''
-    ], ['module' => 'infoproduct_v2']);
   }
 
   private function processVideoMessages($messages, $bot, $person, $chatData) {
-    ogLog::info("processVideoMessages - INICIO", [], ['module' => 'infoproduct_v2']);
 
     require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/processors/VideoMessageProcessor.php';
@@ -498,12 +402,8 @@ class InfoproductV2Handler {
 
     // Si el video NO tiene caption → No responder
     if (isset($result['no_response']) && $result['no_response']) {
-      ogLog::info("processVideoMessages - Video sin caption registrado, sin respuesta", [], ['module' => 'infoproduct_v2']);
       return;
     }
-
-    // Si tiene caption → Procesar como texto con IA
-    ogLog::info("processVideoMessages - Video con caption, procesando con IA", [], ['module' => 'infoproduct_v2']);
 
     require_once $this->appPath . '/workflows/infoproduct/strategies/ConversationStrategyInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/strategies/ActiveConversationStrategy.php';
@@ -530,7 +430,6 @@ class InfoproductV2Handler {
   }
 
   private function processStickerMessages($messages, $bot, $person, $chatData) {
-    ogLog::info("processStickerMessages - INICIO", [], ['module' => 'infoproduct_v2']);
 
     require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/processors/StickerMessageProcessor.php';
@@ -549,11 +448,9 @@ class InfoproductV2Handler {
       return;
     }
 
-    ogLog::info("processStickerMessages - Sticker rechazado exitosamente", [], ['module' => 'infoproduct_v2']);
   }
 
   private function processReactionMessages($messages, $bot, $person, $chatData) {
-    ogLog::info("processReactionMessages - INICIO", [], ['module' => 'infoproduct_v2']);
 
     require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/processors/ReactionMessageProcessor.php';
@@ -572,11 +469,9 @@ class InfoproductV2Handler {
       return;
     }
 
-    ogLog::info("processReactionMessages - Reaction ignorada exitosamente", [], ['module' => 'infoproduct_v2']);
   }
 
   private function processTextMessages($messages, $bot, $person, $chatData) {
-    ogLog::info("processTextMessages - INICIO", [], ['module' => 'infoproduct_v2']);
 
     require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/processors/TextMessageProcessor.php';
@@ -617,9 +512,7 @@ class InfoproductV2Handler {
     require_once $this->appPath . '/workflows/infoproduct/strategies/WelcomeStrategy.php';
 
     $strategy = new WelcomeStrategy();
-    $result = $strategy->execute([ 'bot' => $bot, 'person' => $person, 'message' => $message, 'context' => $context, 'product_id' => $welcomeCheck['product_id'] ]);
-    ogLog::info("executeWelcome - FIN", [], $this->logMeta);
-    return $result;
+    return $strategy->execute([ 'bot' => $bot, 'person' => $person, 'message' => $message, 'context' => $context, 'product_id' => $welcomeCheck['product_id'] ]);
   }
 
   // ========================================
@@ -636,11 +529,6 @@ class InfoproductV2Handler {
    * @param int   $productId ID del producto al que dar la bienvenida
    */
   public function forceWelcome(array $bot, array $person, int $productId): void {
-    ogLog::info("forceWelcome - INICIO", [
-      'bot_id'     => $bot['id'],
-      'product_id' => $productId,
-      'phone'      => $person['number'],
-    ], $this->logMeta);
 
     // ── Cargar bot completo desde JSON (con credenciales resueltas) ────────
     // Igual que handle() hace con BotHandler::getDataFile($botNumber)
@@ -689,11 +577,6 @@ class InfoproductV2Handler {
 
     $this->executeWelcome($bot, $person, $message, $context, $welcomeCheck);
 
-    ogLog::info("forceWelcome - FIN", [
-      'bot_id'     => $bot['id'],
-      'product_id' => $productId,
-      'phone'      => $person['number'],
-    ], $this->logMeta);
   }
 
   // ========================================
@@ -709,11 +592,6 @@ class InfoproductV2Handler {
     // Provider real del bot desde config (para filtro de webhook)
     $botProvider = $bot['config']['apis']['chat'][0]['config']['type_value'] ?? self::PROVIDER_EVOLUTION;
 
-    ogLog::info("selectChatProvider - Provider resuelto", [
-      'bot_provider'    => $botProvider,
-      'forced_provider' => $this->forcedProvider,
-      'bot_id'          => $bot['id'] ?? null
-    ], $this->logMeta);
 
     // NOTA: Para WhatsApp Cloud API existe ventana de conversación gratuita:
     //   - Apertura por bienvenida/anuncio (welcome): 72 horas
@@ -731,14 +609,6 @@ class InfoproductV2Handler {
    */
   private function shouldProcessWebhook($webhookProvider, $correctProvider) {
     $shouldProcess = $webhookProvider === $correctProvider;
-
-    if (!$shouldProcess) {
-      ogLog::info("shouldProcessWebhook - Webhook descartado", [
-        'webhook_provider' => $webhookProvider,
-        'correct_provider' => $correctProvider,
-        'reason' => 'provider_mismatch'
-      ], $this->logMeta);
-    }
 
     return $shouldProcess;
   }
@@ -764,9 +634,5 @@ class InfoproductV2Handler {
     // Filtrar solo el provider específico
     $chatapi::setProvider($provider);
 
-    ogLog::info("configureChatProvider - ChatAPI configurado", [
-      'provider' => $provider,
-      'bot_id' => $bot['id'] ?? null
-    ], $this->logMeta);
   }
 }

@@ -17,47 +17,20 @@ class MessageBuffer {
     $bufferFile = $this->getBufferFile($number, $botId);
     $buffer = $this->readBuffer($bufferFile);
 
-    ogLog::info('Buffer - process() llamado', [
-      'number' => $number,
-      'bot_id' => $botId,
-      'buffer_exists' => $buffer !== null,
-      'buffer_expired' => $buffer ? $this->hasExpired($buffer) : null,
-      'buffer_file' => basename($bufferFile)
-    ], ['module' => 'buffer']);
-
     if ($buffer && !$this->hasExpired($buffer)) {
       $buffer['messages'][] = $message;
       $buffer['last_update'] = time();
       $this->writeBuffer($bufferFile, $buffer);
-
-      ogLog::info('Buffer - Mensaje agregado a buffer activo', [
-        'number' => $number,
-        'total_messages' => count($buffer['messages']),
-        'time_since_first' => time() - $buffer['first_time'],
-        'seconds_since_last_update' => 0
-      ], ['module' => 'buffer']);
-      
       return null;
     }
 
     if ($buffer) {
       $accumulated = $buffer['messages'];
       @unlink($bufferFile);
-
-      ogLog::info('Buffer - Expirado, procesando mensajes acumulados', [
-        'number' => $number,
-        'total' => count($accumulated)
-      ], ['module' => 'buffer']);
-      
       return $this->prepareMessages($accumulated);
     }
 
     $this->createBuffer($bufferFile, $message);
-    
-    ogLog::info('Buffer - Primer mensaje, iniciando espera de ' . $this->delaySeconds . 's', [
-      'number' => $number,
-      'bot_id' => $botId
-    ], ['module' => 'buffer']);
 
     return $this->waitAndProcess($bufferFile);
   }
@@ -83,33 +56,13 @@ class MessageBuffer {
       $timeSinceLast = $now - $buffer['last_update'];
       $timeSinceStart = $now - $startTime;
 
-      ogLog::info('Buffer - Esperando mensajes', [
-        'iteration' => $iteration,
-        'messages_count' => count($buffer['messages']),
-        'seconds_since_last_message' => $timeSinceLast,
-        'total_wait_time' => $timeSinceStart,
-        'delay_threshold' => $this->delaySeconds
-      ], ['module' => 'buffer']);
-
       if ($timeSinceLast >= $this->delaySeconds) {
         @unlink($bufferFile);
-        
-        ogLog::success('Buffer - Timer completado, procesando ' . count($buffer['messages']) . ' mensajes', [
-          'total_messages' => count($buffer['messages']),
-          'total_wait_time' => $timeSinceStart
-        ], ['module' => 'buffer']);
-        
         return $this->prepareMessages($buffer['messages']);
       }
 
       if ($timeSinceStart > 60) {
         @unlink($bufferFile);
-        
-        ogLog::warning('Buffer - Timeout alcanzado, procesando buffer', [
-          'messages_count' => count($buffer['messages']),
-          'total_wait_time' => $timeSinceStart
-        ], ['module' => 'buffer']);
-        
         return $this->prepareMessages($buffer['messages']);
       }
     }
@@ -165,10 +118,6 @@ class MessageBuffer {
       }
     }
 
-    if ($cleaned > 0) {
-      ogLog::info('Buffers antiguos limpiados', [
-        'count' => $cleaned
-      ], ['module' => 'buffer']);
-    }
+    // cleaned silently
   }
 }

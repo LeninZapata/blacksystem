@@ -15,30 +15,19 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     // Detectar si ya existe conversación previa (sin límite de días)
     $existingChat = $this->checkExistingConversation($person['number'], $bot['id']);
-    ogLog::info("checkExistingConversation - Buscando conversación previa", $existingChat, $this->logMeta);
 
     if (! empty( $existingChat )) {
-      // Ya tiene conversación previa
-      ogLog::info("execute - Conversación previa detectada", null, $this->logMeta);
       $alreadyPurchased = $this->hasAlreadyPurchased($existingChat, $productId);
 
       if ($alreadyPurchased) {
-        // CASO 1: Mismo producto ya comprado → Re-welcome (sin venta)
-        ogLog::info("execute - CASO: Re-welcome (producto ya comprado)", [ 'action' => 'send_welcome_without_creating_sale' ], $this->logMeta);
         return $this->handleReWelcome($bot, $person, $product, $existingChat, $rawContext);
       }
 
       // CASO 2: Mismo producto, no comprado, conversación < 48h → derivar a conversación activa
       $sameProductPending = $this->hasSameProductPending($existingChat, $productId);
       if ($sameProductPending && $this->isWithin48Hours($existingChat)) {
-        ogLog::info("execute - CASO: Mismo producto pendiente < 48h, derivando a conversación activa", [
-          'number' => $person['number'], 'product_id' => $productId
-        ], $this->logMeta);
         return ['success' => true, 'redirected_to_conversation' => true];
       }
-
-      // CASO 3: Producto diferente (o mismo producto pero conversación > 48h) → Nueva venta
-      ogLog::info("execute - CASO: Nueva venta (cliente existente)", [ 'number' => $person['number'], 'new_product_id' => $productId, 'action' => 'crear_nueva_venta' ], $this->logMeta);
 
       // El usuario escribió → Meta ya abrió ventana nueva. Refrescar antes de enviar
       // para que validateChatWindow no rechace la ventana expirada de la sesión anterior.
@@ -49,8 +38,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
     }
 
-    // CASO 3: Cliente completamente nuevo → Nueva venta
-    ogLog::info("WelcomeStrategy - CASO: Cliente nuevo", [ 'number' => $person['number'], 'product_id' => $productId, 'action' => 'crear_primera_venta' ], $this->logMeta);
     return $this->handleNewProductWelcome($bot, $person, $product, $productId, $rawContext);
   }
 
@@ -90,7 +77,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
   }
 
   private function handleReWelcome($bot, $person, $product, $existingChat, $rawContext = []) {
-    ogLog::info("handleReWelcome - INICIO", ['product_id' => $product['id']], $this->logMeta);
 
     ogApp()->loadHandler('product');
     $messages = ProductHandler::getMessagesFile('welcome', $product['id']);
@@ -182,7 +168,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
       $this->openChatWindow($reWelcomeClientId, $bot['id'], $bot['config'] ?? [], $rawContext);
     }
 
-    ogLog::info("handleReWelcome - Completado", ['messages_sent' => $messagesSent, 'chat_rebuilt' => true], $this->logMeta);
 
     return [
       'success' => true,
@@ -201,7 +186,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
     require_once $appPath . '/workflows/infoproduct/actions/SendWelcomeAction.php';
 
     $welcomeResult = SendWelcomeAction::send($dataSale);
-    ogLog::info("Welcome result", $welcomeResult, $this->logMeta);
     if (!$welcomeResult['success']) {
       ogLog::error("handleNewProductWelcome - Error enviando bienvenida", [ 'product_id' => $productId, 'error' => $welcomeResult['error'] ?? 'Desconocido' ], $this->logMeta);
       return [ 'success' => false, 'error' => $welcomeResult['error'] ?? 'Error enviando bienvenida' ];
@@ -212,7 +196,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     if ($clientId && $saleId) {
       $this->registerStartSale($bot, $person, $product, $clientId, $saleId, $welcomeResult);
-      ogLog::info("handleNewProductWelcome - Chats registrados (DB + JSON)", [ 'client_id' => $clientId, 'sale_id' => $saleId, 'product_id' => $productId ], $this->logMeta);
     }
 
     // Inicializar unread_count = 0 en client_bot_meta (para que el badge funcione desde el primer mensaje del cliente)
@@ -228,7 +211,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
 
     ogApp()->loadHandler('chat');
     ChatHandler::rebuildFromDB($person['number'], $bot['id']);
-    ogLog::info("handleNewProductWelcome - Completado ➜ Chat reconstruido desde BD", [ 'number' => $person['number'], 'bot_id' => $bot['id'],  'sale_id' => $saleId, 'messages_sent' => $welcomeResult['messages_sent'], 'chat_rebuilt' => true ], $this->logMeta);
 
     return [
       'success' => true,

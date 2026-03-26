@@ -45,7 +45,6 @@ class SendWelcomeAction {
     // Calcular plan simplificado
     $delayPlan = self::calculateSimplePlan($messages, $bot);
 
-    ogLog::info("send - Plan de delays calculado", $delayPlan, self::$logMeta);
 
     // Sleep inicial crudo
     sleep(1);

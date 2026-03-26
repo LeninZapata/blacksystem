@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''d:/laragon/www/blacksystem/blacksystem/admin/app/extensions/infoproduct/views/forms/infoproduct-form.json'', ''utf8''\\)\\); console.log\\(''infoproduct-form.json OK''\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''d:/laragon/www/blacksystem/blacksystem/admin/app/extensions/infoproduct/lang/es.json'',''utf8''\\)\\); console.log\\(''es.json OK''\\)\")",
-      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''d:/laragon/www/blacksystem/blacksystem/admin/app/extensions/infoproduct/views/forms/infoproduct-form.json'',''utf8''\\)\\); console.log\\(''form.json OK''\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''d:/laragon/www/blacksystem/blacksystem/admin/app/extensions/infoproduct/views/forms/infoproduct-form.json'',''utf8''\\)\\); console.log\\(''form.json OK''\\)\")",
+      "Bash(grep -rn \"detectProduct\\\\|trigger check\\\\|activators cargados\" d:/laragon/www/blacksystem/blacksystem --include=*.php)"
     ]
   }
 }

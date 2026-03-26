@@ -4,7 +4,6 @@ class ConversationValidator {
   private static $logMeta = ['module' => 'ConversationValidator', 'layer' => 'app/workflows'];
   static function quickCheck($number, $botId, $maxDays = 2) {
     $chat = ogApp()->handler('chat')::getChat($number, $botId, false, false);
-    ogLog::info("quickCheck - chat", [$chat], self::$logMeta);
     return [
       'exists' => $chat !== null,
       'chat' => $chat,

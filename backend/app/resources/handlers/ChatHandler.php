@@ -210,11 +210,6 @@ class ChatHandler {
   // AHORA INCLUYE user_id EN LA CABECERA
   static function rebuildFromDB($number, $botId) {
     try {
-      ogLog::info("rebuildFromDB - INICIO", [
-        'number' => $number,
-        'bot_id' => $botId
-      ], self::$logMeta);
-
       // Obtener todos los mensajes de la BD
       $messages = ogDb::t('chats')
         ->where('client_number', $number)
@@ -224,10 +219,6 @@ class ChatHandler {
         ->get();
 
       if (empty($messages)) {
-        ogLog::info("rebuildFromDB - No hay mensajes para reconstruir", [
-          'number' => $number,
-          'bot_id' => $botId
-        ], self::$logMeta);
         return null;
       }
 
@@ -239,9 +230,6 @@ class ChatHandler {
         $userId = self::resolveUserId($botId);
       }
 
-      ogLog::info("rebuildFromDB - user_id detectado", [
-        'user_id' => $userId
-      ], self::$logMeta);
 
       $clientId = $messages[0]['client_id'] ?? null;
       $conversationStarted = $messages[0]['dc'] ?? null;
@@ -401,7 +389,6 @@ class ChatHandler {
       $file = ogApp()->helper('file');
       $file->saveJson($chatFile, $chat, 'chat', 'rebuild');
 
-      ogLog::success("rebuildFromDB - Chat reconstruido exitosamente", [ 'number' => $number, 'bot_id' => $botId, 'user_id' => $userId, 'total_messages' => $chat['summary']['total_messages'], 'current_sale' => $chat['current_sale'] ? $chat['current_sale']['sale_id'] : null ], self::$logMeta);
 
       return $chat;
 

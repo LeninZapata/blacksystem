@@ -227,12 +227,6 @@ class ClientHandler {
           ->where('id', $existing['id'])
           ->update($updateData);
 
-        ogLog::info("registerOrUpdate - Cliente actualizado", [
-          'client_id' => $existing['id'],
-          'number' => $number,
-          'bsuid' => $bsuid
-        ], self::$logMeta);
-
         return [
           'success' => true,
           'client_id' => $existing['id'],
@@ -256,13 +250,6 @@ class ClientHandler {
       ];
 
       $clientId = ogDb::t('clients')->insert($clientData);
-
-      ogLog::info("registerOrUpdate - Cliente creado", [
-        'client_id' => $clientId,
-        'number' => $number,
-        'bsuid' => $bsuid,
-        'user_id' => $userId
-      ], self::$logMeta);
 
       return [
         'success' => true,

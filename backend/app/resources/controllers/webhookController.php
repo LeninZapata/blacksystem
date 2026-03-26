@@ -9,9 +9,6 @@ class WebhookController {
       if ($this->isAdWebhook($rawData)) {
         $this->saveRawWebhook($rawData, 'wa');
       }
-      ogLog::info('whatsapp - Webhook recibido', [], $this->logMeta);
-      // ogLog::info('whatsapp - Webhook recibido RAW', $rawData, $this->logMeta);
-
       // Cargar servicio chatApi bajo demanda
       $chatapi = ogApp()->service('chatApi');
 
@@ -20,7 +17,6 @@ class WebhookController {
       if (!$detectedProvider) {
         ogResponse::json(['success' => false, 'error' => 'Provider no detectado'], 400);
       }
-      ogLog::info('whatsapp - Provider detectado', ['provider' => $detectedProvider], $this->logMeta);
 
       // PASO 2: Extraer número del bot desde el payload crudo (sin normalizar)
       $botNumber = $chatapi->extractSenderFromRaw($rawData, $detectedProvider);
@@ -34,7 +30,6 @@ class WebhookController {
       if (!$bot) {
         ogResponse::json(['success' => false, 'error' => "Bot no encontrado: {$botNumber}"], 404);
       }
-      ogLog::info('whatsapp - Bot encontrado', ['bot_number' => $bot['number'], 'bot_name' => $bot['name'] ?? null], $this->logMeta);
 
       // PASO 4: Configurar el servicio con los datos del bot
       // (debe ocurrir ANTES de normalizar para que la descarga de media tenga acceso al access_token)
@@ -58,10 +53,6 @@ class WebhookController {
       // FILTRO: Ignorar eventos de status (sent, delivered, read)
       if ($message['type'] === 'STATUS') {
         $statusType = $standard['status']['type'] ?? 'unknown';
-        ogLog::info('whatsapp - Evento de status detectado, ignorando', [
-          'status_type' => $statusType,
-          'message_id' => $message['id']
-        ], $this->logMeta);
         ogResponse::success([
           'message' => 'Status event received',
           'status' => $statusType,
@@ -124,7 +115,7 @@ class WebhookController {
 
     if (!class_exists($className)) {
       ogLog::throwError("Clase de ejecución no encontrada: {$className} en {$workflowFile}", [], $this->logMeta);
-    } ogLog::info("resolveHandler - Clase de ejecución encontrada: {$className}", [], $this->logMeta);
+    }
 
     return new $className();
   }

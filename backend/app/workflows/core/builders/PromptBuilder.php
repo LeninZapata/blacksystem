@@ -28,6 +28,8 @@ class PromptBuilder {
       'content' => self::buildCurrentMessage($aiText, $chat, $bot)
     ];
 
+    ogLog::info('[PromptBuilder] Prompt completo: ' . json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
     return $messages;
   }
 
@@ -171,6 +173,11 @@ class PromptBuilder {
             $url = $template['url'] ?? '';
 
             if ($type === 'link_media') {
+              if (empty($url)) continue;
+              $templateIdLabel = !empty($template['template_id']) ? " ({$template['template_id']})" : '';
+              $prompt .= "- Plantilla " . ($index + 1) . ": {$type}{$templateIdLabel}\n";
+              $prompt .= "  Descripción: '" . $texto . "'\n";
+              $prompt .= "  URL: {$url}\n\n";
               continue;
             }
 
