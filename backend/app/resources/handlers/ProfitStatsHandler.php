@@ -800,7 +800,7 @@ class ProfitStatsHandler {
         }
 
       } elseif ($isSingleDay && !$isToday) {
-        // Día histórico: ad_metrics_daily con fallback a hourly
+        // Día histórico: ad_metrics_daily con fallback a hourly por producto
         $spendData = ogDb::raw("
           SELECT paa.product_id, SUM(d.spend) AS spend
           FROM ad_metrics_daily d
@@ -810,27 +810,33 @@ class ProfitStatsHandler {
           GROUP BY paa.product_id
         ", array_merge([$userId, $targetDate], $productIds));
 
-        if (empty($spendData)) {
-          // Fallback: último snapshot de cada hora (ayer sin cron)
-          $spendData = ogDb::raw("
-            SELECT paa.product_id, SUM(h.spend) AS spend
-            FROM ad_metrics_hourly h
-            INNER JOIN product_ad_assets paa ON h.ad_asset_id = paa.ad_asset_id
-            WHERE h.user_id = ? AND h.query_date = ?
-              AND paa.product_id IN ($placeholders)
-              AND h.id IN (
-                SELECT MAX(h2.id) FROM ad_metrics_hourly h2
-                WHERE h2.user_id = ? AND h2.query_date = ?
-                  AND h2.ad_asset_id = h.ad_asset_id
-                  AND h2.query_hour  = h.query_hour
-                GROUP BY h2.ad_asset_id, h2.query_hour
-              )
-            GROUP BY paa.product_id
-          ", array_merge([$userId, $targetDate], $productIds, [$userId, $targetDate]));
-        }
-
         foreach ($spendData as $row) {
           $spendByProduct[(int)$row['product_id']] = (float)$row['spend'];
+        }
+
+        // Fallback a hourly solo para productos sin datos en ad_metrics_daily
+        // (ventana 00:00-01:xx antes de que corra el cron de daily)
+        $missingIds = array_values(array_filter($productIds, fn($pid) => !isset($spendByProduct[$pid])));
+
+        if (!empty($missingIds)) {
+          $missingPlaceholders = implode(',', array_fill(0, count($missingIds), '?'));
+          // spend en hourly es acumulativo: tomar MAX(spend) por activo (último valor = total del día)
+          $fallbackData = ogDb::raw("
+            SELECT paa.product_id, SUM(last_spend.max_spend) AS spend
+            FROM (
+              SELECT ad_asset_id, MAX(spend) AS max_spend
+              FROM ad_metrics_hourly
+              WHERE user_id = ? AND query_date = ?
+              GROUP BY ad_asset_id
+            ) last_spend
+            INNER JOIN product_ad_assets paa ON last_spend.ad_asset_id = paa.ad_asset_id
+            WHERE paa.product_id IN ($missingPlaceholders)
+            GROUP BY paa.product_id
+          ", array_merge([$userId, $targetDate], $missingIds));
+
+          foreach ($fallbackData as $row) {
+            $spendByProduct[(int)$row['product_id']] = (float)$row['spend'];
+          }
         }
 
       } else {

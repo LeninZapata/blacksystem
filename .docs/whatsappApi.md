@@ -365,32 +365,38 @@ Permisos necesarios:
 
 Cuando tienes números en distintos BMs pero quieres correr todas las campañas desde un BM principal (BM A), necesitas hacer una vinculación especial. Los webhooks y el bot siguen funcionando desde BM B, pero el número aparece disponible para anuncios en BM A.
 
-### El flujo completo paso a paso
+### El flujo completo paso a paso (confirmado y probado)
 
-**En BM B (dueño del número):**
+**Paso 1 — En BM B (dueño del número):**
 1. Ve a **Configuración → Cuentas de WhatsApp → selecciona la cuenta del número**
 2. Haz clic en **"Asignar socio"**
-3. Ingresa el ID del BM A y asígnalo como socio con los permisos necesarios
+3. Ingresa el ID del BM A y asígnalo con **Control total**
+4. Haz clic en **"Asignar"**
 
-**En BM A (donde corres las campañas):**
-1. Ve a **Configuración → Cuentas de WhatsApp**
-2. El número de BM B ya debe aparecer ahí como cuenta compartida
-3. Selecciónalo y asigna acceso a las personas/usuarios del sistema de BM A que necesiten usarlo
+**Paso 2 — Verificar en BM A:**
+1. Ve a **BM A → Configuración → Cuentas de WhatsApp**
+2. El número de BM B aparece automáticamente con etiqueta **"Pertenece a BM no agrega persona"**
+3. Selecciónalo y haz clic en **"Asignar acceso"**
+4. Agrega las personas del BM A que necesiten usarlo con **Control total**
 
-**Vinculación con el Fanpage (para anuncios):**
-1. Entra al Fanpage que vas a usar para publicar y ve a:
+✅ Con solo estos 2 pasos el número ya aparece disponible en el selector de anuncios de BM A **sin estado "Pendiente"** y listo para usar en campañas Click-to-WhatsApp.
+
+---
+
+### Caso especial: número con historia previa en el Fanpage
+
+Si el número ya estuvo vinculado anteriormente al Fanpage desde WhatsApp Business App, Meta puede requerir una nueva aprobación. En ese caso:
+
+1. Entra al Fanpage y ve a:
    `https://www.facebook.com/settings/?tab=linked_whatsapp`
-2. Ahí aparecerá una **"Solicitud de conexión pendiente"** con el número de BM B
-   > **Nota:** No está del todo claro qué paso exactamente dispara esta solicitud — posiblemente sea asignar permisos al número desde BM A o haberlo asignado como socio. Lo que sí es claro es que la solicitud aparece en esa URL y desde ahí se puede ver el número para conectarlo al Fanpage.
-3. Selecciona el número y confirma la conexión
-4. Esto genera una solicitud que debe ser aprobada por BM B
+2. Aparecerá una **"Solicitud de conexión pendiente"** con el número
+3. Confirma la conexión desde ahí
+4. Ve a **BM B → Configuración → Solicitudes → Requieren revisión**
+5. Aprueba la solicitud: *"BM A solicitó conectar la página [Fanpage] con la cuenta de WhatsApp [número]"*
 
-**En BM B — Aprobar la solicitud:**
-1. Ve a **BM B → Configuración → Solicitudes → Requieren revisión**
-2. Aparecerá la solicitud: *"BM A solicitó conectar la página [Fanpage] con la cuenta de WhatsApp [número]"*
-3. Haz clic en **"Responder" → "Aprobar"**
+> **Nota:** Este paso adicional solo ocurre con números que ya tuvieron historia previa con ese Fanpage. Números nuevos o sin historia previa aparecen directo en el selector sin necesitar este proceso.
 
-✅ Una vez aprobada, el número aparece disponible en el selector de anuncios de BM A sin estado "Pendiente".
+---
 
 ### Lo que puedes hacer desde BM A con el número de BM B
 
@@ -404,12 +410,11 @@ Cuando tienes números en distintos BMs pero quieres correr todas las campañas 
 
 ### Checklist para número de otro BM en campañas de BM A
 
-- [ ] En BM B: asignar BM A como socio de la cuenta de WhatsApp
+- [ ] En BM B: asignar BM A como socio con Control total
 - [ ] En BM A: verificar que el número aparece en Cuentas de WhatsApp
-- [ ] En BM A: asignar acceso a personas/usuarios del sistema
-- [ ] Desde el Fanpage: solicitar conexión con el número
-- [ ] En BM B: aprobar la solicitud en **Configuración → Solicitudes**
-- [ ] Verificar que el número aparece sin "Pendiente" en el selector de anuncios
+- [ ] En BM A: asignar acceso a personas del BM A con Control total
+- [ ] Verificar que el número aparece en el selector de anuncios sin "Pendiente"
+- [ ] Solo si tiene historia previa: aprobar solicitud en Fanpage y en BM B → Solicitudes
 
 ---
 

@@ -22,8 +22,26 @@
 
   // ── Inicializar ──────────────────────────────────────────────────────────
   async function init() {
+    injectStyles();
     await loadBots();
     bindEvents();
+  }
+
+  function injectStyles() {
+    if (document.getElementById('resume-stats-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'resume-stats-styles';
+    style.textContent = `
+      @media (max-width: 640px) {
+        .resume-stats-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .resume-stats-grid > [style*="grid-column"] {
+          grid-column: span 1 !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   // ── Cargar bots en el select ─────────────────────────────────────────────
@@ -122,9 +140,14 @@
           if (color) el.style.color = color;
         };
 
+        const spend  = parseFloat(s.spend || 0);
+        const roas   = spend > 0 && totalRev > 0 ? (totalRev / spend).toFixed(2) : null;
+        const roasEl = row.querySelector('[data-key="roas"]');
+        if (roasEl) roasEl.textContent = roas ? `${roas}x` : '—';
+
         set('ingresos', fmt(s.revenue));
         set('gastos',   fmt(s.spend));
-        set('profit',   fmt(profit), profit >= 0 ? 'var(--og-green-600)' : 'var(--og-gray-900)');
+        set('profit',   fmt(profit), profit >= 0 ? 'var(--og-green-600)' : 'var(--og-red-600)');
 
         const chatEl = row.querySelector('[data-key="chats"]');
         if (chatEl) {
@@ -268,23 +291,28 @@
     const stats = [
       { icon: '💬', label: 'Chats',    key: 'chats',    color: 'var(--og-gray-800)', bold: false },
       { icon: '💰', label: 'Ingresos', key: 'ingresos', color: 'var(--og-blue-600)',  bold: false },
-      { icon: '📢', label: 'Gastos P.',key: 'gastos',   color: 'var(--og-red-600)',   bold: false },
-      { icon: '📈', label: 'Profit',   key: 'profit',   color: '',                    bold: true  },
+      { icon: '📢', label: 'Gastos P.',key: 'gastos',   color: 'var(--og-gray-900)', bold: false },
+      { icon: '📈', label: 'Profit',   key: 'profit',   color: '',                    bold: false },
     ];
 
-    const statCells = stats.map(s => `
+    const statCells = stats.map(s => {
+      const labelExtra = s.key === 'profit'
+        ? ` <span data-key="roas" style="font-size:0.72rem; color:var(--og-gray-400); font-weight:400;">—</span>`
+        : '';
+      return `
       <div class="og-flex og-between og-items-center og-bg-gray-50 og-rounded" style="padding:0.22rem 0.45rem;">
-        <span style="font-size:0.845rem; color:var(--og-gray-500); white-space:nowrap;">${s.icon} ${s.label}</span>
+        <span style="font-size:0.845rem; color:var(--og-gray-500); white-space:nowrap;">${s.icon} ${s.label}${labelExtra}</span>
         <span class="resume-stat-value resume-amount" data-key="${s.key}"
               style="font-weight:${s.bold ? '700' : '400'}; font-size:0.925rem; color:${s.color}; margin-left:0.5rem; white-space:nowrap;">—</span>
-      </div>`);
+      </div>`;
+    });
 
     const upsellCell = `
       <div data-upsell-row style="display:none; grid-column:span 2; background:rgba(250,245,255,0.8); border-radius:5px; padding:0.22rem 0.45rem;"
            class="og-flex og-between og-items-center og-rounded">
         <span style="font-size:0.845rem; color:var(--og-gray-500); white-space:nowrap;">⬆️ Upsell</span>
         <span class="resume-stat-value resume-amount" data-key="upsell"
-              style="font-weight:700; font-size:0.925rem; color:var(--og-green-600); margin-left:0.5rem; white-space:nowrap;">—</span>
+              style="font-weight:400; font-size:0.925rem; color:var(--og-blue-600); margin-left:0.5rem; white-space:nowrap;">—</span>
       </div>`;
 
     const baseOpacity  = isInactive ? '0.75' : '1';
@@ -301,7 +329,7 @@
                   style="background:none; border:none; cursor:pointer; padding:0.1rem 0.25rem; color:var(--og-gray-400); line-height:1; border-radius:4px; display:flex; align-items:center;"
                   onmouseover="this.style.color='var(--og-gray-700)'" onmouseout="this.style.color='var(--og-gray-400)'">${SVG_EYE}</button>
         </div>
-        <div class="og-grid og-cols-2 og-gap-xs">
+        <div class="og-grid og-cols-2 og-gap-xs resume-stats-grid">
           ${statCells[0]}
           ${statCells[1]}
           ${upsellCell}
@@ -314,15 +342,15 @@
   // ── Balance general ──────────────────────────────────────────────────────
   function renderBalanceGeneral() {
     const balanceStats = [
-      { id: 'resume-balance-ingresos', icon: '💰', label: 'Total Ingresos', color: 'var(--og-blue-600)' },
-      { id: 'resume-balance-gastos',   icon: '📢', label: 'Total Gastos',   color: 'var(--og-red-600)'  },
-      { id: 'resume-balance-profit',   icon: '📈', label: 'Profit',         color: 'var(--og-blue-600)' },
+      { id: 'resume-balance-ingresos', icon: '💰', label: 'Total Ingresos', color: 'var(--og-blue-600)',  bold: false },
+      { id: 'resume-balance-gastos',   icon: '📢', label: 'Total Gastos',   color: 'var(--og-gray-900)', bold: false },
+      { id: 'resume-balance-profit',   icon: '📈', label: 'Profit',         color: 'var(--og-blue-600)', bold: true  },
     ];
 
     const cells = balanceStats.map(b => `
       <div class="og-flex og-between og-items-center" style="padding:0.3rem 0.5rem; background:rgba(255,255,255,0.7); border-radius:6px;">
         <span style="font-size:var(--og-font-sm); color:var(--og-gray-500);">${b.icon} ${b.label}</span>
-        <span id="${b.id}" class="resume-amount" style="font-weight:700; font-size:1.045rem; color:${b.color};">$—</span>
+        <span id="${b.id}" class="resume-amount" style="font-weight:${b.bold ? '700' : '400'}; font-size:1.045rem; color:${b.color};">$—</span>
       </div>`).join('');
 
     return `

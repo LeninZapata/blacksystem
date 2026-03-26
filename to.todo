@@ -1,4 +1,6 @@
 URGENTE:
+☐ Menu inicial Dashboard que se vea el home.json para que sea conistente
+☐ Hotmark, comienza con el sistema para operar con hotmark en el sistema.
 ☐ En el chat cuando pones solo hoy (no recuerdo sin con el filtro solo ventas) muestra los de ayer parece que no esta filtrnado bien el UTC
 esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
 RAPIDO:
@@ -12,7 +14,7 @@ la cual si deberi hacerlo
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
 
 Backend:
-☐ hacer uqe se pueda validar el nombre del titular en recibo y en caso no lo tenga entonces parar el proceso, envar un correo para avisar que se necesita
+✔ hacer uqe se pueda validar el nombre del titular en recibo y en caso no lo tenga entonces parar el proceso, envar un correo para avisar que se necesita @done(25-03-2026 22:40)
 enviar este producto y compeltar la venta, por lo general hay recibo como el banco del pacifico que no tiene el nombre del titular, entonces se debe validar esto para evitar problemas de fraude o de que el cliente no reciba su producto.
 
 ☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
