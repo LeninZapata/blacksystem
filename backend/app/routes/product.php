@@ -39,6 +39,10 @@ $router->group('/api/product', function($router) {
       ogResponse::json(['success' => false, 'error' => 'Rango de fechas inválido'], 400);
     }
 
+    // Fechas locales para query_date (ad_metrics_hourly usa fecha local, no UTC)
+    $startDate = ($range === 'custom_date' && $date) ? $date : substr($dates['start'], 0, 10);
+    $endDate   = ($range === 'custom_date' && $date) ? $date : substr($dates['end'],   0, 10);
+
     $sql = "
       SELECT DISTINCT
         p.id,
@@ -46,19 +50,17 @@ $router->group('/api/product', function($router) {
         p.env,
         p.status,
         p.sale_type_mode
-      FROM " . ogDb::t('sales', true) . " s
-      LEFT JOIN " . ogDb::t('products', true) . " p ON s.product_id = p.id
-      WHERE s.user_id = ?
-        AND s.bot_id  = ?
-        AND s.dc BETWEEN ? AND ?
-        AND s.status  = 1
-        AND p.id IS NOT NULL
+      FROM " . ogDb::t('ad_metrics_hourly', true) . " h
+      INNER JOIN " . ogDb::t('products', true) . " p ON h.product_id = p.id
+      WHERE h.user_id = ?
+        AND p.bot_id  = ?
+        AND h.query_date BETWEEN ? AND ?
         AND p.context = 'infoproductws'
         AND p.sale_type_mode != 2
       ORDER BY p.status DESC, p.name ASC
     ";
 
-    $products = ogDb::raw($sql, [$userId, (int)$botId, $dates['start'], $dates['end']]);
+    $products = ogDb::raw($sql, [$userId, (int)$botId, $startDate, $endDate]);
     ogResponse::success($products ?: []);
 
   })->middleware(['auth']);

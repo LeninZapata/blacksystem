@@ -683,19 +683,21 @@ class ProfitStatsHandler {
     }
 
     try {
-      // 1. Productos con ventas en el rango (activos e inactivos) ──────────
+      // 1. Productos activos en el rango por métricas de ads ───────────────
+      // Se usa ad_metrics_hourly para detectar productos vivos (con gasto o ingresos)
+      // incluso si aún no tienen ventas registradas en el período.
+      $localEndDate = $isSingleDay ? $targetDate : substr($endUtc, 0, 10);
+
       $products = ogDb::raw("
         SELECT DISTINCT p.id, p.name, p.env, p.status, p.sale_type_mode
-        FROM " . ogDb::t('sales', true) . " s
-        LEFT JOIN " . ogDb::t('products', true) . " p ON s.product_id = p.id
-        WHERE s.user_id = ?
-          AND s.bot_id  = ?
-          AND s.dc BETWEEN ? AND ?
-          AND s.status  = 1
-          AND p.id IS NOT NULL
+        FROM " . ogDb::t('ad_metrics_hourly', true) . " h
+        INNER JOIN " . ogDb::t('products', true) . " p ON h.product_id = p.id
+        WHERE h.user_id = ?
+          AND p.bot_id  = ?
+          AND h.query_date BETWEEN ? AND ?
           AND p.context = 'infoproductws'
           AND p.sale_type_mode != 2
-      ", [$userId, (int)$botId, $startUtc, $endUtc]);
+      ", [$userId, (int)$botId, $startDate, $localEndDate]);
 
       if (empty($products)) {
         return ['success' => true, 'data' => [],

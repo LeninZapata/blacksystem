@@ -27,13 +27,14 @@ class ogSidebar {
         
         ogLogger?.info('core:sidebar', `Menús cargados: ${pluginMenus.length}`);
 
-        // Menú base con prefijo middle:
+        const config = this.getConfig();
+        // Menú base: usa defaultView del config si está definido, si no cae al dashboard genérico
         const baseMenu = [
           {
             id: "dashboard",
             title: "Dashboard",
             icon: "📊",
-            view: "middle:dashboard/dashboard",
+            view: config.defaultView || "middle:dashboard/dashboard",
             order: 1
           }
         ];

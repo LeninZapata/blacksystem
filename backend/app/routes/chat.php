@@ -213,7 +213,7 @@ $router->group('/api/chat', function($router) {
 
       ogResponse::serverError('Error al limpiar chats antiguos', OG_IS_DEV ? $e->getMessage() : null);
     }
-  })->middleware($devMiddleware);
+  })->middleware(['throttle:20,1']);
 
   // Envío manual de mensaje desde el panel admin
   // POST /api/chat/manual-send

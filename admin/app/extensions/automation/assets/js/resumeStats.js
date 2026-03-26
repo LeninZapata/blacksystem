@@ -208,6 +208,12 @@
       const conversion = totalChats > 0 ? ((totalSalesCount / totalChats) * 100).toFixed(1) : '0.0';
       elC.innerHTML = `${SVG_CHAT} ${totalChats} (${totalSalesCount} ${SVG_CHECK} / ${conversion}%)`;
     }
+
+    const elRoas = document.getElementById('resume-balance-roas');
+    if (elRoas) {
+      const roas = totalSpend > 0 && totalRevenue > 0 ? (totalRevenue / totalSpend).toFixed(2) : null;
+      elRoas.textContent = roas ? `${roas}x` : '—';
+    }
   }
 
   // ── Ordenar filas por profit desc dentro de cada sección ────────────────
@@ -349,7 +355,7 @@
 
     const cells = balanceStats.map(b => `
       <div class="og-flex og-between og-items-center" style="padding:0.3rem 0.5rem; background:rgba(255,255,255,0.7); border-radius:6px;">
-        <span style="font-size:var(--og-font-sm); color:var(--og-gray-500);">${b.icon} ${b.label}</span>
+        <span style="font-size:var(--og-font-sm); color:var(--og-gray-500);">${b.icon} ${b.label}${b.id === 'resume-balance-profit' ? ` <span id="resume-balance-roas" style="font-size:0.72rem; color:var(--og-gray-400); font-weight:400;">—</span>` : ''}</span>
         <span id="${b.id}" class="resume-amount" style="font-weight:${b.bold ? '700' : '400'}; font-size:1.045rem; color:${b.color};">$—</span>
       </div>`).join('');
 

@@ -960,7 +960,7 @@ class chat {
 
     btn.disabled = true;
     try {
-      await ogModule('api').put(`/api/sale/${saleId}`, payload);
+      await ogModule('api').put(`/api/sale/${saleId}/chat-update`, payload);
 
       // Reconstruir el JSON del chat para que el bot tenga el contexto actualizado
       const clientData = this._clientCache.get(`${this._activeId}_${this._activeChatBotId ?? ''}`) ?? {};

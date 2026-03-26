@@ -10,7 +10,7 @@
 <div id="app"></div>
 
 <script>
-  let version = '0.5.309';
+  let version = '0.5.314';
 
   // Detectar si estamos en /admin/ o en root
   var pathname = window.location.pathname;
@@ -69,7 +69,8 @@
     auth: {
       enabled: true,
       loginView: 'auth/login',
-      redirectAfterLogin: 'middle:dashboard/dashboard',
+      //redirectAfterLogin: 'middle:dashboard/dashboard',
+      redirectAfterLogin: 'automation|sections/home',
       sessionCheckInterval: 1 * 60 * 1000,
       api: {
         login: '/api/auth/login',

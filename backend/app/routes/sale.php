@@ -88,4 +88,42 @@ $router->group('/api/sale', function($router) {
     ogResponse::json( ogApp()->handler('saleStats')::getSalesHourly($params) );
   })->middleware(['auth', 'throttle:100,1']);
 
+  // Actualizar venta desde el panel de chat: PUT /api/sale/{id}/chat-update
+  // Body: { process_status, payment_date?, local_billed_amount? }
+  // Si process_status = 'initiated', cancela los followups pendientes de esa venta.
+  $router->put('/{id}/chat-update', function($id) {
+    $userId = $GLOBALS['auth_user_id'] ?? null;
+    $data   = ogRequest::data();
+
+    $processStatus = $data['process_status'] ?? null;
+    if (!$processStatus) {
+      ogResponse::json(['success' => false, 'error' => 'process_status es requerido'], 400);
+    }
+
+    $sale = ogDb::t('sales')->where('id', (int)$id)->where('user_id', $userId)->first();
+    if (!$sale) {
+      ogResponse::json(['success' => false, 'error' => __('sale.not_found')], 404);
+    }
+
+    $updateData = [
+      'process_status' => $processStatus,
+      'du' => gmdate('Y-m-d H:i:s'),
+      'tu' => time()
+    ];
+
+    if ($processStatus === 'sale_confirmed') {
+      if (!empty($data['payment_date']))       $updateData['payment_date']   = $data['payment_date'];
+      if (isset($data['local_billed_amount'])) $updateData['billed_amount']  = (float)$data['local_billed_amount'];
+    }
+
+    ogDb::t('sales')->where('id', (int)$id)->update($updateData);
+
+    if ($processStatus === 'initiated') {
+      ogApp()->loadHandler('followup');
+      FollowupHandler::cancelBySale((int)$id);
+    }
+
+    ogResponse::json(['success' => true]);
+  })->middleware(['auth', 'json', 'throttle:100,1']);
+
 });
