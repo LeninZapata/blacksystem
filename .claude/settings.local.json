@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''d:/laragon/www/blacksystem/blacksystem/admin/app/extensions/infoproduct/views/forms/infoproduct-form.json'', ''utf8''\\)\\); console.log\\(''infoproduct-form.json OK''\\)\")"
+    ]
+  }
+}

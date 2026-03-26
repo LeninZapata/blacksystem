@@ -178,6 +178,22 @@
                     }
                   ],
                   "conditionContext": "repeatable"
+                },
+                {
+                  "name": "buttons",
+                  "label": "i18n:infoproduct.products.field.welcome_messages.buttons",
+                  "type": "repeatable",
+                  "addText": "i18n:infoproduct.products.field.welcome_messages.buttons.add",
+                  "removeText": "i18n:core.form.repeatable.remove",
+                  "fields": [
+                    {
+                      "name": "text",
+                      "label": "i18n:infoproduct.products.field.welcome_messages.buttons.text",
+                      "type": "text",
+                      "validation": "max:20",
+                      "placeholder": "i18n:infoproduct.products.field.welcome_messages.buttons.text.placeholder"
+                    }
+                  ]
                 }
               ]
             },
@@ -247,6 +263,22 @@
                     }
                   ],
                   "conditionContext": "repeatable"
+                },
+                {
+                  "name": "buttons",
+                  "label": "i18n:infoproduct.products.field.welcome_messages_upsell.buttons",
+                  "type": "repeatable",
+                  "addText": "i18n:infoproduct.products.field.welcome_messages_upsell.buttons.add",
+                  "removeText": "i18n:core.form.repeatable.remove",
+                  "fields": [
+                    {
+                      "name": "text",
+                      "label": "i18n:infoproduct.products.field.welcome_messages_upsell.buttons.text",
+                      "type": "text",
+                      "validation": "max:20",
+                      "placeholder": "i18n:infoproduct.products.field.welcome_messages_upsell.buttons.text.placeholder"
+                    }
+                  ]
                 }
               ]
             }
@@ -402,6 +434,22 @@
                     }
                   ],
                   "conditionContext": "repeatable"
+                },
+                {
+                  "name": "buttons",
+                  "label": "i18n:infoproduct.products.field.tracking_messages.buttons",
+                  "type": "repeatable",
+                  "addText": "i18n:infoproduct.products.field.tracking_messages.buttons.add",
+                  "removeText": "i18n:core.form.repeatable.remove",
+                  "fields": [
+                    {
+                      "name": "text",
+                      "label": "i18n:infoproduct.products.field.tracking_messages.buttons.text",
+                      "type": "text",
+                      "validation": "max:20",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages.buttons.text.placeholder"
+                    }
+                  ]
                 }
               ]
             },
@@ -551,6 +599,22 @@
                     }
                   ],
                   "conditionContext": "repeatable"
+                },
+                {
+                  "name": "buttons",
+                  "label": "i18n:infoproduct.products.field.tracking_messages_upsell.buttons",
+                  "type": "repeatable",
+                  "addText": "i18n:infoproduct.products.field.tracking_messages_upsell.buttons.add",
+                  "removeText": "i18n:core.form.repeatable.remove",
+                  "fields": [
+                    {
+                      "name": "text",
+                      "label": "i18n:infoproduct.products.field.tracking_messages_upsell.buttons.text",
+                      "type": "text",
+                      "validation": "max:20",
+                      "placeholder": "i18n:infoproduct.products.field.tracking_messages_upsell.buttons.text.placeholder"
+                    }
+                  ]
                 }
               ]
             },
@@ -764,6 +828,22 @@
                     }
                   ],
                   "conditionContext": "repeatable"
+                },
+                {
+                  "name": "buttons",
+                  "label": "i18n:infoproduct.products.field.templates.buttons",
+                  "type": "repeatable",
+                  "addText": "i18n:infoproduct.products.field.templates.buttons.add",
+                  "removeText": "i18n:core.form.repeatable.remove",
+                  "fields": [
+                    {
+                      "name": "text",
+                      "label": "i18n:infoproduct.products.field.templates.buttons.text",
+                      "type": "text",
+                      "validation": "max:20",
+                      "placeholder": "i18n:infoproduct.products.field.templates.buttons.text.placeholder"
+                    }
+                  ]
                 }
               ]
             }

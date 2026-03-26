@@ -125,6 +125,14 @@
           "url": {
             "label": "URL",
             "placeholder": "https://ejemplo.com/imagen.jpg"
+          },
+          "buttons": {
+            "label": "Botones de WhatsApp",
+            "add": "➕ Agregar Botón",
+            "text": {
+              "label": "Texto del Botón",
+              "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
+            }
           }
         },
         "welcome_messages_upsell": {
@@ -146,6 +154,14 @@
           "url": {
             "label": "URL",
             "placeholder": "https://ejemplo.com/imagen.jpg"
+          },
+          "buttons": {
+            "label": "Botones de WhatsApp",
+            "add": "➕ Agregar Botón",
+            "text": {
+              "label": "Texto del Botón",
+              "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
+            }
           }
         },
         "tracking_messages": {
@@ -171,6 +187,14 @@
           "url": {
             "label": "URL",
             "placeholder": "https://ejemplo.com/imagen.jpg"
+          },
+          "buttons": {
+            "label": "Botones de WhatsApp",
+            "add": "➕ Agregar Botón",
+            "text": {
+              "label": "Texto del Botón",
+              "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
+            }
           },
           "time_type": {
             "label": "Tipo de Tiempo",
@@ -215,6 +239,14 @@
             "label": "URL",
             "placeholder": "https://ejemplo.com/imagen.jpg"
           },
+          "buttons": {
+            "label": "Botones de WhatsApp",
+            "add": "➕ Agregar Botón",
+            "text": {
+              "label": "Texto del Botón",
+              "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
+            }
+          },
           "time_type": {
             "label": "Tipo de Tiempo",
             "minute": "Minuto",
@@ -256,6 +288,14 @@
           "url": {
             "label": "URL",
             "placeholder": "https://ejemplo.com/imagen.jpg"
+          },
+          "buttons": {
+            "label": "Botones de WhatsApp",
+            "add": "➕ Agregar Botón",
+            "text": {
+              "label": "Texto del Botón",
+              "placeholder": "Ej: Comprar ahora (máx. 20 caracteres)"
+            }
           },
           "template_id": {
             "label": "Plantilla ID",
