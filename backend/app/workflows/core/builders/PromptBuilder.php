@@ -175,9 +175,9 @@ class PromptBuilder {
             if ($type === 'link_media') {
               if (empty($url)) continue;
               $templateIdLabel = !empty($template['template_id']) ? " ({$template['template_id']})" : '';
-              $prompt .= "- Plantilla " . ($index + 1) . ": {$type}{$templateIdLabel}\n";
-              $prompt .= "  Descripción: '" . $texto . "'\n";
-              $prompt .= "  URL: {$url}\n\n";
+              $prompt .= "- Plantilla " . ($index + 1) . ": {$type}{$templateIdLabel} [IMAGEN - usa source_url en tu respuesta JSON]\n";
+              $prompt .= "  Cuándo usarla: '" . $texto . "'\n";
+              $prompt .= "  source_url: {$url}\n\n";
               continue;
             }
 

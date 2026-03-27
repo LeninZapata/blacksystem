@@ -137,10 +137,23 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $person = $context['person'];
     $message = $parsedResponse['message'] ?? '';
     $sourceUrl = $parsedResponse['source_url'] ?? '';
+    $buttons = $parsedResponse['buttons'] ?? [];
+    $footer  = $parsedResponse['footer']  ?? '';
+
+    // No enviar botones ni footer cuando se están mostrando métodos de pago
+    $action = $parsedResponse['metadata']['action'] ?? '';
+    $noButtonActions = ['payment_method_template', 'interest_shown', 'delivered_product', 'technical_support', 'refund_request'];
+    if (in_array($action, $noButtonActions)) {
+      $buttons = [];
+      $footer  = '';
+    }
 
     if (!empty($message)) {
       $chatapi = ogApp()->service('chatApi');
-      $chatapi::send($person['number'], $message, $sourceUrl);
+      $chatapi::send($person['number'], $message, $sourceUrl, [
+        'buttons' => $buttons,
+        'footer'  => $footer
+      ]);
     }
   }
 
@@ -190,6 +203,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
 
     $message = $parsedResponse['message'] ?? '';
     $metadata = $parsedResponse['metadata'] ?? null;
+    $hasButtons = !empty($parsedResponse['buttons']);
+    $format = $hasButtons ? 'interactive' : 'text';
 
     ogApp()->loadHandler('chat');
     ChatHandler::register(
@@ -199,7 +214,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       $person['number'],
       $message,
       'B',
-      'text',
+      $format,
       $metadata,
       $chatData['current_sale']['sale_id'] ?? null,
       true
@@ -211,7 +226,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       'client_id' => $chatData['client_id'],
       'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
       'message' => $message,
-      'format' => 'text',
+      'format' => $format,
       'metadata' => $metadata
     ], 'B');
   }

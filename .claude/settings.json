@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/logs/2026/03/26 -name *.log)"
+      "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/logs/2026/03/26 -name *.log)",
+      "Bash(find /d/laragon/www/blacksystem/blacksystem/backend -name *workflow* -o -name *handler* -o -name *controller*)"
     ]
   }
 }

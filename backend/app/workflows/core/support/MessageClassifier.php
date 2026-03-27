@@ -5,7 +5,7 @@ class MessageClassifier {
   static function classify($message) {
     $type = strtoupper($message['type'] ?? 'TEXT');
 
-    $validTypes = ['TEXT', 'IMAGE', 'AUDIO', 'VIDEO', 'DOCUMENT', 'STICKER', 'LOCATION', 'CONTACT', 'REACTION'];
+    $validTypes = ['TEXT', 'IMAGE', 'AUDIO', 'VIDEO', 'DOCUMENT', 'STICKER', 'LOCATION', 'CONTACT', 'REACTION', 'INTERACTIVE'];
 
     return in_array($type, $validTypes) ? $type : 'TEXT';
   }

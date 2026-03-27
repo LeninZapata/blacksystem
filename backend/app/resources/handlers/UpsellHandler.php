@@ -260,7 +260,10 @@ class UpsellHandler {
           }
         }
 
-        $sendResult = $chatapi::send($number, $text, $url);
+        $sendResult = $chatapi::send($number, $text, $url, [
+          'buttons' => $msg['buttons'] ?? [],
+          'footer'  => $msg['footer']  ?? ''
+        ]);
         
         if (!$sendResult['success']) {
           ogLog::error("executeUpsell - Error enviando mensaje welcome upsell", [
