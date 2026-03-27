@@ -1,39 +1,17 @@
 URGENTE:
-✔ El listado de productos no debe ser por SALES sino por otra via porque un producto no puede tener chat entonces @done(26-03-2026 10:40)
-EL GASTO nose mostraria y no te da metricas como son..
-✔ Menu inicial Dashboard que se vea el home.json para que sea conistente @done(26-03-2026 11:05)
-☐ LOS BOTONES SON DE TIPO 'interactive' EL CASO FUE  "593994614999" hay que validar este tipo de mensaje para convertirla en texto en si
-o validar primero con plantillas de respuesta rapida y si no es entonces convertirlo a texto normal, porque el mensaje de tipo interactivo no se esta mostrando en el chat, entonces hay que validar esto para mostrarlo como texto normal o como plantilla de respuesta rapida
+✔ 593981497300 este caso el bot le dice que le va enviar los metodos de pago, entonces no le envia aqui seria bueno especificar @done(27-03-2026 13:02)
+que si el bot le dice que le va enviar los metodos de pago entonces que ponga los metodos de pago o agrege los botones de metodo de pago
+✔ Mostrar en el chat los botones o media que el bot envia... tambien el pie de texto @done(27-03-2026 13:51)
 ☐ Hotmark, comienza con el sistema para operar con hotmark en el sistema.
-☐ En el chat cuando pones solo hoy (no recuerdo sin con el filtro solo ventas) muestra los de ayer parece que no esta filtrnado bien el UTC
-esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
+✔ Mira en pie de texto mientras lo va poniendo como que no tiene mucho sentido no tiene una secuencia, revisa el video @done(27-03-2026 14:02)
+que dannes te paso dec como el bot los iba poniendo hay que arreglar eso.....
+✔ El upsell no muestra el pie de texto, algo esta pasando alli porque en el video de dannes lo muestra.. @done(27-03-2026 14:02)
+☐ Crea 1 nuevo seguimiento de precio 1,99 final muy persuasivo de escases y urgencia, para que se dispare despues de que el cliente vea el metodo de pago, esto es para aumentar la conversion y que el cliente no se vaya sin comprar, ademas de que se le puede agregar un audio o algo que lo haga mas dinamico, pero lo importante es el mensaje de texto que sea muy persuasivo y que genere esa urgencia y escases.
+☐ 593988712899 cuando es una pregunta para ayuda luego de la compra NO PONER BOTONES
 RAPIDO:
-✔ al cambiar de estado de la compra entonces tambien se debe tener la opcion de parar los seguimientos del upsell porque se va activar @done(26-03-2026 13:16)
-la cual si deberi hacerlo  [SE QUE SI ATUALIZA LA venta a un estado anterior debe parar los seguimientos.]
-✔ Los chats json se han acumulado no se han borrado, esto debe borrarse automaticamente solo dejar los ultimos 15 dias... @done(26-03-2026 13:40)
 ☐ Hacer que la conversacion sea mas DINAMICA, persuasiva y profunda..
-  ☐ Cada mensaje debe tener un footer de mensaje que whatsappi hasta donde se si lo permite. Entonces cada mensaje podria llevar un footer de
-    _ HOY mas de 43 padres que aman a sus hij@s les han comprado este producto, no te quedes sin el tuyo.
-    _ Este producto es el mas vendido en su categoria, no te quedes sin el tuyo.
-    _ Quedan solo 3 unidades de este producto, no te quedes sin el tuyo.
-    _ Sofia no tiene hijos pero le regalo como obsequio este producto a su sobrina y le encanto, no te quedes sin el tuyo.
-    _ Este producto es el mas recomendado por los expertos, no te quedes sin el tuyo.
   ☐ Deben existir mensajes que solo se debe disparar  1 sola vez por conversacion y seria despues de la respuesta del bot
-   _ por ejemplo un audio, entonces se le da la instruccion que este audio lo envie 1 sola vez despues de dar los metods de pago, con esto el bot es dinamico
-  ☐ Disparadores de plantillas por medio de texto fijo, y con la posibilidad de que solo sea 1 vez por conversacion
-  ☐ Ya existe mensajes plantilla de tipo Medio donde existe la posibilidad de que el bt lo ponga enel json, hy que probarlo 
-   Y ENVIAR mas imagenes para matar toda objecion posible entonces muestras se conversa el bot va mostrando mas, estos mensajes seria bun
-   ponerlos solo cn imagenes de 800x200 en lo posible para evitar que ocupe todo el cuadro del mensaje de texto. 
-  ☐ Poner bottones tambiien enlas rspuesas para que la gente se sienta presionado en presionar, los botones deben ser agresivo en texto como
-   _ Quiero el mio
-    _ Lo quiero ya
-    _ Lo quiero ahora
-    _ Lo quiero ya mismo
-    _ Lo necesito ya
-    _ No quiero quedarme sin el mio
-    _ Si, lo quiero ya
-    _ Si, lo quiero ahoras
-  ☐ Las plantillas de mensajes tambien la posibilidad de agregar botones, por ejemplo el ultimo mensaje de la bienvenida poner botones de los bancos.
+  _ por ejemplo un audio, entonces se le da la instruccion que este audio lo envie 1 sola vez despues de dar los metods de pago, con esto el bot es dinamico
 
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
   ☐ aprar los seguimientos
@@ -42,6 +20,10 @@ la cual si deberi hacerlo  [SE QUE SI ATUALIZA LA venta a un estado anterior deb
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
 ☐ Mostrar hora local en el chat para no estar viendo  la hora de la pc, ademas de que muestre tambien
 hace cuanto tiempo fue la ultima conversacion con el filtro actual.
+☐ eL FILTRO bsChatTodayFilter solo HOY esta mal, no esta tomando bien el UTC del user
+☐ En el chat cuando pones solo hoy (no recuerdo sin con el filtro solo ventas) muestra los de ayer parece que no esta filtrnado bien el UTC
+esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
+☐ No funcioan aun la elminacion de chats.... revisar el endpoint
 Backend:
 ✔ hacer uqe se pueda validar el nombre del titular en recibo y en caso no lo tenga entonces parar el proceso, envar un correo para avisar que se necesita @done(25-03-2026 22:40)
 enviar este producto y compeltar la venta, por lo general hay recibo como el banco del pacifico que no tiene el nombre del titular, entonces se debe validar esto para evitar problemas de fraude o de que el cliente no reciba su producto.

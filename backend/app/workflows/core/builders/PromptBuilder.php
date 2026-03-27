@@ -211,6 +211,8 @@ class PromptBuilder {
       $prompt .= "- Producto: " . ($currentSale['product_name'] ?? 'N/A') . " (ID: " . ($currentSale['product_id'] ?? 'N/A') . ")\n";
       $prompt .= "- Estado: " . ($currentSale['sale_status'] ?? 'N/A') . "\n";
       $prompt .= "- Origen: {$originName}\n\n";
+    } else {
+      $prompt .= "\n### VENTA ACTUAL: ninguna — no hay producto en venta en este momento\n\n";
     }
 
     return $prompt;
@@ -314,6 +316,18 @@ class PromptBuilder {
             $prompt .= "*Sale ID:* {$metadata['sale_id']}\n";
           }
 
+          // Botones, footer e imagen enviados por el bot
+          if ($type === 'B' && !empty($metadata['buttons'])) {
+            $buttonTexts = array_map(fn($b) => '"' . ($b['text'] ?? '') . '"', $metadata['buttons']);
+            $prompt .= "*Botones enviados:* [" . implode(', ', $buttonTexts) . "]\n";
+          }
+          if ($type === 'B' && !empty($metadata['footer'])) {
+            $prompt .= "*Footer enviado:* \"{$metadata['footer']}\"\n";
+          }
+          if ($type === 'B' && !empty($metadata['source_url'])) {
+            $prompt .= "*Imagen enviada:* {$metadata['source_url']}\n";
+          }
+
           // Metadata específico para imágenes
           if ($format === 'image') {
             $imageAnalysis = json_decode($mensaje, true);
@@ -368,7 +382,11 @@ class PromptBuilder {
     $countryCode = $bot['country_code'] ?? 'EC';
     $currentTime = ogApp()->helper('country')::now($countryCode) ?? date('Y-m-d H:i:s');
 
+    $country = ogApp()->helper('country')::get($countryCode);
+    $countryName = $country['name'] ?? $countryCode;
+
     $prompt = "## INFORMACIÓN DINÁMICA DE LA CONVERSACIÓN:\n\n";
+    $prompt .= "**País de operación:** {$countryName} ({$countryCode})\n";
     $prompt .= "**Última actividad:** {$lastActivity}\n";
     $prompt .= "**Hora actual:** {$currentTime}\n\n";
     $prompt .= "---\n\n";

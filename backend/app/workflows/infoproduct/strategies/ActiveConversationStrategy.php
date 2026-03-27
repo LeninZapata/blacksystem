@@ -202,9 +202,25 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $chatData = $context['chat_data'];
 
     $message = $parsedResponse['message'] ?? '';
-    $metadata = $parsedResponse['metadata'] ?? null;
-    $hasButtons = !empty($parsedResponse['buttons']);
+    $metadata = $parsedResponse['metadata'] ?? [];
+    $buttons   = $parsedResponse['buttons']    ?? [];
+    $footer    = $parsedResponse['footer']     ?? '';
+    $sourceUrl = $parsedResponse['source_url'] ?? '';
+    $hasButtons = !empty($buttons);
     $format = $hasButtons ? 'interactive' : 'text';
+
+    if ($hasButtons) {
+      $metadata['buttons'] = $buttons;
+    }
+    if ($footer !== '') {
+      $metadata['footer'] = $footer;
+    }
+    if ($sourceUrl !== '') {
+      $metadata['source_url'] = $sourceUrl;
+    }
+    if (empty($metadata)) {
+      $metadata = null;
+    }
 
     ogApp()->loadHandler('chat');
     ChatHandler::register(

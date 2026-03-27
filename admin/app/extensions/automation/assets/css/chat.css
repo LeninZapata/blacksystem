@@ -709,6 +709,75 @@
     text-align: right;
   }
 
+  /* ── Footer de mensaje interactivo ───────────────────────────────────── */
+  .bs-msg-interactive-footer {
+    font-size: 10.5px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+    line-height: 1.3;
+    opacity: 0.65;
+  }
+  .bs-msg-b .bs-msg-interactive-footer {
+    color: rgba(255,255,255,0.75);
+  }
+  .bs-msg-p .bs-msg-interactive-footer {
+    color: var(--og-gray-500);
+  }
+
+  /* ── Botones de mensaje interactivo (estilo WhatsApp) ────────────────── */
+  .bs-msg-interactive-buttons {
+    margin-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .bs-msg-p .bs-msg-interactive-buttons {
+    border-top-color: var(--og-gray-200);
+  }
+
+  .bs-msg-interactive-btn {
+    padding: 7px 8px;
+    text-align: center;
+    font-size: var(--og-font-xs);
+    font-weight: 500;
+    cursor: default;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    line-height: 1.3;
+  }
+  .bs-msg-interactive-buttons .bs-msg-interactive-btn:first-child {
+    border-top: none;
+  }
+  .bs-msg-b .bs-msg-interactive-btn {
+    color: rgba(255,255,255,0.9);
+  }
+  .bs-msg-p .bs-msg-interactive-btn {
+    color: var(--og-accent-primary);
+    border-top-color: var(--og-gray-200);
+  }
+
+  /* ── Media (imagen / video) en mensajes del bot ──────────────────────── */
+  .bs-msg-media {
+    margin-bottom: 6px;
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 260px;
+  }
+  .bs-msg-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    cursor: zoom-in;
+  }
+  .bs-msg-video {
+    display: block;
+    width: 100%;
+    max-height: 220px;
+    border-radius: 8px;
+    background: #000;
+  }
+
   /* ── Mensajes utilitarios dentro del listado ──────────────────────────── */
   .bs-chat-loading,
   .bs-chat-empty-msg {

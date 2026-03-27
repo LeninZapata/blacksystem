@@ -825,6 +825,15 @@ class chat {
       content = `<span>🎬 Video</span>`;
     } else if (format === 'document') {
       content = `<span>📄 Documento</span>`;
+    } else if (format === 'interactive') {
+      const escaped = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const formatted = escaped
+        .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+        .replace(/_(.*?)_/g, '<em>$1</em>')
+        .replace(/~(.*?)~/g, '<s>$1</s>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+      content = `<span>${formatted}</span>`;
     } else {
       // Para sistema: message puede ser JSON u objeto
       let display = text;
@@ -835,14 +844,44 @@ class chat {
       content = `<span>${(display ?? '').toString().replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
     }
 
+    // Botones, footer y media para mensajes del bot
+    const meta = m.metadata ?? {};
+    const buttons   = Array.isArray(meta.buttons) ? meta.buttons : [];
+    const footer    = meta.footer ?? '';
+    const sourceUrl = meta.source_url ?? '';
+
+    const buttonsHtml = buttons.length
+      ? `<div class="bs-msg-interactive-buttons">${buttons.map(b =>
+          `<div class="bs-msg-interactive-btn">${(b.text ?? '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
+        ).join('')}</div>`
+      : '';
+
+    const footerHtml = footer
+      ? `<div class="bs-msg-interactive-footer">${footer.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
+      : '';
+
+    let mediaHtml = '';
+    if (sourceUrl) {
+      const ext = sourceUrl.split('?')[0].split('.').pop().toLowerCase();
+      const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(ext);
+      if (isVideo) {
+        mediaHtml = `<div class="bs-msg-media"><video class="bs-msg-video" src="${sourceUrl}" controls preload="metadata"></video></div>`;
+      } else {
+        mediaHtml = `<div class="bs-msg-media"><img class="bs-msg-image" src="${sourceUrl}" loading="lazy" data-src="${sourceUrl}"></div>`;
+      }
+    }
+
     const typeClass    = type === 'B' ? 'bs-msg-b' : (type === 'S' ? 'bs-msg-s' : 'bs-msg-p');
     const optimistic   = opts?.optimistic ? ' bs-msg-optimistic' : '';
     const msgIdAttr    = m.id ? ` data-msg-id="${m.id}"` : '';
 
     return `<div class="bs-msg ${typeClass}${optimistic}"${msgIdAttr}>
       <div class="bs-msg-bubble">
+        ${mediaHtml}
         ${content}
+        ${footerHtml}
         <span class="bs-msg-time">${relTime}</span>
+        ${buttonsHtml}
       </div>
     </div>`;
   }
