@@ -94,11 +94,6 @@ $fetchExchangeRates = function() use ($exchangeCountries, $exchangeCurrencies, $
 
   file_put_contents($exchangeJsonPath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-  ogLog::info('ExchangeRate actualizado', [
-    'countries' => array_keys($rates),
-    'path'      => $exchangeJsonPath,
-  ], ['module' => 'exchangerate', 'layer' => 'app/routes']);
-
   return $payload;
 };
 

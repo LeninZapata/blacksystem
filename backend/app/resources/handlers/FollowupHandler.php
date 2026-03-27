@@ -123,9 +123,6 @@ class FollowupHandler {
 
     // PASO 2: Si usa Facebook, ajustar las últimas 24 horas dentro de 70h
     if ($botData && self::usesFacebookProvider($botData)) {
-      ogLog::info("registerFromSale - Facebook detectado, ajustando followups a 70h", [
-        'total_followups' => count($calculatedFollowups)
-      ], self::$logMeta);
 
       $calculatedFollowups = self::adjustFor70Hours($calculatedFollowups, $botTimezone);
     }
@@ -142,13 +139,6 @@ class FollowupHandler {
       );
       $maxSendAt = $openChatMeta[0]['meta_value'] ?? null;
     }
-
-    ogLog::info("registerFromSale - max_send_at resuelto", [
-      'client_id'   => $saleData['client_id'],
-      'bot_id'      => $saleData['bot_id'],
-      'max_send_at' => $maxSendAt,
-      'source'      => isset($saleData['max_send_at']) ? 'caller' : 'db'
-    ], self::$logMeta);
 
     // PASO 3: Insertar followups en BD
     $count = 0;
@@ -204,12 +194,6 @@ class FollowupHandler {
     $now = new DateTime('now', $botTz);
     $maxTimestamp = $now->getTimestamp() + (70 * 3600); // 70 horas desde ahora
 
-    ogLog::debug("adjustFor70Hours - Analizando followups", [
-      'now' => $now->format('Y-m-d H:i:s'),
-      'max_time' => date('Y-m-d H:i:s', $maxTimestamp),
-      'total_followups' => count($followups)
-    ], self::$logMeta);
-
     // Identificar followups que pasan de 70h
     $needsAdjustment = false;
     $last24HoursStart = $maxTimestamp - (24 * 3600); // Últimas 24h = desde hora 46 hasta 70
@@ -217,17 +201,11 @@ class FollowupHandler {
     foreach ($followups as $item) {
       if ($item['future_timestamp'] > $maxTimestamp) {
         $needsAdjustment = true;
-        ogLog::info("adjustFor70Hours - Followup excede 70h", [
-          'index' => $item['index'],
-          'original_date' => $item['future_date'],
-          'hours_from_now' => round(($item['future_timestamp'] - $now->getTimestamp()) / 3600, 2)
-        ], self::$logMeta);
         break;
       }
     }
 
     if (!$needsAdjustment) {
-      ogLog::info("adjustFor70Hours - Todos los followups están dentro de 70h", [], self::$logMeta);
       return $followups;
     }
 
@@ -256,10 +234,6 @@ class FollowupHandler {
       // Resolver colisiones: si ya existe un followup en ese minuto, mover 1h atrás
       while (in_array($newTimestamp, $usedSlots)) {
         $newTimestamp -= 3600; // 1 hora atrás
-        ogLog::debug("adjustFor70Hours - Resolviendo colisión", [
-          'index' => $item['index'],
-          'moved_back_1h' => true
-        ], self::$logMeta);
       }
 
       // Actualizar fecha — guardar future_date en UTC para consistencia con el CRON
@@ -270,13 +244,6 @@ class FollowupHandler {
       $item['future_date'] = $newDate->format('Y-m-d H:i:s'); // UTC
       $item['future_timestamp'] = $newTimestamp;
       $item['date_in_bot_tz'] = $newDateBotTz->format('Y-m-d H:i:s'); // para logs
-
-      ogLog::info("adjustFor70Hours - Followup ajustado", [
-        'index' => $item['index'],
-        'original_date' => date('Y-m-d H:i:s', $timestamp),
-        'new_date' => $item['future_date'],
-        'hours_from_now' => round(($newTimestamp - $now->getTimestamp()) / 3600, 2)
-      ], self::$logMeta);
 
       $adjusted[] = $item;
       $usedSlots[] = $newTimestamp;
@@ -473,12 +440,6 @@ class FollowupHandler {
 
           // Validar ventana de conversación: si max_send_at expiró, cancelar y omitir
           if (!empty($fup['max_send_at']) && $fup['max_send_at'] < $now) {
-            ogLog::info("getPending - Followup omitido: ventana de conversación expirada", [
-              'followup_id' => $fup['id'],
-              'max_send_at' => $fup['max_send_at'],
-              'now'         => $now,
-              'number'      => $personNumber
-            ], self::$logMeta);
             // Cancelar para no procesar en futuros crons
             ogDb::t('followups')->where('id', $fup['id'])->update([
               'processed' => 2,
@@ -556,11 +517,6 @@ class FollowupHandler {
       }
 
       $followups = $query->orderBy('future_date', 'ASC')->get();
-
-      ogLog::debug("getBySale - Followups obtenidos", [
-        'sale_id' => $saleId,
-        'count' => count($followups)
-      ], self::$logMeta);
 
       return $followups;
 

@@ -28,10 +28,6 @@ class QuickReplyHandler {
     foreach ($templates as $item) {
       foreach (($item['triggers'] ?? []) as $trigger) {
         if (mb_strtolower(trim($trigger)) === $normalized) {
-          ogLog::info('QuickReplyHandler::findMatch - Coincidencia encontrada', [
-            'trigger'     => $trigger,
-            'template_id' => $item['template']['template_id'] ?? ''
-          ], self::$logMeta);
           return $item['template'];
         }
       }
@@ -55,11 +51,6 @@ class QuickReplyHandler {
       'footer'  => $template['footer']  ?? ''
     ]);
 
-    ogLog::info('QuickReplyHandler::send - Plantilla enviada', [
-      'to'            => $to,
-      'template_id'   => $template['template_id'] ?? '',
-      'template_type' => $template['template_type'] ?? ''
-    ], self::$logMeta);
   }
 
   /**

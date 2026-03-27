@@ -20,10 +20,6 @@ class ActionDispatcher {
       return null;
     }
 
-    ogLog::info("Despachando action: {$action}", [
-      'handler' => get_class($handler)
-    ], ['module' => 'action_dispatcher']);
-
     return $handler->handle($context);
   }
 

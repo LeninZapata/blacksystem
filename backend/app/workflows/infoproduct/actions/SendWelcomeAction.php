@@ -68,20 +68,9 @@ class SendWelcomeAction {
       // Delay antes del mensaje
       $msgDelay = $delayPlan['messages'][$index];
 
-      ogLog::debug("send - Aplicando delay mensaje", [
-        'message_index' => $index + 1,
-        'delay_data' => $msgDelay
-      ], self::$logMeta);
-
       if ($msgDelay['ms'] > 0) {
         self::executeDelay($from, $msgDelay, $bot);
       }
-
-      // Enviar mensaje con manejo de errores
-      ogLog::debug("send - Enviando mensaje", [
-        'message_index' => $index + 1,
-        'preview' => substr($text, 0, 30)
-      ], self::$logMeta);
 
       try {
         $result = $chatapi::send($from, $text, $url, [
@@ -176,7 +165,7 @@ class SendWelcomeAction {
         'sale_id' => $saleId
       ], self::$logMeta);
     } else {
-      ogLog::success("send - Welcome completado exitosamente", [
+      ogLog::debug("send - Welcome completado exitosamente", [
         'messages_sent' => $messagesSent,
         'total_duration_seconds' => round($totalDuration, 2),
         'sale_id' => $saleId
@@ -235,11 +224,6 @@ class SendWelcomeAction {
     $chatapi = ogApp()->service('chatApi');
     $provider = $chatapi::getProvider();
 
-    ogLog::debug("executeDelay - Ejecutando", [
-      'ms' => $ms,
-      'provider' => $provider
-    ], self::$logMeta);
-
     // Para APIs sin typing, reducir tiempo
     if ($provider !== 'evolutionapi') {
       $reduction = (int)($bot['config']['no_typing_delay_reduction'] ?? 1);
@@ -251,7 +235,6 @@ class SendWelcomeAction {
     // Evolution API: 1 solo sendPresence (ya incluye sleep interno)
     try {
       $chatapi::sendPresence($to, 'composing', $ms);
-      ogLog::debug("executeDelay - Completado", [], self::$logMeta);
     } catch (Exception $e) {
       ogLog::error("executeDelay - Error en sendPresence", [
         'error' => $e->getMessage()

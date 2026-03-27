@@ -123,7 +123,6 @@ class ProductHandler {
       }
     }
 
-    ogLog::info('deleteProductFiles - Archivos eliminados', [ 'product_id' => $productId, 'deleted_count' => count($deletedFiles), 'errors_count' => count($errors), 'deleted_files' => $deletedFiles, 'errors' => $errors ], self::$logMeta );
 
     return [
       'success' => empty($errors),

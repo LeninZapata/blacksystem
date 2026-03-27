@@ -110,12 +110,6 @@ class AdAutoScaleStatsHandler {
         ];
       }, $results);
 
-      ogLog::info('getBudgetChanges - Datos obtenidos', [
-        'asset_id' => $assetId,
-        'range' => $range,
-        'count' => count($data)
-      ], self::$logMeta);
-
       return ogResponse::success($data);
 
     } catch (Exception $e) {
@@ -294,12 +288,6 @@ class AdAutoScaleStatsHandler {
         ];
       }, $results);
 
-      ogLog::info('getBudgetChangesByDay - Datos obtenidos', [
-        'asset_id' => $assetId,
-        'range' => $range,
-        'days' => count($data)
-      ], self::$logMeta);
-
       return ogResponse::success($data);
 
     } catch (Exception $e) {
@@ -402,12 +390,6 @@ class AdAutoScaleStatsHandler {
           'execution_time_ms' => (int)$row['execution_time_ms']
         ];
       }, $results);
-
-      ogLog::info('getBudgetResetsByDay - Datos obtenidos', [
-        'asset_id' => $assetId,
-        'range' => $range,
-        'days' => count($data)
-      ], self::$logMeta);
 
       return ogResponse::success($data);
 

@@ -148,9 +148,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $bot = $context['bot'];
     $person = $context['person'];
     $chatData = $context['chat_data'];
-
-    ogLog::info("handleImageWithoutSale - Invocando IA", [ 'number' => $person['number'] ], $this->logMeta);
-
     // Construir texto para la IA con descripción de la imagen + caption
     $resume = $imageAnalysis['metadata']['description']['resume'] ?? 'Imagen recibida';
     $caption = $imageAnalysis['metadata']['caption'] ?? '';
@@ -391,12 +388,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
       return $coincidences < 2; // descartar si 2+ palabras coinciden con el titular
     }));
 
-    ogLog::info("resolveClientName - Candidatos tras filtrar titular", [
-      'names_found'   => $namesFound,
-      'account_holder'=> $accountHolder,
-      'candidates'    => $candidates
-    ], $this->logMeta);
-
     if (count($candidates) === 1) {
       return trim($candidates[0]);
     }
@@ -424,9 +415,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $namesFound = $paymentData['names_found'] ?? [];
 
     if (empty($namesFound)) {
-      ogLog::info("isAccountHolderPresent - names_found vacío, titular no verificable", [
-        'account_holder' => $accountHolder,
-      ], $this->logMeta);
       return false;
     }
 
@@ -442,11 +430,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
       ));
       $coincidences = count(array_intersect($nameWords, $holderWords));
       if ($coincidences >= 2) {
-        ogLog::info("isAccountHolderPresent - Titular encontrado en recibo", [
-          'matched_name'   => $name,
-          'account_holder' => $accountHolder,
-          'coincidences'   => $coincidences,
-        ], $this->logMeta);
         return true;
       }
     }
@@ -480,12 +463,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
     ogApp()->loadHandler('chat');
     $chat   = ChatHandler::getChat($person['number'], $bot['id'], true);
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
-
-    ogLog::info("handleAccountHolderNotFound - Invocando IA", [
-      'number'         => $person['number'],
-      'account_holder' => $accountHolder,
-      'names_found'    => $paymentData['names_found'] ?? [],
-    ], $this->logMeta);
 
     $chatapi = ogApp()->service('chatApi');
     try {
@@ -533,13 +510,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
           'tu' => time()
         ]);
 
-      ogLog::info("updateSale - billed_amount actualizado", [
-        'sale_id'             => $saleId,
-        'local_billed_amount' => $billedAmount,
-        'billed_amount'       => $billedUsd,
-        'country_code'        => $countryCode,
-      ], $this->logMeta);
-
       return true;
 
     } catch (Exception $e) {
@@ -574,10 +544,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
       $currentName = $client['name'] ?? '';
       if (empty($currentName) || strlen($resolvedName) > strlen($currentName)) {
         $updates['name'] = $resolvedName;
-        ogLog::info("updateClient - Nombre actualizado: '{$currentName}' → '{$resolvedName}'", [
-          'client_id' => $clientId,
-          'reason'    => empty($currentName) ? 'empty_name' : 'longer_name'
-        ], $this->logMeta);
       }
     } else {
       ogLog::info("updateClient - Nombre no actualizado", [
@@ -597,11 +563,9 @@ class PaymentStrategy implements ConversationStrategyInterface {
     // Ejecutar UPDATE en BD
     try {
       ogDb::t('clients')->where('id', $clientId)->update($updates);
-      ogLog::info("updateClient - Cliente actualizado correctamente", [ 'client_id' => $clientId, 'name_updated' => isset($updates['name']), 'total_purchases' => $updates['total_purchases'], 'amount_spent' => $updates['amount_spent'] ], $this->logMeta);
       return true;
 
     } catch (Exception $e) {
-      ogLog::error("updateClient - Error al actualizar", [ 'client_id' => $clientId, 'error' => $e->getMessage() ], $this->logMeta);
       return false;
     }
   }
@@ -687,11 +651,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
           'tu' => time()
         ]);
 
-      ogLog::info("updateTrackingFunnelId - tracking_funnel_id actualizado", [
-        'sale_id' => $saleId,
-        'tracking_funnel_id' => $trackingId
-      ], $this->logMeta);
-
     } catch (Exception $e) {
       ogLog::error("updateTrackingFunnelId - Error al actualizar", [ 'sale_id' => $saleId, 'tracking_id' => $trackingId, 'error' => $e->getMessage() ], $this->logMeta);
     }
@@ -715,12 +674,6 @@ class PaymentStrategy implements ConversationStrategyInterface {
         $trackingId = $metadata['tracking_id'] ?? null;
 
         if ($trackingId) {
-          ogLog::info("getLastFollowupTrackingId - Tracking encontrado", [
-            'tracking_id' => $trackingId,
-            'followup_id' => $metadata['followup_id'] ?? null,
-            'message_date' => $msg['date'] ?? null
-          ], $this->logMeta);
-
           return $trackingId;
         }
       }

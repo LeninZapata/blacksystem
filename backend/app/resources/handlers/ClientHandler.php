@@ -67,15 +67,14 @@ class ClientHandler {
       // Limpiar residuos aunque no exista el cliente en BD
       $exist = ogApp()->helper('file')->deletePattern(ogApp()->getPath('storage/json/chats') . "/chat_{$number}_bot_*.json");
       if ($exist) {
-        ogLog::info('deleteAllDataByNumber - Cliente no encontrado, pero se eliminaron archivos residuales', ['number' => $number, 'files_deleted' => $exist], self::$logMeta);
       }
       $exist = ogDb::t('chats')->where('client_number', $number)->delete();
       if ($exist) {
-        ogLog::info('deleteAllDataByNumber - Chats residual eliminado de BD', ['number' => $number], self::$logMeta);
+        ogLog::debug('deleteAllDataByNumber - Chats residual eliminado de BD', ['number' => $number], self::$logMeta);
       }
       $exist = ogDb::t('followups')->where('number', $number)->delete();
       if ($exist) {
-        ogLog::info('deleteAllDataByNumber - Followups residual eliminado de BD', ['number' => $number], self::$logMeta);
+        ogLog::debug('deleteAllDataByNumber - Followups residual eliminado de BD', ['number' => $number], self::$logMeta);
       }
       return ['success' => false, 'error' => __('client.not_found')];
     }
@@ -97,7 +96,7 @@ class ClientHandler {
         // Limpiar archivos basura de chat si existen
         $deletedFiles = ogApp()->helper('file')->deletePattern(ogApp()->getPath('storage/json/chats') . "/chat_{$number}_bot_*.json");
         if ($deletedFiles) {
-          ogLog::info('getAllDataByNumber - Cliente no encontrado, archivos JSON eliminados', ['number' => $number, 'files_deleted' => $deletedFiles], self::$logMeta);
+          ogLog::debug('getAllDataByNumber - Cliente no encontrado, archivos JSON eliminados', ['number' => $number, 'files_deleted' => $deletedFiles], self::$logMeta);
         }
         return ['success' => false, 'error' => __('client.not_found')];
       }

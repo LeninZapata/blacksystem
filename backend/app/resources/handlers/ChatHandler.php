@@ -28,7 +28,6 @@ class ChatHandler {
       $bot = ogDb::t('bots')->where('id', $botId)->first();
 
       if ($bot && isset($bot['user_id'])) {
-        ogLog::info("ChatHandler - user_id obtenido desde bot", [ 'bot_id' => $botId, 'user_id' => $bot['user_id'] ], self::$logMeta);
 
         // Guardarlo para próximas llamadas
         self::$currentUserId = $bot['user_id'];

@@ -62,7 +62,6 @@ class DeliverProductAction {
     $message = $template['message'] ?? '';
     $url = $template['url'] ?? '';
 
-    ogLog::info("sendProductTemplate - Enviando producto", [ 'template_id' => $template['template_id'] ?? 'unknown', 'to' => $to ], self::$logMeta);
     $chatapi = ogApp()->service('chatApi');
     $chatapi::send($to, $message, $url);
   }
@@ -105,7 +104,6 @@ class DeliverProductAction {
   }
 
   private static function rebuildChatAfterDelivery($number, $botId) {
-    ogLog::info("rebuildChatAfterDelivery - Reconstruyendo chat después de entrega", [ 'number' => $number, 'bot_id' => $botId ], self::$logMeta);
 
     // Forzar reconstrucción desde DB
     ogApp()->loadHandler('chat');

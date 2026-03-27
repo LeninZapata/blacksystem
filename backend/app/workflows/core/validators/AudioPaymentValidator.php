@@ -48,7 +48,6 @@ class AudioPaymentValidator {
 
     foreach ($keywords as $keyword) {
       if (mb_strpos($textLower, $keyword) !== false) {
-        ogLog::debug("containsPaymentKeywords - Keyword encontrado", [ 'keyword' => $keyword ], self::$logMeta);
         return true;
       }
     }
@@ -68,7 +67,6 @@ class AudioPaymentValidator {
     foreach ($patterns as $pattern) {
       if (preg_match($pattern, $text, $matches)) {
         $amount = str_replace(',', '.', $matches[1]);
-        ogLog::debug("extractAmount - Monto detectado", [ 'amount' => $amount, 'pattern' => $pattern ], self::$logMeta);
         return $amount;
       }
     }

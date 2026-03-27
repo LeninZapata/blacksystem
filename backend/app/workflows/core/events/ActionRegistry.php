@@ -31,10 +31,6 @@ class ActionRegistry {
     $handler = new $handlerClass();
     $this->handlers[$actionName] = $handler;
 
-    ogLog::info("Handler instanciado (lazy): {$actionName}", [
-      'class' => $handlerClass
-    ], ['module' => 'action_registry']);
-
     return $handler;
   }
 

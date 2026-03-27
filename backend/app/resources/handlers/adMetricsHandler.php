@@ -120,7 +120,7 @@ class adMetricsHandler {
         ->get();
 
       if (empty($products)) {
-        ogLog::info('saveAllMetrics - No hay productos activos', [], $logMeta);
+        ogLog::warn('saveAllMetrics - No hay productos activos', [], $logMeta);
         return [
           'success' => true,
           'message' => 'No hay productos activos',
@@ -145,10 +145,6 @@ class adMetricsHandler {
           ->get();
 
         if (empty($assets)) {
-          ogLog::info('saveAllMetrics - Producto sin activos activos', [
-            'product_id' => $productId,
-            'product_name' => $product['name']
-          ], $logMeta);
           continue;
         }
 
@@ -247,12 +243,6 @@ class adMetricsHandler {
             ogDb::t('ad_metrics_hourly')->insert($insertData);
             $assetsSaved++;
 
-            ogLog::info('saveAllMetrics - Métrica guardada', [
-              'product_id' => $productId,
-              'asset_id' => $assetId,
-              'spend' => $metrics['spend'],
-              'impressions' => $metrics['impressions']
-            ], $logMeta);
           }
         }
 
@@ -311,7 +301,6 @@ class adMetricsHandler {
     try {
       $startTime = microtime(true);
 
-      ogLog::info('saveDailyMetrics - Iniciando proceso', [], $logMeta);
 
       // 1. Obtener todos los activos activos con su timezone
       $assets = ogDb::t('product_ad_assets')
@@ -320,7 +309,7 @@ class adMetricsHandler {
         ->get();
 
       if (empty($assets)) {
-        ogLog::info('saveDailyMetrics - No hay activos activos', [], $logMeta);
+        ogLog::warn('saveDailyMetrics - No hay activos activos', [], $logMeta);
         return [
           'success' => true,
           'message' => 'No hay activos activos',
@@ -339,12 +328,6 @@ class adMetricsHandler {
         $assetsByTimezone[$timezone][] = $asset;
       }
 
-      ogLog::info('saveDailyMetrics - Activos agrupados por timezone', [
-        'total_assets' => count($assets),
-        'timezones_count' => count($assetsByTimezone),
-        'timezones' => array_keys($assetsByTimezone)
-      ], $logMeta);
-
       $assetsSaved = 0;
       $assetsSkipped = 0;
       $errors = [];
@@ -357,13 +340,6 @@ class adMetricsHandler {
           $yesterday = clone $currentTime;
           $yesterday->modify('-1 day');
           $yesterdayDate = $yesterday->format('Y-m-d');
-
-          ogLog::debug('saveDailyMetrics - Procesando timezone', [
-            'timezone' => $timezone,
-            'assets_count' => count($timezoneAssets),
-            'current_time' => $currentTime->format('Y-m-d H:i:s'),
-            'yesterday_date' => $yesterdayDate
-          ], $logMeta);
 
           // 4. Agrupar activos por producto para optimizar consultas
           $assetsByProduct = [];
@@ -494,12 +470,6 @@ class adMetricsHandler {
                       'impressions' => $metrics['impressions']
                     ], $logMeta);
                   } else {
-                    ogLog::debug('saveDailyMetrics - Registro diario ya existe, omitiendo', [
-                      'product_id' => $productId,
-                      'asset_id' => $assetId,
-                      'date' => $yesterdayDate,
-                      'timezone' => $timezone
-                    ], $logMeta);
                     $assetsSkipped++;
                   }
 
@@ -613,11 +583,6 @@ class adMetricsHandler {
                 );
                 
                 if (!empty($existingHourly)) {
-                  ogLog::debug('saveDailyMetrics - Snapshot horario ya existe (desde diario)', [
-                    'product_id' => $productId,
-                    'asset_id' => $assetId,
-                    'date' => $yesterdayDate
-                  ], $logMeta);
                   continue;
                 }
                 

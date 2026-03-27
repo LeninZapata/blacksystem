@@ -10,15 +10,9 @@ class AudioInterpreter {
     if (!empty($base64)) {
       // Evolution suele enviar audio en formato ogg
       $audioUrl = 'data:audio/ogg;base64,' . $base64;
-      ogLog::debug("AudioInterpreter - Usando base64 (prioridad 1)", [
-        'base64_length' => strlen($base64)
-      ], ['module' => 'AudioInterpreter']);
     }
     // PRIORIDAD 2: Si no hay base64 pero hay URL, usar URL
     elseif (!empty($audioUrl)) {
-      ogLog::debug("AudioInterpreter - Usando media_url (prioridad 2)", [
-        'url' => substr($audioUrl, 0, 100)
-      ], ['module' => 'AudioInterpreter']);
     }
     // Si no hay ninguno
     else {

@@ -15,7 +15,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $chat = $chatData ?? [];
 
     $prompt = $this->buildPrompt($bot, $chat, $aiText);
-    ogLog::debug("execute - Prompt construido", $prompt, $this->logMeta);
+    ogLog::info("execute - Prompt construido", $prompt, $this->logMeta);
 
     // Mostrar "escribiendo..." entre 1.5-3 segundos antes de llamar IA (múltiplo de 100ms)
     $randomDelayMs = rand(15, 30) * 100; // 1500-3000ms en pasos de 100ms
@@ -58,7 +58,6 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     // Enviar mensaje inmediatamente
     $this->sendMessageDirect($parsedResponse, $context);
     $this->saveBotMessages($parsedResponse, $context);
-    ogLog::info("execute - Completado exitosamente", [], $this->logMeta);
     return [
       'success' => true,
       'ai_response' => $parsedResponse
@@ -150,70 +149,34 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
   }
 
   private function sendTypingIndicator($to, $delay, $block = true) {
-    ogLog::debug("sendTypingIndicator - Iniciando", [
-      'to' => $to,
-      'delay_seconds' => $delay,
-      'block' => $block
-    ], $this->logMeta);
 
     try {
       $chatapi = ogApp()->service('chatApi');
       $provider = $chatapi::getProvider();
 
-      ogLog::debug("sendTypingIndicator - Provider detectado", [
-        'provider' => $provider
-      ], $this->logMeta);
-
       if (!$block) {
         $delayMs = $delay * 1000;
-        ogLog::debug("sendTypingIndicator - Modo no bloqueante", [
-          'delay_ms' => $delayMs
-        ], $this->logMeta);
         $chatapi::sendPresence($to, 'composing', $delayMs);
         return;
       }
 
       $iterations = ceil($delay / 3);
-      ogLog::debug("sendTypingIndicator - Calculando iteraciones", [
-        'iterations' => $iterations,
-        'delay_total' => $delay
-      ], $this->logMeta);
 
       for ($i = 0; $i < $iterations; $i++) {
         $remaining = $delay - ($i * 3);
         $duration = min($remaining, 3);
         $durationMs = $duration * 1000;
 
-        ogLog::debug("sendTypingIndicator - Iteración", [
-          'iteration' => $i + 1,
-          'remaining_seconds' => $remaining,
-          'duration_seconds' => $duration,
-          'duration_ms' => $durationMs
-        ], $this->logMeta);
-
         try {
           $result = $chatapi::sendPresence($to, 'composing', $durationMs);
-          ogLog::debug("sendTypingIndicator - sendPresence ejecutado", [
-            'iteration' => $i + 1,
-            'result' => $result
-          ], $this->logMeta);
         } catch (Exception $e) {
-          ogLog::debug("sendTypingIndicator - Error en sendPresence, usando sleep", [
-            'iteration' => $i + 1,
-            'error' => $e->getMessage(),
-            'sleep_duration' => $duration
-          ], $this->logMeta);
           sleep($duration);
           continue;
         }
       }
 
-      ogLog::debug("sendTypingIndicator - Completado exitosamente", [
-        'total_iterations' => $iterations
-      ], $this->logMeta);
-
     } catch (Exception $e) {
-      ogLog::debug("sendTypingIndicator - Error fatal", [
+      ogLog::error("sendTypingIndicator - Error fatal", [
         'error' => $e->getMessage(),
         'trace' => $e->getTraceAsString()
       ], $this->logMeta);

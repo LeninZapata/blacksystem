@@ -141,12 +141,6 @@ class EcomHandler {
     $giftSales = [];
     $totalGiftsInProduct = count($giftsInProduct);
 
-    ogLog::info('processGifts - Procesando regalos', [
-      'gifts_solicitados' => $giftsCount,
-      'gifts_en_producto' => $totalGiftsInProduct,
-      'parent_sale_id' => $parentSaleId
-    ], self::$logMeta);
-
     // Caso 1: Hay exactamente la misma cantidad de regalos
     if ($totalGiftsInProduct === $giftsCount) {
       // 1 de cada uno
@@ -234,10 +228,6 @@ class EcomHandler {
       }
     }
 
-    ogLog::info('processGifts - Regalos procesados', [
-      'parent_sale_id' => $parentSaleId,
-      'total_gift_sales' => count($giftSales)
-    ], self::$logMeta);
 
     return $giftSales;
   }
@@ -274,13 +264,6 @@ class EcomHandler {
 
     try {
       $giftSaleId = ogDb::t('sales')->insert($giftSaleData);
-      
-      ogLog::info('createGiftSale - Regalo registrado', [
-        'gift_sale_id' => $giftSaleId,
-        'parent_sale_id' => $parentSaleId,
-        'product_id' => $giftProduct['id'],
-        'quantity' => $quantity
-      ], self::$logMeta);
 
       return $giftSaleId;
     } catch (Exception $e) {

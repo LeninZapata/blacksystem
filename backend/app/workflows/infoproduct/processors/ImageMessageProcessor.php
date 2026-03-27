@@ -28,10 +28,9 @@ class ImageMessageProcessor implements MessageProcessorInterface {
 
     // VALIDACIÓN INTELIGENTE: Solo enviar mensaje de espera si hay venta pendiente
     if ($this->shouldSendWaitMessage($chatData)) {
-      ogLog::info("process - Enviando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'pending_sale' ], $this->logMeta);
       $this->sendWaitMessage($person['number'], $context);
     } else {
-      ogLog::info("process - Saltando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'sin_venta_pendiente' ], $this->logMeta);
+      ogLog::debug("process - Saltando mensaje de espera", [ 'number' => $person['number'], 'reason' => 'sin_venta_pendiente' ], $this->logMeta);
     }
 
     require_once ogApp()->getPath() . '/workflows/infoproduct/interpreters/ImageInterpreter.php';

@@ -57,7 +57,6 @@ $router->group('/api/volatile-cleanup', function($router) {
     $result = [];
     $totalDeleted = 0;
 
-    ogLog::info("volatile-cleanup - INICIO", ['days' => $days, 'cutoff' => $cutoff], $logMeta);
 
     foreach ($tables as $table => $col) {
       try {
@@ -69,12 +68,6 @@ $router->group('/api/volatile-cleanup', function($router) {
         $result[$table] = ['deleted' => $rows, 'ok' => true];
         $totalDeleted  += $rows;
 
-        ogLog::info("volatile-cleanup - Tabla limpiada", [
-          'table'   => $table,
-          'deleted' => $rows,
-          'cutoff'  => $cutoff,
-        ], $logMeta);
-
       } catch (Exception $e) {
         $result[$table] = ['deleted' => 0, 'ok' => false, 'error' => $e->getMessage()];
         ogLog::error("volatile-cleanup - Error en tabla {$table}", [
@@ -82,11 +75,6 @@ $router->group('/api/volatile-cleanup', function($router) {
         ], $logMeta);
       }
     }
-
-    ogLog::info("volatile-cleanup - COMPLETADO", [
-      'total_deleted' => $totalDeleted,
-      'tables'        => array_keys($tables),
-    ], $logMeta);
 
     ogResponse::success([
       'days'          => $days,

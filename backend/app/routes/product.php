@@ -144,12 +144,6 @@ $router->group('/api/product', function($router) {
       ogResponse::json(['success' => false, 'error' => 'Número de teléfono demasiado corto'], 400);
     }
 
-    ogLog::info('force-welcome - Payload validado', [
-      'bot_id'     => $botRow['id'],
-      'product_id' => $productRow['id'],
-      'phone'      => $normalized
-    ], $logMeta);
-
     // ── Construir estructuras mínimas ──────────────────────────────────────
     $bot = [
       'id'           => (int)$botRow['id'],

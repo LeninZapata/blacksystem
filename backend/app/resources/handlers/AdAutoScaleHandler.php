@@ -5,7 +5,6 @@ class AdAutoScaleHandler {
   // Ejecutar todas las reglas activas (CRON HORARIO - solo "today")
   static function executeRules($params = []) {
     try {
-      ogLog::info('executeRules - Iniciando ejecución de reglas HORARIAS (today)', [], self::$logMeta);
 
       $userId = $params['user_id'] ?? ($GLOBALS['auth_user_id'] ?? null);
 
@@ -34,7 +33,6 @@ class AdAutoScaleHandler {
   // Ejecutar reglas históricas (CRON DIARIO - 2-3 AM)
   static function executeDailyRules($params = []) {
     try {
-      ogLog::info('executeDailyRules - Iniciando ejecución de reglas DIARIAS (históricas)', [], self::$logMeta);
 
       $userId = $params['user_id'] ?? ($GLOBALS['auth_user_id'] ?? null);
 
@@ -89,11 +87,6 @@ class AdAutoScaleHandler {
 
       $result = $method->invoke($service, $rule);
 
-      ogLog::info('executeRule - Regla ejecutada', [
-        'rule_id' => $ruleId,
-        'result' => $result
-      ], self::$logMeta);
-
       return $result;
 
     } catch (Exception $e) {
@@ -118,7 +111,6 @@ class AdAutoScaleHandler {
    */
   static function resetDailyBudgets($params = []) {
     $startTime = microtime(true);
-    ogLog::info('resetDailyBudgets - Iniciando proceso', [], self::$logMeta);
 
     // 1. Obtener todos los activos con auto_reset, incluyendo datos del bot para timezone correcto
     $sql = "
@@ -189,22 +181,6 @@ class AdAutoScaleHandler {
     }
     unset($asset); // Limpiar referencia
 
-    ogLog::info('resetDailyBudgets - Activos agrupados por timezone del BOT', [
-      'total_assets' => count($assets),
-      'timezones_count' => count($assetsByTimezone),
-      'timezones' => array_keys($assetsByTimezone),
-      'assets_detail' => array_map(function($a) {
-        return [
-          'id' => $a['id'],
-          'ad_asset_id' => $a['ad_asset_id'],
-          'bot_name' => $a['bot_name'],
-          'bot_country' => $a['country_code'],
-          'bot_timezone' => $a['bot_timezone'],
-          'last_reset_date' => $a['last_reset_date']
-        ];
-      }, $assets)
-    ], self::$logMeta);
-
     $resetCount = 0;
     $skipped = 0;
     $errors = [];
@@ -217,14 +193,6 @@ class AdAutoScaleHandler {
         $currentTime = new DateTime('now', new DateTimeZone($timezone));
         $currentHour = $currentTime->format('H:i:s');
         $currentDate = $currentTime->format('Y-m-d');
-
-        ogLog::debug('resetDailyBudgets - Procesando timezone', [
-          'timezone' => $timezone,
-          'assets_count' => count($timezoneAssets),
-          'current_time' => $currentTime->format('Y-m-d H:i:s'),
-          'current_hour' => $currentHour,
-          'current_date' => $currentDate
-        ], self::$logMeta);
 
         foreach ($timezoneAssets as $asset) {
 
@@ -271,13 +239,6 @@ class AdAutoScaleHandler {
 
           // Ejecutar base reset
           if ($needsBaseReset) {
-            ogLog::debug('resetDailyBudgets - Ejecutando base reset', [
-              'asset_id'    => $asset['id'],
-              'ad_asset_id' => $asset['ad_asset_id'],
-              'base_reason' => $baseReason,
-              'reset_time'  => $asset['reset_time'],
-              'current_hour'=> $currentHour,
-            ], self::$logMeta);
 
             $result = self::resetAssetBudget($asset, $timezone, $currentDate);
 
@@ -298,12 +259,6 @@ class AdAutoScaleHandler {
 
           // Ejecutar profit reset
           if ($needsProfitReset) {
-            ogLog::debug('resetDailyBudgets - Ejecutando profit reset', [
-              'asset_id'         => $asset['id'],
-              'ad_asset_id'      => $asset['ad_asset_id'],
-              'profit_reset_time'=> $asset['profit_reset_time'],
-              'current_hour'     => $currentHour,
-            ], self::$logMeta);
 
             $result = self::resetAssetBudgetProfit($asset, $timezone, $currentDate);
 
@@ -553,11 +508,6 @@ class AdAutoScaleHandler {
 
       // Si el profit calculado no supera la base, no hay nada que hacer
       if ($calculatedBudget <= $baseBudget) {
-        ogLog::info('resetAssetBudgetProfit - Profit no supera base, sin cambio', [
-          'asset_id'         => $asset['id'],
-          'calculated_budget'=> $calculatedBudget,
-          'base_budget'      => $baseBudget,
-        ], self::$logMeta);
         return ['success' => true, 'executed' => false, 'reason' => 'profit_not_above_base', 'calculated' => $calculatedBudget];
       }
 
@@ -652,15 +602,6 @@ class AdAutoScaleHandler {
     
     // Fecha del día anterior en el timezone local del activo
     $yesterday = date('Y-m-d', strtotime($currentDate . ' -1 day'));
-    
-    ogLog::info('calculateRoasBasedBudget - Iniciando cálculo', [
-      'product_id' => $productId,
-      'ad_asset_id' => $adAssetId,
-      'timezone' => $timezone,
-      'yesterday' => $yesterday,
-      'base_budget' => $baseBudget,
-      'max_budget' => $maxBudget
-    ], $logMeta);
 
     try {
       // 1. Obtener GASTO del día anterior
@@ -722,13 +663,6 @@ class AdAutoScaleHandler {
       // 3. Calcular GANANCIA
       $profit = $sales - $spend;
 
-      ogLog::info('calculateRoasBasedBudget - Métricas del día anterior', [
-        'yesterday' => $yesterday,
-        'spend' => $spend,
-        'sales' => $sales,
-        'profit' => $profit
-      ], $logMeta);
-
       // 4. Aplicar lógica de presupuesto
       $newBudget = $baseBudget; // Default: presupuesto base
 
@@ -778,7 +712,6 @@ class AdAutoScaleHandler {
   static function adjustBudget($params = []) {
     $startTime = microtime(true);
     $params = $params ?? ogRequest::data();
-    ogLog::info('adjustBudget - Iniciando ajuste manual', $params, self::$logMeta);
 
     try {
       // Validar parámetros

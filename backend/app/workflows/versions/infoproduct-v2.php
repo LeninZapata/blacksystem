@@ -279,12 +279,6 @@ class InfoproductV2Handler {
     $match = QuickReplyHandler::findMatch($text, $chatData);
     if (!$match) return false;
 
-    ogLog::info("handleQuickReply - Plantilla quick_reply activada", [
-      'text'        => $text,
-      'template_id' => $match['template_id'] ?? '',
-      'number'      => $person['number']
-    ], $this->logMeta);
-
     $clientId = $chatData['client_id'] ?? null;
     $saleId   = (int)($chatData['current_sale']['sale_id'] ?? 0);
 

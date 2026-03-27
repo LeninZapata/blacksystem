@@ -145,11 +145,6 @@ class ChatWindowStrategy {
     $shouldUpdate = !$existingExpiry || strtotime($existingExpiry) < $nowTs;
 
     if (!$shouldUpdate) {
-      ogLog::info("ChatWindowStrategy::refresh - Ventana activa, no se renueva", [
-        'client_id'       => $clientId,
-        'bot_id'          => $botId,
-        'existing_expiry' => $existingExpiry
-      ], ['module' => 'ChatWindowStrategy', 'layer' => 'app/workflows']);
       return;
     }
 
@@ -169,10 +164,5 @@ class ChatWindowStrategy {
       );
     }
 
-    ogLog::info("ChatWindowStrategy::refresh - Ventana renovada +24h", [
-      'client_id'  => $clientId,
-      'bot_id'     => $botId,
-      'expires_at' => $expiry
-    ], ['module' => 'ChatWindowStrategy', 'layer' => 'app/workflows']);
   }
 }

@@ -65,7 +65,6 @@ class WelcomeStrategy implements ConversationStrategyInterface {
               ($startMeta['sale_id'] ?? null) == $saleId &&
               ($startMeta['product_id'] ?? null) == $productId
             ) {
-              ogLog::debug("hasAlreadyPurchased - Producto ya comprado detectado", [ 'product_id' => $productId, 'sale_id' => $saleId ], $this->logMeta);
               return true;
             }
           }

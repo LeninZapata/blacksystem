@@ -23,7 +23,6 @@ $router->group('/api/followup', function($router) {
     $botsConfig = $data['bots_config'];
     $followups = $data['followups'];
 
-    ogLog::info("CRON Followup - Iniciando proceso", [], $logMeta);
     $sent = 0;
     $failed = 0;
     $upsellsExecuted = 0;
@@ -53,20 +52,12 @@ $router->group('/api/followup', function($router) {
       $botNow  = new DateTime('now', $botTz);
       $botTime = (int)$botNow->format('H') + ((int)$botNow->format('i') / 60);
       if ($botTime >= 22.5 || $botTime < 6.0) {
-        ogLog::info("CRON Followup - Followup omitido por horario de no molestar", [
-          'followup_id'     => $fup['id'],
-          'bot_id'          => $botId,
-          'timezone'        => $botTimezone,
-          'current_time_local' => $botNow->format('H:i'),
-          'current_time_utc'   => date('H:i')
-        ], $logMeta);
         continue;
       }
 
       try {
         // DETECTAR FOLLOWUP ESPECIAL: Upsell
         if (!empty($fup['special']) && $fup['special'] === 'upsell') {
-          ogLog::info("CRON Followup - Followup especial detectado: UPSELL", [ 'followup_id' => $fup['id'], 'product_id' => $fup['product_id'], 'number' => $fup['number'] ], $logMeta);
 
           // VALIDACIÓN 1: Verificar si ya existe venta upsell para este followup
           $existingUpsell = ogDb::t('sales')
@@ -101,7 +92,6 @@ $router->group('/api/followup', function($router) {
           ogApp()->handler('followup')::markProcessed($fup['id']);
 
           if ($upsellResult['success']) {
-            ogLog::info("CRON Followup - Upsell ejecutado exitosamente", [ 'followup_id' => $fup['id'], 'new_sale_id' => $upsellResult['new_sale_id'], 'upsell_product_id' => $upsellResult['upsell_product_id'] ], $logMeta);
             $upsellsExecuted++;
             $sent++;
           } else {
@@ -113,8 +103,6 @@ $router->group('/api/followup', function($router) {
           continue;
         }
 
-        // FOLLOWUP NORMAL: Enviar mensaje
-        ogLog::info("CRON Followup - Procesando followup normal", [ 'followup_id' => $fup['id'], 'number' => $fup['number'], 'tracking_id' => $fup['name'] ?? 'N/A' ], $logMeta);
 
         // Configurar ogChatApi con el bot específico
         $chatapi::setConfig($botData);
@@ -125,10 +113,6 @@ $router->group('/api/followup', function($router) {
 
         // Enviar presence antes del mensaje (1.2-2.2 segundos)
         $randomDelayMs = rand(12, 22) * 100; // 1200-2200ms en pasos de 100ms
-        ogLog::debug("CRON Followup - Enviando presence antes del mensaje", [
-          'followup_id' => $fup['id'],
-          'delay_ms' => $randomDelayMs
-        ], $logMeta);
         $chatapi::sendPresence($fup['number'], 'composing', $randomDelayMs);
 
         // Enviar mensaje (puede ser solo texto, solo media, o ambos)
@@ -193,7 +177,6 @@ $router->group('/api/followup', function($router) {
             'metadata' => $metadata
           ], 'S');
 
-          ogLog::info("CRON Followup - Followup enviado exitosamente", [ 'followup_id' => $fup['id'], 'number' => $fup['number'] ], $logMeta);
           $sent++;
         } else {
           ogLog::error("CRON Followup - Error enviando followup", [ 'followup_id' => $fup['id'], 'error' => $result['error'] ?? 'unknown' ], $logMeta);
@@ -208,7 +191,6 @@ $router->group('/api/followup', function($router) {
       }
     }
 
-    ogLog::info("CRON Followup - Proceso finalizado", [ 'total' => count($followups), 'sent' => $sent, 'failed' => $failed, 'upsells_executed' => $upsellsExecuted ], $logMeta);
 
     ogResponse::json([
       'success' => true,

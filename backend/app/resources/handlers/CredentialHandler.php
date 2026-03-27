@@ -40,12 +40,9 @@ class CredentialHandler {
 
         if ($result) {
           $updated++;
-          ogLog::info('updateBotsContext - Bot actualizado', [ 'bot_id' => $bot['id'], 'bot_number' => $botNumber, 'credential_id' => $credentialId ], self::$logMeta);
         }
       }
     }
-
-    ogLog::info('updateBotsContext - Proceso completado', [ 'credential_id' => $credentialId, 'bots_updated' => $updated, 'bots_checked' => count($bots) ],  self::$logMeta);
 
     return $updated;
   }

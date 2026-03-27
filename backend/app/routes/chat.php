@@ -7,7 +7,6 @@ $router->group('/api/chat', function($router) {
 
   // Reconstruir chat JSON desde DB
   $router->get('/rebuild/{number}/{bot_id}', function($number, $bot_id) {
-    ogLog::info("chat/rebuild - INICIO", ['number' => $number, 'bot_id' => $bot_id], ['module' => 'chat_api']);
 
     if (empty($number) || empty($bot_id)) ogResponse::error('Parámetros requeridos: number, bot_id', 400);
 
@@ -18,8 +17,6 @@ $router->group('/api/chat', function($router) {
         ogLog::warning("chat/rebuild - Sin mensajes en BD", ['number' => $number, 'bot_id' => $bot_id], ['module' => 'chat_api']);
         ogResponse::error('No se pudo reconstruir el chat. Verifica que existan mensajes en la BD.', 404);
       }
-
-      ogLog::success("chat/rebuild - Reconstruido", ['number' => $number, 'bot_id' => $bot_id, 'messages' => count($chat['messages'] ?? [])], ['module' => 'chat_api']);
 
       ogResponse::success([
         'chat' => $chat,
@@ -59,7 +56,6 @@ $router->group('/api/chat', function($router) {
     if (!file_exists($chatFile)) ogResponse::error('Chat JSON no encontrado', 404);
 
     if (unlink($chatFile)) {
-      ogLog::info("chat/delete - Eliminado", ['number' => $number, 'bot_id' => $bot_id], ['module' => 'chat_api']);
       ogResponse::success(['deleted' => true, 'ogFile' => basename($chatFile)], 'Chat JSON eliminado');
     } else {
       ogResponse::serverError('Error al eliminar chat JSON');
@@ -94,12 +90,6 @@ $router->group('/api/chat', function($router) {
       $limit = ogRequest::query('limit', 100); // Máximo 100 chats por ejecución
       $dryRun = ogRequest::query('dry_run', false); // Simulación sin eliminar
 
-      ogLog::info("chat/cleanup - INICIO", [
-        'days_old' => $daysOld,
-        'limit' => $limit,
-        'dry_run' => $dryRun
-      ], $logMeta);
-
       // Calcular fecha límite
       $cutoffDate = date('Y-m-d H:i:s', strtotime("-{$daysOld} days"));
 
@@ -112,9 +102,6 @@ $router->group('/api/chat', function($router) {
         ->get();
 
       if (empty($oldChats)) {
-        ogLog::info("chat/cleanup - No hay chats antiguos para limpiar", [
-          'cutoff_date' => $cutoffDate
-        ], $logMeta);
 
         ogResponse::success([
           'deleted_count' => 0,
@@ -163,12 +150,6 @@ $router->group('/api/chat', function($router) {
             'last_message' => $chat['last_message']
           ];
 
-          ogLog::info("chat/cleanup - Archivo eliminado", [
-            'file' => basename($chatFile),
-            'number' => $number,
-            'bot_id' => $botId,
-            'last_message' => $chat['last_message']
-          ], $logMeta);
         } else {
           $failedFiles[] = [
             'file' => basename($chatFile),
@@ -252,13 +233,6 @@ $router->group('/api/chat', function($router) {
       $chatApis = $botData['config']['apis']['chat'] ?? [];
       $provider = $chatApis[0]['config']['type_value'] ?? 'evolutionapi';
       $chatapi::setProvider($provider);
-
-      ogLog::info("manual-send - Enviando", [
-        'bot_number'    => $botNumber,
-        'client_number' => $clientNumber,
-        'provider'      => $provider,
-        'length'        => strlen($message)
-      ], $logMeta);
 
       // 3. Enviar mensaje
       $result = $chatapi::send($clientNumber, $message);

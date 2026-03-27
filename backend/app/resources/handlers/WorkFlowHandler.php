@@ -15,7 +15,7 @@ class WorkflowHandler {
       ->get();
 
     if (empty($bots)) {
-      ogLog::info('updateBotsContext - No hay bots usando workflow', [ 'workflow_id' => $workflowId ], self::$logMeta);
+      ogLog::warn('updateBotsContext - No hay bots usando workflow', [ 'workflow_id' => $workflowId ], self::$logMeta);
       return 0;
     }
 
@@ -31,12 +31,9 @@ class WorkflowHandler {
 
         if ($result) {
           $updated++;
-          ogLog::info('updateBotsContext - Bot actualizado', [ 'bot_id' => $bot['id'], 'bot_number' => $botNumber, 'workflow_id' => $workflowId ], self::$logMeta);
         }
       }
     }
-
-    ogLog::info('updateBotsContext - Proceso completado', [ 'workflow_id' => $workflowId, 'bots_updated' => $updated, 'bots_total' => count($bots) ], self::$logMeta);
 
     return $updated;
   }
