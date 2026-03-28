@@ -154,14 +154,17 @@ class chat {
     this._clockTimer = setInterval(render, 10000);
   }
 
-  // Última actividad del usuario — se llama al init y en cada tick del heartbeat de clientes
+  // Última actividad y última compra — se llama al init y en cada tick del heartbeat de clientes
   static async _fetchLastActivity() {
-    const el = document.getElementById('bsChatLastActivity');
-    if (!el) return;
+    const elActivity = document.getElementById('bsChatLastActivity');
+    const elPurchase = document.getElementById('bsChatLastPurchase');
+    if (!elActivity && !elPurchase) return;
     try {
       const json = await ogModule('api').get('/api/chat/last-activity');
-      const tc = json.data?.last_tc ?? null;
-      el.innerHTML = tc ? `Última actividad: <strong>${this._relativeTime(tc)}</strong>` : '';
+      const tc         = json.data?.last_tc          ?? null;
+      const purchaseTc = json.data?.last_purchase_tc ?? null;
+      if (elActivity) elActivity.innerHTML = tc         ? `Última actividad: <strong>${this._relativeTime(tc)}</strong>`         : '';
+      if (elPurchase) elPurchase.innerHTML = purchaseTc ? `Última compra: <strong>${this._relativeTime(purchaseTc)}</strong>` : '';
     } catch (_) { /* silencioso */ }
   }
 

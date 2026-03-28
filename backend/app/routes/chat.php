@@ -315,17 +315,23 @@ $router->group('/api/chat', function($router) {
     ogResponse::success(['bot_response_disabled' => (bool)$disabled]);
   })->middleware(['auth', 'json', 'throttle:100,1']);
 
-  // Última actividad del usuario - GET /api/chat/last-activity
+  // Última actividad y última compra del usuario - GET /api/chat/last-activity
   $router->get('/last-activity', function() {
     $userId = $GLOBALS['auth_user_id'] ?? null;
     if (!$userId) ogResponse::error('No autorizado', 401);
 
-    $result = ogDb::raw(
+    $activity = ogDb::raw(
       "SELECT MAX(tc) as last_tc FROM chats WHERE user_id = ? AND status = 1",
       [(int)$userId]
     );
-    $lastTc = !empty($result[0]['last_tc']) ? (int)$result[0]['last_tc'] : null;
-    ogResponse::success(['last_tc' => $lastTc]);
+    $purchase = ogDb::raw(
+      "SELECT MAX(tu) as last_purchase_tc FROM sales WHERE user_id = ? AND status = 1 AND process_status = 'sale_confirmed' AND tu IS NOT NULL",
+      [(int)$userId]
+    );
+    ogResponse::success([
+      'last_tc'          => !empty($activity[0]['last_tc'])          ? (int)$activity[0]['last_tc']          : null,
+      'last_purchase_tc' => !empty($purchase[0]['last_purchase_tc']) ? (int)$purchase[0]['last_purchase_tc'] : null,
+    ]);
   })->middleware(['auth', 'throttle:60,1']);
 
   // ============================================
