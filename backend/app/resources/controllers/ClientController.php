@@ -178,7 +178,14 @@ class ClientController extends ogController {
     $productParam     = $productId ? [(int)$productId] : [];
 
     // Cláusula extra para filtro "solo ventas confirmadas"
-    $confirmedJoin  = $confirmedOnly ? "INNER JOIN sales sc ON sc.client_id = c.id AND sc.status = 1 AND sc.process_status = 'sale_confirmed'" : '';
+    // Cuando también está activo "solo hoy", restringe la venta a payment_date de hoy (local).
+    if ($confirmedOnly && $todayOnly) {
+      $confirmedJoin = "INNER JOIN sales sc ON sc.client_id = c.id AND sc.status = 1 AND sc.process_status = 'sale_confirmed' AND sc.payment_date IS NOT NULL AND DATE(DATE_ADD(sc.payment_date, INTERVAL {$offsetSec} SECOND)) = '{$todayLocal}'";
+    } elseif ($confirmedOnly) {
+      $confirmedJoin = "INNER JOIN sales sc ON sc.client_id = c.id AND sc.status = 1 AND sc.process_status = 'sale_confirmed'";
+    } else {
+      $confirmedJoin = '';
+    }
     $confirmedGroup = ($confirmedOnly || $productId) ? "GROUP BY c.id, cbm_lm.bot_id, cbm_lm.meta_value, cbm_u.meta_value" : '';
 
     if ($botId) {
