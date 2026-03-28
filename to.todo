@@ -1,32 +1,15 @@
 URGENTE:
-✔ 593981497300 este caso el bot le dice que le va enviar los metodos de pago, entonces no le envia aqui seria bueno especificar @done(27-03-2026 13:02)
-que si el bot le dice que le va enviar los metodos de pago entonces que ponga los metodos de pago o agrege los botones de metodo de pago
-✔ Mostrar en el chat los botones o media que el bot envia... tambien el pie de texto @done(27-03-2026 13:51)
+
 ☐ Hotmark, comienza con el sistema para operar con hotmark en el sistema.
-✔ Mira en pie de texto mientras lo va poniendo como que no tiene mucho sentido no tiene una secuencia, revisa el video @done(27-03-2026 14:02)
-que dannes te paso dec como el bot los iba poniendo hay que arreglar eso.....
-✔ El upsell no muestra el pie de texto, algo esta pasando alli porque en el video de dannes lo muestra.. @done(27-03-2026 22:41)
-☐ Crea 1 nuevo seguimiento de precio 1,99 final muy persuasivo de escases y urgencia, para que se dispare despues de que el cliente vea el metodo de pago, esto es para aumentar la conversion y que el cliente no se vaya sin comprar, ademas de que se le puede agregar un audio o algo que lo haga mas dinamico, pero lo importante es el mensaje de texto que sea muy persuasivo y que genere esa urgencia y escases.
-✔ 593988712899 cuando es una pregunta para ayuda luego de la compra NO PONER BOTONES @done(27-03-2026 22:42)
 RAPIDO:
-☐ Hacer que la conversacion sea mas DINAMICA, persuasiva y profunda..
-  ☐ Deben existir mensajes que solo se debe disparar  1 sola vez por conversacion y seria despues de la respuesta del bot
-  _ por ejemplo un audio, entonces se le da la instruccion que este audio lo envie 1 sola vez despues de dar los metods de pago, con esto el bot es dinamico
 
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
-  ☐ aprar los seguimientos
   ☐ enviar plantilla de link del producto
   ☐ ejecutar una venta y enviar el producto (sirve para lo que se viene de validar el nombre del titular en el recibo)
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
-☐ Mostrar hora local en el chat para no estar viendo  la hora de la pc, ademas de que muestre tambien
-hace cuanto tiempo fue la ultima conversacion con el filtro actual.
-☐ eL FILTRO bsChatTodayFilter solo HOY esta mal, no esta tomando bien el UTC del user
-☐ En el chat cuando pones solo hoy (no recuerdo sin con el filtro solo ventas) muestra los de ayer parece que no esta filtrnado bien el UTC
 esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
 ☐ No funcioan aun la elminacion de chats.... revisar el endpoint
 Backend:
-✔ hacer uqe se pueda validar el nombre del titular en recibo y en caso no lo tenga entonces parar el proceso, envar un correo para avisar que se necesita @done(25-03-2026 22:40)
-enviar este producto y compeltar la venta, por lo general hay recibo como el banco del pacifico que no tiene el nombre del titular, entonces se debe validar esto para evitar problemas de fraude o de que el cliente no reciba su producto.
 
 ☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
 https://i.imgur.com/IG8BZXz.png

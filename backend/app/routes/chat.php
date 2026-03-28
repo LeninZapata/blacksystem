@@ -272,6 +272,62 @@ $router->group('/api/chat', function($router) {
     }
   })->middleware('auth');
 
+  // Obtener configuración cliente-bot - GET /api/chat/settings/{client_id}/{bot_id}
+  $router->get('/settings/{client_id}/{bot_id}', function($client_id, $bot_id) {
+    $meta = ogDb::raw(
+      "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'bot_response_disabled'",
+      [(int)$client_id, (int)$bot_id]
+    );
+    $disabled = !empty($meta[0]['meta_value']) && (int)$meta[0]['meta_value'] === 1;
+    ogResponse::success(['bot_response_disabled' => $disabled]);
+  })->middleware(['auth', 'throttle:100,1']);
+
+  // Actualizar configuración cliente-bot - PUT /api/chat/settings/{client_id}/{bot_id}
+  // Body: { bot_response_disabled: 1|0 }
+  $router->put('/settings/{client_id}/{bot_id}', function($client_id, $bot_id) {
+    $data     = ogRequest::data();
+    $disabled = isset($data['bot_response_disabled']) ? (int)(bool)$data['bot_response_disabled'] : 0;
+
+    $existing = ogDb::raw(
+      "SELECT id FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'bot_response_disabled'",
+      [(int)$client_id, (int)$bot_id]
+    );
+    $now = gmdate('Y-m-d H:i:s');
+    if (!empty($existing[0]['id'])) {
+      ogDb::raw(
+        "UPDATE client_bot_meta SET meta_value = ?, tc = ? WHERE id = ?",
+        [(string)$disabled, time(), $existing[0]['id']]
+      );
+    } else {
+      ogDb::raw(
+        "INSERT INTO client_bot_meta (client_id, bot_id, meta_key, meta_value, dc, tc) VALUES (?, ?, 'bot_response_disabled', ?, ?, ?)",
+        [(int)$client_id, (int)$bot_id, (string)$disabled, $now, time()]
+      );
+    }
+
+    // Reconstruir JSON del chat para que el bot tenga el dato actualizado
+    $client = ogDb::t('clients')->where('id', (int)$client_id)->first();
+    if ($client && !empty($client['number'])) {
+      ogApp()->loadHandler('chat');
+      ChatHandler::rebuildFromDB($client['number'], (int)$bot_id);
+    }
+
+    ogResponse::success(['bot_response_disabled' => (bool)$disabled]);
+  })->middleware(['auth', 'json', 'throttle:100,1']);
+
+  // Última actividad del usuario - GET /api/chat/last-activity
+  $router->get('/last-activity', function() {
+    $userId = $GLOBALS['auth_user_id'] ?? null;
+    if (!$userId) ogResponse::error('No autorizado', 401);
+
+    $result = ogDb::raw(
+      "SELECT MAX(tc) as last_tc FROM chats WHERE user_id = ? AND status = 1",
+      [(int)$userId]
+    );
+    $lastTc = !empty($result[0]['last_tc']) ? (int)$result[0]['last_tc'] : null;
+    ogResponse::success(['last_tc' => $lastTc]);
+  })->middleware(['auth', 'throttle:60,1']);
+
   // ============================================
   // RUTAS PERSONALIZADAS (siempre con auth)
   // ============================================

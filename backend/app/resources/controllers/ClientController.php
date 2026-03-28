@@ -156,12 +156,10 @@ class ClientController extends ogController {
     $todayParams     = [];
 
     if ($todayOnly) {
-      // Filtrar por payment_date de ventas confirmadas en zona local del usuario.
-      // No usamos last_message_at porque los followups automáticos la actualizan
-      // y harían aparecer clientes con ventas de días anteriores.
-      // No usamos sales.dc porque ese es cuando llegó el prospecto, no cuando pagó.
-      $whereParts[]      = "EXISTS (SELECT 1 FROM sales s_td WHERE s_td.client_id = c.id AND s_td.bot_id = cbm_lm.bot_id AND s_td.status = 1 AND s_td.process_status = 'sale_confirmed' AND s_td.payment_date IS NOT NULL AND DATE(DATE_ADD(s_td.payment_date, INTERVAL {$offsetSec} SECOND)) = ?)";
-      $wherePartsCount[] = "EXISTS (SELECT 1 FROM sales s_td WHERE s_td.client_id = c.id AND s_td.bot_id = cbm.bot_id  AND s_td.status = 1 AND s_td.process_status = 'sale_confirmed' AND s_td.payment_date IS NOT NULL AND DATE(DATE_ADD(s_td.payment_date, INTERVAL {$offsetSec} SECOND)) = ?)";
+      // Filtrar chats con actividad hoy en zona local del usuario.
+      // last_message_at se guarda en UTC (gmdate) → aplicamos offset para comparar con fecha local.
+      $whereParts[]      = "DATE(DATE_ADD(cbm_lm.meta_value, INTERVAL {$offsetSec} SECOND)) = ?";
+      $wherePartsCount[] = "DATE(DATE_ADD(cbm.meta_value,    INTERVAL {$offsetSec} SECOND)) = ?";
       $todayParams       = [$todayLocal];
     }
 

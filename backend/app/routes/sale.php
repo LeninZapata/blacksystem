@@ -118,7 +118,7 @@ $router->group('/api/sale', function($router) {
 
     ogDb::t('sales')->where('id', (int)$id)->update($updateData);
 
-    if ($processStatus === 'initiated') {
+    if ($processStatus === 'initiated' || $processStatus === 'sale_confirmed') {
       ogApp()->loadHandler('followup');
       FollowupHandler::cancelBySale((int)$id);
     }

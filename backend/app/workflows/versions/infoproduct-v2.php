@@ -180,6 +180,46 @@ class InfoproductV2Handler {
 
     $chatData = ConversationValidator::getChatData($this->clientKey($person), $bot['id']);
 
+    // Si la respuesta automática está desactivada para este cliente+bot,
+    // registrar el mensaje entrante pero no responder
+    if (!empty($chatData['bot_response_disabled'])) {
+      $clientId = $chatData['client_id'] ?? null;
+      $saleId   = (int)($chatData['current_sale']['sale_id'] ?? 0);
+
+      if ($clientId) {
+        $msgText = $message['text'] ?? '';
+        $formatLabels = [
+          'IMAGE'    => ['label' => '[Imagen recibida]',    'format' => 'image'],
+          'DOCUMENT' => ['label' => '[Documento recibido]', 'format' => 'document'],
+          'VIDEO'    => ['label' => '[Video recibido]',     'format' => 'video'],
+          'AUDIO'    => ['label' => '[Audio recibido]',     'format' => 'audio'],
+          'STICKER'  => ['label' => '[Sticker recibido]',   'format' => 'sticker'],
+        ];
+        $typeKey = strtoupper($messageType);
+        if (empty($msgText) && isset($formatLabels[$typeKey])) {
+          $msgText = $formatLabels[$typeKey]['label'];
+        }
+        $msgFormat = $formatLabels[$typeKey]['format'] ?? 'text';
+
+        ChatHandler::register(
+          $bot['id'], $bot['number'],
+          $clientId, $person['number'],
+          $msgText, 'P', $msgFormat,
+          null, $saleId, false
+        );
+        ChatHandler::addMessage([
+          'number'    => $person['number'],
+          'bot_id'    => $bot['id'],
+          'client_id' => $clientId,
+          'sale_id'   => $saleId,
+          'message'   => $msgText,
+          'format'    => $msgFormat,
+          'metadata'  => null
+        ], 'P');
+      }
+      return;
+    }
+
     // BYPASS del buffer para imágenes (respuesta inmediata)
     $isImage = strtoupper($messageType) === 'IMAGE';
 

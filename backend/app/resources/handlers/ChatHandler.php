@@ -364,6 +364,13 @@ class ChatHandler {
         }
       }
 
+      // Incluir flag bot_response_disabled desde client_bot_meta
+      $brMeta = ogDb::raw(
+        "SELECT meta_value FROM client_bot_meta WHERE client_id = ? AND bot_id = ? AND meta_key = 'bot_response_disabled'",
+        [$clientId, (int)$botId]
+      );
+      $chat['bot_response_disabled'] = !empty($brMeta[0]['meta_value']) && (int)$brMeta[0]['meta_value'] === 1;
+
       // Cargar plantillas quick_reply del producto en venta actual
       // Se almacenan en el JSON del chat para que el handler las lea sin I/O extra
       $qrProductId = $chat['current_sale']['product_id'] ?? null;

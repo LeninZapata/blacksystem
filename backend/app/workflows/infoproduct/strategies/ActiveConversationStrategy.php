@@ -42,9 +42,14 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       'ai_duration' => round($aiDuration, 2) . 's'
     ], $this->logMeta);
 
-    $parsedResponse = $this->parseResponse($aiResponse['response']);
+    // LOG TEMPORAL: respuesta cruda completa de la IA
+    ogLog::info("execute - RAW AI RESPONSE COMPLETO", [
+      'raw' => $aiResponse['response']
+    ], $this->logMeta);
 
-    if (!$parsedResponse) {
+    $parsedMessages = $this->parseResponse($aiResponse['response']);
+
+    if (!$parsedMessages) {
       ogLog::error("execute - JSON inválido de IA", [ 'raw_response' => $aiResponse['response'] ], $this->logMeta);
 
       return [
@@ -53,14 +58,26 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       ];
     }
 
-    ogLog::info("execute - Respuesta parseada correctamente", [ 'message_length' => strlen($parsedResponse['message'] ?? ''), 'message_preview' => substr($parsedResponse['message'] ?? '', 0, 150), 'has_metadata' => isset($parsedResponse['metadata']), 'action' => $parsedResponse['metadata']['action'] ?? 'none' ], $this->logMeta);
+    $firstMsg = $parsedMessages[0];
+    ogLog::info("execute - Respuesta parseada correctamente", [ 'messages_count' => count($parsedMessages), 'message_length' => strlen($firstMsg['message'] ?? ''), 'message_preview' => substr($firstMsg['message'] ?? '', 0, 150), 'has_metadata' => isset($firstMsg['metadata']), 'action' => $firstMsg['metadata']['action'] ?? 'none' ], $this->logMeta);
 
-    // Enviar mensaje inmediatamente
-    $this->sendMessageDirect($parsedResponse, $context);
-    $this->saveBotMessages($parsedResponse, $context);
+    // Inyectar pre-payment media si aplica (antes de que la IA envíe los datos bancarios)
+    $parsedMessages = $this->injectPrePaymentMedia($parsedMessages, $context);
+
+    // Enviar cada mensaje con typing indicator entre ellos
+    foreach ($parsedMessages as $i => $msg) {
+      if ($i > 0) {
+        $delayMs = rand(10, 20) * 100; // 1000-2000ms entre mensajes
+        $this->sendTypingIndicator($person['number'], $delayMs / 1000, true);
+      }
+      $this->sendMessageDirect($msg, $context);
+      $this->saveBotMessages($msg, $context);
+    }
+
+    $lastMsg = end($parsedMessages);
     return [
       'success' => true,
-      'ai_response' => $parsedResponse
+      'ai_response' => $lastMsg
     ];
   }
 
@@ -130,7 +147,90 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       return null;
     }
 
-    return $decoded;
+    // Objeto único → envolver en array
+    if (isset($decoded['message'])) {
+      return [$decoded];
+    }
+
+    // Array de mensajes
+    if (is_array($decoded) && !empty($decoded) && isset($decoded[0]['message'])) {
+      return $decoded;
+    }
+
+    return null;
+  }
+
+  /**
+   * Si la IA devuelve payment_method_template y el producto tiene un template
+   * con template_id = "pre-payment-media" que aún no fue enviado en el historial,
+   * lo inyecta como primer mensaje antes de los datos bancarios.
+   */
+  private function injectPrePaymentMedia(array $messages, array $context): array {
+    $lastMsg = end($messages);
+    $action  = $lastMsg['metadata']['action'] ?? '';
+
+    $chatData      = $context['chat_data'];
+    $historyMessages = $chatData['messages'] ?? [];
+
+    // Determinar si es el primer mensaje del bot en esta conversación
+    $hasBotMessages = false;
+    foreach ($historyMessages as $hMsg) {
+      if (($hMsg['type'] ?? '') === 'B') {
+        $hasBotMessages = true;
+        break;
+      }
+    }
+    $isFirstBotMessage = !$hasBotMessages;
+
+    // Inyectar solo en: primer mensaje del bot O cuando se envían métodos de pago
+    if ($action !== 'payment_method_template' && !$isFirstBotMessage) {
+      return $messages;
+    }
+
+    $productId = $chatData['current_sale']['product_id'] ?? null;
+    if (!$productId) return $messages;
+
+    // Recopilar URLs ya enviadas en el historial
+    $sentUrls = [];
+    foreach ($historyMessages as $hMsg) {
+      $sentUrl = $hMsg['metadata']['source_url'] ?? '';
+      if ($sentUrl !== '') $sentUrls[] = $sentUrl;
+    }
+
+    // Buscar el primer pre-payment-media que aún no fue enviado (en orden)
+    ogApp()->loadHandler('product');
+    $templates = ogApp()->handler('product')::getTemplatesFile($productId) ?? [];
+    $preMedia  = null;
+    foreach ($templates as $tpl) {
+      if (($tpl['template_id'] ?? '') !== 'pre-payment-media') continue;
+      $url = $tpl['url'] ?? '';
+      if ($url === '') continue;
+      if (!in_array($url, $sentUrls)) {
+        $preMedia = $tpl;
+        break;
+      }
+    }
+
+    if (!$preMedia) return $messages;
+
+    // Construir el mensaje previo con el audio/imagen
+    $saleId    = $chatData['current_sale']['sale_id'] ?? null;
+    $productId = $chatData['current_sale']['product_id'] ?? null;
+    $preMsg = [
+      'message'    => $preMedia['message'] ?? '',
+      'type'       => 'text',
+      'source_url' => $preMedia['url'] ?? '',
+      'metadata'   => [
+        'action'     => 'pre-payment-media',
+        'sale_id'    => (string)$saleId,
+        'product_id' => (string)$productId
+      ]
+    ];
+
+    // Insertar al inicio del array de mensajes
+    array_unshift($messages, $preMsg);
+
+    return $messages;
   }
 
   private function sendMessageDirect($parsedResponse, $context) {
@@ -140,15 +240,14 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $buttons = $parsedResponse['buttons'] ?? [];
     $footer  = $parsedResponse['footer']  ?? '';
 
-    // No enviar botones ni footer cuando se están mostrando métodos de pago
     $action = $parsedResponse['metadata']['action'] ?? '';
-    $noButtonActions = ['payment_method_template', 'interest_shown', 'delivered_product', 'technical_support', 'refund_request'];
+    $noButtonActions = ['delivered_product', 'technical_support', 'refund_request'];
     if (in_array($action, $noButtonActions)) {
       $buttons = [];
       $footer  = '';
     }
 
-    if (!empty($message)) {
+    if (!empty($message) || !empty($sourceUrl)) {
       $chatapi = ogApp()->service('chatApi');
       $chatapi::send($person['number'], $message, $sourceUrl, [
         'buttons' => $buttons,

@@ -174,8 +174,16 @@ class PromptBuilder {
 
             if ($type === 'link_media') {
               if (empty($url)) continue;
+              // Ocultar templates de inyección automática — el código los maneja sin intervención de la IA
+              if (($template['template_id'] ?? '') === 'pre-payment-media') continue;
+              $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+              $mediaLabel = match(true) {
+                in_array($ext, ['ogg', 'mp3', 'm4a', 'aac', 'wav']) => 'AUDIO',
+                in_array($ext, ['mp4', 'mov', 'avi', 'webm'])       => 'VIDEO',
+                default                                               => 'IMAGEN',
+              };
               $templateIdLabel = !empty($template['template_id']) ? " ({$template['template_id']})" : '';
-              $prompt .= "- Plantilla " . ($index + 1) . ": {$type}{$templateIdLabel} [IMAGEN - usa source_url en tu respuesta JSON]\n";
+              $prompt .= "- Plantilla " . ($index + 1) . ": {$type}{$templateIdLabel} [{$mediaLabel} - pon la URL en source_url del mensaje correspondiente]\n";
               $prompt .= "  Cuándo usarla: '" . $texto . "'\n";
               $prompt .= "  source_url: {$url}\n\n";
               continue;

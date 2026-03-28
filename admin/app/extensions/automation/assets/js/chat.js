@@ -33,6 +33,8 @@ class chat {
   static _clientHeartbeatCount = 0;
   static _clientsKnown         = new Map(); // clientId → { last_message_at, unread_count }
 
+  static _clockTimer = null;
+
   // ─── Inicialización ────────────────────────────────────────────────────────
 
   static init() {
@@ -53,6 +55,8 @@ class chat {
     this._lastMsgId       = null;
     this._activeExpiry    = null;
     this._clientsKnown    = new Map();
+    if (this._clockTimer) clearInterval(this._clockTimer);
+    this._clockTimer = null;
 
     // Configurar timezone del usuario en bsDate para mostrar fechas correctas.
     // Solo setear si viene en userPreferences (sesión actual con timezone guardado).
@@ -63,6 +67,7 @@ class chat {
     }
 
     this._initBotFilter();
+    this._startClock();
   }
 
   // Genera el HTML de ventas reutilizable (item + panel header)
@@ -132,6 +137,46 @@ class chat {
 
     this.loadClients(true);
     this._startClientHeartbeat();
+    this._fetchLastActivity();
+  }
+
+  // Reloj local en el sidebar header (actualiza cada 10 s)
+  static _startClock() {
+    const render = () => {
+      const el = document.getElementById('bsChatClock');
+      if (!el) return;
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      el.innerHTML = `Son las <strong>${h}:${m}</strong> horas`;
+    };
+    render();
+    this._clockTimer = setInterval(render, 10000);
+  }
+
+  // Última actividad del usuario — se llama al init y en cada tick del heartbeat de clientes
+  static async _fetchLastActivity() {
+    const el = document.getElementById('bsChatLastActivity');
+    if (!el) return;
+    try {
+      const json = await ogModule('api').get('/api/chat/last-activity');
+      const tc = json.data?.last_tc ?? null;
+      el.innerHTML = tc ? `Última actividad: <strong>${this._relativeTime(tc)}</strong>` : '';
+    } catch (_) { /* silencioso */ }
+  }
+
+  // Formatea un Unix timestamp como tiempo relativo (hasta 3 niveles)
+  static _relativeTime(tc) {
+    const diffSec = Math.floor(Date.now() / 1000) - tc;
+    if (diffSec < 60) return 'hace unos segundos';
+    const days  = Math.floor(diffSec / 86400);
+    const hours = Math.floor((diffSec % 86400) / 3600);
+    const mins  = Math.floor((diffSec % 3600) / 60);
+    const parts = [];
+    if (days  > 0) parts.push(`${days} ${days  === 1 ? 'día'    : 'días'}`);
+    if (hours > 0) parts.push(`${hours} ${hours === 1 ? 'hora'   : 'horas'}`);
+    if (mins  > 0) parts.push(`${mins} ${mins  === 1 ? 'minuto' : 'minutos'}`);
+    return 'hace ' + (parts.length ? parts.join(' ') : 'unos segundos');
   }
 
   // Cambia el filtro de bot y recarga la lista
@@ -251,6 +296,7 @@ class chat {
       if (this._clientHeartbeatCount >= this.clientHeartbeatMaxPolls) { this._stopClientHeartbeat(); return; }
       this._clientHeartbeatCount++;
       await this._syncClients();
+      this._fetchLastActivity();
     }, this.clientHeartbeatInterval * 1000);
   }
 
@@ -910,13 +956,13 @@ class chat {
     }
 
     try {
-      const json  = await ogModule('api').get(`/api/sale?client_id=${this._activeId}&bot_id=${botId}&status=1`);
-      const sales = json?.data ?? [];
+      const [salesJson, settingsJson] = await Promise.all([
+        ogModule('api').get(`/api/sale?client_id=${this._activeId}&bot_id=${botId}&status=1`),
+        ogModule('api').get(`/api/chat/settings/${this._activeId}/${botId}`).catch(() => null)
+      ]);
 
-      if (!sales.length) {
-        container.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem">Sin ventas registradas.</p>';
-        return;
-      }
+      const sales    = salesJson?.data ?? [];
+      const botDisabled = settingsJson?.data?.bot_response_disabled ?? false;
 
       const statusOpts = (current) => [
         { v: 'initiated',      l: 'En proceso' },
@@ -924,36 +970,7 @@ class chat {
         { v: 'cancelled',      l: 'Cancelado' }
       ].map(o => `<option value="${o.v}" ${o.v === current ? 'selected' : ''}>${o.l}</option>`).join('');
 
-      const rows = sales.map(s => {
-        const confirmed = s.process_status === 'sale_confirmed';
-        const amtVal    = s.local_billed_amount != null ? parseFloat(s.local_billed_amount).toFixed(2) : '';
-        const name      = (s.product_name ?? '').replace(/</g, '&lt;');
-        return `
-          <tr data-sale-id="${s.id}">
-            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</td>
-            <td style="min-width:90px">
-              <input type="number" class="chat-sale-amount" value="${amtVal}" step="0.01" placeholder="—"
-                style="width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:3px 6px;font-size:0.8125rem;background:${confirmed ? '#fff' : '#f9fafb'};color:${confirmed ? '#111827' : '#9ca3af'}"
-                ${confirmed ? '' : 'disabled'}>
-            </td>
-            <td style="min-width:130px">
-              <select class="chat-sale-status" onchange="chat.onSaleStatusChange(this)"
-                style="width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:3px 6px;font-size:0.8125rem;background:#fff">
-                ${statusOpts(s.process_status)}
-              </select>
-            </td>
-            <td style="text-align:center;width:36px">
-              <button class="btn btn-success btn-sm chat-sale-save-btn" onclick="chat.updateSale(${s.id}, this)" title="Guardar"
-                style="padding:3px 7px;font-size:0.75rem">
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
-                </svg>
-              </button>
-            </td>
-          </tr>`;
-      }).join('');
-
-      container.innerHTML = `
+      const salesSection = sales.length ? `
         <h6 style="font-size:0.8125rem;font-weight:600;margin:0 0 0.5rem;color:#374151">Ventas actuales</h6>
         <div class="og-table-responsive">
           <table class="og-table og-table-compact">
@@ -965,12 +982,54 @@ class chat {
                 <th></th>
               </tr>
             </thead>
-            <tbody>${rows}</tbody>
+            <tbody>${sales.map(s => {
+              const confirmed = s.process_status === 'sale_confirmed';
+              const amtVal    = s.local_billed_amount != null ? parseFloat(s.local_billed_amount).toFixed(2) : '';
+              const name      = (s.product_name ?? '').replace(/</g, '&lt;');
+              return `
+                <tr data-sale-id="${s.id}">
+                  <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</td>
+                  <td style="min-width:90px">
+                    <input type="number" class="chat-sale-amount" value="${amtVal}" step="0.01" placeholder="—"
+                      style="width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:3px 6px;font-size:0.8125rem;background:${confirmed ? '#fff' : '#f9fafb'};color:${confirmed ? '#111827' : '#9ca3af'}"
+                      ${confirmed ? '' : 'disabled'}>
+                  </td>
+                  <td style="min-width:130px">
+                    <select class="chat-sale-status" onchange="chat.onSaleStatusChange(this)"
+                      style="width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:3px 6px;font-size:0.8125rem;background:#fff">
+                      ${statusOpts(s.process_status)}
+                    </select>
+                  </td>
+                  <td style="text-align:center;width:36px">
+                    <button class="btn btn-success btn-sm chat-sale-save-btn" onclick="chat.updateSale(${s.id}, this)" title="Guardar"
+                      style="padding:3px 7px;font-size:0.75rem">
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>`;
+            }).join('')}</tbody>
           </table>
+        </div>` : '<p style="color:#9ca3af;text-align:center;padding:1rem 0">Sin ventas registradas.</p>';
+
+      container.innerHTML = `
+        ${salesSection}
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e5e7eb">
+          <h6 style="font-size:0.8125rem;font-weight:600;margin:0 0 0.625rem;color:#374151">Configuración del bot</h6>
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" id="chat-bot-response-disabled" ${botDisabled ? 'checked' : ''}
+              onchange="chat.toggleBotResponse(this)"
+              style="margin-top:2px;cursor:pointer;width:15px;height:15px;flex-shrink:0">
+            <span>
+              <span style="font-size:0.875rem;color:#374151;font-weight:500">Desactivar respuesta del bot</span><br>
+              <span style="font-size:0.75rem;color:#9ca3af">El bot no responderá automáticamente. Podrás atender al cliente de forma manual.</span>
+            </span>
+          </label>
         </div>`;
 
     } catch (_) {
-      container.innerHTML = '<p style="color:#ef4444;text-align:center;padding:1rem">Error al cargar ventas.</p>';
+      container.innerHTML = '<p style="color:#ef4444;text-align:center;padding:1rem">Error al cargar opciones.</p>';
     }
   }
 
@@ -982,6 +1041,24 @@ class chat {
     amtInput.disabled = !confirmed;
     amtInput.style.background = confirmed ? '#fff' : '#f9fafb';
     amtInput.style.color      = confirmed ? '#111827' : '#9ca3af';
+  }
+
+  static async toggleBotResponse(checkbox) {
+    const clientId = this._activeId;
+    const botId    = this._activeChatBotId;
+    if (!clientId || !botId) return;
+
+    const disabled = checkbox.checked ? 1 : 0;
+    checkbox.disabled = true;
+    try {
+      await ogModule('api').put(`/api/chat/settings/${clientId}/${botId}`, { bot_response_disabled: disabled });
+      if (window.ogToast) ogToast.success(disabled ? 'Respuesta del bot desactivada.' : 'Respuesta del bot activada.');
+    } catch (_) {
+      if (window.ogToast) ogToast.error('Error al actualizar configuración.');
+      checkbox.checked = !checkbox.checked; // revertir
+    } finally {
+      checkbox.disabled = false;
+    }
   }
 
   static async updateSale(saleId, btn) {
