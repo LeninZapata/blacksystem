@@ -247,6 +247,7 @@ class ChatHandler {
           'total_messages' => 0,
           'sales_initiated' => [],
           'sales_confirmed' => [],
+          'sales_cancelled' => [],
           'purchased_products' => []
         ],
         'messages' => []
@@ -262,6 +263,7 @@ class ChatHandler {
         }
       }
       $confirmedSaleIds = [];
+      $cancelledSaleIds = [];
       if (!empty($saleIdsInChat)) {
         $placeholders = implode(',', array_fill(0, count($saleIdsInChat), '?'));
         $salesRows = ogDb::raw(
@@ -271,6 +273,8 @@ class ChatHandler {
         foreach ($salesRows ?: [] as $row) {
           if (($row['process_status'] ?? '') === 'sale_confirmed') {
             $confirmedSaleIds[] = (int)$row['id'];
+          } elseif (($row['process_status'] ?? '') === 'cancelled') {
+            $cancelledSaleIds[] = (int)$row['id'];
           }
         }
       }
@@ -299,10 +303,11 @@ class ChatHandler {
 
           if ($saleId) {
             // Usar process_status real de la tabla sales (no mensajes de chat)
-            $isConfirmed = in_array((int)$saleId, $confirmedSaleIds);
+            $isConfirmed  = in_array((int)$saleId, $confirmedSaleIds);
+            $isCancelled  = in_array((int)$saleId, $cancelledSaleIds);
 
-            // Solo activar current_sale si la venta NO está confirmada en DB
-            if (!$isConfirmed) {
+            // Solo activar current_sale si la venta NO está confirmada ni cancelada en DB
+            if (!$isConfirmed && !$isCancelled) {
               $chat['current_sale'] = [
                 'sale_id' => $saleId,
                 'product_id' => $productId,
@@ -313,7 +318,7 @@ class ChatHandler {
               ];
             }
 
-            if ($productId && !in_array($productId, $chat['summary']['sales_initiated'])) {
+            if ($productId && !$isCancelled && !in_array($productId, $chat['summary']['sales_initiated'])) {
               $chat['summary']['sales_initiated'][] = $productId;
             }
           }
@@ -361,6 +366,17 @@ class ChatHandler {
             }
             break;
           }
+        }
+      }
+
+      // Asegurar que ventas canceladas en DB queden reflejadas en el summary
+      foreach ($cancelledSaleIds as $cSaleId) {
+        if (!in_array((string)$cSaleId, array_map('strval', $chat['summary']['sales_cancelled']))) {
+          $chat['summary']['sales_cancelled'][] = (string)$cSaleId;
+        }
+        // Limpiar current_sale si apunta a esta venta
+        if ($chat['current_sale'] && (int)$chat['current_sale']['sale_id'] === $cSaleId) {
+          $chat['current_sale'] = null;
         }
       }
 

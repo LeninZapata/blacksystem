@@ -26,12 +26,8 @@ class DoesNotWantProductAction implements ActionHandler {
     // Actualizar estado de la venta a 'cancelled'
     $saleUpdateResult = $this->updateSaleStatus($saleId);
 
-    // Registrar acción en el chat
+    // Registrar acción en el chat y reconstruir JSON
     $this->registerCancellation($bot, $person, $chatData, $saleId);
-
-    // Reconstruir chat JSON
-    ogApp()->loadHandler('chat');
-    ChatHandler::rebuildFromDB($person['number'], $bot['id']);
 
     ogLog::info("handle - Venta cancelada", [ 'sale_id' => $saleId, 'followups_cancelled' => $cancelResult, 'sale_updated' => $saleUpdateResult ], $this->logMeta );
 
@@ -93,14 +89,7 @@ class DoesNotWantProductAction implements ActionHandler {
       true
     );
 
-    ChatHandler::addMessage([
-      'number' => $person['number'],
-      'bot_id' => $bot['id'],
-      'client_id' => $chatData['client_id'],
-      'sale_id' => $saleId,
-      'message' => $message,
-      'format' => 'text',
-      'metadata' => $metadata
-    ], 'S');
+    // Reconstruir el JSON desde DB para que refleje el estado cancelado
+    ChatHandler::rebuildFromDB($person['number'], $bot['id']);
   }
 }

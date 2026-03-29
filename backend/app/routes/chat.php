@@ -31,7 +31,8 @@ $router->group('/api/chat', function($router) {
       ogLog::error("chat/rebuild - Error: {$e->getMessage()}", ['number' => $number, 'bot_id' => $bot_id], ['module' => 'chat_api']);
       ogResponse::serverError('Error al reconstruir chat', OG_IS_DEV ? $e->getMessage() : null);
     }
-  })->middleware($devMiddleware);
+  // })->middleware($devMiddleware); // TODO: restaurar middleware
+  })->middleware([]);
 
   // Obtener chat JSON actual (sin reconstruir)
   $router->get('/show/{number}/{bot_id}', function($number, $bot_id) {

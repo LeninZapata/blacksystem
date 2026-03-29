@@ -159,6 +159,13 @@ Con el PDF digital, lo puedes imprimir cuantas veces quieras, cuando quieras, y 
 - → Responde amablemente, ejemplo (puedes variar el texto): "Entiendo, si cambias de opinión, estaré aquí para ayudarte. ¡Que tengas un buen día!"
 - Metadata: `'action' -> 'does_not_want_the_product'`
 
+### VENTA CANCELADA — REGLA CRÍTICA
+- Si en el prompt ves `### VENTA ACTUAL: cancelada por el cliente`, significa que el cliente ya rechazó el producto en esta conversación
+- **NO vuelvas a ofrecer el producto, NO envíes métodos de pago, NO uses botones de compra**
+- Si el cliente escribe algo (cualquier mensaje), responde SOLO con un saludo de despedida amable y cierra la conversación
+- Ejemplo: "¡Hola! Espero que estés bien. Si en algún momento cambias de opinión, aquí estaré. ¡Que tengas un excelente día! 😊"
+- Metadata: `'action' -> 'does_not_want_the_product'`
+
 ### ACCIONES DISPONIBLES EN METADATA
 - `"payment_method_template"`: se envío de datos bancarios
 - `"product_reshipment"`: reenvío de producto (solo después de `'sale_confirmed'`)

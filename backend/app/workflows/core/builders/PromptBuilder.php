@@ -203,6 +203,8 @@ class PromptBuilder {
       }
     }
 
+    $cancelledSaleIds = $summary['sales_cancelled'] ?? [];
+
     if (is_array($currentSale) && !empty($currentSale)) {
       $origin = $currentSale['origin'] ?? 'organic';
       $originMap = [
@@ -219,6 +221,17 @@ class PromptBuilder {
       $prompt .= "- Producto: " . ($currentSale['product_name'] ?? 'N/A') . " (ID: " . ($currentSale['product_id'] ?? 'N/A') . ")\n";
       $prompt .= "- Estado: " . ($currentSale['sale_status'] ?? 'N/A') . "\n";
       $prompt .= "- Origen: {$originName}\n\n";
+    } elseif (!empty($summary['sales_confirmed'] ?? [])) {
+      $confirmedIds = implode(', ', $summary['sales_confirmed']);
+      $prompt .= "\n### VENTA ACTUAL: completada — el cliente ya compró\n";
+      $prompt .= "- IDs de ventas confirmadas: {$confirmedIds}\n";
+      $prompt .= "- El pago fue recibido y validado — **NO pidas métodos de pago ni insistas en vender**\n";
+      $prompt .= "- Atiende dudas post-compra: reenvío del producto, soporte técnico, etc.\n\n";
+    } elseif (!empty($cancelledSaleIds)) {
+      $prompt .= "\n### VENTA ACTUAL: cancelada por el cliente\n";
+      $prompt .= "- El cliente indicó explícitamente que NO quiere el producto\n";
+      $prompt .= "- IDs de ventas canceladas: " . implode(', ', $cancelledSaleIds) . "\n";
+      $prompt .= "- **NO intentes vender nuevamente** — solo despide amablemente si el cliente escribe\n\n";
     } else {
       $prompt .= "\n### VENTA ACTUAL: ninguna — no hay producto en venta en este momento\n\n";
     }
