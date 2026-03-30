@@ -24,6 +24,11 @@ $router->post('/api/webhook/whatsapp', 'webhook@whatsapp')->middleware(['json'])
 // Webhooks futuros (Telegram, etc)
 // $router->post('/api/webhook/telegram', 'webhookController@telegram')->middleware(['json']);
 
+// Webhook de Hotmart
+// Hotmart envía POST con el evento de compra (PURCHASE_COMPLETE, PURCHASE_APPROVED, etc.)
+// El token de verificación viene en el header x-hotmart-hottok
+$router->post('/api/webhook/hotmart', 'webhook@hotmart')->middleware(['json']);
+
 // Webhook de E-commerce
 $router->post('/api/webhook/ecom-sale', function() {
   $data = ogRequest::data();

@@ -159,6 +159,54 @@ class facebookProvider extends baseChatApiProvider {
     }
   }
 
+  // Enviar mensaje con botón de URL (CTA URL) via WhatsApp Cloud API interactive cta_url
+  function sendButtonUrl(string $number, string $message, string $displayText, string $url, string $footer = '', string $media = ''): array {
+    $number = $this->formatNumber($number);
+
+    $interactive = [
+      'type'   => 'cta_url',
+      'body'   => ['text' => $message],
+      'action' => [
+        'name'       => 'cta_url',
+        'parameters' => [
+          'display_text' => mb_substr($displayText, 0, 20),
+          'url'          => $url
+        ]
+      ]
+    ];
+
+    if ($footer !== '') {
+      $interactive['footer'] = ['text' => mb_substr($footer, 0, 60)];
+    }
+
+    if (!empty($media)) {
+      $ext = strtolower(pathinfo(parse_url($media, PHP_URL_PATH), PATHINFO_EXTENSION));
+      if (in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'])) {
+        $interactive['header'] = ['type' => 'video', 'video' => ['link' => $media]];
+      } elseif (in_array($ext, ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip'])) {
+        $interactive['header'] = ['type' => 'document', 'document' => ['link' => $media]];
+      } else {
+        $interactive['header'] = ['type' => 'image', 'image' => ['link' => $media]];
+      }
+    }
+
+    $payload = [
+      'messaging_product' => 'whatsapp',
+      'recipient_type'    => 'individual',
+      'to'                => $number,
+      'type'              => 'interactive',
+      'interactive'       => $interactive
+    ];
+
+    ogLog::debug('facebookProvider.sendButtonUrl - payload', ['payload' => $payload], self::$logMeta);
+
+    try {
+      return $this->postToGraph($payload);
+    } catch (Exception $e) {
+      return $this->errorResponse($e->getMessage());
+    }
+  }
+
   function sendPresence(string $number, string $presenceType, int $delay = 1200): array {
     // Facebook no soporta typing indicators, solo simulamos el delay
     if ($delay > 0) usleep($delay * 1000);

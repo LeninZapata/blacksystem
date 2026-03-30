@@ -15,6 +15,7 @@ return [
   'ad_auto_scale' => 'ad_auto_scale',
   'ad_metrics_hourly' => 'ad_metrics_hourly',
   'ad_metrics_daily' => 'ad_metrics_daily',
+  'payment' => 'payment',
     //'roles' => 'roles',
     //'permissions' => 'permissions',
     //'sessions' => 'sessions',

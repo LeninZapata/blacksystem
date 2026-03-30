@@ -33,9 +33,9 @@ class ogStr {
     // Dividir needle en palabras
     $words = preg_split('/\s+/', $needleNorm, -1, PREG_SPLIT_NO_EMPTY);
 
-    // Verificar que TODAS las palabras estén presentes
+    // Verificar que TODAS las palabras estén presentes como palabras completas
     foreach ($words as $word) {
-      if (strpos($haystackNorm, $word) === false) {
+      if (!preg_match('/\b' . preg_quote($word, '/') . '\b/', $haystackNorm)) {
         return false;
       }
     }

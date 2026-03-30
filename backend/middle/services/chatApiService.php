@@ -155,7 +155,8 @@ class chatApiService {
     }
   }
 
-  // $args opcionales: ['buttons' => [['text'=>'...'], ...]]
+  // $args opcionales: ['buttons' => [['text'=>'...'], ...], 'footer'=>'...']
+  // Un botón con campo 'url' activa el envío como botón de URL (CTA URL).
   static function send(string $to, string $message, string $media = '', array $args = []): array {
     if (!self::$config) ogLog::throwError(__('services.ogChatApi.not_configured'), [], self::$logMeta);
 
@@ -165,8 +166,15 @@ class chatApiService {
     }
 
     $decoded = ogApp()->helper('bsStr')::decodeMessagePatterns($message);
-    $buttons = self::buildButtons($args['buttons'] ?? []);
     $footer  = trim($args['footer'] ?? '');
+
+    // Detectar si hay un botón de URL → enviar como CTA URL
+    $urlButton = self::extractUrlButton($args['buttons'] ?? []);
+    if ($urlButton) {
+      return self::sendCtaUrl($to, $decoded, $urlButton['text'], $urlButton['url'], $footer, $media);
+    }
+
+    $buttons = self::buildButtons($args['buttons'] ?? []);
 
     // Si hay botones válidos → mensaje interactivo (WhatsApp Cloud API)
     if (!empty($buttons)) {
@@ -240,6 +248,57 @@ class chatApiService {
       if (count($buttons) >= 3) break;
     }
     return $buttons;
+  }
+
+  // Extrae el primer botón con campo 'url' del array de botones raw.
+  // Retorna ['text'=>'...', 'url'=>'...'] o null si no hay botón URL.
+  private static function extractUrlButton(array $rawButtons): ?array {
+    foreach ($rawButtons as $btn) {
+      $url = trim($btn['url'] ?? '');
+      if ($url !== '') {
+        return [
+          'text' => mb_substr(trim($btn['text'] ?? ''), 0, 20),
+          'url'  => $url
+        ];
+      }
+    }
+    return null;
+  }
+
+  // Enviar mensaje con botón de URL (CTA URL) — soportado por Facebook y Evolution.
+  // Si el provider no implementa sendButtonUrl, degrada a mensaje de texto con la URL en el cuerpo.
+  static function sendCtaUrl(string $to, string $message, string $displayText, string $url, string $footer = '', string $media = ''): array {
+    if (!self::$config) ogLog::throwError(__('services.ogChatApi.not_configured'), [], self::$logMeta);
+
+    $lastError = null;
+    foreach (self::$config as $index => $apiConfig) {
+      try {
+        $provider = self::getProviderInstance($apiConfig);
+
+        if (!method_exists($provider, 'sendButtonUrl')) {
+          // Degradar: enviar como texto plano con la URL al final
+          $fallbackMsg = $message . ($message !== '' ? "\n\n" : '') . $url;
+          if ($footer !== '') $fallbackMsg .= "\n\n\n\n_" . mb_substr($footer, 0, 60) . "_";
+          $response = $provider->sendMessage($to, $fallbackMsg, $media);
+        } else {
+          $response = $provider->sendButtonUrl($to, $message, $displayText, $url, $footer, $media);
+        }
+
+        if ($response['success']) {
+          $response['used_fallback'] = $index > 0;
+          $response['attempt']       = $index + 1;
+          $response['provider']      = self::$provider;
+          return $response;
+        }
+
+        $lastError = $response['error'] ?? 'Unknown error';
+      } catch (Exception $e) {
+        $lastError = $e->getMessage();
+        if ($index < count(self::$config) - 1) continue;
+      }
+    }
+
+    ogLog::throwError('sendCtaUrl - Todos los providers fallaron', ['error' => $lastError, 'to' => $to], self::$logMeta);
   }
 
   // Validar ventana de conversación gratuita para WhatsApp Cloud API.

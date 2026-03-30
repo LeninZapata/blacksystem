@@ -84,6 +84,60 @@ class evolutionProvider extends baseChatApiProvider {
     }
   }
 
+  // Enviar mensaje con botón de URL (CTA URL) via /message/sendButtons
+  function sendButtonUrl(string $number, string $message, string $displayText, string $url, string $footer = '', string $media = ''): array {
+    if (!$this->validateConfig()) {
+      return $this->errorResponse(__('services.evolution.config.invalid'));
+    }
+
+    $number = $this->formatNumber($number);
+
+    $payload = [
+      'number'      => $number,
+      'description' => $message,
+      'buttons'     => [
+        [
+          'type'        => 'url',
+          'displayText' => mb_substr($displayText, 0, 20),
+          'url'         => $url
+        ]
+      ]
+    ];
+
+    if ($footer !== '') {
+      $payload['footer'] = mb_substr($footer, 0, 60);
+    }
+
+    ogLog::info('evolutionProvider.sendButtonUrl - Enviando botón URL', ['number' => $number, 'url' => $url], self::$logMeta);
+
+    try {
+      $http = ogApp()->helper('http');
+      $response = $http::post($this->baseUrl . '/message/sendButtons/' . $this->instance, $payload, [
+        'headers' => [
+          'apikey: ' . $this->apiKey,
+          'Content-Type: application/json'
+        ]
+      ]);
+
+      if (!$response['success']) {
+        return $this->errorResponse($response['error'] ?? 'HTTP error sending URL button');
+      }
+
+      $data = $response['data'];
+
+      if (isset($data['key']['id'])) {
+        return $this->successResponse([
+          'message_id' => $data['key']['id'],
+          'timestamp'  => $data['messageTimestamp'] ?? time()
+        ]);
+      }
+
+      return $this->errorResponse('evolutionProvider.sendButtonUrl - respuesta inesperada: ' . json_encode($data));
+    } catch (Exception $e) {
+      return $this->errorResponse($e->getMessage());
+    }
+  }
+
   function sendPresence(string $number, string $presenceType, int $delay = 1200): array {
     if (!$this->validateConfig()) {
       return $this->errorResponse(__('services.evolution.config.invalid'));

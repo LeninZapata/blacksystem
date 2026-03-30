@@ -125,7 +125,7 @@ class InfoproductV2Handler {
       ogLog::warning("handle - Bot sin user_id", [ 'bot_id' => $bot['id'] ?? 'N/A', 'bot_number' => $botNumber ], $this->logMeta);
     }
 
-    $bot['prompt_recibo'] = $this->prompt_recibo;
+    $bot['prompt_recibo'] = ($bot['mode'] ?? 'R') === 'C' ? 'checkout.txt' : $this->prompt_recibo;
     $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
 
     $messageType = MessageClassifier::classify($message);
@@ -589,7 +589,7 @@ class InfoproductV2Handler {
     }
 
     ogApp()->helper('cache')::memorySet('current_bot', $bot);
-    $bot['prompt_recibo']         = $this->prompt_recibo;
+    $bot['prompt_recibo']         = ($bot['mode'] ?? 'R') === 'C' ? 'checkout.txt' : $this->prompt_recibo;
     $bot['prompt_reccibo_imagen'] = $this->prompt_recibo_imagen;
 
     // Configurar provider (usa evolutionapi por defecto igual que $forcedProvider)

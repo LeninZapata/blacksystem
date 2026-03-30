@@ -189,7 +189,7 @@ class PromptBuilder {
               continue;
             }
 
-            if (($type === 'link_review' || $type === 'link_payment_method') && !empty($url)) {
+            if (($type === 'link_review' || $type === 'link_payment_method' || $type === 'link_product') && !empty($url)) {
               $texto .= "\n" . $url;
             }
 

@@ -165,6 +165,34 @@ class WebhookController {
     return $className . 'Handler';
   }
 
+  function hotmart() {
+    try {
+      $rawData = ogRequest::data();
+
+      // Validar estructura mínima
+      $validation = WebhookHandler::validate($rawData);
+      if (!$validation['valid']) {
+        ogResponse::json(['success' => false, 'error' => $validation['error']], 400);
+      }
+
+      // Responder 200 a Hotmart de inmediato para evitar reenvíos
+      ogResponse::flushAndContinue(['message' => 'Webhook recibido']);
+
+      // Cargar y ejecutar el proveedor de Hotmart
+      $providerFile = ogCache::memoryGet('path_middle') . '/services/integrations/payment/hotmart/hotmartProvider.php';
+      require_once $providerFile;
+
+      $provider = new hotmartProvider();
+      $provider->processWebhook($rawData);
+
+    } catch (Exception $e) {
+      ogLog::error('hotmart - Error crítico', [
+        'error' => $e->getMessage()
+      ], $this->logMeta);
+      ogResponse::serverError('Error procesando webhook de Hotmart', OG_IS_DEV ? $e->getMessage() : null);
+    }
+  }
+
   function telegram() {
     try {
       $rawData = ogRequest::data();
