@@ -172,6 +172,9 @@ class PromptBuilder {
             $texto = $template['message'] ?? '';
             $url = $template['url'] ?? '';
 
+            // link_checkout es la URL directa de Hotmart — la maneja el quiz, nunca la IA
+            if ($type === 'link_checkout') continue;
+
             if ($type === 'link_media') {
               if (empty($url)) continue;
               // Ocultar templates de inyección automática — el código los maneja sin intervención de la IA

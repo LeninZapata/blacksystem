@@ -58,7 +58,23 @@ class hotmartProvider {
       return ['success' => true, 'reason' => 'event_ignored', 'event' => $eventType];
     }
 
-    // 3. Parsear información del evento
+    // 3. Deduplicar: si esta transaction_id ya fue procesada, ignorar
+    $transactionId = $rawData['data']['purchase']['transaction'] ?? null;
+    if ($transactionId) {
+      try {
+        $existing = ogDb::table('payment')->where('purchase_transaction', $transactionId)->first();
+        if ($existing) {
+          ogLog::info('hotmartProvider - Transaction ya procesada, ignorando duplicado', [
+            'transaction_id' => $transactionId, 'event' => $eventType, 'payment_id' => $existing['id']
+          ], $this->logMeta);
+          return ['success' => true, 'reason' => 'already_processed', 'transaction_id' => $transactionId];
+        }
+      } catch (Exception $e) {
+        // Si la tabla no existe aún, continuar sin deduplicar
+      }
+    }
+
+    // 4. Parsear información del evento
     $eventInfo             = hotmartEventParser::extractEventInfo($rawData);
     $eventInfo['raw_data'] = $rawData; // necesario para calcular comisiones en hotmartSaleRegistrar
 
@@ -68,7 +84,8 @@ class hotmartProvider {
     // si no hay SCK se usa el teléfono del comprador y module pasa a 'direct'.
     $from      = $customParams['whatsapp_number'] ?? $eventInfo['buyer_phone'] ?? null;
     $botId     = $customParams['bot_id_sck']      ?? null;
-    $productId = $customParams['product_id_sck']  ?? null; // ID interno (no hotmart_product_id)
+    $productId = $customParams['product_id_sck']  ?? null;
+    $saleId    = $customParams['sale_id_sck']      ?? null;
     $module    = !empty($customParams['whatsapp_number']) ? 'whatsapp' : 'direct';
 
     ogLog::info('hotmartProvider - Procesando webhook', [
@@ -82,9 +99,9 @@ class hotmartProvider {
       'module'         => $module,
     ], $this->logMeta);
 
-    // 4. Registrar / actualizar venta
+    // 5. Registrar / actualizar venta
     $parentSale = $eventInfo['parent_sale'] ?? null;
-    $saleResult = hotmartSaleRegistrar::register($eventInfo, $botId, $productId, $from, $module, $parentSale);
+    $saleResult = hotmartSaleRegistrar::register($eventInfo, $botId, $productId, $from, $module, $parentSale, $saleId);
 
     if (!($saleResult['success'] ?? false)) {
       ogLog::error('hotmartProvider - Error registrando venta', [
@@ -97,7 +114,7 @@ class hotmartProvider {
 
     $saleId = $saleResult['sale_id'];
 
-    // 5. Guardar registro completo del pago
+    // 6. Guardar registro completo del pago
     hotmartPaymentRecorder::save($saleId, $rawData);
 
     ogLog::info('hotmartProvider - Webhook procesado exitosamente', [

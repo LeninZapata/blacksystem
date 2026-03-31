@@ -289,6 +289,7 @@
             "label": "Tipo de Plantilla",
             "link_product": "Link Producto",
             "link_payment_method": "Link Método de Pago",
+            "link_checkout": "Link Checkout (Hotmart)",
             "link_review": "Link Reseña",
             "link_media": "Link Media",
             "quick_reply": "Respuesta Rápida"
@@ -330,6 +331,11 @@
           }
         },
         "status": "Activo",
+        "hotmart_product_id": {
+          "label": "Hotmart Product ID",
+          "placeholder": "Ej: 6598609",
+          "hint": "ID numérico del producto en Hotmart. Vincula este producto con el webhook de Hotmart."
+        },
         "fb_ad_copy": {
           "label": "Copy del anuncio de Facebook",
           "placeholder": "Pega aquí el copy del anuncio de Facebook que verá el cliente..."

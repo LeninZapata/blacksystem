@@ -169,11 +169,8 @@ class WebhookController {
     try {
       $rawData = ogRequest::data();
 
-      // Validar estructura mínima
-      $validation = WebhookHandler::validate($rawData);
-      if (!$validation['valid']) {
-        ogResponse::json(['success' => false, 'error' => $validation['error']], 400);
-      }
+      // Guardar webhook raw para debugging/auditoría
+      $this->saveRawWebhook($rawData, 'hotmart');
 
       // Responder 200 a Hotmart de inmediato para evitar reenvíos
       ogResponse::flushAndContinue(['message' => 'Webhook recibido']);

@@ -1,9 +1,12 @@
 {
 	"folders": [
-		{
-			"path": "."
-		}
-	],
+    {
+      "path": "."
+    },
+    {
+      "path": "../../metodoefectivo.cc"
+    }
+  ],
 	"settings": {
 		"highlightLine.borderColor" : "#9457EB",
 		"highlightLine.borderWidth": "1px",

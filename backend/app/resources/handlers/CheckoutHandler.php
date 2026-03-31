@@ -64,12 +64,24 @@ class CheckoutHandler {
         return ['success' => false, 'found' => false, 'error' => 'Producto no encontrado'];
       }
 
-      $config      = is_string($product['config']) ? json_decode($product['config'], true) : ($product['config'] ?? []);
+      $config = is_string($product['config']) ? json_decode($product['config'], true) : ($product['config'] ?? []);
+      $type   = $config['hotmart_type'] ?? 'p';
+
+      // Buscar URL de checkout: primero en config JSON, luego en plantilla link_checkout
       $checkoutUrl = $config['hotmart_checkout_url'] ?? null;
-      $type        = $config['hotmart_type'] ?? 'p';
 
       if (!$checkoutUrl) {
-        ogLog::warning('CheckoutHandler::getContext - hotmart_checkout_url no configurada', [
+        $templates = $config['messages']['templates'] ?? [];
+        foreach ($templates as $tpl) {
+          if (($tpl['template_type'] ?? '') === 'link_checkout') {
+            $checkoutUrl = trim($tpl['url'] ?? '') ?: trim($tpl['message'] ?? '');
+            break;
+          }
+        }
+      }
+
+      if (!$checkoutUrl) {
+        ogLog::warning('CheckoutHandler::getContext - URL de checkout no encontrada', [
           'product_id' => $product['id'],
           'product'    => $product['name']
         ], self::$logMeta);
@@ -88,6 +100,7 @@ class CheckoutHandler {
         'success'      => true,
         'found'        => true,
         'number'       => $sale['number'],
+        'sale_id'      => (int)$sale['id'],
         'bot_id'       => (int)$sale['bot_id'],
         'product_id'   => (int)$sale['product_id'],
         'checkout_url' => $checkoutUrl,

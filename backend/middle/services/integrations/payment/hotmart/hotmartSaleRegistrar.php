@@ -25,9 +25,9 @@ class hotmartSaleRegistrar {
    * @param string      $module      'whatsapp' | 'direct'
    * @param array|null  $parentSale  Venta padre pre-detectada (puede venir del parser)
    */
-  static function register($eventInfo, $botId, $productId, $from, $module, $parentSale = null) {
+  static function register($eventInfo, $botId, $productId, $from, $module, $parentSale = null, $saleId = null) {
     if ($eventInfo['is_main_purchase'] ?? true) {
-      return self::updateMainPurchase($eventInfo, $botId, $productId, $from, $module);
+      return self::updateMainPurchase($eventInfo, $botId, $productId, $from, $module, $saleId);
     }
 
     return self::createAdditionalSale($eventInfo, $botId, $from, $module, $parentSale);
@@ -37,8 +37,11 @@ class hotmartSaleRegistrar {
   // VENTA PRINCIPAL
   // ─────────────────────────────────────────────────────────────────────────
 
-  private static function updateMainPurchase($eventInfo, $botId, $productId, $from, $module) {
-    $pendingSale = self::findPendingSaleByPhone($from, $productId, $botId);
+  private static function updateMainPurchase($eventInfo, $botId, $productId, $from, $module, $saleId = null) {
+    // Si viene sale_id desde el SCK, buscamos directamente — más preciso que buscar por teléfono
+    $pendingSale = $saleId
+      ? self::findPendingSaleById($saleId)
+      : self::findPendingSaleByPhone($from, $productId, $botId);
 
     if (!$pendingSale) {
       ogLog::warning('hotmartSaleRegistrar - Venta pendiente no encontrada, creando venta principal directa', [
@@ -348,6 +351,14 @@ class hotmartSaleRegistrar {
    * Busca venta pendiente (process_status = initiated) por número.
    * Filtra opcionalmente por product_id y bot_id para mayor precisión.
    */
+  static function findPendingSaleById($saleId) {
+    return ogDb::table('sales')
+      ->where('id', (int)$saleId)
+      ->where('process_status', 'initiated')
+      ->where('status', 1)
+      ->first();
+  }
+
   static function findPendingSaleByPhone($number, $productId = null, $botId = null) {
     if (empty($number)) return null;
 

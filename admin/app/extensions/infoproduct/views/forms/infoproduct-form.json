@@ -41,7 +41,7 @@
     },
     {
       "type": "group",
-      "columns": 2,
+      "columns": 3,
       "gap": "normal",
       "fields": [
         {
@@ -65,6 +65,13 @@
             { "value": "P", "label": "i18n:infoproduct.products.field.env.option_p" },
             { "value": "T", "label": "i18n:infoproduct.products.field.env.option_t" }
           ]
+        },
+        {
+          "name": "config.hotmart_product_id",
+          "label": "i18n:infoproduct.products.field.hotmart_product_id",
+          "type": "text",
+          "placeholder": "i18n:infoproduct.products.field.hotmart_product_id.placeholder",
+          "hint": "i18n:infoproduct.products.field.hotmart_product_id.hint"
         }
       ]
     },
@@ -796,6 +803,10 @@
                         {
                           "value": "link_payment_method",
                           "label": "i18n:infoproduct.products.field.templates.template_type.link_payment_method"
+                        },
+                        {
+                          "value": "link_checkout",
+                          "label": "i18n:infoproduct.products.field.templates.template_type.link_checkout"
                         },
                         {
                           "value": "link_review",

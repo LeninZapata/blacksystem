@@ -13,6 +13,11 @@ ALTER TABLE `sales`
   COMMENT 'Canal de venta: whatsapp = via bot WhatsApp, direct = compra directa sin bot'
   AFTER `bot_mode`;
 
+ALTER TABLE `sales`
+  ADD COLUMN `payment_id` int(11) DEFAULT NULL
+  COMMENT 'ID del registro en tabla payment (solo ventas Hotmart, NULL para ventas por recibo)'
+  AFTER `module`;
+
 
 -- ------------------------------------------------------------
 -- 2. CREATE TABLE payment

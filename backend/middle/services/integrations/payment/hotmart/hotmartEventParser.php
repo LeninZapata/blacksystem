@@ -21,7 +21,9 @@ class hotmartEventParser {
   }
 
   static function isApprovedPurchase($eventType) {
-    return in_array($eventType, ['PURCHASE_COMPLETE', 'PURCHASE_APPROVED', 'UPSELL_APPROVED']);
+    // PURCHASE_APPROVED llega primero (pago aprobado), PURCHASE_COMPLETE llega después (transacción completa)
+    // Ambos se aceptan; la deduplicación por purchase_transaction en hotmartProvider evita doble procesamiento
+    return in_array($eventType, ['PURCHASE_APPROVED', 'PURCHASE_COMPLETE', 'UPSELL_APPROVED']);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -33,15 +35,16 @@ class hotmartEventParser {
   static function parseSck($sck) {
     if (empty($sck)) return [];
 
-    $result = ['number' => null, 'bot_id' => null, 'product_id' => null, 'type' => null, 'is_downsell' => false];
+    $result = ['number' => null, 'bot_id' => null, 'product_id' => null, 'sale_id' => null, 'type' => null, 'is_downsell' => false];
 
     foreach (explode('|', $sck) as $part) {
       $part = trim($part);
-      if (preg_match('/^b-(\d+)$/i', $part, $m)) { $result['bot_id']    = (int)$m[1];               continue; }
-      if (preg_match('/^p-(\d+)$/i', $part, $m)) { $result['product_id'] = (int)$m[1];              continue; }
-      if (preg_match('/^t-(p|o|u)$/i', $part, $m)) { $result['type']    = strtolower($m[1]);         continue; }
-      if (preg_match('/^ds-(\d+)$/i', $part, $m)) { $result['is_downsell'] = (bool)(int)$m[1];       continue; }
-      if (preg_match('/^\d+$/', $part))            { $result['number']   = $part;                     continue; }
+      if (preg_match('/^b-(\d+)$/i', $part, $m))   { $result['bot_id']      = (int)$m[1];           continue; }
+      if (preg_match('/^p-(\d+)$/i', $part, $m))   { $result['product_id']  = (int)$m[1];           continue; }
+      if (preg_match('/^s-(\d+)$/i', $part, $m))   { $result['sale_id']     = (int)$m[1];           continue; }
+      if (preg_match('/^t-(p|o|u)$/i', $part, $m)) { $result['type']        = strtolower($m[1]);    continue; }
+      if (preg_match('/^ds-(\d+)$/i', $part, $m))  { $result['is_downsell'] = (bool)(int)$m[1];     continue; }
+      if (preg_match('/^\d+$/', $part))             { $result['number']      = $part;                continue; }
     }
 
     return $result;
@@ -57,9 +60,9 @@ class hotmartEventParser {
       'whatsapp_number' => $parsed['number']     ?? null,
       'bot_id_sck'     => $parsed['bot_id']      ?? null,
       'product_id_sck' => $parsed['product_id']  ?? null,
+      'sale_id_sck'    => $parsed['sale_id']      ?? null,
       'type'           => $parsed['type']         ?? null,
       'is_downsell'    => $parsed['is_downsell']  ?? false,
-      'src'            => $origin['src']          ?? null,
     ];
 
     return array_filter($params, fn($v) => $v !== null && $v !== false);
@@ -150,9 +153,27 @@ class hotmartEventParser {
       }
     }
 
-    // 2. PRINCIPAL: sck dice t-p
+    // 2. PRINCIPAL: sck dice t-p — pero verificar que el producto del webhook coincide con el del SCK
+    // Si no coincide, es un upsell que llega con el mismo SCK del producto principal
     if ($typeSck === 'p') {
-      return array_merge($result, ['detection_method' => 'sck_type_p']);
+      $webhookHotmartProductId = (int)($ed['product']['id'] ?? 0);
+      if ($webhookHotmartProductId && $productIdSck) {
+        $sckProduct = ogDb::table('products')->where('id', (int)$productIdSck)->first();
+        if ($sckProduct) {
+          $sckConfig           = is_string($sckProduct['config']) ? json_decode($sckProduct['config'], true) : ($sckProduct['config'] ?? []);
+          $sckHotmartProductId = (int)($sckConfig['hotmart_product_id'] ?? 0);
+          // Si el hotmart_product_id del SCK está configurado y NO coincide con el del webhook → no es el producto principal
+          if ($sckHotmartProductId && $sckHotmartProductId !== $webhookHotmartProductId) {
+            // Continuar detección — llegará al email check que lo detectará como upsell
+          } else {
+            return array_merge($result, ['detection_method' => 'sck_type_p']);
+          }
+        } else {
+          return array_merge($result, ['detection_method' => 'sck_type_p']);
+        }
+      } else {
+        return array_merge($result, ['detection_method' => 'sck_type_p']);
+      }
     }
 
     // 3. UPSELL: evento UPSELL_APPROVED

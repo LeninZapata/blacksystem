@@ -123,6 +123,7 @@ class infoproductProduct {
       'config.templates': messagesData.templates || [],
       'config.fb_ad_copy': configData.fb_ad_copy || '',
       'config.fb_welcome_text': configData.fb_welcome_text || '',
+      'config.hotmart_product_id': configData.hotmart_product_id ? String(configData.hotmart_product_id) : '',
       context: data.context || this.context
     });
   }
@@ -257,6 +258,10 @@ class infoproductProduct {
 
     if (formData.config?.fb_welcome_text) {
       config.fb_welcome_text = formData.config.fb_welcome_text;
+    }
+
+    if (formData.config?.hotmart_product_id) {
+      config.hotmart_product_id = parseInt(formData.config.hotmart_product_id) || formData.config.hotmart_product_id;
     }
 
     // Agrupar todos los repeatables del grouper en messages

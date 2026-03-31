@@ -9,7 +9,17 @@
       "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/json/bots -name *.json -type f -exec grep -l \"buttons\\\\|footer\" {})",
       "Bash(2)",
       "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/json/bots -name welcome*.json -type f)",
-      "Bash(grep -A 5 \"$data = \\\\[\" \"d:/laragon/www/blacksystem/blacksystem/backend/app/resources/handlers/FollowupHandler.php\")"
+      "Bash(grep -A 5 \"$data = \\\\[\" \"d:/laragon/www/blacksystem/blacksystem/backend/app/resources/handlers/FollowupHandler.php\")",
+      "Read(//d/laragon/www/metodoefectivo.cc/l/**)",
+      "Read(//d/laragon/www/blacksystem/**)",
+      "Bash(find /d/laragon/www/blacksystem/blacksystem -name *.log -newer /d/laragon/www/blacksystem/blacksystem/backend/middle/services/integrations/payment/hotmart/hotmartProvider.php)",
+      "Bash(find /d/laragon/www/blacksystem/blacksystem -name *.log)",
+      "Bash(find /d/laragon/www/blacksystem/blacksystem/backend/app/storage/logs -name *hotmart* -o -name *webhook*hotmart* -o -name *2026-03-31*)",
+      "Bash(head -20 find /d/laragon/www/blacksystem/blacksystem/backend/app/storage/logs -path *2026/03*)",
+      "Bash(find /d/laragon/www/blacksystem/blacksystem/backend/app/storage/webhook -name *.log)"
+    ],
+    "additionalDirectories": [
+      "d:\\laragon\\www\\metodoefectivo.cc\\l"
     ]
   }
 }

@@ -22,6 +22,9 @@ class hotmartPaymentRecorder {
       $paymentId = ogDb::table('payment')->insert($data);
 
       if ($paymentId) {
+        // Vincular el payment_id en la venta para acceso directo desde sales
+        ogDb::table('sales')->where('id', $saleId)->update(['payment_id' => $paymentId]);
+
         ogLog::info('hotmartPaymentRecorder - Payment guardado', [
           'payment_id'  => $paymentId,
           'sale_id'     => $saleId,
