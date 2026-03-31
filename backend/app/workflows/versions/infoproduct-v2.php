@@ -13,6 +13,7 @@ require_once $path . '/workflows/core/validators/WelcomeValidator.php';
 
 // Cargar action handlers
 require_once $path . '/workflows/infoproduct/actions/DoesNotWantProductAction.php';
+require_once $path . '/workflows/infoproduct/actions/DeliveredProductActionHandler.php';
 
 class InfoproductV2Handler {
 
@@ -76,6 +77,7 @@ class InfoproductV2Handler {
   private function registerActionHandlers() {
     $registry = $this->actionDispatcher->getRegistry();
     $registry->register('does_not_want_the_product', 'DoesNotWantProductAction');
+    $registry->register('delivered_product', 'DeliveredProductActionHandler');
   }
 
   public function handle($webhook) {

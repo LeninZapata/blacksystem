@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/logs/2026/03/26 -name *.log)",
-      "Bash(find /d/laragon/www/blacksystem/blacksystem/backend -name *workflow* -o -name *handler* -o -name *controller*)"
+      "Bash(find /d/laragon/www/blacksystem/blacksystem/backend -name *workflow* -o -name *handler* -o -name *controller*)",
+      "Bash(grep -r \"text.*instruction\\\\|buttons.*args\" d:/laragon/www/blacksystem/blacksystem/backend --include=*.php -B 2 -A 2)",
+      "Bash(xargs grep:*)",
+      "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/json/bots -name follow*.json -type f)",
+      "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/json/bots -name *.json -type f -exec grep -l \"buttons\\\\|footer\" {})",
+      "Bash(2)",
+      "Bash(find d:/laragon/www/blacksystem/blacksystem/backend/app/storage/json/bots -name welcome*.json -type f)",
+      "Bash(grep -A 5 \"$data = \\\\[\" \"d:/laragon/www/blacksystem/blacksystem/backend/app/resources/handlers/FollowupHandler.php\")"
     ]
   }
 }

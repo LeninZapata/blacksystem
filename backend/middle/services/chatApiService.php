@@ -165,8 +165,9 @@ class chatApiService {
       self::validateChatWindow($to);
     }
 
-    $decoded = ogApp()->helper('bsStr')::decodeMessagePatterns($message);
-    $footer  = trim($args['footer'] ?? '');
+    $bsStr   = ogApp()->helper('bsStr');
+    $decoded = $bsStr::decodeMessagePatterns($message);
+    $footer  = $bsStr::decodeMessagePatterns(trim($args['footer'] ?? ''));
 
     // Detectar si hay un botón de URL → enviar como CTA URL
     $urlButton = self::extractUrlButton($args['buttons'] ?? []);

@@ -269,8 +269,16 @@ Solo cuando el contador lo permite, y tu mensaje:
 Cuando incluyas `buttons`, SIEMPRE agrega un `footer` con frase corta de urgencia o prueba social. **Máximo 60 caracteres.**
 
 ### Coherencia de números entre footers
-- Un alcance mayor siempre tiene número más alto que uno menor
-- No repitas el mismo número del footer anterior
+Antes de escribir un footer con número, **revisa todos los footers ya enviados en el historial** (mensajes tipo `bot` con `footer`).
+
+Reglas en orden de prioridad:
+1. **NUNCA repitas el mismo marco temporal con número distinto.** Si ya usaste "última hora" con cualquier número → no vuelvas a usar "última hora". Cambia de tipo de footer (nombre ficticio, escasez de precio, etc.)
+2. Un alcance mayor (hoy, esta semana) siempre tiene número más alto que un alcance menor (última hora, últimos 10 min)
+3. No repitas el mismo número del footer anterior
+
+- Ejemplos CORRECTOS: "38 hoy" → "10 en la última hora" → "Ana compró hace 5 min"
+- Ejemplos INCORRECTOS: "8 en la última hora" → "3 en la última hora" ❌ (mismo marco, número diferente)
+- Si ya agotaste los marcos temporales → usa solo tipos sin número: nombre ficticio, escasez de precio, prueba social genérica
 
 ### NO agregues `buttons` cuando:
 - No hay venta activa (VENTA ACTUAL dice "ninguna")

@@ -111,12 +111,19 @@ $router->group('/api/followup', function($router) {
         $messageText = $fup['text'] ?? '';
         $sourceUrl = $fup['source_url'] ?? '';
 
+        // Leer botones y footer guardados al registrar el followup
+        $fupArgs = [];
+        if (!empty($fup['args'])) {
+          $decoded = json_decode($fup['args'], true);
+          if (is_array($decoded)) $fupArgs = $decoded;
+        }
+
         // Enviar presence antes del mensaje (1.2-2.2 segundos)
         $randomDelayMs = rand(12, 22) * 100; // 1200-2200ms en pasos de 100ms
         $chatapi::sendPresence($fup['number'], 'composing', $randomDelayMs);
 
         // Enviar mensaje (puede ser solo texto, solo media, o ambos)
-        $result = $chatapi::send($fup['number'], $messageText, $sourceUrl);
+        $result = $chatapi::send($fup['number'], $messageText, $sourceUrl, $fupArgs);
 
         if ($result['success']) {
           // Marcar como procesado

@@ -60,6 +60,14 @@ class bsStr {
       return $emojiCatalogs['generic'][array_rand($emojiCatalogs['generic'])];
     }, $message);
 
+    // Reemplazar {n:MIN-MAX} - número aleatorio en rango (ej: {n:5-50} → 23)
+    $message = preg_replace_callback('/\{n:(\d+)-(\d+)\}/', function($matches) {
+      $min = (int)$matches[1];
+      $max = (int)$matches[2];
+      if ($min > $max) [$min, $max] = [$max, $min];
+      return (string)rand($min, $max);
+    }, $message);
+
     return $message;
   }
 }

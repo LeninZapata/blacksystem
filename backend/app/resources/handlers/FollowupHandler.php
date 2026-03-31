@@ -159,6 +159,9 @@ class FollowupHandler {
         'instruction' => !empty($fup['instruction']) ? $fup['instruction'] : '',
         'text' => $fullMessage ?: null,
         'source_url' => $fup['url'] ?? null,
+        'args' => !empty($fup['buttons']) || !empty($fup['footer'])
+          ? json_encode(['buttons' => $fup['buttons'] ?? [], 'footer' => $fup['footer'] ?? ''])
+          : null,
         'future_date' => $item['future_date'],
         'max_send_at' => $maxSendAt,
         'processed' => 0,
