@@ -271,10 +271,11 @@ class InfoproductV2Handler {
 
       if ($buttonText !== '') {
         if (!$this->handleQuickReply($buttonText, $bot, $person, $chatData)) {
-          // Sin coincidencia de plantilla → procesar el texto del botón con IA
+          // Sin coincidencia de plantilla → procesar el texto del botón con IA (no cuenta como no leído)
           $this->processTextMessages(
             [['type' => 'TEXT', 'text' => $buttonText]],
-            $bot, $person, $chatData
+            $bot, $person, $chatData,
+            true
           );
         }
       }
@@ -328,7 +329,7 @@ class InfoproductV2Handler {
 
     // Registrar mensaje del cliente (botón pulsado o texto del trigger)
     if ($clientId) {
-      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $text, 'P', 'text', null, $saleId, false);
+      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $text, 'P', 'interactive', null, $saleId, true); // interactive no cuenta como no leído
       ChatHandler::addMessage([
         'number'    => $person['number'],
         'bot_id'    => $bot['id'],
@@ -507,7 +508,7 @@ class InfoproductV2Handler {
 
   }
 
-  private function processTextMessages($messages, $bot, $person, $chatData) {
+  private function processTextMessages($messages, $bot, $person, $chatData, $skipUnread = false) {
 
     require_once $this->appPath . '/workflows/infoproduct/processors/MessageProcessorInterface.php';
     require_once $this->appPath . '/workflows/infoproduct/processors/TextMessageProcessor.php';
@@ -526,7 +527,8 @@ class InfoproductV2Handler {
       'bot' => $bot,
       'person' => $person,
       'processed_data' => $processedData,
-      'chat_data' => $chatData
+      'chat_data' => $chatData,
+      'skip_unread' => $skipUnread
     ]);
 
     if ($result['success'] && isset($result['ai_response']['metadata']['action'])) {

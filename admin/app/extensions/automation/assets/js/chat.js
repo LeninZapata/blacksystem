@@ -23,6 +23,7 @@ class chat {
   static _filterNumber       = '';    // Filtro de número de cliente
   static _onlyConfirmed       = false; // Filtro "solo ventas confirmadas"
   static _onlyToday           = false; // Filtro "solo hoy"
+  static _onlyUnread          = false; // Filtro "solo no leídos"
 
   static _heartbeatTimer  = null;
   static _heartbeatCount  = 0;
@@ -52,6 +53,7 @@ class chat {
     this._clientCache     = new Map();
     this._onlyConfirmed   = false;
     this._onlyToday       = false;
+    this._onlyUnread      = false;
     this._lastMsgId       = null;
     this._activeExpiry    = null;
     this._clientsKnown    = new Map();
@@ -290,6 +292,13 @@ class chat {
     this.loadClients(true);
   }
 
+  // Cambia el filtro de solo chats no leídos
+  static onUnreadFilter(checked) {
+    this._onlyUnread   = checked;
+    this._clientsKnown = new Map();
+    this.loadClients(true);
+  }
+
   // ─── Heartbeat de lista de contactos ───────────────────────────────────────
 
   static _startClientHeartbeat() {
@@ -318,7 +327,8 @@ class chat {
       const numberParam    = this._filterNumber     ? `&number_search=${encodeURIComponent(this._filterNumber)}` : '';
       const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                                         : '';
       const todayParam      = this._onlyToday      ? `&today_only=1`                                             : '';
-      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}${productParam}${numberParam}${confirmedParam}${todayParam}`;
+      const unreadParam     = this._onlyUnread     ? `&unread_only=1`                                            : '';
+      const url  = `${this.apis.clientChat}?per_page=${this.perPage}&page=1${botParam}${productParam}${numberParam}${confirmedParam}${todayParam}${unreadParam}`;
       const json = await ogModule('api').get(url);
       if (!json.success) return;
 
@@ -489,7 +499,8 @@ class chat {
     const numberParam    = this._filterNumber     ? `&number_search=${encodeURIComponent(this._filterNumber)}` : '';
     const confirmedParam  = this._onlyConfirmed  ? `&confirmed_only=1`                                         : '';
     const todayParam      = this._onlyToday      ? `&today_only=1`                                             : '';
-    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}${productParam}${numberParam}${confirmedParam}${todayParam}`;
+    const unreadParam     = this._onlyUnread     ? `&unread_only=1`                                            : '';
+    const url = `${this.apis.clientChat}?per_page=${this.perPage}&page=${this._page}${botParam}${productParam}${numberParam}${confirmedParam}${todayParam}${unreadParam}`;
 
     try {
       const json = await ogModule('api').get(url);

@@ -100,16 +100,21 @@ class PromptBuilder {
 
       if ($action === 'sale_confirmed') {
         $saleId = $metadata['sale_id'] ?? null;
+        // WhatsApp: monto viene en receipt_data.amount_found
+        // Hotmart:  monto viene directamente en metadata['amount']
         $receiptData = $metadata['receipt_data'] ?? [];
-        $amountPaid = $receiptData['amount_found'] ?? '0.00';
-        $origin = $metadata['origin'] ?? 'organic';
+        $amountPaid = $receiptData['amount_found'] ?? $metadata['amount'] ?? '0.00';
+        // WhatsApp: origen en metadata['origin'] | Hotmart: en metadata['sale_type']
+        $origin = $metadata['origin'] ?? $metadata['sale_type'] ?? 'organic';
+        $paymentMethod = $metadata['payment_method'] ?? null;
         $fecha = $msg['date'] ?? 'N/A';
 
         if ($saleId) {
           $ventasConfirmadas[$saleId] = [
-            'amount_paid' => $amountPaid,
-            'origin' => $origin,
-            'date' => $fecha
+            'amount_paid'    => $amountPaid,
+            'origin'         => $origin,
+            'payment_method' => $paymentMethod,
+            'date'           => $fecha
           ];
         }
       }
@@ -130,15 +135,19 @@ class PromptBuilder {
           $origin = $venta['origin'] ?? 'organic';
 
           $originMap = [
-            'ad' => 'Anuncio',
-            'upsell' => 'Upsell',
-            'downsell' => 'Downsell',
-            'offer' => 'Oferta',
-            'organic' => 'Orgánico'
+            'ad'         => 'Anuncio',
+            'upsell'     => 'Upsell',
+            'order_bump' => 'Order Bump',
+            'downsell'   => 'Downsell',
+            'offer'      => 'Oferta',
+            'organic'    => 'Orgánico',
+            'main'       => 'Orgánico',
           ];
-          $originName = $originMap[$origin] ?? ucfirst($origin);
+          $originName    = $originMap[$origin] ?? ucfirst($origin);
+          $paymentMethod = $venta['payment_method'] ?? null;
+          $paymentLabel  = $paymentMethod ? " | Método: {$paymentMethod}" : '';
 
-          $prompt .= "- {$prodData['name']} (ID: {$prodId}) | Precio ofrecido: \${$precioOfrecido} | Precio pagado: \${$precioPagado} | Fecha: {$fecha} | Origen: {$originName}\n";
+          $prompt .= "- {$prodData['name']} (ID: {$prodId}) | Precio ofrecido: \${$precioOfrecido} | Precio pagado: \${$precioPagado}{$paymentLabel} | Fecha: {$fecha} | Origen: {$originName}\n";
         }
       }
 
@@ -318,7 +327,19 @@ class PromptBuilder {
                 $prompt .= "*Producto:* {$metadata['product_name']}\n";
               }
               if (isset($metadata['price'])) {
-                $prompt .= "*Precio inicial:* \${$metadata['price']}\n";
+                $prompt .= "*Precio referencial:* \${$metadata['price']}\n";
+              }
+            } elseif ($metadata['action'] === 'sale_confirmed') {
+              $prompt .= "*[Venta confirmada — pago recibido]*\n";
+              // WhatsApp: amount en receipt_data.amount_found | Hotmart: en metadata['amount']
+              $receiptData  = $metadata['receipt_data'] ?? [];
+              $amountPaid   = $receiptData['amount_found'] ?? $metadata['amount'] ?? null;
+              $paymentMethod = $metadata['payment_method'] ?? null;
+              if ($amountPaid !== null) {
+                $prompt .= "*Precio que pagó el cliente:* \${$amountPaid}\n";
+              }
+              if ($paymentMethod) {
+                $prompt .= "*Método de pago:* {$paymentMethod}\n";
               }
             } elseif ($metadata['action'] === 'followup_sent') {
               $prompt .= "*[Mensaje de seguimiento enviado]*\n";

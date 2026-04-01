@@ -87,6 +87,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $bot = $context['bot'];
     $person = $context['person'];
 
+    $skipUnread = $context['skip_unread'] ?? false;
+
     ogApp()->loadHandler('chat');
     foreach ($messages as $msg) {
       ChatHandler::register(
@@ -98,7 +100,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
         'P',
         $msg['type'] ?? 'text',
         null,
-        $chatData['current_sale']['sale_id'] ?? null
+        $chatData['current_sale']['sale_id'] ?? null,
+        $skipUnread
       );
 
       ChatHandler::addMessage([

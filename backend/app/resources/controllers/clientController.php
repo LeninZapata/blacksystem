@@ -141,6 +141,7 @@ class ClientController extends ogController {
     $numberSearch  = trim(ogRequest::query('number_search', ''));
     $confirmedOnly = (int)ogRequest::query('confirmed_only', 0);
     $todayOnly     = (int)ogRequest::query('today_only', 0);
+    $unreadOnly    = (int)ogRequest::query('unread_only', 0);
     $page          = (int)ogRequest::query('page', 1);
     $perPage       = (int)ogRequest::query('per_page', 50);
     $offset        = ($page - 1) * $perPage;
@@ -168,6 +169,15 @@ class ClientController extends ogController {
       $wherePartsCount[] = "c.number LIKE ?";
       $todayParams[]     = "%{$numberSearch}%";
     }
+
+    if ($unreadOnly) {
+      $whereParts[]      = "CAST(cbm_u.meta_value AS UNSIGNED) > 0";
+      $wherePartsCount[] = "CAST(cbm_un.meta_value AS UNSIGNED) > 0";
+    }
+
+    $unreadJoinCount = $unreadOnly
+      ? "LEFT JOIN client_bot_meta cbm_un ON cbm_un.client_id = c.id AND cbm_un.bot_id = cbm.bot_id AND cbm_un.meta_key = 'unread_count'"
+      : '';
 
     $todayWhere      = !empty($whereParts)      ? "WHERE " . implode(" AND ", $whereParts)      : '';
     $todayWhereCount = !empty($wherePartsCount) ? "WHERE " . implode(" AND ", $wherePartsCount) : '';
@@ -223,6 +233,7 @@ class ClientController extends ogController {
          INNER JOIN client_bot_meta cbm ON cbm.client_id = c.id AND cbm.meta_key = 'last_message_at' AND cbm.bot_id = ?
          {$productJoinCount}
          {$confirmedJoin}
+         {$unreadJoinCount}
          {$todayWhereCount}",
         array_merge([(int)$botId], $productParam, $todayParams)
       );
@@ -262,6 +273,7 @@ class ClientController extends ogController {
          INNER JOIN bots b ON b.id = cbm.bot_id AND b.user_id = ?
          {$productJoinCount}
          {$confirmedJoin}
+         {$unreadJoinCount}
          {$todayWhereCount}",
         array_merge([(int)$userId], $productParam, $todayParams)
       );

@@ -147,6 +147,8 @@ class hotmartSaleRegistrar {
       'module'               => $parentSale['module'] ?? $module,
       'amount'               => $amount,
       'billed_amount'        => $originalPrice ?? $amount,
+      'local_amount'         => (float)($product['price'] ?? $amount),
+      'local_billed_amount'  => $originalPrice ?? $amount,
       'currency_code'        => $parentSale['currency_code'] ?? 'USD',
       'process_status'       => 'sale_confirmed',
       'transaction_id'       => $eventInfo['transaction_id'],

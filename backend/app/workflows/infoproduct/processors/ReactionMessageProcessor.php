@@ -59,7 +59,8 @@ class ReactionMessageProcessor implements MessageProcessorInterface {
         'reaction_text' => $reactionText,
         'ignored' => true
       ],
-      $chatData['current_sale']['sale_id'] ?? null
+      $chatData['current_sale']['sale_id'] ?? null,
+      true // reactions no cuentan como no leídos
     );
 
     ChatHandler::addMessage([
