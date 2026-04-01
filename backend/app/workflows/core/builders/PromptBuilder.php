@@ -332,14 +332,25 @@ class PromptBuilder {
             } elseif ($metadata['action'] === 'sale_confirmed') {
               $prompt .= "*[Venta confirmada — pago recibido]*\n";
               // WhatsApp: amount en receipt_data.amount_found | Hotmart: en metadata['amount']
-              $receiptData  = $metadata['receipt_data'] ?? [];
-              $amountPaid   = $receiptData['amount_found'] ?? $metadata['amount'] ?? null;
+              $receiptData   = $metadata['receipt_data'] ?? [];
+              $amountPaid    = $receiptData['amount_found'] ?? $metadata['amount'] ?? null;
               $paymentMethod = $metadata['payment_method'] ?? null;
+              $saleTypeRaw   = $metadata['sale_type'] ?? null;
+              $saleTypeMap   = [
+                'main'       => 'Compra principal',
+                'order_bump' => 'Order Bump (producto adicional agregado al checkout)',
+                'upsell'     => 'Upsell (oferta posterior a la compra principal)',
+                'downsell'   => 'Downsell',
+              ];
               if ($amountPaid !== null) {
                 $prompt .= "*Precio que pagó el cliente:* \${$amountPaid}\n";
               }
               if ($paymentMethod) {
                 $prompt .= "*Método de pago:* {$paymentMethod}\n";
+              }
+              if ($saleTypeRaw) {
+                $saleTypeLabel = $saleTypeMap[$saleTypeRaw] ?? ucfirst($saleTypeRaw);
+                $prompt .= "*Tipo de venta:* {$saleTypeLabel}\n";
               }
             } elseif ($metadata['action'] === 'followup_sent') {
               $prompt .= "*[Mensaje de seguimiento enviado]*\n";

@@ -13,9 +13,7 @@
 que no este en el contexto. No le aumentes el precio, los precios estan en la cabecera e historial de chat.
 
 ### Métodos de Pago
-- **REGLA CRÍTICA**: Cuando vayas a enviar métodos de pago, los datos bancarios están en las plantillas de tipo `link_payment_method` — inclúyelos directamente en el campo `message` de tu respuesta. NUNCA digas "te envío los datos" o "aquí van los datos" sin incluirlos en el mismo mensaje.
-- No se aceptan pagos en efectivo, solo transferencias bancarias
-- El nombre del titular está en las plantillas de pago
+- **REGLA CRÍTICA**: Cuando vayas a enviar métodos de pago, los datos están en las plantillas de tipo `link_payment_method` — inclúyelos directamente en el campo `message` de tu respuesta. NUNCA digas "te envío los datos" o "aquí van los datos" sin incluirlos en el mismo mensaje.
 
 ## ENTREGA DEL PRODUCTO
 ### Formato y Entrega
@@ -139,7 +137,7 @@ Con el PDF digital, lo puedes imprimir cuantas veces quieras, cuando quieras, y 
 
 #### Manejo de Afirmaciones
 - Si responde "Okey", "Ok", "Listo" y NO existe `"action": "delivered_product"`
-- → Envíale la plantilla de pago para que complete el checkout (plantilla tipo `'metodo_pago'`)
+- → Envíale la plantilla de pago (plantilla tipo `link_payment_method`)
 
 #### Confirmaciones Ambiguas
 - Si dice "listo", "ya pagué" y NO tiene `"action": "sale_confirmed"` en el historial del chat
@@ -167,7 +165,7 @@ Con el PDF digital, lo puedes imprimir cuantas veces quieras, cuando quieras, y 
 - Metadata: `'action' -> 'does_not_want_the_product'`
 
 ### ACCIONES DISPONIBLES EN METADATA
-- `"payment_method_template"`: se envío de datos bancarios
+- `"payment_method_template"`: envío de métodos de pago (plantilla `link_payment_method`)
 - `"product_reshipment"`: reenvío de producto (solo después de `'sale_confirmed'`)
 - `"interest_shown"`: pregunta por método de pago o banco
 - `"ready_to_buy"`: afirmación antes de comprar (ok, listo, ya transfiero)
