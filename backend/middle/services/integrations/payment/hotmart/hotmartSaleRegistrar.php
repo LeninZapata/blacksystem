@@ -147,6 +147,7 @@ class hotmartSaleRegistrar {
       'module'               => $parentSale['module'] ?? $module,
       'amount'               => $amount,
       'billed_amount'        => $originalPrice ?? $amount,
+      'currency_code'        => $parentSale['currency_code'] ?? 'USD',
       'process_status'       => 'sale_confirmed',
       'transaction_id'       => $eventInfo['transaction_id'],
       'parent_transaction_id' => $eventInfo['parent_transaction_id'] ?? null,
@@ -256,18 +257,64 @@ class hotmartSaleRegistrar {
     try {
       ogApp()->loadHandler('chat');
 
+      // Obtener número del bot para ChatHandler::register
+      $bot       = ogDb::table('bots')->where('id', (int)$botId)->first();
+      $botNumber = $bot['number'] ?? '';
+
       $amount = hotmartEventParser::getOriginalPurchasePrice($eventInfo['raw_data'] ?? [])
              ?? $eventInfo['amount']
              ?? 0;
 
-      ChatHandler::addMessage([
-        'number'   => $from,
-        'bot_id'   => (int)$botId,
-        'client_id' => $clientId,
-        'sale_id'  => $saleId,
-        'message'  => 'Pago confirmado via Hotmart',
-        'format'   => 'text',
-        'metadata' => [
+      // Para upsell/order_bump: registrar start_sale en DB con contexto completo del producto.
+      // ChatHandler::register escribe a la tabla chats (no al JSON), así rebuildFromDB
+      // lo recoge correctamente sin que sea sobreescrito.
+      if ($saleType !== 'main') {
+        $product = ogDb::table('products')
+          ->where('id', (int)$productId)
+          ->where('status', 1)
+          ->first();
+
+        if ($product) {
+          $config = is_string($product['config']) ? json_decode($product['config'], true) : ($product['config'] ?? []);
+
+          ChatHandler::register(
+            $botId,
+            $botNumber,
+            $clientId,
+            $from,
+            'Nueva venta vía Hotmart: ' . $product['name'],
+            'S',
+            'text',
+            [
+              'action'          => 'start_sale',
+              'sale_id'         => $saleId,
+              'product_id'      => $productId,
+              'product_name'    => $product['name'],
+              'price'           => $product['price'],
+              'description'     => $product['description'] ?? '',
+              'instructions'    => $config['prompt'] ?? '',
+              'origin'          => $saleType,
+              'msgs_total'      => 0,
+              'msgs_sent'       => 0,
+              'msgs_failed'     => 0,
+              'msgs_failed_idx' => [],
+              'duration_s'      => 0,
+            ],
+            $saleId,
+            true // skipUnreadCount — es mensaje de sistema
+          );
+        }
+      }
+
+      ChatHandler::register(
+        $botId,
+        $botNumber,
+        $clientId,
+        $from,
+        'Pago confirmado via Hotmart',
+        'S',
+        'text',
+        [
           'action'         => 'sale_confirmed',
           'sale_id'        => $saleId,
           'product_id'     => $productId,
@@ -277,7 +324,9 @@ class hotmartSaleRegistrar {
           'sale_type'      => $saleType,
           'buyer_name'     => $eventInfo['buyer_name'] ?? null,
         ],
-      ], 'S');
+        $saleId,
+        true // skipUnreadCount — es mensaje de sistema
+      );
 
     } catch (Exception $e) {
       ogLog::warning('hotmartSaleRegistrar - No se pudo guardar mensaje de sistema', [

@@ -16,6 +16,15 @@ class ClientHandler {
 
       $chats     = ogDb::t('chats')->where('client_number', $number)->delete();
       $followups = ogDb::t('followups')->where('number', $number)->delete();
+
+      // Eliminar payments vinculados a las ventas de este número antes de borrar las ventas
+      $saleRows = ogDb::t('sales')->where('number', $number)->get();
+      if (!empty($saleRows)) {
+        $saleIds      = array_column($saleRows, 'id');
+        $placeholders = implode(',', array_fill(0, count($saleIds), '?'));
+        ogDb::raw("DELETE FROM payment WHERE sale_id IN ({$placeholders})", $saleIds);
+      }
+
       $sales     = ogDb::t('sales')->where('number', $number)->delete();
       ogDb::t('clients')->where('number', $number)->delete();
 

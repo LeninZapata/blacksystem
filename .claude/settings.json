@@ -16,7 +16,8 @@
       "Bash(find /d/laragon/www/blacksystem/blacksystem -name *.log)",
       "Bash(find /d/laragon/www/blacksystem/blacksystem/backend/app/storage/logs -name *hotmart* -o -name *webhook*hotmart* -o -name *2026-03-31*)",
       "Bash(head -20 find /d/laragon/www/blacksystem/blacksystem/backend/app/storage/logs -path *2026/03*)",
-      "Bash(find /d/laragon/www/blacksystem/blacksystem/backend/app/storage/webhook -name *.log)"
+      "Bash(find /d/laragon/www/blacksystem/blacksystem/backend/app/storage/webhook -name *.log)",
+      "Bash(grep -r \"all-data\\\\|allData\\\\|all_data\\\\|number.*all\" /d/laragon/www/blacksystem/blacksystem/backend/app --include=*.php -l)"
     ],
     "additionalDirectories": [
       "d:\\laragon\\www\\metodoefectivo.cc\\l"

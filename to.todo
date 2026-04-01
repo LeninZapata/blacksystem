@@ -9,7 +9,8 @@
 Alejandro Daniel Miranda
 
 URGENTE:
-☐ Hotmark, comienza con el sistema para operar con hotmark en el sistema.
+✔ Hotmark, comienza con el sistema para operar con hotmark en el sistema. @done(31-03-2026 16:59)
+☐ Probar que si ya pago y tiene order bump o upsell el bot le pueda dar todos los links que pida
 RAPIDO:
 ☐ Regla de escala rango de horas (porque esta que me escala en la madrugada y no quiero que lo haga, quiero que solo lo haga en el horario comercial)
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
