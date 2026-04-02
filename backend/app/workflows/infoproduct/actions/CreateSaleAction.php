@@ -56,6 +56,11 @@ class CreateSaleAction {
     $countryInfo  = ogApp()->helper('country')::get($countryCode);
     $currencyCode = $countryInfo['currency'] ?? 'USD';
 
+    // Detectar el país real del cliente a partir de su número de teléfono
+    $clientCountryCode = $from
+      ? (ogApp()->helper('country')::fromPhone($from) ?? 'EC')
+      : 'EC';
+
     // Cargar tasas de cambio; si el archivo no existe, generarlo en caliente como fallback
     $exchangeJsonPath = ogApp()->getPath('storage/json/system') . '/exchangerate.json';
     $exchangeData = ogApp()->helper('file')::getJson($exchangeJsonPath, function() use ($exchangeJsonPath) {
@@ -91,7 +96,7 @@ class CreateSaleAction {
 
 
     ogApp()->loadHandler('client');
-    $clientResult = ClientHandler::registerOrUpdate($from, $name, $countryCode, $device, $userId, $bsuid);
+    $clientResult = ClientHandler::registerOrUpdate($from, $name, $clientCountryCode, $device, $userId, $bsuid);
 
     if (!$clientResult['success']) {
       ogLog::error("CreateSaleAction - Error al crear o actualizar cliente", [ 'number' => $from, 'error' => $clientResult['error'] ?? null, 'details' => $clientResult['details'] ?? null ], self::$logMeta);
@@ -116,6 +121,7 @@ class CreateSaleAction {
       'number' => $from,
       'bsuid' => $bsuid,
       'country_code' => $countryCode,
+      'client_country_code' => $clientCountryCode,
       'product_name' => $product['name'],
       'product_id' => $dataSale['product_id'],
       'bot_id' => $bot['id'],

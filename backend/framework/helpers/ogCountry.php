@@ -1,6 +1,46 @@
 <?php
 class ogCountry {
   
+  // Mapa de prefijos telefónicos → código de país ISO
+  // Orden: 4 dígitos primero (NANP especiales), luego 3, luego 2, luego 1
+  private static $callingCodes = [
+    // NANP +1: área codes de Canadá (4 dígitos = "1" + area code)
+    '1204' => 'CA', '1226' => 'CA', '1236' => 'CA', '1249' => 'CA',
+    '1250' => 'CA', '1263' => 'CA', '1289' => 'CA', '1306' => 'CA',
+    '1343' => 'CA', '1365' => 'CA', '1367' => 'CA', '1368' => 'CA',
+    '1382' => 'CA', '1387' => 'CA', '1403' => 'CA', '1416' => 'CA',
+    '1418' => 'CA', '1431' => 'CA', '1437' => 'CA', '1438' => 'CA',
+    '1450' => 'CA', '1468' => 'CA', '1474' => 'CA', '1506' => 'CA',
+    '1514' => 'CA', '1519' => 'CA', '1548' => 'CA', '1579' => 'CA',
+    '1581' => 'CA', '1584' => 'CA', '1587' => 'CA', '1604' => 'CA',
+    '1613' => 'CA', '1639' => 'CA', '1647' => 'CA', '1672' => 'CA',
+    '1683' => 'CA', '1705' => 'CA', '1709' => 'CA', '1742' => 'CA',
+    '1753' => 'CA', '1778' => 'CA', '1782' => 'CA', '1807' => 'CA',
+    '1819' => 'CA', '1825' => 'CA', '1867' => 'CA', '1873' => 'CA',
+    '1902' => 'CA', '1905' => 'CA', '1942' => 'CA',
+    // NANP +1: Caribe (4 dígitos)
+    '1809' => 'DO', '1829' => 'DO', '1849' => 'DO',
+    '1876' => 'JM', '1868' => 'TT',
+    '1787' => 'PR', '1939' => 'PR',
+    // 3 dígitos
+    '501' => 'BZ', '502' => 'GT', '503' => 'SV', '504' => 'HN',
+    '505' => 'NI', '506' => 'CR', '507' => 'PA', '509' => 'HT',
+    '591' => 'BO', '592' => 'GY', '593' => 'EC', '595' => 'PY',
+    '597' => 'SR', '598' => 'UY',
+    '351' => 'PT', '353' => 'IE', '354' => 'IS', '358' => 'FI',
+    '359' => 'BG', '380' => 'UA', '381' => 'RS', '385' => 'HR',
+    '420' => 'CZ',
+    // 2 dígitos
+    '51' => 'PE', '52' => 'MX', '53' => 'CU', '54' => 'AR',
+    '55' => 'BR', '56' => 'CL', '57' => 'CO', '58' => 'VE',
+    '30' => 'GR', '31' => 'NL', '32' => 'BE', '33' => 'FR',
+    '34' => 'ES', '36' => 'HU', '39' => 'IT', '40' => 'RO',
+    '41' => 'CH', '43' => 'AT', '44' => 'GB', '45' => 'DK',
+    '46' => 'SE', '47' => 'NO', '48' => 'PL', '49' => 'DE',
+    // 1 dígito — fallback NANP (US cubre lo que no sea CA ni Caribe)
+    '1' => 'US',
+  ];
+
   private static $countries = [
     // AMÉRICA DEL SUR
     'AR' => ['name' => 'Argentina', 'region' => 'america', 'currency' => 'ARS', 'timezone' => 'America/Argentina/Buenos_Aires', 'offset' => 'UTC-3'],
@@ -88,6 +128,25 @@ class ogCountry {
     } catch (Exception $e) {
       return null;
     }
+  }
+
+  /**
+   * Detecta el código de país ISO a partir de un número de teléfono internacional.
+   * El número debe estar en formato completo sin '+' (ej: 593985631990 → 'EC').
+   * Retorna null si no se puede identificar el país.
+   */
+  public static function fromPhone($number) {
+    $number = preg_replace('/\D/', '', (string)$number);
+    if (empty($number)) return null;
+
+    foreach ([4, 3, 2, 1] as $len) {
+      $prefix = substr($number, 0, $len);
+      if (isset(self::$callingCodes[$prefix])) {
+        return self::$callingCodes[$prefix];
+      }
+    }
+
+    return null;
   }
 
   public static function convert($datetime, $fromCode, $toCode) {
