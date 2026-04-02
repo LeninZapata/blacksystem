@@ -3,7 +3,7 @@
   "fields": [
     {
       "type": "group",
-      "columns": 2,
+      "columns": 3,
       "gap": "normal",
       "fields": [
         {
@@ -24,6 +24,13 @@
           "sourceLabel": "display_name",
           "validation": "required",
           "help": "i18n:automation.scale_rules.field.product_ad_asset_help"
+        },
+        {
+          "name": "start_time",
+          "label": "i18n:automation.scale_rules.field.start_time",
+          "type": "time",
+          "defaultValue": "06:30",
+          "help": "i18n:automation.scale_rules.field.start_time_help"
         }
       ]
     },

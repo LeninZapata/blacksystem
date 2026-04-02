@@ -87,20 +87,28 @@ $router->group('/api/chat', function($router) {
   $router->get('/cleanup/old-chats', function() {
     $logMeta = ['module' => 'routes/chat', 'layer' => 'backend/app'];
     try {
-      $daysOld = ogRequest::query('days', 14); // Por defecto 2 semanas
-      $limit = ogRequest::query('limit', 100); // Máximo 100 chats por ejecución
-      $dryRun = ogRequest::query('dry_run', false); // Simulación sin eliminar
+      $daysOld = (int) ogRequest::query('days', 14); // Por defecto 2 semanas
+      $limit   = (int) ogRequest::query('limit', 100); // Máximo 100 chats por ejecución
+      $dryRun  = filter_var(ogRequest::query('dry_run', false), FILTER_VALIDATE_BOOLEAN); // Simulación sin eliminar
 
       // Calcular fecha límite
       $cutoffDate = date('Y-m-d H:i:s', strtotime("-{$daysOld} days"));
 
-      // Obtener chats antiguos agrupados por client_number y bot_id
-      $oldChats = ogDb::t('chats')
+      // Obtener chats donde el ÚLTIMO mensaje es más antiguo que la fecha límite.
+      // Se filtra en PHP porque el ORM escapa el nombre de columna en HAVING
+      // y no soporta expresiones como MAX(dc) sin backtick wrapping.
+      $allGroups = ogDb::t('chats')
         ->select('client_number', 'bot_id', 'MAX(dc) as last_message')
-        ->where('dc', '<', $cutoffDate)
         ->groupBy(['client_number', 'bot_id'])
-        ->limit($limit)
         ->get();
+
+      $oldChats = [];
+      foreach ($allGroups as $row) {
+        if ($row['last_message'] < $cutoffDate) {
+          $oldChats[] = $row;
+          if (count($oldChats) >= $limit) break;
+        }
+      }
 
       if (empty($oldChats)) {
 
@@ -113,76 +121,71 @@ $router->group('/api/chat', function($router) {
       }
 
       $deletedFiles = [];
-      $failedFiles = [];
+      $failedFiles  = [];
       $skippedFiles = [];
+      $chatsDir     = ogApp()->getPath('storage/json/chats');
+      $cutoffTs     = strtotime("-{$daysOld} days");
 
-      foreach ($oldChats as $chat) {
-        $number = $chat['client_number'];
-        $botId = $chat['bot_id'];
-        $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
+      // Helper para procesar un archivo
+      $processFile = function($filePath, $source, $lastMessage) use ($dryRun, &$deletedFiles, &$failedFiles, $logMeta) {
+        $fileName = basename($filePath);
 
-        // Verificar que el archivo existe
-        if (!file_exists($chatFile)) {
-          $skippedFiles[] = [
-            'file' => basename($chatFile),
-            'reason' => 'no_existe'
-          ];
-          continue;
-        }
-
-        // Modo dry_run: solo listar sin eliminar
         if ($dryRun) {
-          $deletedFiles[] = [
-            'file' => basename($chatFile),
-            'number' => $number,
-            'bot_id' => $botId,
-            'last_message' => $chat['last_message'],
-            'action' => 'would_delete'
-          ];
+          $deletedFiles[] = ['file' => $fileName, 'source' => $source, 'last_message' => $lastMessage, 'action' => 'would_delete'];
+          return;
+        }
+
+        if (unlink($filePath)) {
+          $deletedFiles[] = ['file' => $fileName, 'source' => $source, 'last_message' => $lastMessage];
+        } else {
+          $failedFiles[] = ['file' => $fileName, 'source' => $source, 'reason' => 'error_eliminar'];
+          ogLog::error("chat/cleanup - Error al eliminar archivo", ['file' => $fileName], $logMeta);
+        }
+      };
+
+      // Pasada 1: archivos referenciados en la DB con último mensaje antiguo
+      $processedPaths = [];
+      foreach ($oldChats as $chat) {
+        $filePath = $chatsDir . '/chat_' . $chat['client_number'] . '_bot_' . $chat['bot_id'] . '.json';
+        $processedPaths[$filePath] = true;
+
+        if (!file_exists($filePath)) {
+          $skippedFiles[] = ['file' => basename($filePath), 'reason' => 'no_existe_en_disco'];
           continue;
         }
 
-        // Eliminar archivo
-        if (unlink($chatFile)) {
-          $deletedFiles[] = [
-            'file' => basename($chatFile),
-            'number' => $number,
-            'bot_id' => $botId,
-            'last_message' => $chat['last_message']
-          ];
+        $processFile($filePath, 'db', $chat['last_message']);
+      }
 
-        } else {
-          $failedFiles[] = [
-            'file' => basename($chatFile),
-            'number' => $number,
-            'bot_id' => $botId,
-            'reason' => 'error_eliminar'
-          ];
+      // Pasada 2: archivos huérfanos en disco (sin registro en DB o DB ya limpiada)
+      // Se basa en la fecha de modificación del archivo
+      $diskFiles = glob($chatsDir . '/chat_*.json') ?: [];
+      foreach ($diskFiles as $filePath) {
+        if (isset($processedPaths[$filePath])) continue; // ya procesado en pasada 1
+        if (count($deletedFiles) + count($failedFiles) >= $limit) break;
 
-          ogLog::error("chat/cleanup - Error al eliminar archivo", [
-            'file' => basename($chatFile),
-            'number' => $number,
-            'bot_id' => $botId
-          ], $logMeta);
-        }
+        $fileMtime = filemtime($filePath);
+        if ($fileMtime === false || $fileMtime >= $cutoffTs) continue; // archivo reciente, saltear
+
+        $processFile($filePath, 'disk', date('Y-m-d H:i:s', $fileMtime));
       }
 
       $summary = [
         'deleted_count' => count($deletedFiles),
-        'failed_count' => count($failedFiles),
+        'failed_count'  => count($failedFiles),
         'skipped_count' => count($skippedFiles),
-        'cutoff_date' => $cutoffDate,
-        'days_old' => $daysOld,
-        'limit' => $limit,
-        'dry_run' => $dryRun,
+        'cutoff_date'   => $cutoffDate,
+        'days_old'      => $daysOld,
+        'limit'         => $limit,
+        'dry_run'       => $dryRun,
         'deleted_files' => $deletedFiles,
-        'failed_files' => $failedFiles,
+        'failed_files'  => $failedFiles,
         'skipped_files' => $skippedFiles
       ];
 
       ogLog::success("chat/cleanup - COMPLETADO", [
         'deleted' => count($deletedFiles),
-        'failed' => count($failedFiles),
+        'failed'  => count($failedFiles),
         'skipped' => count($skippedFiles)
       ], $logMeta);
 

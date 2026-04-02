@@ -53,6 +53,7 @@ class scaleRule {
       name: data.name,
       product_ad_asset_id: data.ad_assets_id,
       is_active: data.is_active == 1,
+      start_time: config.start_time || '',
       condition_blocks: config.condition_blocks || []
     };
 
@@ -85,6 +86,7 @@ class scaleRule {
   static buildBody(formData) {
     // V2: Estructura con condition_blocks
     const config = {
+      start_time: formData.start_time || null,
       condition_blocks: formData.condition_blocks || []
     };
 

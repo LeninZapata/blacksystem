@@ -60,6 +60,30 @@ class AdAutoScaleService {
         ];
       }
 
+      // Validar hora de inicio antes de procesar métricas
+      $ruleStartTime = !empty($config['start_time']) ? $config['start_time'] : '06:30';
+      $assetTimezone  = $this->getAssetTimezone($asset);
+      $nowInAssetTz   = new DateTime('now', new DateTimeZone($assetTimezone));
+      $currentHHMM    = $nowInAssetTz->format('H:i');
+
+      if ($currentHHMM < $ruleStartTime) {
+        ogLog::info('processRule - Saltada por hora de inicio', [
+          'rule_id'    => $ruleId,
+          'start_time' => $ruleStartTime,
+          'now'        => $currentHHMM,
+          'timezone'   => $assetTimezone
+        ], self::$logMeta);
+
+        return [
+          'success'          => true,
+          'rule_id'          => $ruleId,
+          'rule_name'        => $ruleName,
+          'conditions_met'   => false,
+          'action_executed'  => false,
+          'message'          => "Saltada: hora actual ({$currentHHMM}) anterior a hora inicial ({$ruleStartTime}) [{$assetTimezone}]"
+        ];
+      }
+
       // Obtener métricas del activo
       $metricsData = $this->getAssetMetrics($asset, $config);
       if (!$metricsData['success']) {

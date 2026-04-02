@@ -9,17 +9,20 @@
 Alejandro Daniel Miranda
 
 URGENTE:
-
+✔ Bajale a todos el profit maximo de reseteo a $5 porque al poner 7 cada dia que un dia meva de maravilla @done(01-04-2026 19:55)
+al otro por el nivel de gasto me lo baja el profit general entonces quiero ver si con esto no me va mal al dia siguiente
+con el gasto desmedido
 RAPIDO:
-☐ Regla de escala rango de horas (porque esta que me escala en la madrugada y no quiero que lo haga, quiero que solo lo haga en el horario comercial)
+✔ Regla de escala rango de horas (porque esta que me escala en la madrugada y no quiero que lo haga, quiero que solo lo haga en el horario comercial) @done(01-04-2026 17:42)
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
   ☐ enviar plantilla de link del producto
   ☐ ejecutar una venta y enviar el producto (sirve para lo que se viene de validar el nombre del titular en el recibo)
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
 esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
-☐ No funcioan aun la elminacion de chats.... revisar el endpoint
+✔ No funcioan aun la elminacion de chats.... revisar el endpoint @done(01-04-2026 21:35)
+☐ En el chat se debe mostrar el icono del pais basado en el numero mas no en el bot, porque en hotmart
+el publico pueede ser muy amplio usa, canada, españa, italia, donde esten hablando español....
 Backend:
-
 ☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
 https://i.imgur.com/IG8BZXz.png
 ✔ ACTUALIZAR EL SISTEMA basado lo nuevo de facebook (BSUID - Business-Scoped User IDs) @done(22-03-2026)

@@ -149,7 +149,9 @@
         "operator": "Operador",
         "value": "Valor",
         "value_suffix": "Sufijo",
-        "status": "Activo"
+        "status": "Activo",
+        "start_time": "Hora Inicial",
+        "start_time_help": "Hora a partir de la cual esta regla puede ejecutarse (formato 24h)"
       },
       "level": {
         "campaign": "Campaña",
