@@ -7,15 +7,25 @@
 - El CBU es el metodo de pago para cualquier billetera, transferencia o banco, con ese numero de CBU cualquiera puede comprar desde cualquier media de argentina.
 --
 Alejandro Daniel Miranda
+--
+copy audio bienvenida: Si tiene alguna duda Duda, Escríbeme estoy aquí para ayudarte, y si ya lo tienes claro y lo quieres *Ahora mismo* presiona uno de los botones de abajo para enviarte la informacion y recibas este hermoso recurso que hará una gran diferencia
+--
+
 
 URGENTE:
-
+☐ Verificar el reseteo de presupuesto porque robotica esta otra vez alzado temprano en la mañana
 RAPIDO:
+
+☐ En la grafica de rendimiento esta todo mal
+  ☐ no hacer el filtro de todos los producto como defecto sino que seria una opcion mas a seleccionar
+  ☐ agregar una nuea linea de impote gastado en esa hora para poder ver como jodio el presupuesto
+
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
   ☐ enviar plantilla de link del producto
   ☐ ejecutar una venta y enviar el producto (sirve para lo que se viene de validar el nombre del titular en el recibo)
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
 esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
+☐ En el copy de USA debes quitarle que hay actualizaciones gratis porque este es un order bump, analiza bien esto.
 Backend:
 ☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
 https://i.imgur.com/IG8BZXz.png
