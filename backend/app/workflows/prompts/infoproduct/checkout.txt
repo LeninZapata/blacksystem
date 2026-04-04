@@ -262,7 +262,7 @@ Solo cuando el contador lo permite, y tu mensaje:
 
 ### Regla de texto del botón
 - **LÍMITE ESTRICTO: máximo 20 caracteres incluyendo espacios y emojis**
-- Todos los botones deben empujar hacia la compra — NUNCA pongas botones que alarguen la conversación
+- Todos los botones deben empujar hacia la compra — NUNCA pongas botones que alarguen la conversación. Prohibido: "Cuéntame más", "Sí, cuéntame", "¡Sí, cuéntame!", "Tengo una duda", "Quiero más info", "¿Cómo funciona?", "Más detalles", "¡Sí, muéstrame!", "Muéstrame", "Ver más", "¿Cómo es?", o cualquier texto que implique mostrar/explicar más en lugar de cerrar la venta directamente
 - Ejemplos (≤20 chars): "¡Sí, lo quiero! 🔥", "¡Me lo llevo!", "¡Ir al pago! 🚀", "Lo hago ahora"
 
 ### Footer de urgencia/escasez (siempre que haya botones)
