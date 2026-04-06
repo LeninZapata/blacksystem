@@ -56,10 +56,15 @@ class CreateSaleAction {
     $countryInfo  = ogApp()->helper('country')::get($countryCode);
     $currencyCode = $countryInfo['currency'] ?? 'USD';
 
-    // Detectar el país real del cliente a partir de su número de teléfono
-    $clientCountryCode = $from
-      ? (ogApp()->helper('country')::fromPhone($from) ?? 'EC')
-      : 'EC';
+    // Detectar el país real del cliente:
+    // - Si hay número → desde el prefijo telefónico
+    // - Si solo hay bsuid → desde el prefijo ISO del bsuid (ej: "US.xxx" → "US")
+    // - Fallback → país del bot
+    if ($from) {
+      $clientCountryCode = ogApp()->helper('country')::fromPhone($from) ?? $countryCode;
+    } else {
+      $clientCountryCode = ogApp()->helper('bsuid')::countryCode($bsuid, $countryCode);
+    }
 
     // Cargar tasas de cambio; si el archivo no existe, generarlo en caliente como fallback
     $exchangeJsonPath = ogApp()->getPath('storage/json/system') . '/exchangerate.json';

@@ -9,15 +9,15 @@ class SendWelcomeAction {
     $person = $dataSale['person'];
     $product = $dataSale['product'];
     $productId = $dataSale['product_id'];
-    $from  = $person['number'];
     $bsuid = $person['bsuid'] ?? null;
+    $from  = $person['number'] ?: $bsuid; // Phase 3: fallback a bsuid cuando número no está disponible
 
-    // Sin número de teléfono no se puede enviar via Cloud API (BSUID como destino aún no soportado)
+    // Sin número ni bsuid no hay forma de identificar/contactar al destinatario
     if (!$from) {
-      ogLog::warning("send - No hay número de teléfono, no se puede enviar welcome (usuario con username privacy)", [
-        'bsuid' => $bsuid, 'product_id' => $productId
+      ogLog::warning("send - No hay número ni bsuid, no se puede enviar welcome", [
+        'product_id' => $productId
       ], self::$logMeta);
-      return ['success' => false, 'error' => 'no_phone_number'];
+      return ['success' => false, 'error' => 'no_identifier'];
     }
 
     self::cancelPendingSaleFollowups($from, $bsuid, $bot['id'], $productId);

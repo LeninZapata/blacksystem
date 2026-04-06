@@ -42,7 +42,7 @@ class ChatHandler {
   }
 
   // Registrar mensaje en la base de datos
-  static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type, $format, $metadata = null, $saleId = 0, $skipUnreadCount = false) {
+  static function register($botId, $botNumber, $clientId, $clientNumber, $message, $type, $format, $metadata = null, $saleId = 0, $skipUnreadCount = false, $bsuid = null) {
     try {
       // Resolver user_id automáticamente
       $userId = self::resolveUserId($botId);
@@ -53,6 +53,7 @@ class ChatHandler {
         'bot_number' => $botNumber,
         'client_id' => $clientId,
         'client_number' => $clientNumber,
+        'client_bsuid' => $bsuid,
         'type' => $type,
         'format' => $format,
         'message' => $message,

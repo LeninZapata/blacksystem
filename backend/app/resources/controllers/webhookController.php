@@ -100,6 +100,8 @@ class WebhookController {
       }
 
       // Enriquecer el standard con datos del bot
+      // sender.number se sobrescribe aquí para reflejar cualquier redireccionamiento previo (ej: Meta routing bug)
+      $standard['sender']['number'] = $bot['number'] ?? null;
       $standard['sender']['user_id'] = $bot['user_id'] ?? null;
       $standard['sender']['bot_id'] = $bot['id'] ?? null;
       $standard['sender']['bot_name'] = $bot['name'] ?? null;

@@ -165,8 +165,9 @@ class ClientController extends ogController {
     }
 
     if ($numberSearch !== '') {
-      $whereParts[]      = "c.number LIKE ?";
-      $wherePartsCount[] = "c.number LIKE ?";
+      $whereParts[]      = "(c.number LIKE ? OR c.bsuid LIKE ?)";
+      $wherePartsCount[] = "(c.number LIKE ? OR c.bsuid LIKE ?)";
+      $todayParams[]     = "%{$numberSearch}%";
       $todayParams[]     = "%{$numberSearch}%";
     }
 

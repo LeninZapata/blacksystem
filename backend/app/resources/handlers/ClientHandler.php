@@ -225,6 +225,34 @@ class ClientHandler {
         // Guardar bsuid si llega y aún no estaba registrado
         if ($bsuid && empty($existing['bsuid'])) {
           $updateData['bsuid'] = $bsuid;
+
+          // Merge: si existe otro registro creado solo con ese bsuid (sin número),
+          // reasignar sus datos al cliente actual y eliminar el duplicado
+          $bsuidQuery = ogDb::t('clients')->where('bsuid', $bsuid)->where('id', '!=', $existing['id']);
+          if ($userId) $bsuidQuery = $bsuidQuery->where('user_id', $userId);
+          $duplicate = $bsuidQuery->first();
+
+          if ($duplicate) {
+            $keepId    = $existing['id'];
+            $removeId  = $duplicate['id'];
+
+            // Reasignar registros vinculados al cliente duplicado
+            ogDb::t('sales')->where('client_id', $removeId)->update(['client_id' => $keepId]);
+            ogDb::t('chats')->where('client_id', $removeId)->update(['client_id' => $keepId]);
+            ogDb::t('followups')->where('client_id', $removeId)->update(['client_id' => $keepId]);
+            ogDb::raw(
+              "DELETE FROM client_bot_meta WHERE client_id = ?",
+              [$removeId]
+            );
+            ogDb::t('clients')->where('id', $removeId)->delete();
+
+            ogLog::info('registerOrUpdate - Merge de clientes: bsuid-only fusionado con number-client', [
+              'kept_id'     => $keepId,
+              'removed_id'  => $removeId,
+              'number'      => $number,
+              'bsuid'       => $bsuid
+            ], self::$logMeta);
+          }
         }
         // Si llegó el número y el cliente fue encontrado solo por bsuid, guardarlo
         if ($number && empty($existing['number'])) {

@@ -618,13 +618,15 @@ class chat {
     if (!h) return;
     const clientData = this._clientCache.get(`${this._activeId}_${this._activeChatBotId ?? ''}`) ?? {};
     const clientFlag = this._countryFlag(clientData.country_code ?? '');
+    const isPhone    = /^\d+$/.test(number);
+    const numLabel   = isPhone ? `${clientFlag} +${number}` : `🆔 ${number}`;
     h.className = 'bs-chat-panel-header';
     h.innerHTML = `
       <div class="bs-chat-header-row">
         <button class="bs-chat-back-btn" onclick="chat.backToList()" title="Volver">&#8592;</button>
         <div class="bs-chat-header-main">
           ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
-          <span class="bs-chat-header-bot"><span class="bs-chat-header-flag">${clientFlag}</span> +${number}</span>
+          <span class="bs-chat-header-bot">${numLabel}</span>
         </div>
         <div class="bs-chat-header-sub">
           <span class="bs-chat-header-bot">Cargando...</span>
@@ -648,13 +650,15 @@ class chat {
     const botFlag    = this._countryFlag(botData.country_code ?? '');
     const botInfo    = botNumber ? `Bot: +${botNumber}` : 'Sin bot asociado';
     const salesHtml  = this._salesHtml(clientData.sales ?? []);
+    const isPhone    = /^\d+$/.test(number);
+    const numLabel   = isPhone ? `${clientFlag} +${number}` : `🆔 ${number}`;
 
     h.innerHTML = `
       <div class="bs-chat-header-row">
         <button class="bs-chat-back-btn" onclick="chat.backToList()" title="Volver">&#8592;</button>
         <div class="bs-chat-header-main">
           ${name ? `<span class="bs-chat-header-name">${name}</span>` : ''}
-          <span class="bs-chat-header-bot"><span class="bs-chat-header-flag">${clientFlag}</span> +${number}</span>
+          <span class="bs-chat-header-bot">${numLabel}</span>
         </div>
         <div class="bs-chat-header-sub">
           <span class="bs-chat-header-bot"><span class="bs-chat-header-flag">${botFlag}</span> ${botInfo}</span>
@@ -1179,6 +1183,9 @@ class chat {
 
   static _itemHtml(c) {
     const number   = c.number ?? '';
+    const bsuid    = c.bsuid  ?? '';
+    const hasPhone = !!number;
+    const displayId = hasPhone ? number : bsuid; // Phase 3: fallback a bsuid
     const clientId = c.id ?? '';
     const botId    = c.chat_bot_id ?? '';
     const name      = (c.name ?? '').trim().replace(/'/g, '&#39;');
@@ -1217,12 +1224,13 @@ class chat {
       prevAmt  ? `<span class="bs-chat-sale-badge bs-chat-sale-badge--old">${fmtAmt(prevAmt)}</span>`  : '',
       todayAmt ? `<span class="bs-chat-sale-badge">${fmtAmt(todayAmt)}</span>` : '',
     ].join('');
+    const idLabel = hasPhone ? `${flag} +${displayId}` : `🆔 ${displayId}`;
     return `
-      <div class="bs-chat-item${unreadCls}${warnClass}" data-number="${number}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${number}', ${clientId}, ${botId || 0})">
+      <div class="bs-chat-item${unreadCls}${warnClass}" data-number="${displayId}" data-client-id="${clientId}" data-bot-id="${botId}" data-name="${name}" onclick="chat.select('${displayId}', ${clientId}, ${botId || 0})">
         <div class="bs-chat-item-header">
           <div class="bs-chat-item-left">
             ${warningIcon}
-            ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">${flag} +${number}</span>`}${isLastFollowup ? `<span class="bs-chat-followup-icon" title="Último mensaje: seguimiento">📨</span>` : ''}
+            ${name ? `<span class="bs-chat-item-number">${name}</span>` : `<span class="bs-chat-item-number">${idLabel}</span>`}${isLastFollowup ? `<span class="bs-chat-followup-icon" title="Último mensaje: seguimiento">📨</span>` : ''}
             ${saleBadge}
           </div>
           <div class="bs-chat-item-right">
@@ -1234,7 +1242,7 @@ class chat {
           <div class="bs-chat-item-sales">
             ${salesList.length > 0 ? this._salesHtml(salesList) : '<span class="bs-chat-item-noproduct">sin venta</span>'}
           </div>
-          ${name ? `<span class="bs-chat-item-name">${flag} +${number}</span>` : ''}
+          ${name ? `<span class="bs-chat-item-name">${idLabel}</span>` : ''}
         </div>
       </div>`;
   }

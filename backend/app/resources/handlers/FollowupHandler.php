@@ -439,7 +439,7 @@ class FollowupHandler {
 
       if (!empty($followups)) {
         foreach ($followups as $fup) {
-          $personNumber = $fup['number'];
+          $personNumber = $fup['number'] ?? $fup['bsuid']; // Phase 3: fallback a bsuid
 
           // Validar ventana de conversación: si max_send_at expiró, cancelar y omitir
           if (!empty($fup['max_send_at']) && $fup['max_send_at'] < $now) {

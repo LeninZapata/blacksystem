@@ -118,12 +118,15 @@ $router->group('/api/followup', function($router) {
           if (is_array($decoded)) $fupArgs = $decoded;
         }
 
+        // Phase 3: usar bsuid como fallback cuando el número no está disponible
+        $recipient = $fup['number'] ?? $fup['bsuid'];
+
         // Enviar presence antes del mensaje (1.2-2.2 segundos)
         $randomDelayMs = rand(12, 22) * 100; // 1200-2200ms en pasos de 100ms
-        $chatapi::sendPresence($fup['number'], 'composing', $randomDelayMs);
+        $chatapi::sendPresence($recipient, 'composing', $randomDelayMs);
 
         // Enviar mensaje (puede ser solo texto, solo media, o ambos)
-        $result = $chatapi::send($fup['number'], $messageText, $sourceUrl, $fupArgs);
+        $result = $chatapi::send($recipient, $messageText, $sourceUrl, $fupArgs);
 
         if ($result['success']) {
           // Marcar como procesado
@@ -171,11 +174,12 @@ $router->group('/api/followup', function($router) {
             'text',
             $metadata,
             $fup['sale_id'],
-            true
+            true,
+            $fup['bsuid'] ?? null
           );
 
           ChatHandler::addMessage([
-            'number' => $fup['number'],
+            'number' => $recipient,
             'bot_id' => $fup['bot_id'],
             'client_id' => $fup['client_id'],
             'sale_id' => $fup['sale_id'],

@@ -179,6 +179,8 @@ class InfoproductV2Handler {
   }
 
   private function continueConversation($bot, $person, $message, $messageType) {
+    // Phase 3: fallback a bsuid cuando número no está disponible (username privacy)
+    $personTo = $person['number'] ?: ($person['bsuid'] ?? null);
 
     $chatData = ConversationValidator::getChatData($this->clientKey($person), $bot['id']);
 
@@ -207,10 +209,10 @@ class InfoproductV2Handler {
           $bot['id'], $bot['number'],
           $clientId, $person['number'],
           $msgText, 'P', $msgFormat,
-          null, $saleId, false
+          null, $saleId, false, $person['bsuid'] ?? null
         );
         ChatHandler::addMessage([
-          'number'    => $person['number'],
+          'number'    => $personTo,
           'bot_id'    => $bot['id'],
           'client_id' => $clientId,
           'sale_id'   => $saleId,
@@ -324,14 +326,15 @@ class InfoproductV2Handler {
 
     $clientId = $chatData['client_id'] ?? null;
     $saleId   = (int)($chatData['current_sale']['sale_id'] ?? 0);
+    $personTo = $person['number'] ?: ($person['bsuid'] ?? null); // Phase 3: fallback a bsuid
 
     ogApp()->loadHandler('chat');
 
     // Registrar mensaje del cliente (botón pulsado o texto del trigger)
     if ($clientId) {
-      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $text, 'P', 'interactive', null, $saleId, true); // interactive no cuenta como no leído
+      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $text, 'P', 'interactive', null, $saleId, true, $person['bsuid'] ?? null);
       ChatHandler::addMessage([
-        'number'    => $person['number'],
+        'number'    => $personTo,
         'bot_id'    => $bot['id'],
         'client_id' => $clientId,
         'sale_id'   => $saleId,
@@ -342,7 +345,7 @@ class InfoproductV2Handler {
     }
 
     // Enviar la plantilla
-    QuickReplyHandler::send($match, $person['number'], $bot);
+    QuickReplyHandler::send($match, $personTo, $bot);
 
     // Registrar respuesta de la plantilla (bot)
     if ($clientId) {
@@ -352,9 +355,9 @@ class InfoproductV2Handler {
         'template_id'    => $match['template_id'] ?? '',
         'template_type'  => $match['template_type'] ?? 'quick_reply'
       ];
-      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $templateMessage, 'S', 'text', $metadata, $saleId, true);
+      ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $templateMessage, 'S', 'text', $metadata, $saleId, true, $person['bsuid'] ?? null);
       ChatHandler::addMessage([
-        'number'    => $person['number'],
+        'number'    => $personTo,
         'bot_id'    => $bot['id'],
         'client_id' => $clientId,
         'sale_id'   => $saleId,
