@@ -25,21 +25,7 @@ class productPerformance {
         this.bots = Array.isArray(response) ? response : (response.data || []);
         this.populateBotSelect();
         
-        // Seleccionar el primer bot automáticamente
-        if (this.bots.length > 0) {
-          const firstBotId = this.bots[0].id;
-          this.currentFilters.botId = firstBotId;
-          
-          const botSelect = document.getElementById('perf-filter-bot');
-          if (botSelect) {
-            botSelect.value = firstBotId;
-          }
-          
-          await this.loadProducts(firstBotId);
-          
-          // Cargar estadísticas automáticamente
-          await this.loadStats();
-        } else {
+        if (this.bots.length === 0) {
           ogLogger.warn('ext:infoproduct', 'No se encontraron bots disponibles');
           this.showNoBots();
         }
@@ -58,10 +44,14 @@ class productPerformance {
     const selectBot = document.getElementById('perf-filter-bot');
     if (!selectBot) return;
 
-    selectBot.innerHTML = '';
+    selectBot.innerHTML = '<option value="">Seleccionar bot...</option>';
 
     if (this.bots.length === 0) {
-      selectBot.innerHTML = '<option value="">No hay bots disponibles</option>';
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No hay bots disponibles';
+      opt.disabled = true;
+      selectBot.appendChild(opt);
       return;
     }
 

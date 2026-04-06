@@ -8,63 +8,157 @@ const budgetResetStats = {
   // ========================================
   // ESTADO
   // ========================================
+  currentBotId: null,
+  currentProductId: null,
   currentAssetId: null,
   currentRange: 'yesterday_today',
   customDate: null,
+  bots: [],
+  products: [],
   assets: [],
   chart: null,
   eventsAttached: false, // Bandera para evitar múltiples adjuntos
-  
+
   // ========================================
   // INICIALIZACIÓN
   // ========================================
-  
+
   /**
    * Inicializar módulo
    */
-  init() {
+  async init() {
     console.log('budgetResetStats.init()');
-    this.loadAssets();
-    
+    await this.loadBots();
+
     // Solo adjuntar eventos una vez
     if (!this.eventsAttached) {
       this.attachEventListeners();
       this.eventsAttached = true;
     }
   },
-  
+
   /**
-   * Cargar lista de activos publicitarios
+   * Cargar lista de bots activos
+   */
+  async loadBots() {
+    try {
+      const response = await ogApi.get('/api/bot?status=1');
+      if (!response || !response.success) {
+        console.error('budgetResetStats - Error al cargar bots:', response);
+        return;
+      }
+      this.bots = response.data || [];
+
+      const select = document.getElementById('reset-filter-bot');
+      if (!select) return;
+      select.innerHTML = '<option value="">Seleccionar bot...</option>';
+      this.bots.forEach(bot => {
+        const opt = document.createElement('option');
+        opt.value = bot.id;
+        opt.textContent = `${bot.name} (${bot.number})`;
+        select.appendChild(opt);
+      });
+
+      // Auto-seleccionar si solo hay un bot
+      if (this.bots.length === 1) {
+        select.value = this.bots[0].id;
+        this.currentBotId = this.bots[0].id;
+        await this.loadProducts();
+      }
+    } catch (error) {
+      console.error('budgetResetStats - Error loadBots:', error);
+    }
+  },
+
+  /**
+   * Cargar productos del bot seleccionado
+   */
+  async loadProducts() {
+    const selectProduct = document.getElementById('reset-filter-product');
+    const selectAsset = document.getElementById('filter-asset-reset');
+    if (!selectProduct) return;
+
+    // Reset cascada
+    selectProduct.innerHTML = '<option value="">Todos los productos</option>';
+    selectProduct.disabled = !this.currentBotId;
+    this.products = [];
+    this.assets = [];
+    this.currentProductId = null;
+    this.currentAssetId = null;
+    if (selectAsset) {
+      selectAsset.innerHTML = '<option value="">Selecciona un activo...</option>';
+      selectAsset.disabled = true;
+    }
+    this.showPlaceholder();
+
+    if (!this.currentBotId) return;
+
+    try {
+      const response = await ogApi.get(`/api/product?bot_id=${this.currentBotId}&status=1`);
+      if (!response || !response.success) return;
+      this.products = response.data || [];
+      this.products.forEach(product => {
+        const opt = document.createElement('option');
+        opt.value = product.id;
+        opt.textContent = product.name;
+        selectProduct.appendChild(opt);
+      });
+      await this.loadAssets();
+    } catch (error) {
+      console.error('budgetResetStats - Error loadProducts:', error);
+    }
+  },
+
+  /**
+   * Cargar activos según bot/producto seleccionado
    */
   async loadAssets() {
+    const select = document.getElementById('filter-asset-reset');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Selecciona un activo...</option>';
+    select.disabled = true;
+    this.assets = [];
+    this.currentAssetId = null;
+
+    if (!this.currentBotId) return;
+
     try {
-      const response = await ogApi.get('/api/productAdAsset?per_page=1000&is_active=1&status=1');
-      
+      let url = '/api/productAdAsset?per_page=1000&is_active=1&status=1';
+      if (this.currentProductId) {
+        url += `&product_id=${this.currentProductId}`;
+      }
+
+      const response = await ogApi.get(url);
       if (response && response.success !== false) {
-        this.assets = Array.isArray(response) ? response : (response.data || []);
+        let allAssets = Array.isArray(response) ? response : (response.data || []);
+
+        // Sin producto seleccionado: filtrar por los productos del bot seleccionado
+        if (!this.currentProductId) {
+          const botProductIds = this.products.map(p => p.id);
+          allAssets = allAssets.filter(a => botProductIds.includes(parseInt(a.product_id)));
+        }
+
+        this.assets = allAssets;
         this.populateAssetSelect();
-        
+        select.disabled = false;
         console.log('budgetResetStats - Activos cargados:', this.assets.length);
-      } else {
-        console.error('budgetResetStats - Error al cargar activos:', response);
-        ogToast.error('Error al cargar activos publicitarios');
       }
     } catch (error) {
       console.error('budgetResetStats - Error loadAssets:', error);
       ogToast.error('Error al cargar activos publicitarios');
     }
   },
-  
+
   /**
    * Poblar selector de activos
    */
   populateAssetSelect() {
     const select = document.getElementById('filter-asset-reset');
     if (!select) return;
-    
-    // Limpiar opciones existentes (excepto la primera)
+
     select.innerHTML = '<option value="">Selecciona un activo...</option>';
-    
+
     if (this.assets.length === 0) {
       const option = document.createElement('option');
       option.value = '';
@@ -73,12 +167,12 @@ const budgetResetStats = {
       select.appendChild(option);
       return;
     }
-    
+
     // Agregar opciones
     this.assets.forEach(asset => {
       const option = document.createElement('option');
       option.value = asset.id;
-      
+
       // Construir nombre legible
       const assetTypeLabel = this.getAssetTypeLabel(asset.ad_asset_type);
       const platformLabel = this.getPlatformLabel(asset.ad_platform);
@@ -87,9 +181,16 @@ const budgetResetStats = {
         ? countryCode.split('').map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('')
         : '';
       option.textContent = `${flag ? flag + ' ' : ''}${asset.ad_asset_name || asset.ad_asset_id} [${assetTypeLabel} - ${platformLabel}]`;
-      
+
       select.appendChild(option);
     });
+
+    // Auto-seleccionar si solo hay un activo
+    if (this.assets.length === 1) {
+      select.value = this.assets[0].id;
+      this.currentAssetId = this.assets[0].id;
+      this.loadStats();
+    }
   },
   
   /**
@@ -142,21 +243,41 @@ const budgetResetStats = {
   // ========================================
   
   /**
+   * Al cambiar bot
+   */
+  async onBotChange(botId) {
+    console.log('budgetResetStats.onBotChange:', botId);
+    this.currentBotId = botId || null;
+    await this.loadProducts();
+  },
+
+  /**
+   * Al cambiar producto
+   */
+  async onProductChange(productId) {
+    console.log('budgetResetStats.onProductChange:', productId);
+    this.currentProductId = productId || null;
+    this.currentAssetId = null;
+    this.showPlaceholder();
+    await this.loadAssets();
+  },
+
+  /**
    * Al cambiar de activo
    */
   onAssetChange(assetId) {
     console.log('budgetResetStats.onAssetChange:', assetId);
-    
+
     if (!assetId) {
       this.currentAssetId = null;
       this.showPlaceholder();
       return;
     }
-    
+
     this.currentAssetId = assetId;
     this.loadStats();
   },
-  
+
   /**
    * Al cambiar rango de fechas
    */
@@ -214,8 +335,9 @@ const budgetResetStats = {
       }
 
       const productId = asset.product_id;
+      const botId = this.currentBotId;
 
-      console.log('loadStats - Asset:', { assetId: this.currentAssetId, productId, range: this.currentRange });
+      console.log('loadStats - Asset:', { assetId: this.currentAssetId, productId, botId, range: this.currentRange });
 
       // Calcular fechas en el timezone del usuario (igual que el header X-User-Timezone de ogApi)
       const auth = typeof ogModule === 'function' ? ogModule('auth') : null;
@@ -242,9 +364,10 @@ const budgetResetStats = {
 
       if (isYesterdayToday) {
         // Llamar hourly para cada día en paralelo junto con los reseteos
+        const profitBase = `product_id=${productId}${botId ? `&bot_id=${botId}` : ''}`;
         const [yesterdayRes, todayRes, resetsResponse] = await Promise.all([
-          ogApi.get(`/api/profit/hourly?date=${yesterdayInTz}&product_id=${productId}`),
-          ogApi.get(`/api/profit/hourly?date=${todayInTz}&product_id=${productId}`),
+          ogApi.get(`/api/profit/hourly?date=${yesterdayInTz}&${profitBase}`),
+          ogApi.get(`/api/profit/hourly?date=${todayInTz}&${profitBase}`),
           ogApi.get(resetsUrl)
         ]);
 
@@ -297,9 +420,9 @@ const budgetResetStats = {
         } else {
           targetDate = todayInTz;
         }
-        profitUrl = `/api/profit/hourly?date=${targetDate}&product_id=${productId}`;
+        profitUrl = `/api/profit/hourly?date=${targetDate}&product_id=${productId}${botId ? `&bot_id=${botId}` : ''}`;
       } else {
-        profitUrl = `/api/profit/daily?range=${this.currentRange}&product_id=${productId}`;
+        profitUrl = `/api/profit/daily?range=${this.currentRange}&product_id=${productId}${botId ? `&bot_id=${botId}` : ''}`;
       }
 
       // Llamar a ambos endpoints en paralelo

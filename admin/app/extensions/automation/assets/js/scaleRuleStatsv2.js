@@ -1,19 +1,23 @@
 // scaleRuleStatsv2.js - Nueva versión del sistema de estadísticas de escalado
 class scaleRuleStatsv2 {
   static currentFilters = {
+    botId: null,
+    productId: null,
     assetId: null,
     dateRange: 'today',
     customDate: null
   };
 
+  static bots = [];
+  static products = [];
   static assets = [];
   static chart = null;
   static eventsAttached = false; // Bandera para evitar múltiples adjuntos
 
   static async init() {
     ogLogger.debug('ext:automation', 'Inicializando Movimientos de Escala V2');
-    await this.loadAssets();
-    
+    await this.loadBots();
+
     // Solo adjuntar eventos una vez
     if (!this.eventsAttached) {
       this.attachEventListeners();
@@ -21,23 +25,109 @@ class scaleRuleStatsv2 {
     }
   }
 
-  // Cargar lista de activos publicitarios desde API
-  static async loadAssets() {
+  // Cargar lista de bots activos
+  static async loadBots() {
     try {
-      const response = await ogApi.get('/api/productAdAsset?per_page=1000&is_active=1&status=1');
-      
+      const response = await ogApi.get('/api/bot?status=1');
+      if (!response || !response.success) {
+        ogLogger.error('ext:automation', 'Error al cargar bots:', response);
+        return;
+      }
+      this.bots = response.data || [];
+
+      const select = document.getElementById('scale-filter-bot');
+      if (!select) return;
+      select.innerHTML = '<option value="">Seleccionar bot...</option>';
+      this.bots.forEach(bot => {
+        const opt = document.createElement('option');
+        opt.value = bot.id;
+        opt.textContent = `${bot.name} (${bot.number})`;
+        select.appendChild(opt);
+      });
+
+      // Auto-seleccionar si solo hay un bot
+      if (this.bots.length === 1) {
+        select.value = this.bots[0].id;
+        this.currentFilters.botId = this.bots[0].id;
+        await this.loadProducts();
+      }
+    } catch (error) {
+      ogLogger.error('ext:automation', 'Error al cargar bots:', error);
+    }
+  }
+
+  // Cargar productos del bot seleccionado
+  static async loadProducts() {
+    const selectProduct = document.getElementById('scale-filter-product');
+    const selectAsset = document.getElementById('filter-asset-v2');
+    if (!selectProduct) return;
+
+    // Reset cascada
+    selectProduct.innerHTML = '<option value="">Todos los productos</option>';
+    selectProduct.disabled = !this.currentFilters.botId;
+    this.products = [];
+    this.assets = [];
+    this.currentFilters.productId = null;
+    this.currentFilters.assetId = null;
+    if (selectAsset) {
+      selectAsset.innerHTML = '<option value="">Selecciona un activo...</option>';
+      selectAsset.disabled = true;
+    }
+    this.showNoFilters();
+
+    if (!this.currentFilters.botId) return;
+
+    try {
+      const response = await ogApi.get(`/api/product?bot_id=${this.currentFilters.botId}&status=1`);
+      if (!response || !response.success) return;
+      this.products = response.data || [];
+      this.products.forEach(product => {
+        const opt = document.createElement('option');
+        opt.value = product.id;
+        opt.textContent = product.name;
+        selectProduct.appendChild(opt);
+      });
+      await this.loadAssets();
+    } catch (error) {
+      ogLogger.error('ext:automation', 'Error al cargar productos:', error);
+    }
+  }
+
+  // Cargar activos según bot/producto seleccionado
+  static async loadAssets() {
+    const selectAsset = document.getElementById('filter-asset-v2');
+    if (!selectAsset) return;
+
+    selectAsset.innerHTML = '<option value="">Selecciona un activo...</option>';
+    selectAsset.disabled = true;
+    this.assets = [];
+    this.currentFilters.assetId = null;
+
+    if (!this.currentFilters.botId) return;
+
+    try {
+      let url = '/api/productAdAsset?per_page=1000&is_active=1&status=1';
+      if (this.currentFilters.productId) {
+        url += `&product_id=${this.currentFilters.productId}`;
+      }
+
+      const response = await ogApi.get(url);
       if (response && response.success !== false) {
-        this.assets = Array.isArray(response) ? response : (response.data || []);
+        let allAssets = Array.isArray(response) ? response : (response.data || []);
+
+        // Sin producto seleccionado: filtrar por los productos del bot seleccionado
+        if (!this.currentFilters.productId) {
+          const botProductIds = this.products.map(p => p.id);
+          allAssets = allAssets.filter(a => botProductIds.includes(parseInt(a.product_id)));
+        }
+
+        this.assets = allAssets;
         this.populateAssetSelect();
-        
-        ogLogger.debug('ext:automation', 'Activos publicitarios cargados:', this.assets.length);
-      } else {
-        ogLogger.error('ext:automation', 'Error al cargar activos:', response);
-        this.showAssetError();
+        selectAsset.disabled = false;
+        ogLogger.debug('ext:automation', 'Activos cargados:', this.assets.length);
       }
     } catch (error) {
       ogLogger.error('ext:automation', 'Error al cargar activos:', error);
-      this.showAssetError();
     }
   }
 
@@ -60,7 +150,7 @@ class scaleRuleStatsv2 {
     this.assets.forEach(asset => {
       const option = document.createElement('option');
       option.value = asset.id;
-      
+
       // Construir nombre legible
       const assetTypeLabel = this.getAssetTypeLabel(asset.ad_asset_type);
       const platformLabel = this.getPlatformLabel(asset.ad_platform);
@@ -69,14 +159,37 @@ class scaleRuleStatsv2 {
         ? countryCode.split('').map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('')
         : '';
       option.textContent = `${flag ? flag + ' ' : ''}${asset.ad_asset_name || asset.ad_asset_id} [${assetTypeLabel} - ${platformLabel}]`;
-      
+
       // Agregar dataset para el botón de ajuste de presupuesto
       option.dataset.adAssetId = asset.ad_asset_id;
       option.dataset.adAssetType = asset.ad_asset_type;
       option.dataset.platform = asset.ad_platform;
-      
+
       selectAsset.appendChild(option);
     });
+
+    // Auto-seleccionar si solo hay un activo
+    if (this.assets.length === 1) {
+      selectAsset.value = this.assets[0].id;
+      this.currentFilters.assetId = this.assets[0].id;
+      this.loadStats();
+    }
+  }
+
+  // Handler cambio de bot
+  static async onBotChange(botId) {
+    ogLogger.debug('ext:automation', 'Bot cambiado:', botId);
+    this.currentFilters.botId = botId || null;
+    await this.loadProducts();
+  }
+
+  // Handler cambio de producto
+  static async onProductChange(productId) {
+    ogLogger.debug('ext:automation', 'Producto cambiado:', productId);
+    this.currentFilters.productId = productId || null;
+    this.currentFilters.assetId = null;
+    this.showNoFilters();
+    await this.loadAssets();
   }
 
   // Handler cuando cambia el activo seleccionado
@@ -100,7 +213,7 @@ class scaleRuleStatsv2 {
       // Listener para cambios en el radio button group de fechas
       if (e.target.name === 'scale_date_range' && e.target.checked) {
         const value = e.target.value;
-        
+
         // Mostrar/ocultar el input de fecha personalizada
         const customDateContainer = document.getElementById('scale-custom-date-container');
         if (value === 'custom_date') {
@@ -119,10 +232,10 @@ class scaleRuleStatsv2 {
           }
           this.currentFilters.customDate = null;
         }
-        
+
         this.onDateRangeChange(value);
       }
-      
+
       // Listener para el input de fecha personalizada
       if (e.target.id === 'scale-custom-date-input') {
         this.currentFilters.customDate = e.target.value;
@@ -133,7 +246,7 @@ class scaleRuleStatsv2 {
         }
       }
     });
-    
+
     ogLogger.debug('ext:automation', 'Event listeners adjuntados con delegación de eventos');
   }
 
