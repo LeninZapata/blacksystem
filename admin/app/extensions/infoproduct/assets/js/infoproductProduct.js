@@ -123,6 +123,7 @@ class infoproductProduct {
       'config.templates': messagesData.templates || [],
       'config.fb_ad_copy': configData.fb_ad_copy || '',
       'config.fb_welcome_text': configData.fb_welcome_text || '',
+      'config.fb_source_ids': configData.fb_source_ids || [],
       'config.hotmart_product_id': configData.hotmart_product_id ? String(configData.hotmart_product_id) : '',
       context: data.context || this.context
     });
@@ -258,6 +259,10 @@ class infoproductProduct {
 
     if (formData.config?.fb_welcome_text) {
       config.fb_welcome_text = formData.config.fb_welcome_text;
+    }
+
+    if (formData.config?.fb_source_ids && Array.isArray(formData.config.fb_source_ids)) {
+      config.fb_source_ids = formData.config.fb_source_ids;
     }
 
     if (formData.config?.hotmart_product_id) {

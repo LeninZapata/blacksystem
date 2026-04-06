@@ -50,6 +50,9 @@ class ProductHandler {
         self::generateUpsellFile($productId, $action);
       }
 
+      // Regenerar source_ids global (mapeo de anuncios de Facebook para redireccionamiento)
+      self::generateSourceIdsFile($action);
+
       return true;
     } catch (Exception $e) {
       ogLog::error('handleInfoproduct - Error', ['message' => $e->getMessage()], self::$logMeta);
@@ -301,6 +304,7 @@ class ProductHandler {
     $products = ogDb::t('products')
       ->where('context', 'infoproductws')
       ->where('bot_id', $botId)
+      ->where('status', 1)
       ->get();
 
     $activators = [];
@@ -330,6 +334,54 @@ class ProductHandler {
    * Retorna cada producto con un campo `display_name` = "[CC] Nombre del producto".
    * Útil para selects donde se necesita identificar el país de cada producto.
    */
+  // Generar source_ids.json global (mapeo source_id → {product_id, bot_id, bot_number})
+  // Usado para redireccionamiento cuando Meta enruta un anuncio al bot incorrecto
+  static function generateSourceIdsFile($action = 'create') {
+    $products = ogDb::t('products')
+      ->where('context', 'infoproductws')
+      ->where('status', 1)
+      ->get();
+
+    $sourceIds = [];
+
+    foreach ($products as $product) {
+      $config = isset($product['config']) && is_string($product['config'])
+        ? json_decode($product['config'], true)
+        : ($product['config'] ?? []);
+
+      $fbSourceIds = $config['fb_source_ids'] ?? [];
+      if (empty($fbSourceIds) || !is_array($fbSourceIds)) continue;
+
+      $botNumber = null;
+      if (!empty($product['bot_id'])) {
+        $bot = ogDb::t('bots')->find($product['bot_id']);
+        if ($bot) $botNumber = $bot['number'];
+      }
+
+      foreach ($fbSourceIds as $item) {
+        $sourceId = $item['source_id'] ?? null;
+        if (empty($sourceId)) continue;
+
+        $sourceIds[$sourceId] = [
+          'product_id' => (int)$product['id'],
+          'bot_id'     => (int)$product['bot_id'],
+          'bot_number' => $botNumber
+        ];
+      }
+    }
+
+    $path = ogApp()->getPath('storage/json/ads') . '/source_ids.json';
+    return ogApp()->helper('file')::saveJson($path, $sourceIds, 'ads', $action);
+  }
+
+  // Obtener source_ids.json global con auto-regeneración
+  static function getSourceIdsFile() {
+    $path = ogApp()->getPath('storage/json/ads') . '/source_ids.json';
+    return ogApp()->helper('file')::getJson($path, function() {
+      return self::generateSourceIdsFile('rebuild');
+    });
+  }
+
   static function getProductsWithCountry($userId = null) {
     $query = ogDb::t('products')
       ->select(['products.id', 'products.name', 'products.status', 'bots.country_code'])

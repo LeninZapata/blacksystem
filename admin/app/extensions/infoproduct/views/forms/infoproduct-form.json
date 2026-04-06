@@ -761,11 +761,53 @@
               "type": "button",
               "label": "Validar Bienvenida",
               "style": "secondary",
-              "onclick": "infoproductProduct.validateWelcome();"
+              "onclick": "infoproductProduct.validateWelcome();",
+              "props": { "style": "margin-bottom: 10px;" }
             },
             {
               "type": "html",
               "content": "<div id=\"validate-welcome-result\"></div>"
+            },
+            {
+              "name": "config.fb_source_ids",
+              "label": "i18n:infoproduct.products.field.fb_source_ids",
+              "type": "repeatable",
+              "sortable": true,
+              "buttonPosition": "bottom",
+              "addText": "i18n:infoproduct.products.field.fb_source_ids.add",
+              "removeText": "i18n:core.form.repeatable.remove",
+              "fields": [
+                {
+                  "type": "group",
+                  "columns": 3,
+                  "gap": "normal",
+                  "fields": [
+                    {
+                      "name": "source_id",
+                      "label": "i18n:infoproduct.products.field.fb_source_ids.source_id",
+                      "type": "text",
+                      "placeholder": "i18n:infoproduct.products.field.fb_source_ids.source_id.placeholder"
+                    },
+                    {
+                      "name": "link",
+                      "label": "i18n:infoproduct.products.field.fb_source_ids.link",
+                      "type": "text",
+                      "placeholder": "i18n:infoproduct.products.field.fb_source_ids.link.placeholder"
+                    },
+                    {
+                      "name": "link_ig",
+                      "label": "i18n:infoproduct.products.field.fb_source_ids.link_ig",
+                      "type": "text",
+                      "placeholder": "i18n:infoproduct.products.field.fb_source_ids.link_ig.placeholder"
+                    }
+                  ],
+                  "conditionContext": "repeatable"
+                }
+              ]
+            },
+            {
+              "type": "html",
+              "content": "<small class=\"text-muted\">💡 El <strong>Source ID</strong> es el parámetro <code>selected_ad_ids</code> de la URL del Ads Manager de Facebook. Ej: <code>https://adsmanager.facebook.com/...?selected_ad_ids=<strong>120232490086380388</strong></code></small>"
             }
           ]
         },

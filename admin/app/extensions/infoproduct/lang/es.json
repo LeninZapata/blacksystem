@@ -343,6 +343,22 @@
         "fb_welcome_text": {
           "label": "Texto de bienvenida de Facebook",
           "placeholder": "Texto que incluirá el cliente al iniciar la conversación desde el anuncio..."
+        },
+        "fb_source_ids": {
+          "label": "Anuncios de Facebook (Source IDs)",
+          "add": "+ Agregar anuncio",
+          "source_id": {
+            "label": "Source ID",
+            "placeholder": "Ej: 120232490086380388"
+          },
+          "link": {
+            "label": "Link FB",
+            "placeholder": "Ej: https://fb.me/4GylUEDSy"
+          },
+          "link_ig": {
+            "label": "Link IG",
+            "placeholder": "Ej: https://www.instagram.com/..."
+          }
         }
       },
       "tab": {

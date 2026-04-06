@@ -24,6 +24,41 @@ class WebhookController {
         ogResponse::json(['success' => false, 'error' => 'Sender no encontrado en el payload'], 400);
       }
 
+      // PASO 2.5: Redireccionamiento por mismatch de país (Meta routing bug)
+      // Cuando Meta enruta un anuncio al bot incorrecto (ej: anuncio EC → bot CO)
+      // se detecta por el source_id del referral y se redirige al bot correcto
+      $referralSourceId = $rawData['entry'][0]['changes'][0]['value']['messages'][0]['referral']['source_id'] ?? null;
+      if ($referralSourceId) {
+        $clientNumber = $rawData['entry'][0]['changes'][0]['value']['messages'][0]['from'] ?? null;
+        if ($clientNumber) {
+          $country       = ogApp()->helper('country');
+          $botCountry    = $country::fromPhone($botNumber);
+          $clientCountry = $country::fromPhone($clientNumber);
+
+          if ($botCountry && $clientCountry && $botCountry !== $clientCountry) {
+            ogApp()->loadHandler('product');
+            $sourceIds = ProductHandler::getSourceIdsFile();
+
+            if ($sourceIds && isset($sourceIds[$referralSourceId])) {
+              $entry = $sourceIds[$referralSourceId];
+              $redirectBotNumber = $entry['bot_number'] ?? null;
+
+              if ($redirectBotNumber && $redirectBotNumber !== $botNumber) {
+                ogLog::info('whatsapp - Mismatch de país detectado, redirigiendo bot por source_id', [
+                  'original_bot'   => $botNumber,
+                  'redirect_to'    => $redirectBotNumber,
+                  'source_id'      => $referralSourceId,
+                  'bot_country'    => $botCountry,
+                  'client_country' => $clientCountry
+                ], $this->logMeta);
+
+                $botNumber = $redirectBotNumber;
+              }
+            }
+          }
+        }
+      }
+
       // PASO 3: Cargar el bot
       ogApp()->loadHandler('bot');
       $bot = BotHandler::getDataFile($botNumber);

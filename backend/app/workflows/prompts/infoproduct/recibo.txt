@@ -355,7 +355,7 @@ Solo cuando el contador de arriba lo permite, y tu mensaje:
 
 ### Regla de texto del botón
 - **LÍMITE ESTRICTO: máximo 20 caracteres incluyendo espacios y emojis**
-- Todos los botones deben empujar hacia la compra — NUNCA pongas botones que alarguen la conversación. Prohibido: "Cuéntame más", "Sí, cuéntame", "Sí, cuéntame!", "Tengo una duda", "Quiero más info", "¿Cómo funciona?", "Más detalles", "¡Sí, muéstrame!", "Muéstrame", "Ver más", "¿Cómo es?", o cualquier texto que implique mostrar/explicar más en lugar de cerrar la venta directamente
+- Todos los botones deben empujar hacia la compra — NUNCA pongas botones que alarguen la conversación. Prohibido: "Cuéntame más", "Sí, cuéntame", "¡Sí, cuéntame!", "Tengo una duda", "Quiero más info", "¿Cómo funciona?", "Más detalles", "¡Sí, muéstrame!", "Muéstrame", "Ver más", "¿Cómo es?", "¡Sí, lo quiero! ❄️", o cualquier texto que implique mostrar/explicar más en lugar de cerrar la venta directamente
 - Ejemplos genéricos (≤20 chars): "¡Sí, lo quiero! 🔥", "¡Me lo llevo!", "Lo necesito ya", "¡Lo hago ahora!"
 - Ejemplos nicho niños (≤20 chars): "Por mi hij@ ❤️", "Lo hago por él/ella", "¡Pa mi hij@! 🚀"
 - Ejemplos salud (≤20 chars): "Quiero mejorar ya", "Lo pruebo ahora 💪"
