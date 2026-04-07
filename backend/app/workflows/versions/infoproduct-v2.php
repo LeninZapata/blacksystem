@@ -179,8 +179,9 @@ class InfoproductV2Handler {
   }
 
   private function continueConversation($bot, $person, $message, $messageType) {
-    // Phase 3: fallback a bsuid cuando número no está disponible (username privacy)
-    $personTo = $person['number'] ?: ($person['bsuid'] ?? null);
+    // Phase 3: dos identificadores distintos según el uso
+    $personTo  = $person['number'] ?: ($person['bsuid'] ?? null);             // para enviar por API
+    $personKey = $this->clientKey($person);                                    // para archivos JSON (number ó 'bsuid_xxx')
 
     $chatData = ConversationValidator::getChatData($this->clientKey($person), $bot['id']);
 
@@ -212,7 +213,7 @@ class InfoproductV2Handler {
           null, $saleId, false, $person['bsuid'] ?? null
         );
         ChatHandler::addMessage([
-          'number'    => $personTo,
+          'number'    => $personKey,
           'bot_id'    => $bot['id'],
           'client_id' => $clientId,
           'sale_id'   => $saleId,
@@ -324,9 +325,10 @@ class InfoproductV2Handler {
     $match = QuickReplyHandler::findMatch($text, $chatData);
     if (!$match) return false;
 
-    $clientId = $chatData['client_id'] ?? null;
-    $saleId   = (int)($chatData['current_sale']['sale_id'] ?? 0);
-    $personTo = $person['number'] ?: ($person['bsuid'] ?? null); // Phase 3: fallback a bsuid
+    $clientId  = $chatData['client_id'] ?? null;
+    $saleId    = (int)($chatData['current_sale']['sale_id'] ?? 0);
+    $personTo  = $person['number'] ?: ($person['bsuid'] ?? null);  // para enviar por API
+    $personKey = $this->clientKey($person);                         // para archivos JSON
 
     ogApp()->loadHandler('chat');
 
@@ -334,7 +336,7 @@ class InfoproductV2Handler {
     if ($clientId) {
       ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $text, 'P', 'interactive', null, $saleId, true, $person['bsuid'] ?? null);
       ChatHandler::addMessage([
-        'number'    => $personTo,
+        'number'    => $personKey,
         'bot_id'    => $bot['id'],
         'client_id' => $clientId,
         'sale_id'   => $saleId,
@@ -357,7 +359,7 @@ class InfoproductV2Handler {
       ];
       ChatHandler::register($bot['id'], $bot['number'], $clientId, $person['number'], $templateMessage, 'S', 'text', $metadata, $saleId, true, $person['bsuid'] ?? null);
       ChatHandler::addMessage([
-        'number'    => $personTo,
+        'number'    => $personKey,
         'bot_id'    => $bot['id'],
         'client_id' => $clientId,
         'sale_id'   => $saleId,

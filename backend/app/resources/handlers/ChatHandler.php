@@ -210,13 +210,16 @@ class ChatHandler {
   // AHORA INCLUYE user_id EN LA CABECERA
   static function rebuildFromDB($number, $botId) {
     try {
-      // Obtener todos los mensajes de la BD
-      $messages = ogDb::t('chats')
-        ->where('client_number', $number)
-        ->where('bot_id', $botId)
-        ->where('status', 1)
-        ->orderBy('dc', 'ASC')
-        ->get();
+      // Detectar si el identificador es un bsuid (prefijo 'bsuid_') o un número de teléfono
+      $isBsuidKey = str_starts_with((string)$number, 'bsuid_');
+      $query = ogDb::t('chats')->where('bot_id', $botId)->where('status', 1)->orderBy('dc', 'ASC');
+      if ($isBsuidKey) {
+        $realBsuid = substr($number, 6); // quitar 'bsuid_'
+        $query = $query->where('client_bsuid', $realBsuid);
+      } else {
+        $query = $query->where('client_number', $number);
+      }
+      $messages = $query->get();
 
       if (empty($messages)) {
         return null;

@@ -9,6 +9,8 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $processedData = $context['processed_data'];
     $chatData = $context['chat_data'];
 
+    $personTo = $person['number'] ?: ($person['bsuid'] ?? null); // Phase 3: para enviar por API
+
     $this->saveUserMessages($processedData, $context);
 
     $aiText = $processedData['ai_text'];
@@ -20,7 +22,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     // Mostrar "escribiendo..." entre 1.5-3 segundos antes de llamar IA (múltiplo de 100ms)
     $randomDelayMs = rand(15, 30) * 100; // 1500-3000ms en pasos de 100ms
     $randomDelay = $randomDelayMs / 1000;
-    $this->sendTypingIndicator($person['number'], $randomDelay, true);
+    $this->sendTypingIndicator($personTo, $randomDelay, true);
 
     // Llamar IA después del composing
     $aiStartTime = microtime(true);
@@ -68,7 +70,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     foreach ($parsedMessages as $i => $msg) {
       if ($i > 0) {
         $delayMs = rand(10, 20) * 100; // 1000-2000ms entre mensajes
-        $this->sendTypingIndicator($person['number'], $delayMs / 1000, true);
+        $this->sendTypingIndicator($personTo, $delayMs / 1000, true);
       }
       $this->sendMessageDirect($msg, $context);
       $this->saveBotMessages($msg, $context);
@@ -82,11 +84,11 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
   }
 
   private function saveUserMessages($processedData, $context) {
-    $messages = $processedData['interpreted_messages'] ?? [];
-    $chatData = $context['chat_data'];
-    $bot = $context['bot'];
-    $person = $context['person'];
-
+    $messages  = $processedData['interpreted_messages'] ?? [];
+    $chatData  = $context['chat_data'];
+    $bot       = $context['bot'];
+    $person    = $context['person'];
+    $personKey = $person['number'] ?: ('bsuid_' . ($person['bsuid'] ?? '')); // para archivos JSON
     $skipUnread = $context['skip_unread'] ?? false;
 
     ogApp()->loadHandler('chat');
@@ -101,17 +103,18 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
         $msg['type'] ?? 'text',
         null,
         $chatData['current_sale']['sale_id'] ?? null,
-        $skipUnread
+        $skipUnread,
+        $person['bsuid'] ?? null
       );
 
       ChatHandler::addMessage([
-        'number' => $person['number'],
-        'bot_id' => $bot['id'],
+        'number'    => $personKey,
+        'bot_id'    => $bot['id'],
         'client_id' => $chatData['client_id'],
-        'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
-        'message' => $msg['text'],
-        'format' => $msg['type'] ?? 'text',
-        'metadata' => null
+        'sale_id'   => $chatData['current_sale']['sale_id'] ?? null,
+        'message'   => $msg['text'],
+        'format'    => $msg['type'] ?? 'text',
+        'metadata'  => null
       ], 'P');
     }
   }
@@ -172,8 +175,18 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $lastMsg = end($messages);
     $action  = $lastMsg['metadata']['action'] ?? '';
 
-    $chatData      = $context['chat_data'];
-    $historyMessages = $chatData['messages'] ?? [];
+    $chatData = $context['chat_data'];
+
+    // Releer el JSON desde disco para obtener el estado más reciente y evitar
+    // race conditions cuando dos mensajes del cliente llegan casi al mismo tiempo.
+    // El context['chat_data'] pudo haberse cargado antes de que el proceso anterior
+    // guardara el pre-payment-media, provocando que se envíe dos veces.
+    $bot    = $context['bot'];
+    $person = $context['person'];
+    $personKey = $person['number'] ?: ('bsuid_' . ($person['bsuid'] ?? '')); // para archivos JSON
+    ogApp()->loadHandler('chat');
+    $freshChat = ChatHandler::getChat($personKey, $bot['id'], false);
+    $historyMessages = ($freshChat ?? $chatData)['messages'] ?? [];
 
     // Determinar si es el primer mensaje del bot en esta conversación
     $hasBotMessages = false;
@@ -193,9 +206,14 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     $productId = $chatData['current_sale']['product_id'] ?? null;
     if (!$productId) return $messages;
 
-    // Recopilar URLs ya enviadas en el historial
+    // Recopilar URLs ya enviadas en el historial (datos frescos del disco)
+    // y además verificar por action = pre-payment-media para doble seguridad
     $sentUrls = [];
     foreach ($historyMessages as $hMsg) {
+      // Si ya hay un pre-payment-media en el historial, no inyectar de nuevo
+      if (($hMsg['metadata']['action'] ?? '') === 'pre-payment-media') {
+        return $messages;
+      }
       $sentUrl = $hMsg['metadata']['source_url'] ?? '';
       if ($sentUrl !== '') $sentUrls[] = $sentUrl;
     }
@@ -251,8 +269,9 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
     }
 
     if (!empty($message) || !empty($sourceUrl)) {
-      $chatapi = ogApp()->service('chatApi');
-      $chatapi::send($person['number'], $message, $sourceUrl, [
+      $personTo = $person['number'] ?: ($person['bsuid'] ?? null); // Phase 3: para enviar por API
+      $chatapi  = ogApp()->service('chatApi');
+      $chatapi::send($personTo, $message, $sourceUrl, [
         'buttons' => $buttons,
         'footer'  => $footer
       ]);
@@ -324,6 +343,7 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       $metadata = null;
     }
 
+    $personKey = $person['number'] ?: ('bsuid_' . ($person['bsuid'] ?? '')); // para archivos JSON
     ogApp()->loadHandler('chat');
     ChatHandler::register(
       $bot['id'],
@@ -335,17 +355,18 @@ class ActiveConversationStrategy implements ConversationStrategyInterface {
       $format,
       $metadata,
       $chatData['current_sale']['sale_id'] ?? null,
-      true
+      true,
+      $person['bsuid'] ?? null
     );
 
     ChatHandler::addMessage([
-      'number' => $person['number'],
-      'bot_id' => $bot['id'],
+      'number'    => $personKey,
+      'bot_id'    => $bot['id'],
       'client_id' => $chatData['client_id'],
-      'sale_id' => $chatData['current_sale']['sale_id'] ?? null,
-      'message' => $message,
-      'format' => $format,
-      'metadata' => $metadata
+      'sale_id'   => $chatData['current_sale']['sale_id'] ?? null,
+      'message'   => $message,
+      'format'    => $format,
+      'metadata'  => $metadata
     ], 'B');
   }
 }
