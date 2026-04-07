@@ -3,89 +3,118 @@
   "title": "{i18n:infoproduct.products.list.title}",
   "type": "content",
   "scripts": [
-    "infoproduct/assets/js/infoproductProduct.js"
+    "infoproduct/assets/js/infoproductProduct.js",
+    "infoproduct/assets/js/infoproductLinks.js"
   ],
   "content": [
     {
-      "type": "html",
-      "content": "<h4>{i18n:infoproduct.products.list.header.title}</h4>",
-      "order": 0
-    },
-    {
-      "type": "html",
-      "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='infoproductProduct.refresh();ogToast.info(\"{i18n:infoproduct.products.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>",
-      "order": 1
-    },
-    {
       "type": "component",
-      "component": "datatable",
-      "order": 2,
+      "component": "tabs",
       "config": {
-        "source": "api/product",
-        "filters": {
-          "context": "infoproductws"
-        },
-        "columns": [
+        "id": "infoproduct-products-tabs",
+        "preloadAllTabs": false,
+        "tabs": [
           {
-            "id": {
-              "name": "i18n:infoproduct.products.column.id",
-              "width": "30px",
-              "align": "center",
-              "sortable": true
-            }
+            "id": "tab-productos",
+            "title": "📦 Productos",
+            "content": [
+              {
+                "type": "html",
+                "content": "<h4>{i18n:infoproduct.products.list.header.title}</h4>"
+              },
+              {
+                "type": "html",
+                "content": "<div class='og-flex og-gap-sm og-my-2'><button class='btn btn-primary' onclick=\"ogModal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.ogModal.new.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openNew(formId);}})\">➕ {i18n:core.add}</button><button class='btn btn-secondary' onclick='infoproductProduct.refresh();ogToast.info(\"{i18n:infoproduct.products.refresh.success}\")'>🔄 {i18n:core.refresh}</button></div>"
+              },
+              {
+                "type": "component",
+                "component": "datatable",
+                "config": {
+                  "source": "api/product",
+                  "filters": {
+                    "context": "infoproductws"
+                  },
+                  "columns": [
+                    {
+                      "id": {
+                        "name": "i18n:infoproduct.products.column.id",
+                        "width": "30px",
+                        "align": "center",
+                        "sortable": true
+                      }
+                    },
+                    {
+                      "name": {
+                        "name": "i18n:infoproduct.products.column.name",
+                        "format": "product-name-with-price",
+                        "sortable": false,
+                        "width": "320px"
+                      }
+                    },
+                    {
+                      "sale_type_mode": {
+                        "name": "Tipo",
+                        "format": "sale-type-mode",
+                        "width": "80px",
+                        "align": "center",
+                        "sortable": false
+                      }
+                    },
+                    {
+                      "env": {
+                        "name": "Entorno",
+                        "format": "product-env",
+                        "width": "80px",
+                        "align": "center",
+                        "sortable": false
+                      }
+                    },
+                    {
+                      "status": {
+                        "name": "i18n:infoproduct.products.column.status",
+                        "format": "product-status",
+                        "width": "120px",
+                        "align": "left",
+                        "sortable": false
+                      }
+                    }
+                  ],
+                  "actions": {
+                    "edit": {
+                      "name": "i18n:core.edit",
+                      "onclick": "ogModal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.ogModal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openEdit(formId, {id});}})"
+                    },
+                    "clone": {
+                      "name": "i18n:infoproduct.products.action.clone",
+                      "role": "admin",
+                      "onclick": "ogModal.open('infoproduct|forms/infoproduct-clone-form', {title: '{i18n:infoproduct.products.ogModal.clone.title}', width: '90%', maxWidth: '500px', showFooter: false, afterRender: function(formId){infoproductProduct.openClone(formId, {id}, '{name}');}})"
+                    },
+                    "delete": {
+                      "name": "i18n:core.delete",
+                      "role": "admin",
+                      "onclick": "if(confirm('{i18n:infoproduct.products.confirm.delete}')) infoproductProduct.delete({id}).then(r => r && infoproductProduct.refresh())"
+                    }
+                  }
+                }
+              }
+            ]
           },
           {
-            "name": {
-              "name": "i18n:infoproduct.products.column.name",
-              "format": "product-name-with-price",
-              "sortable": false,
-              "width": "320px"
-            }
-          },
-          {
-            "sale_type_mode": {
-              "name": "Tipo",
-              "format": "sale-type-mode",
-              "width": "80px",
-              "align": "center",
-              "sortable": false
-            }
-          },
-          {
-            "env": {
-              "name": "Entorno",
-              "format": "product-env",
-              "width": "80px",
-              "align": "center",
-              "sortable": false
-            }
-          },
-          {
-            "status": {
-              "name": "i18n:infoproduct.products.column.status",
-              "format": "product-status",
-              "width": "120px",
-              "align": "left",
-              "sortable": false
-            }
+            "id": "tab-links",
+            "title": "🔗 Links",
+            "onLoad": "infoproductLinks.init()",
+            "content": [
+              {
+                "type": "html",
+                "content": "<div class='og-bg-gray-100 og-px-2 og-p-1 og-rounded-lg og-mb-2 og-form-group'><h3 class='og-mt-0 og-mb-2 og-text-gray-800'>🔍 Filtros</h3><div><label for='links-filter-bot' class='og-mb-1'>🤖 Bot</label><select id='links-filter-bot' class='form-control' onchange='infoproductLinks.onBotChange(this.value)'><option value=''>Seleccionar bot...</option></select></div></div>"
+              },
+              {
+                "type": "html",
+                "content": "<div id='links-products-container'><p class='og-text-center og-text-gray-500 og-p-4'>Selecciona un bot para ver los links</p></div>"
+              }
+            ]
           }
-        ],
-        "actions": {
-          "edit": {
-            "name": "i18n:core.edit",
-            "onclick": "ogModal.open('infoproduct|forms/infoproduct-form', {title: '{i18n:infoproduct.products.ogModal.edit.title}', width: '90%', maxWidth: '700px', showFooter: false, afterRender: function(formId){infoproductProduct.openEdit(formId, {id});}})"
-          },
-          "clone": {
-            "name": "i18n:infoproduct.products.action.clone",
-            "role": "admin",
-            "onclick": "ogModal.open('infoproduct|forms/infoproduct-clone-form', {title: '{i18n:infoproduct.products.ogModal.clone.title}', width: '90%', maxWidth: '500px', showFooter: false, afterRender: function(formId){infoproductProduct.openClone(formId, {id}, '{name}');}})"
-          },
-          "delete": {
-            "name": "i18n:core.delete",
-            "role": "admin",
-            "onclick": "if(confirm('{i18n:infoproduct.products.confirm.delete}')) infoproductProduct.delete({id}).then(r => r && infoproductProduct.refresh())"
-          }
-        }
+        ]
       }
     }
   ]

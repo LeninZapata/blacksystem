@@ -1,23 +1,21 @@
 <?php
 // routes/volatileCleanup.php - Limpieza de tablas volátiles (registros horarios)
-// Ejecutar 1 vez al día vía CRON:
-// 0 3 * * * wget --timeout=120 --tries=1 -q -O - "https://dominio.com/api/volatile-cleanup/run" > /dev/null 2>&1
 
 // Retención por tabla (días hacia atrás)
-const VOLATILE_RETENTION = [
+$volatileRetention = [
   'ad_metrics_hourly'     => ['col' => 'dc', 'days' => 15],
   'ad_auto_scale_history' => ['col' => 'dc', 'days' => 40],
 ];
 
-$router->group('/api/volatileCleanup', function($router) {
+$router->group('/api/volatileCleanup', function($router) use ($volatileRetention) {
 
   // ── Dry-run: cuántos registros se borrarían ──────────────────────────────
-  // GET /api/volatile-cleanup/preview
-  $router->get('/preview', function() {
+  // GET /api/volatileCleanup/preview
+  $router->get('/preview', function() use ($volatileRetention) {
     $result = [];
-    foreach (VOLATILE_RETENTION as $table => $cfg) {
-      $cutoff  = gmdate('Y-m-d H:i:s', strtotime("-{$cfg['days']} days"));
-      $col     = $cfg['col'];
+    foreach ($volatileRetention as $table => $cfg) {
+      $cutoff = gmdate('Y-m-d H:i:s', strtotime("-{$cfg['days']} days"));
+      $col    = $cfg['col'];
 
       $toDelete = ogDb::raw(
         "SELECT COUNT(*) AS cnt FROM `{$table}` WHERE `{$col}` < ?",
@@ -42,13 +40,13 @@ $router->group('/api/volatileCleanup', function($router) {
   })->middleware(['throttle:20,1']);
 
   // ── Ejecución real: eliminar registros antiguos ──────────────────────────
-  // GET /api/volatile-cleanup/run
-  $router->get('/run', function() {
+  // GET /api/volatileCleanup/run
+  $router->get('/run', function() use ($volatileRetention) {
     $logMeta = ['module' => 'volatile-cleanup', 'layer' => 'app/routes'];
     $result       = [];
     $totalDeleted = 0;
 
-    foreach (VOLATILE_RETENTION as $table => $cfg) {
+    foreach ($volatileRetention as $table => $cfg) {
       $cutoff = gmdate('Y-m-d H:i:s', strtotime("-{$cfg['days']} days"));
       $col    = $cfg['col'];
 
@@ -83,11 +81,11 @@ $router->group('/api/volatileCleanup', function($router) {
 });
 
 // ============================================
-// ENDPOINTS (usar camelCase en la URL — el router convierte kebab a camelCase):
+// ENDPOINTS:
 // GET /api/volatileCleanup/preview  → Simula cuántos se borrarían
 // GET /api/volatileCleanup/run      → Ejecuta la limpieza real
 //
-// Retención configurada en VOLATILE_RETENTION (arriba):
+// Retención:
 //   ad_metrics_hourly     → 15 días
 //   ad_auto_scale_history → 40 días
 //

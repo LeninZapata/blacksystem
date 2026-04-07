@@ -15,8 +15,8 @@ copy audio bienvenida: Si tiene alguna duda Duda, Escríbeme estoy aquí para ay
 URGENTE:
 ✔ Agregar todos los links de anuncios a los productos para evitar equivocaciones @done(07-04-2026 15:24)
 ✔ Revisar si esta borrando los chats de los json, creo que lo deje desde el 25 de marzo pero a estas altura deberia elminarlos segun el dia por defecto del cron @done(07-04-2026 15:33)
-☐ Revisar como borrar las metricas horarias de las 2 tablas, asi mismo como borras los chats debes borrarlo aca
-☐ Mostrar los links de los productos en una lado para poder revisarlo facilmente, los links ya estan agregados en la validacion
+✔ Revisar como borrar las metricas horarias de las 2 tablas, asi mismo como borras los chats debes borrarlo aca @done(07-04-2026 16:21)
+✔ Mostrar los links de los productos en una lado para poder revisarlo facilmente, los links ya estan agregados en la validacion @done(07-04-2026 17:44)
 
 RAPIDO:
 ☐ Modulo de Comentarios de fanpage para moderar los comentarios y responderlos desde el sistema.

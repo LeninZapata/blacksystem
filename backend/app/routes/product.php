@@ -65,6 +65,43 @@ $router->group('/api/product', function($router) {
 
   })->middleware(['auth']);
 
+  // Links de Facebook por bot: GET /api/product/links?bot_id=X
+  // Retorna productos activos del bot con sus fb_source_ids del config
+  $router->get('/links', function() {
+    $userId = $GLOBALS['auth_user_id'] ?? null;
+    if (!$userId) {
+      ogResponse::json(['success' => false, 'error' => __('auth.unauthorized')], 401);
+    }
+
+    $botId = ogRequest::query('bot_id');
+    if (!$botId) {
+      ogResponse::json(['success' => false, 'error' => 'bot_id es requerido'], 400);
+    }
+
+    $products = ogDb::table('products')
+      ->select(['id', 'name', 'config'])
+      ->where('user_id', $userId)
+      ->where('bot_id', (int)$botId)
+      ->where('context', 'infoproductws')
+      ->where('status', 1)
+      ->orderBy('name', 'ASC')
+      ->get();
+
+    $result = [];
+    foreach ($products as $product) {
+      $config = is_string($product['config'])
+        ? json_decode($product['config'], true)
+        : ($product['config'] ?? []);
+      $result[] = [
+        'id'            => (int)$product['id'],
+        'name'          => $product['name'],
+        'fb_source_ids' => $config['fb_source_ids'] ?? [],
+      ];
+    }
+
+    ogResponse::success($result);
+  })->middleware(['auth']);
+
   // Clonar producto: POST /api/product/clone
   // Body: { product_id: X, target_user_id: Y }
   $router->post('/clone', function() {
