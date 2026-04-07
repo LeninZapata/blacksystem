@@ -13,11 +13,15 @@ copy audio bienvenida: Si tiene alguna duda Duda, Escríbeme estoy aquí para ay
 
 
 URGENTE:
+✔ Agregar todos los links de anuncios a los productos para evitar equivocaciones @done(07-04-2026 15:24)
+✔ Revisar si esta borrando los chats de los json, creo que lo deje desde el 25 de marzo pero a estas altura deberia elminarlos segun el dia por defecto del cron @done(07-04-2026 15:33)
+☐ Revisar como borrar las metricas horarias de las 2 tablas, asi mismo como borras los chats debes borrarlo aca
+☐ Mostrar los links de los productos en una lado para poder revisarlo facilmente, los links ya estan agregados en la validacion
 
-  RAPIDO:
-
+RAPIDO:
+☐ Modulo de Comentarios de fanpage para moderar los comentarios y responderlos desde el sistema.
 ☐ En la grafica de rendimiento esta todo mal
-  ☐ no hacer el filtro de todos los producto como defecto sino que seria una opcion mas a seleccionar
+  ✔ no hacer el filtro de todos los producto como defecto sino que seria una opcion mas a seleccionar @done(07-04-2026 00:04)
   ☐ agregar una nuea linea de impote gastado en esa hora para poder ver como jodio el presupuesto
 
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
@@ -41,21 +45,21 @@ https://i.imgur.com/IG8BZXz.png
   ✔ FollowupHandler: guardar bsuid en followups @done(22-03-2026)
 
   --- FASE 2: Abril 2026 (Contact Book de Meta) ---
-  ☐ ANALIZAR: Meta lanzara Contact Book en abril — emparejamiento automatico telefono+BSUID
-    ☐ Cuando llegue un webhook con numero Y bsuid juntos por primera vez:
-      ☐ ClientHandler: si cliente existe por numero sin bsuid → actualizarle el bsuid
-      ☐ ClientHandler: si cliente existe por bsuid sin numero → actualizarle el numero
-      ☐ Validar que no haya dos registros del mismo cliente (uno por numero, otro por bsuid) → merge
-    ☐ chats.client_bsuid: actualmente no se guarda al crear el chat, revisar ChatHandler::register y addMessage
-    ☐ sales.bsuid: verificar que se guarde correctamente cuando llega con numero (hoy solo se guarda en welcome sin numero)
+  ✔ ANALIZAR: Meta lanzara Contact Book en abril — emparejamiento automatico telefono+BSUID @done(07-04-2026 00:04)
+    ✔ Cuando llegue un webhook con numero Y bsuid juntos por primera vez: @done(07-04-2026 00:04)
+      ✔ ClientHandler: si cliente existe por numero sin bsuid → actualizarle el bsuid @done(07-04-2026 00:04)
+      ✔ ClientHandler: si cliente existe por bsuid sin numero → actualizarle el numero @done(07-04-2026 00:04)
+      ✔ Validar que no haya dos registros del mismo cliente (uno por numero, otro por bsuid) → merge @done(07-04-2026 00:04)
+    ✔ chats.client_bsuid: actualmente no se guarda al crear el chat, revisar ChatHandler::register y addMessage @done(07-04-2026 00:04)
+    ✔ sales.bsuid: verificar que se guarde correctamente cuando llega con numero (hoy solo se guarda en welcome sin numero) @done(07-04-2026 00:04)
 
   --- FASE 3: Junio 2026 (Meta API soporta envios por BSUID) ---
-  ☐ ANALIZAR: Cuando Meta habilite enviar mensajes usando BSUID como destino:
-    ☐ ChatApiService: send() aceptar bsuid como $to cuando number esta vacio
-    ☐ ChatApiService: validateChatWindow() buscar cliente por bsuid como fallback
-    ☐ SendWelcomeAction: quitar guard de "no_phone_number", usar bsuid para enviar
-    ☐ FollowupHandler (cron de envio): si number vacio, intentar enviar por bsuid
-    ☐ ActiveConversationStrategy / PaymentStrategy: respuestas a usuarios sin numero
+  ✔ ANALIZAR: Cuando Meta habilite enviar mensajes usando BSUID como destino: @done(07-04-2026 00:04)
+    ✔ ChatApiService: send() aceptar bsuid como $to cuando number esta vacio @done(07-04-2026 00:04)
+    ✔ ChatApiService: validateChatWindow() buscar cliente por bsuid como fallback @done(07-04-2026 00:04)
+    ✔ SendWelcomeAction: quitar guard de "no_phone_number", usar bsuid para enviar @done(07-04-2026 00:04)
+    ✔ FollowupHandler (cron de envio): si number vacio, intentar enviar por bsuid @done(07-04-2026 00:04)
+    ✔ ActiveConversationStrategy / PaymentStrategy: respuestas a usuarios sin numero @done(07-04-2026 00:04)
 
 FRONTEND:
 ☐ Obtener el link del producto en el listado del producto o a su vez agregar un panel

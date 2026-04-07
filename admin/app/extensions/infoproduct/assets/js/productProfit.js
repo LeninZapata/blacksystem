@@ -27,9 +27,9 @@ class productProfit {
     // Configurar event listeners
     this.setupEventListeners();
 
-    // Cargar stats iniciales si hay bot seleccionado
+    // Mostrar mensaje inicial
     if (this.currentFilters.botId) {
-      await this.loadStats();
+      this.showSelectProduct();
     } else {
       this.showNoFilters();
     }
@@ -49,9 +49,9 @@ class productProfit {
         // Recargar productos
         await this.loadProducts();
         
-        // Recargar stats
+        // Pedir que seleccionen producto
         if (this.currentFilters.botId) {
-          await this.loadStats();
+          this.showSelectProduct();
         } else {
           this.showNoFilters();
         }
@@ -63,7 +63,11 @@ class productProfit {
     if (selectProduct) {
       selectProduct.addEventListener('change', async (e) => {
         this.currentFilters.productId = e.target.value;
-        await this.loadStats();
+        if (this.currentFilters.productId) {
+          await this.loadStats();
+        } else {
+          this.showSelectProduct();
+        }
       });
     }
 
@@ -166,7 +170,7 @@ class productProfit {
     if (!selectProduct) return;
 
     // Resetear select
-    selectProduct.innerHTML = '<option value="">Todos los productos</option>';
+    selectProduct.innerHTML = '<option value="">Seleccione un producto...</option>';
     this.products = [];
 
     if (!this.currentFilters.botId) return;
@@ -505,6 +509,22 @@ class productProfit {
     if (selectBot) {
       selectBot.innerHTML = '<option value="">Error al cargar bots</option>';
     }
+  }
+
+  /**
+   * Mostrar mensaje cuando hay bot pero falta seleccionar producto
+   */
+  static showSelectProduct() {
+    const container = document.getElementById('profit-charts-container');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="og-text-center og-text-gray-500 og-p-4">
+        <div class="og-mb-2" style="font-size: 2rem;">📦</div>
+        <div class="og-mb-1" style="font-weight: 500;">Selecciona un producto</div>
+        <div style="font-size: 0.9rem;">Elige un producto para ver las estadísticas de profit.</div>
+      </div>
+    `;
   }
 
   /**

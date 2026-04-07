@@ -139,14 +139,21 @@ class ChatHandler {
     $chatFile = ogApp()->getPath('storage/json/chats') . '/chat_' . $number . '_bot_' . $botId . '.json';
     $file = ogApp()->helper('file');
 
-    $chat = $file->getJson($chatFile, function() use ($userId, $number, $botId, $clientId) {
+    $clientCountryCode = null;
+    if ($clientId) {
+      $clientRow = ogDb::t('clients')->select(['country_code'])->find($clientId);
+      $clientCountryCode = $clientRow['country_code'] ?? null;
+    }
+
+    $chat = $file->getJson($chatFile, function() use ($userId, $number, $botId, $clientId, $clientCountryCode) {
       return [
-        'user_id' => $userId, // INCLUIR EN NUEVA CONVERSACIÓN
-        'client_id' => $clientId,
-        'client_number' => $number,
-        'bot_id' => $botId,
+        'user_id'             => $userId,
+        'client_id'           => $clientId,
+        'client_number'       => $number,
+        'client_country_code' => $clientCountryCode,
+        'bot_id'              => $botId,
         'conversation_started' => gmdate('Y-m-d H:i:s'),
-        'last_activity' => gmdate('Y-m-d H:i:s'),
+        'last_activity'        => gmdate('Y-m-d H:i:s'),
         'current_sale' => null,
         'summary' => [
           'total_messages' => 0,
@@ -161,6 +168,11 @@ class ChatHandler {
     // Asegurar que el chat tenga user_id (para chats existentes)
     if (!isset($chat['user_id'])) {
       $chat['user_id'] = $userId;
+    }
+
+    // Asegurar que el chat tenga client_country_code (para chats existentes sin este campo)
+    if (!isset($chat['client_country_code']) && $clientCountryCode) {
+      $chat['client_country_code'] = $clientCountryCode;
     }
 
     // Actualizar última actividad
@@ -238,14 +250,22 @@ class ChatHandler {
       $conversationStarted = $messages[0]['dc'] ?? null;
       $lastActivity = end($messages)['dc'] ?? null;
 
+      // Obtener country_code del cliente (para timezone en el prompt)
+      $clientCountryCode = null;
+      if ($clientId) {
+        $clientRow = ogDb::t('clients')->select(['country_code'])->find($clientId);
+        $clientCountryCode = $clientRow['country_code'] ?? null;
+      }
+
       // Construir estructura del chat
       $chat = [
-        'user_id' => $userId, // AGREGAR EN CABECERA
-        'client_id' => $clientId,
-        'client_number' => $number,
-        'bot_id' => $botId,
+        'user_id'             => $userId,
+        'client_id'           => $clientId,
+        'client_number'       => $number,
+        'client_country_code' => $clientCountryCode,
+        'bot_id'              => $botId,
         'conversation_started' => $conversationStarted,
-        'last_activity' => $lastActivity,
+        'last_activity'       => $lastActivity,
         'current_sale' => null,
         'summary' => [
           'total_messages' => 0,

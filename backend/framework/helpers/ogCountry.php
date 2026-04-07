@@ -165,6 +165,29 @@ class ogCountry {
       return null;
     }
   }
+
+  /**
+   * Convierte una fecha/hora en UTC al timezone del país indicado.
+   *
+   * @param string $datetimeUtc  Fecha en UTC (ej: "2026-04-05 03:23:00")
+   * @param string $code         Código de país ISO (ej: "EC")
+   * @param string $format       Formato de salida (default: 'Y-m-d H:i:s')
+   * @return string|null         Fecha convertida al timezone local, o null si falla
+   */
+  public static function fromUtc($datetimeUtc, $code, $format = 'Y-m-d H:i:s') {
+    $country = self::get($code);
+    if (!$country) return $datetimeUtc;
+
+    try {
+      $utcTZ   = new DateTimeZone('UTC');
+      $localTZ = new DateTimeZone($country['timezone']);
+      $dt = new DateTime($datetimeUtc, $utcTZ);
+      $dt->setTimezone($localTZ);
+      return $dt->format($format);
+    } catch (Exception $e) {
+      return $datetimeUtc; // fallback: devolver el valor original
+    }
+  }
 }
 
 // Ejemplos de uso:

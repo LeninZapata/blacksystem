@@ -19,7 +19,7 @@ class PromptBuilder {
 
     $messages[] = [
       'role' => 'assistant',
-      'content' => self::buildHistoryBlock($chat),
+      'content' => self::buildHistoryBlock($chat, $bot),
       'cache_control' => ['type' => 'ephemeral']
     ];
 
@@ -53,7 +53,8 @@ class PromptBuilder {
 
       if ($client) {
         $clientName = $client['name'] ?? 'Sin nombre';
-        $countryCode = $client['country_code'] ?? 'EC';
+        // Preferir el country_code ya cacheado en el JSON del chat (evita doble lookup)
+        $countryCode = $chat['client_country_code'] ?? $client['country_code'] ?? 'EC';
 
         $country = ogApp()->helper('country')::get($countryCode);
         $countryName = $country['name'] ?? $countryCode;
@@ -251,9 +252,10 @@ class PromptBuilder {
     return $prompt;
   }
 
-  private static function buildHistoryBlock($chat) {
+  private static function buildHistoryBlock($chat, $bot = []) {
     $messages = $chat['messages'] ?? [];
     $totalMessages = count($messages);
+    $countryCode = $bot['country_code'] ?? 'EC';
 
     $prompt = "## HISTORIAL COMPLETO DE LA CONVERSACIÓN:\n\n";
     $prompt .= "**Total de mensajes previos:** {$totalMessages}\n\n";
@@ -276,7 +278,10 @@ class PromptBuilder {
 
       foreach ($messages as $index => $msg) {
         $msgNum = $index + 1;
-        $fecha = $msg['date'] ?? 'N/A';
+        $fechaRaw = $msg['date'] ?? 'N/A';
+        $fecha = $fechaRaw !== 'N/A'
+          ? ogApp()->helper('country')::fromUtc($fechaRaw, $countryCode)
+          : 'N/A';
         $type = $msg['type'] ?? 'N/A';
         $format = $msg['format'] ?? 'text';
         $mensaje = $msg['message'] ?? '';
@@ -432,19 +437,33 @@ class PromptBuilder {
   }
 
   private static function buildCurrentMessage($aiText, $chat, $bot) {
-    $lastActivity = $chat['last_activity'] ?? 'N/A';
+    // Hora del bot (país donde opera el negocio)
+    $botCountryCode = $bot['country_code'] ?? 'EC';
+    $botCurrentTime = ogApp()->helper('country')::now($botCountryCode) ?? date('Y-m-d H:i:s');
+    $botCountry     = ogApp()->helper('country')::get($botCountryCode);
+    $botCountryName = $botCountry['name'] ?? $botCountryCode;
 
-    // Obtener hora correcta del país del bot
-    $countryCode = $bot['country_code'] ?? 'EC';
-    $currentTime = ogApp()->helper('country')::now($countryCode) ?? date('Y-m-d H:i:s');
+    // Hora del cliente (puede ser diferente si es internacional)
+    $clientCountryCode = $chat['client_country_code'] ?? $botCountryCode;
+    $isSameCountry     = $clientCountryCode === $botCountryCode;
 
-    $country = ogApp()->helper('country')::get($countryCode);
-    $countryName = $country['name'] ?? $countryCode;
+    $lastActivityUtc = $chat['last_activity'] ?? null;
+    $lastActivity = $lastActivityUtc
+      ? ogApp()->helper('country')::fromUtc($lastActivityUtc, $botCountryCode)
+      : 'N/A';
 
     $prompt = "## INFORMACIÓN DINÁMICA DE LA CONVERSACIÓN:\n\n";
-    $prompt .= "**País de operación:** {$countryName} ({$countryCode})\n";
-    $prompt .= "**Última actividad:** {$lastActivity}\n";
-    $prompt .= "**Hora actual:** {$currentTime}\n\n";
+    $prompt .= "**País de operación del bot:** {$botCountryName} ({$botCountryCode})\n";
+    $prompt .= "**Hora actual (bot):** {$botCurrentTime}\n";
+
+    if (!$isSameCountry) {
+      $clientCurrentTime = ogApp()->helper('country')::now($clientCountryCode) ?? $botCurrentTime;
+      $clientCountry     = ogApp()->helper('country')::get($clientCountryCode);
+      $clientCountryName = $clientCountry['name'] ?? $clientCountryCode;
+      $prompt .= "**Hora actual (cliente):** {$clientCurrentTime} ({$clientCountryName})\n";
+    }
+
+    $prompt .= "**Última actividad:** {$lastActivity}\n\n";
     $prompt .= "---\n\n";
     $prompt .= "## ÚLTIMO MENSAJE DEL CLIENTE (RESPONDE A ESTO):\n\n";
     $prompt .= $aiText . "\n\n";
