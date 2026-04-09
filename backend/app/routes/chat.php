@@ -343,9 +343,12 @@ $router->group('/api/chat', function($router) {
   // ============================================
 
   // Servir recibo de pago guardado en storage/recibos/
-  $router->get('/receipt/{filename}', function($filename) {
-    // Sanitizar: solo nombre de archivo sin rutas
-    $filename = basename($filename);
+  $router->get('/receipt/{filename:.*}', function($filename) {
+    // Sanitizar: permitir año/mes/dia/archivo.webp pero bloquear path traversal
+    $filename = str_replace('\\', '/', $filename);
+    if (preg_match('/\.\./', $filename) || !preg_match('/^[\w\-\/\.]+$/', $filename)) {
+      ogResponse::notFound('Recibo no encontrado');
+    }
     $filePath = ogApp()->getPath('storage') . '/recibos/' . $filename;
 
     if (!file_exists($filePath)) ogResponse::notFound('Recibo no encontrado');

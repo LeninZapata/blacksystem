@@ -28,10 +28,19 @@ son indicadores fuertes de que el pago YA se realizó → is_proof_payment: true
 
 { "is_proof_payment": true/false }
 
-2) Si is_proof_payment es TRUE, entonces ¿Contiene un amount/valor de pago con estos
-formatos: xx.xx ó xxx.xx ó xxxx.xx ó xx,xx ó xxx,xx ó xxxx,xx o es un amount valido ?
+2) Si is_proof_payment es TRUE, entonces busca el monto real de la transferencia.
+
+   REGLA FUNDAMENTAL DEL MONTO:
+   El monto que debes extraer es el valor que el remitente TRANSFIRIÓ, NO lo que pagó en total al banco.
+   - Busca el campo "Monto", "Valor", "Valor transferido", "Amount", "Subtotal" → ese es el monto real.
+   - IGNORA los campos "Total", "Costo transacción", "Comisión", "Fee", "Cargo bancario", "Costo de envío"
+     o cualquier campo que sea la suma del monto + comisión bancaria.
+   - Si existen ambos campos (ej: Monto $3.00 y Total $3.41), usa SIEMPRE el campo "Monto/Valor" ($3.00).
+   - La comisión/fee bancaria es cobrada al cliente por su banco y NO forma parte del pago recibido.
+
+   ¿El campo "Monto" o "Valor" contiene un amount con estos formatos: xx.xx ó xxx.xx ó xxxx.xx ó xx,xx ó xxx,xx ó xxxx,xx o es un amount válido?
 { "valid_amount": true/false }
-{ "amount_found": "{aqui va el amount encontrado en format con decimal y es numerico}" }
+{ "amount_found": "{aqui va el amount del campo Monto/Valor en formato con decimal como punto '.'}" }
 
 3) Si valid_amount es TRUE, entonces ¿Aparece el nombre del REMITENTE (quien envía el dinero) en el comprobante?
 
@@ -62,7 +71,7 @@ Responde ÚNICAMENTE con un JSON en este formato:
 {
   "is_proof_payment": true/false,
   "valid_amount": true/false,
-  "amount_found": "amount encontrado en formato con decimal como punto '.'",
+  "amount_found": "monto del campo Monto/Valor (NO el Total con comisión) en formato con decimal como punto '.'",
   "valid_name": true/false,
   "name_found": "nombre encontrado",
   "names_found": ["nombre completo 1", "nombre completo 2"],

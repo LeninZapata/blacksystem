@@ -103,23 +103,25 @@ class ImageInterpreter {
     try {
       $clean    = preg_replace('/[^0-9]/', '', $number ?? '');
       $filename = ($clean ?: 'unknown') . '_' . time() . '.webp';
-      $dir      = ogApp()->getPath('storage') . '/recibos';
+      $datePath = date('Y/m/d');
+      $dir      = ogApp()->getPath('storage') . '/recibos/' . $datePath;
 
       if (!is_dir($dir)) mkdir($dir, 0755, true);
 
-      $imgData = base64_decode($base64);
-      $src     = imagecreatefromstring($imgData);
+      $imgData  = base64_decode($base64);
+      $src      = imagecreatefromstring($imgData);
+      $relative = $datePath . '/' . $filename;
 
       if (!$src) {
         // Fallback: guardar sin comprimir si GD falla
         file_put_contents($dir . '/' . $filename, $imgData);
-        return $filename;
+        return $relative;
       }
 
       $compressed = self::compressToWebp($src, $filename, $dir);
       imagedestroy($src);
 
-      return $compressed ? $filename : null;
+      return $compressed ? $relative : null;
     } catch (Exception $e) {
       ogLog::error('saveReceipt - Error al guardar', ['error' => $e->getMessage()], self::$logMeta);
       return null;
@@ -128,7 +130,7 @@ class ImageInterpreter {
 
   // Convierte a WebP y reduce tamaño/calidad hasta < 30KB
   private static function compressToWebp($src, $filename, $dir) {
-    $targetBytes = 30 * 1024;
+    $targetBytes = 50 * 1024;
     $origW   = imagesx($src);
     $origH   = imagesy($src);
     $w       = $origW;
@@ -140,7 +142,7 @@ class ImageInterpreter {
     self::writeWebp($src, $origW, $origH, $w, $h, $quality, $tmpFile);
 
     // Loop: para si $w llega a 300px, sin importar el peso
-    while (filesize($tmpFile) > $targetBytes && $w > 300) {
+    while (filesize($tmpFile) > $targetBytes && $w > 500) {
       $w       = (int)($w * 0.8);
       $h       = (int)($h * 0.8);
       $quality = max(10, $quality - 15);

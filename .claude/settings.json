@@ -20,7 +20,8 @@
       "Bash(grep -r \"all-data\\\\|allData\\\\|all_data\\\\|number.*all\" /d/laragon/www/blacksystem/blacksystem/backend/app --include=*.php -l)",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('d:/laragon/www/blacksystem/blacksystem/admin/app/extensions/infoproduct/views/forms/infoproduct-form.json', 'utf8'\\)\\); console.log\\('JSON válido'\\)\")",
       "Bash(php -r ':*)",
-      "Bash(mysql -u root -h localhost blacksystem -e ':*)"
+      "Bash(mysql -u root -h localhost blacksystem -e ':*)",
+      "Read(//d/laragon/www/blacksystem/blacksystem/backend/**)"
     ],
     "additionalDirectories": [
       "d:\\laragon\\www\\metodoefectivo.cc\\l"
