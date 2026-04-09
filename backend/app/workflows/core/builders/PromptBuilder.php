@@ -177,6 +177,17 @@ class PromptBuilder {
         if (!empty($prodData['templates'])) {
           $prompt .= "### PLANTILLAS DISPONIBLES del Producto: {$prodData['name']} (ID: {$prodId})\n\n";
 
+          // Recopilar URLs de imágenes ya enviadas por el bot en esta conversación
+          $usedMediaUrls = [];
+          foreach ($messages as $msg) {
+            if (($msg['type'] ?? '') === 'B') {
+              $sentUrl = $msg['metadata']['source_url'] ?? '';
+              if (!empty($sentUrl)) {
+                $usedMediaUrls[] = $sentUrl;
+              }
+            }
+          }
+
           foreach ($prodData['templates'] as $index => $template) {
             $type = $template['template_type'] ?? 'unknown';
             $texto = $template['message'] ?? '';
@@ -196,7 +207,9 @@ class PromptBuilder {
                 default                                               => 'IMAGEN',
               };
               $templateIdLabel = !empty($template['template_id']) ? " ({$template['template_id']})" : '';
-              $prompt .= "- Plantilla " . ($index + 1) . ": {$type}{$templateIdLabel} [{$mediaLabel} - pon la URL en source_url del mensaje correspondiente]\n";
+              $alreadyUsed = in_array($url, $usedMediaUrls);
+              $usedLabel = $alreadyUsed ? ' ⚠️ YA ENVIADA — NO repetir en esta conversación' : '';
+              $prompt .= "- Plantilla " . ($index + 1) . ": {$type}{$templateIdLabel} [{$mediaLabel} - pon la URL en source_url del mensaje correspondiente]{$usedLabel}\n";
               $prompt .= "  Cuándo usarla: '" . $texto . "'\n";
               $prompt .= "  source_url: {$url}\n\n";
               continue;

@@ -25,36 +25,75 @@ class WebhookController {
       }
 
       // PASO 2.5: Redireccionamiento por mismatch de país (Meta routing bug)
-      // Cuando Meta enruta un anuncio al bot incorrecto (ej: anuncio EC → bot CO)
-      // se detecta por el source_id del referral y se redirige al bot correcto
+      // Aplica tanto para mensajes de anuncio (con source_id) como para mensajes directos
+      // del mismo cliente que ya fue redirigido antes (fallback por mapeo guardado)
+      $clientNumber     = $rawData['entry'][0]['changes'][0]['value']['messages'][0]['from'] ?? null;
       $referralSourceId = $rawData['entry'][0]['changes'][0]['value']['messages'][0]['referral']['source_id'] ?? null;
-      if ($referralSourceId) {
-        $clientNumber = $rawData['entry'][0]['changes'][0]['value']['messages'][0]['from'] ?? null;
-        if ($clientNumber) {
-          $country       = ogApp()->helper('country');
-          $botCountry    = $country::fromPhone($botNumber);
-          $clientCountry = $country::fromPhone($clientNumber);
 
-          if ($botCountry && $clientCountry && $botCountry !== $clientCountry) {
+      if ($clientNumber) {
+        $country       = ogApp()->helper('country');
+        $botCountry    = $country::fromPhone($botNumber);
+        $clientCountry = $country::fromPhone($clientNumber);
+
+        if ($botCountry && $clientCountry && $botCountry !== $clientCountry) {
+          $redirectBotNumber = null;
+          $redirectReason    = null;
+
+          // Intento 1: Redirigir por source_id del anuncio
+          if ($referralSourceId) {
             ogApp()->loadHandler('product');
             $sourceIds = ProductHandler::getSourceIdsFile();
 
             if ($sourceIds && isset($sourceIds[$referralSourceId])) {
-              $entry = $sourceIds[$referralSourceId];
-              $redirectBotNumber = $entry['bot_number'] ?? null;
+              $entry     = $sourceIds[$referralSourceId];
+              $candidate = $entry['bot_number'] ?? null;
 
-              if ($redirectBotNumber && $redirectBotNumber !== $botNumber) {
-                ogLog::info('whatsapp - Mismatch de país detectado, redirigiendo bot por source_id', [
-                  'original_bot'   => $botNumber,
-                  'redirect_to'    => $redirectBotNumber,
-                  'source_id'      => $referralSourceId,
-                  'bot_country'    => $botCountry,
-                  'client_country' => $clientCountry
-                ], $this->logMeta);
-
-                $botNumber = $redirectBotNumber;
+              if ($candidate && $candidate !== $botNumber) {
+                $redirectBotNumber = $candidate;
+                $redirectReason    = 'source_id';
               }
             }
+          }
+
+          // Intento 2: Fallback — venta activa más reciente del cliente con bot del país correcto.
+          // Solo se ejecuta cuando hay mismatch de países (ej: EC cliente → CO bot, bug de Meta).
+          // Los bots del mismo país nunca activan esta lógica, así que no interfiere con
+          // clientes que tienen conversaciones en múltiples bots del mismo país.
+          if (!$redirectBotNumber) {
+            $recentSale = ogDb::t('sales')
+              ->select(['bots.number as bot_number'])
+              ->leftJoin('bots', 'sales.bot_id', '=', 'bots.id')
+              ->where('sales.number', $clientNumber)
+              ->where('sales.process_status', 'initiated')
+              ->where('bots.country_code', $clientCountry)
+              ->orderBy('sales.tc', 'DESC')
+              ->first();
+
+            if ($recentSale && !empty($recentSale['bot_number']) && $recentSale['bot_number'] !== $botNumber) {
+              $redirectBotNumber = $recentSale['bot_number'];
+              $redirectReason    = 'sale_history';
+            }
+          }
+
+          if ($redirectBotNumber) {
+            ogLog::info('whatsapp - Mismatch de país detectado, redirigiendo bot', [
+              'original_bot'   => $botNumber,
+              'redirect_to'    => $redirectBotNumber,
+              'reason'         => $redirectReason,
+              'source_id'      => $referralSourceId ?? null,
+              'bot_country'    => $botCountry,
+              'client_country' => $clientCountry
+            ], $this->logMeta);
+
+            $botNumber = $redirectBotNumber;
+          } else {
+            ogLog::warning('whatsapp - Mismatch de país sin redirección posible', [
+              'bot'            => $botNumber,
+              'client'         => $clientNumber,
+              'bot_country'    => $botCountry,
+              'client_country' => $clientCountry,
+              'source_id'      => $referralSourceId ?? null
+            ], $this->logMeta);
           }
         }
       }
@@ -202,6 +241,31 @@ class WebhookController {
     return $className . 'Handler';
   }
 
+  function facebook() {
+    try {
+      $rawData = ogRequest::data();
+
+      // Guardar webhook raw para debugging/análisis
+      $this->saveRawWebhook($rawData, 'fb');
+
+      ogLog::info('facebook - Webhook recibido', [
+        'object' => $rawData['object'] ?? 'unknown',
+        'entries' => count($rawData['entry'] ?? [])
+      ], $this->logMeta);
+
+      // Responder 200 a Meta inmediatamente para evitar retransmisión
+      ogResponse::flushAndContinue(['message' => 'Webhook recibido']);
+
+      // TODO: procesar comentarios, reacciones, etc.
+
+    } catch (Exception $e) {
+      ogLog::error('facebook - Error crítico', [
+        'error' => $e->getMessage()
+      ], $this->logMeta);
+      ogResponse::serverError('Error procesando webhook de Facebook', OG_IS_DEV ? $e->getMessage() : null);
+    }
+  }
+
   function hotmart() {
     try {
       $rawData = ogRequest::data();
@@ -267,4 +331,5 @@ class WebhookController {
       ogResponse::serverError('Error procesando webhook', OG_IS_DEV ? $e->getMessage() : null);
     }
   }
+
 }

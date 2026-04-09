@@ -13,15 +13,13 @@ copy audio bienvenida: Si tiene alguna duda Duda, Escríbeme estoy aquí para ay
 
 
 URGENTE:
-✔ Agregar todos los links de anuncios a los productos para evitar equivocaciones @done(07-04-2026 15:24)
-✔ Revisar si esta borrando los chats de los json, creo que lo deje desde el 25 de marzo pero a estas altura deberia elminarlos segun el dia por defecto del cron @done(07-04-2026 15:33)
-✔ Revisar como borrar las metricas horarias de las 2 tablas, asi mismo como borras los chats debes borrarlo aca @done(07-04-2026 16:21)
-✔ Mostrar los links de los productos en una lado para poder revisarlo facilmente, los links ya estan agregados en la validacion @done(07-04-2026 17:44)
-
+☐ en los seguimientos de la noche o los acumulativos esta enviado 2 veces el audio de seguimiento parece que esta fuera de timing
+- Lo de hotmart esta mal medido o algo asi porque esta tomando el valor de producto no el que te quedo fuera de la comusion
+de hotmart, el detalle que en el chat se veia que tenias $1 en lugar de 0.90 centavos.
+☐  hay un debug que consume mucho datos todos los dias hay que eliminarlo  o comentarlo https://i.imgur.com/1hlhI0f.png
 RAPIDO:
 ☐ Modulo de Comentarios de fanpage para moderar los comentarios y responderlos desde el sistema.
 ☐ En la grafica de rendimiento esta todo mal
-  ✔ no hacer el filtro de todos los producto como defecto sino que seria una opcion mas a seleccionar @done(07-04-2026 00:04)
   ☐ agregar una nuea linea de impote gastado en esa hora para poder ver como jodio el presupuesto
 
 ☐ agregar boton de herramienta a lado del enviar mensaje para que aparezca un popup y haga esot
@@ -30,6 +28,7 @@ RAPIDO:
   ☐ generar una respuesta bsaado en la ultima mensaje del usuario (no enviarlo solo generarlo.)
 esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
 ☐ En el copy de USA debes quitarle que hay actualizaciones gratis porque este es un order bump, analiza bien esto.
+☐ Kit de portadas editables esta desde otro driver trata de absorverlo por si las dudas..
 Backend:
 ☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
 https://i.imgur.com/IG8BZXz.png
