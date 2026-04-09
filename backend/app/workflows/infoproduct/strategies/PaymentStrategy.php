@@ -488,6 +488,15 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $this->sendMessages($parsedResponse, $context);
     $this->saveBotMessages($parsedResponse, $context);
 
+    // Si la IA decidió entregar el producto (ej. excepción BdP sin nombre visible),
+    // disparar DeliveredProductActionHandler para registrar sale_confirmed en DB y chat.
+    $aiAction = $parsedResponse['metadata']['action'] ?? null;
+    if ($aiAction === 'delivered_product') {
+      require_once ogApp()->getPath() . '/workflows/infoproduct/actions/DeliveredProductActionHandler.php';
+      $handler = new DeliveredProductActionHandler();
+      $handler->handle($context + ['metadata' => $parsedResponse['metadata'] ?? []]);
+    }
+
     return ['success' => false, 'reason' => 'account_holder_not_found'];
   }
 

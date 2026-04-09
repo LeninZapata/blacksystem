@@ -407,6 +407,18 @@ class FollowupHandler {
     $allFollowups = [];
     $seenNumbers = [];
 
+    // ID único para esta ejecución del cron
+    $workerId = uniqid('w_', true);
+
+    // Liberar huérfanos: reclamados hace más de 15 min sin procesar
+    // (proceso que murió a mitad sin marcar processed=1)
+    $orphanCutoff = gmdate('Y-m-d H:i:s', time() - 900);
+    ogDb::raw(
+      "UPDATE followups SET claimed=0, worker_id=NULL, claimed_at=NULL
+       WHERE claimed=1 AND processed=0 AND claimed_at < ?",
+      [$orphanCutoff]
+    );
+
     $activeBots = ogDb::t('bots')
       ->where('status', 1)
       ->get();
@@ -428,36 +440,57 @@ class FollowupHandler {
 
       $botsConfig[$botId] = $botData;
 
+      // UPDATE atómico: solo este worker puede reclamar estos registros.
+      // Si otro cron llega al mismo tiempo, su UPDATE no verá estos
+      // porque claimed=0 ya no aplica para los que este worker reclamó.
+      ogDb::raw(
+        "UPDATE followups SET claimed=1, worker_id=?, claimed_at=?
+         WHERE bot_id=? AND processed=0 AND claimed=0 AND status=1 AND future_date<=?
+         LIMIT 40",
+        [$workerId, $now, $botId, $now]
+      );
+
+      // Traer únicamente los que este worker reclamó
       $followups = ogDb::t('followups')
         ->where('bot_id', $botId)
-        ->where('processed', 0)
-        ->where('status', 1)
-        ->where('future_date', '<=', $now)
+        ->where('worker_id', $workerId)
         ->orderBy('future_date', 'ASC')
-        ->limit(40)
         ->get();
 
-      if (!empty($followups)) {
-        foreach ($followups as $fup) {
-          $personNumber = $fup['number'] ?? $fup['bsuid']; // Phase 3: fallback a bsuid
+      if (empty($followups)) continue;
 
-          // Validar ventana de conversación: si max_send_at expiró, cancelar y omitir
-          if (!empty($fup['max_send_at']) && $fup['max_send_at'] < $now) {
-            // Cancelar para no procesar en futuros crons
-            ogDb::t('followups')->where('id', $fup['id'])->update([
-              'processed' => 2,
-              'du' => $now,
-              'tu' => time()
-            ]);
-            continue;
-          }
+      $toRelease = [];
 
-          if (!isset($seenNumbers[$personNumber])) {
-            $fup['bot_number'] = $botNumber;
-            $allFollowups[] = $fup;
-            $seenNumbers[$personNumber] = true;
-          }
+      foreach ($followups as $fup) {
+        $personNumber = $fup['number'] ?? $fup['bsuid']; // Phase 3: fallback a bsuid
+
+        // Validar ventana de conversación: si max_send_at expiró, cancelar y omitir
+        if (!empty($fup['max_send_at']) && $fup['max_send_at'] < $now) {
+          ogDb::t('followups')->where('id', $fup['id'])->update([
+            'processed' => 2,
+            'du' => $now,
+            'tu' => time()
+          ]);
+          continue;
         }
+
+        if (!isset($seenNumbers[$personNumber])) {
+          $fup['bot_number'] = $botNumber;
+          $allFollowups[] = $fup;
+          $seenNumbers[$personNumber] = true;
+        } else {
+          // Ya hay un followup de esta persona en este ciclo.
+          // Liberar para que el próximo cron lo procese normalmente.
+          $toRelease[] = (int)$fup['id'];
+        }
+      }
+
+      // Liberar los filtrados por seenNumbers de forma inmediata
+      if (!empty($toRelease)) {
+        $ids = implode(',', $toRelease);
+        ogDb::raw(
+          "UPDATE followups SET claimed=0, worker_id=NULL, claimed_at=NULL WHERE id IN ({$ids})"
+        );
       }
     }
 

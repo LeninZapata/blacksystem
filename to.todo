@@ -13,10 +13,12 @@ copy audio bienvenida: Si tiene alguna duda Duda, Escríbeme estoy aquí para ay
 
 
 URGENTE:
-☐ en los seguimientos de la noche o los acumulativos esta enviado 2 veces el audio de seguimiento parece que esta fuera de timing
+✔ poner la cuenta de dannes nueva tarjeta en facebook para que de alli obtenga los cobros @done(09-04-2026 10:03)
+✔ en los seguimientos de la noche o los acumulativos esta enviado 2 veces el audio de seguimiento parece que esta fuera de timing @done(09-04-2026 13:07)
 - Lo de hotmart esta mal medido o algo asi porque esta tomando el valor de producto no el que te quedo fuera de la comusion
 de hotmart, el detalle que en el chat se veia que tenias $1 en lugar de 0.90 centavos.
 ☐  hay un debug que consume mucho datos todos los dias hay que eliminarlo  o comentarlo https://i.imgur.com/1hlhI0f.png
+☐ 593968336785 aqui la IA  marca el costo de traccion como monto pagado cuando no es asi..
 RAPIDO:
 ☐ Modulo de Comentarios de fanpage para moderar los comentarios y responderlos desde el sistema.
 ☐ En la grafica de rendimiento esta todo mal
@@ -29,6 +31,7 @@ RAPIDO:
 esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se habran pasado a ayer, entonces es como que no esta filtrando bien el UTC, hay que revisar eso
 ☐ En el copy de USA debes quitarle que hay actualizaciones gratis porque este es un order bump, analiza bien esto.
 ☐ Kit de portadas editables esta desde otro driver trata de absorverlo por si las dudas..
+☐ en 100 citas un tipo queria ver la portada de la version padre e hija en mi cuenta caso 593995409632 es el mismo qiue dijo que habia transferido a otro.
 Backend:
 ☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
 https://i.imgur.com/IG8BZXz.png

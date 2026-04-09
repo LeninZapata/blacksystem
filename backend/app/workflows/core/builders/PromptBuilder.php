@@ -28,8 +28,6 @@ class PromptBuilder {
       'content' => self::buildCurrentMessage($aiText, $chat, $bot)
     ];
 
-    ogLog::info('[PromptBuilder] Prompt completo: ' . json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
     return $messages;
   }
 
