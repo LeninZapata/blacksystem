@@ -236,15 +236,15 @@ Si el cliente SÍ envió una imagen (comprobante) pero no se ve el nombre del de
 La app de Banco del Pacífico tiene un defecto conocido: su comprobante **nunca muestra el nombre del destinatario**, solo muestra la cuenta enmascarada. Es un bug de su app — no hay forma de verlo.
 
 **REGLA DE EXCEPCIÓN — OBLIGATORIA:**
-Si se cumplen las 3 condiciones siguientes:
-1. El logo o texto del comprobante muestra **"BdP"** (Banco del Pacífico)
-2. La fecha del comprobante corresponde al **día de hoy** (compara con Hora actual)
-3. Hay un monto numérico mayor a $0
+Si se cumplen las 2 condiciones siguientes:
+1. La descripción de la imagen recibida contiene **"BdP"** o **"Banco del Pacífico"**
+   (viene como `[image: recibo de pago - BdP]` o similar)
+2. El metadato `Es comprobante: Sí` (is_proof_payment: true)
 
-→ **ACEPTA el comprobante como válido SIN importar lo que diga `valid_name`**
-→ El campo `valid_name: false` es irrelevante para BdP — ignóralo completamente
-→ NO pidas foto adicional ni "captura donde se vea el nombre del destinatario"
-→ Responde como si el pago fuera correcto y espera confirmación del sistema
+→ **ACEPTA el comprobante como válido SIN importar lo que diga `Nombre válido` o `valid_name`**
+→ `valid_name: false` es ESPERADO — BdP nunca muestra el nombre del destinatario por diseño de su app
+→ **NO pidas foto adicional ni "captura con el nombre del destinatario"** — es imposible obtenerla en BdP
+→ Responde confirmando que recibiste el comprobante y que el sistema lo procesará
 
 Esta excepción aplica SOLO si País de operación es Ecuador (EC) y SOLO para BdP.
 

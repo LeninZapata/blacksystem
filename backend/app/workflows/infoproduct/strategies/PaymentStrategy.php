@@ -2,6 +2,18 @@
 
 class PaymentStrategy implements ConversationStrategyInterface {
   private $logMeta = ['module' => 'PaymentStrategy', 'layer' => 'app/workflows'];
+
+  /**
+   * Bancos que por diseño NO muestran el nombre del destinatario en sus comprobantes.
+   * Para estos bancos se omite la verificación isAccountHolderPresent (PASO 4.5).
+   * Agregar aquí cualquier banco nuevo con este comportamiento conocido.
+   * Los valores se comparan contra el campo "resume" devuelto por recibo-img (lowercase).
+   */
+  private const BANKS_WITHOUT_RECIPIENT_NAME = [
+    'bdp',                    // Banco del Pacífico (Ecuador)
+    'banco del pacífico',
+    'banco del pacifico',
+  ];
   public function execute(array $context): array {
     $bot = $context['bot'];
     $person = $context['person'];
@@ -49,7 +61,10 @@ class PaymentStrategy implements ConversationStrategyInterface {
     $saleId = $chatData['current_sale']['sale_id'] ?? null;
 
     // PASO 4.5: Verificar que el titular de la cuenta aparece en el recibo
-    if (!$this->isAccountHolderPresent($paymentData, $bot)) {
+    // Se omite para bancos que por diseño no muestran el nombre del destinatario
+    $bankWithoutRecipient = $this->isBankWithoutRecipientName($paymentData['resume'] ?? '');
+
+    if (!$bankWithoutRecipient && !$this->isAccountHolderPresent($paymentData, $bot)) {
       ogLog::info("execute - Titular de cuenta no encontrado en names_found", [
         'number'         => $person['number'],
         'sale_id'        => $saleId,
@@ -57,6 +72,14 @@ class PaymentStrategy implements ConversationStrategyInterface {
         'account_holder' => $bot['config']['account_holder'] ?? null,
       ], $this->logMeta);
       return $this->handleAccountHolderNotFound($context, $imageAnalysis, $paymentData);
+    }
+
+    if ($bankWithoutRecipient) {
+      ogLog::info("execute - Banco sin nombre de destinatario: omitiendo verificación de titular", [
+        'number'  => $person['number'],
+        'sale_id' => $saleId,
+        'resume'  => $paymentData['resume'] ?? '',
+      ], $this->logMeta);
     }
 
     // PASO 5: Procesar pago (solo si hay venta activa)
@@ -403,6 +426,16 @@ class PaymentStrategy implements ConversationStrategyInterface {
    * Si no hay account_holder configurado → deja pasar (no bloquea).
    * Si no hay names_found → bloquea (no se puede verificar).
    */
+  private function isBankWithoutRecipientName(string $resume): bool {
+    $resumeLower = strtolower($resume);
+    foreach (self::BANKS_WITHOUT_RECIPIENT_NAME as $keyword) {
+      if (str_contains($resumeLower, $keyword)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private function isAccountHolderPresent(array $paymentData, array $bot): bool {
     $accountHolder = trim($bot['config']['account_holder'] ?? '');
 

@@ -1,6 +1,13 @@
 # Tu resultado debe ser un JSON (que inicie con { y termine con }) sin saltos de linea ni espacios innecesarios arriba o abajo,
 ni tampoco la tipica salida con '```json {....} ```'.
 
+## IMPORTANTE — LEE PRIMERO LAS EXCEPCIONES POR PAÍS AL FINAL DE ESTE PROMPT
+Antes de aplicar los pasos 1-5, revisa la sección "EXCEPCIONES POR PAÍS" al final.
+Si el banco del comprobante tiene una excepción registrada, aplica esa regla y omite
+los criterios generales que contradigan la excepción.
+
+---
+
 1) Analiza esta imagen y determina si es un comprobante de pago COMPLETADO o no.
 
 PASO PREVIO OBLIGATORIO - DETECCIÓN DE PANTALLAS FALSAS:
@@ -26,7 +33,8 @@ comprobante de pago real debe tener palabras como:
 "aprobado", "exitoso", "exitosa", "autorización", "autorizacion", "No. operación",
 "número de operación", "referencia".
 Además, mensajes como "¡Transferencia exitosa!", "Pago exitoso", "Transferencia completada",
-"Depósito exitoso", "Operación exitosa", "Depósito realizado"
+"Depósito exitoso", "Operación exitosa", "Depósito realizado", "Envío realizado",
+"Pago realizado", "Transacción realizada"
 son indicadores fuertes de que el pago YA se realizó → is_proof_payment: true.
 
 { "is_proof_payment": true/false }
@@ -36,6 +44,7 @@ son indicadores fuertes de que el pago YA se realizó → is_proof_payment: true
    REGLA FUNDAMENTAL DEL MONTO:
    El monto que debes extraer es el valor que el remitente TRANSFIRIÓ, NO lo que pagó en total al banco.
    - Busca el campo "Monto", "Valor", "Valor transferido", "Amount", "Subtotal" → ese es el monto real.
+   - También acepta montos embebidos en frases como "[Nombre] ha enviado $X.XX a tu cuenta" → extrae X.XX
    - IGNORA los campos "Total", "Costo transacción", "Comisión", "Fee", "Cargo bancario", "Costo de envío"
      o cualquier campo que sea la suma del monto + comisión bancaria.
    - Si existen ambos campos (ej: Monto $3.00 y Total $3.41), usa SIEMPRE el campo "Monto/Valor" ($3.00).
@@ -48,21 +57,32 @@ son indicadores fuertes de que el pago YA se realizó → is_proof_payment: true
 3) Si valid_amount es TRUE, entonces ¿Aparece el nombre del REMITENTE (quien envía el dinero) en el comprobante?
 
    REGLA FUNDAMENTAL: El nombre que buscas es el de la persona que REALIZÓ la transferencia.
-   Ese nombre aparece ÚNICAMENTE en los campos: "De", "Origen", "Remitente", "Cuenta origen", "Desde", "De quien".
+   Ese nombre aparece en los campos: "De", "Origen", "Remitente", "Cuenta origen", "Desde", "De quien",
+   O embebido en frases como "[Nombre] ha enviado $X a tu cuenta" → el nombre antes de "ha enviado" es el remitente.
 
    NUNCA uses el nombre que aparece en los campos: "A", "Para", "Destino", "Destinatario", "Cuenta destino", "Beneficiario".
    El campo "A/Para/Destino" contiene el nombre del RECEPTOR (dueño del bot), NO el del cliente.
 
-   Si el nombre que encontraste está en el campo "De/Origen/Remitente" → valid_name: true, SALVO que ese nombre coincida
-   (total o parcialmente) con el nombre del titular de la cuenta bot indicado en la sección "INFORMACIÓN ADICIONAL DEL BOT"
-   → en ese caso valid_name: false y name_found: "".
+   Si el nombre que encontraste está en el campo "De/Origen/Remitente" o en frase "[Nombre] ha enviado" → valid_name: true,
+   SALVO que ese nombre coincida (total o parcialmente) con el nombre del titular de la cuenta bot indicado
+   en la sección "INFORMACIÓN ADICIONAL DEL BOT" → en ese caso valid_name: false y name_found: "".
    Si el nombre solo aparece en el campo "A/Para/Destino" o no hay nombre de remitente → valid_name: false.
 
 { "valid_name": true/false }
-{ "name_found": "{nombre del remitente encontrado en campo De/Origen, vacío si coincide con el titular del bot}" }
+{ "name_found": "{nombre del remitente encontrado en campo De/Origen o frase 'ha enviado', vacío si coincide con el titular del bot}" }
 
-4) Si is_proof_payment es FALSE, entonces describe la imagen en texto para que pueda entender,
-sé descriptivo. Caso contrario, si is_proof_payment es TRUE, entonces pon que es un "recibo de pago".
+4) Genera el campo resume siguiendo estas reglas:
+   - Si is_proof_payment es FALSE: describe la imagen descriptivamente para entender qué es.
+   - Si is_proof_payment es TRUE: el formato OBLIGATORIO es:
+     "recibo de pago - [BANCO]"
+     donde [BANCO] es el nombre del banco identificado en la imagen. Ejemplos:
+     "recibo de pago - BdP"
+     "recibo de pago - Banco del Barrio"
+     "recibo de pago - Banco Pichincha"
+     "recibo de pago - Banco Guayaquil"
+     "recibo de pago - Produbanco"
+     Si no puedes identificar el banco: "recibo de pago - banco desconocido"
+     NO escribas descripción libre cuando is_proof_payment es true — solo ese formato exacto.
 { "resume": "tu respuesta sobre la imagen" }
 
 5) Lista TODOS los nombres de persona que puedas ver en el comprobante, sin importar en qué campo aparezcan
@@ -85,32 +105,50 @@ Responde ÚNICAMENTE con un JSON en este formato:
 - Debe ser en formato JSON así que debes usar comillas dobles para los key y para los valores.
 - No uses comillas simples dentro de un valor. Si necesitas usar comilla simple, escápala así: \'ejemplo\'.
 
-## EXCEPCIONES POR PAÍS EN ANÁLISIS DE IMAGEN
-
-### Ecuador (EC) — Banco del Pacífico (BdP)
-La app de BdP tiene un defecto conocido: el comprobante nunca muestra el nombre del destinatario,
-solo la cuenta enmascarada. Es un bug de su app.
-- Si el comprobante muestra el logo o texto "BdP" → reporta valid_name: false con normalidad (es correcto)
-- is_proof_payment puede ser true si hay monto y fecha — el criterio "sin número de comprobante" NO aplica
-  cuando los demás indicadores de pago completado están presentes (monto + fecha de hoy)
-- name_found: "" (vacío) — no fuerces un nombre donde no hay
-
-### Ecuador (EC) — Banco del Barrio (corresponsal Banco Guayaquil)
-Banco del Barrio es una red de corresponsales bancarios de Banco Guayaquil. Sus recibos tienen
-formato distinto al de una app bancaria estándar:
-- Pueden mostrar "depósito" en lugar de "transferencia" — es un pago válido igualmente
-- Pueden no mostrar un número de comprobante en el formato tradicional
-- Pueden mostrar solo fecha sin hora exacta
-- El criterio "no muestra número de comprobante" NO aplica para este banco
-
-REGLA: Si la imagen muestra el logo o texto "Banco del Barrio" con un monto y una fecha
-→ is_proof_payment: true — es un recibo válido de depósito en corresponsal.
-
 IMPORTANTE SOBRE EL NOMBRE:
-- Busca el nombre ÚNICAMENTE en el campo "De", "Origen", "Remitente", "Cuenta origen" o similar que indique quién ENVÍA el dinero.
+- Busca el nombre en el campo "De", "Origen", "Remitente", "Cuenta origen" o en frase "[Nombre] ha enviado $X".
 - El campo "A", "Para", "Cuenta destino" o "Beneficiario" es el receptor del dinero (el dueño del bot). JAMÁS uses ese nombre.
-- Si el comprobante muestra "A [nombre_destinatario]" pero no hay campo "De/Origen/Remitente" con un nombre,
+- Si el comprobante muestra "A [nombre_destinatario]" pero no hay nombre de remitente,
   retorna valid_name: false y name_found: "".
-- Si el nombre encontrado en "De/Origen/Remitente" coincide (total o parcialmente) con el nombre del titular
+- Si el nombre encontrado coincide (total o parcialmente) con el nombre del titular
   de la cuenta bot mencionado en "INFORMACIÓN ADICIONAL DEL BOT", NO es el nombre del cliente →
   retorna valid_name: false y name_found: "".
+
+---
+
+## EXCEPCIONES POR PAÍS EN ANÁLISIS DE IMAGEN
+
+Estas excepciones anulan los criterios generales cuando aplican. Verifica el banco ANTES de
+ejecutar los pasos anteriores y aplica la excepción correspondiente si coincide.
+
+### Ecuador (EC) — Banco del Pacífico (BdP)
+
+**Cómo identificarlo:** logo o texto "BdP" visible en la imagen.
+
+**Comportamiento especial:**
+- La frase "La transferencia se acreditará de forma inmediata" es un aviso informativo post-pago,
+  NO es indicador de pantalla previa — ignórala para la validación
+- El criterio "no muestra número de comprobante" NO aplica si hay fecha y monto visibles
+- BdP no muestra el nombre del destinatario (campo "A/Para") — es un bug conocido de su app, no es señal de invalidez
+
+**Reglas para los campos JSON:**
+- `is_proof_payment`: true si hay logo BdP + fecha + monto, sin importar otros criterios
+- `valid_amount` / `amount_found`: extrae normalmente del campo Monto/Valor o de la frase "[Nombre] ha enviado $X"
+- `valid_name`: si la imagen muestra "[Nombre] ha enviado $X a tu cuenta" → valid_name: true, name_found: "[Nombre]"
+- `valid_name`: si no hay ningún nombre del remitente visible → valid_name: false, name_found: "" (es normal en BdP)
+- `resume`: "recibo de pago - BdP"
+
+### Ecuador (EC) — Banco del Barrio (corresponsal Banco Guayaquil)
+
+**Cómo identificarlo:** logo o texto "Banco del Barrio" visible en la imagen.
+
+**Comportamiento especial:**
+- Puede mostrar "depósito" en lugar de "transferencia" — igualmente válido
+- Puede no tener número de comprobante en formato tradicional — igualmente válido
+- El criterio "no muestra número de comprobante" NO aplica para este banco
+
+**Reglas para los campos JSON:**
+- `is_proof_payment`: true si hay logo Banco del Barrio + fecha + monto
+- `valid_amount` / `amount_found`: extrae normalmente
+- `valid_name`: aplica las reglas generales del paso 3
+- `resume`: "recibo de pago - Banco del Barrio"

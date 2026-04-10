@@ -35,6 +35,13 @@ class ImageInterpreter {
 
       $instruction = file_get_contents($promptFile);
 
+      // Agregar fecha y hora actual del bot (para validar fechas de comprobantes)
+      $botCountryCode = $bot['country_code'] ?? 'EC';
+      $botCurrentTime = ogApp()->helper('country')::now($botCountryCode) ?? date('Y-m-d H:i:s');
+      $instruction .= "\n\n---\n\n## FECHA Y HORA ACTUAL:\n";
+      $instruction .= "- **Fecha y hora del bot:** {$botCurrentTime} (zona horaria del país {$botCountryCode})\n";
+      $instruction .= "- Usa esta fecha para validar si el comprobante corresponde al día de hoy.\n";
+
       // Agregar personalidad del bot al prompt si existe
       if (!empty($bot['personality'])) {
         $instruction .= "\n\n---\n\n## INFORMACIÓN ADICIONAL DEL BOT:\n" . $bot['personality'];
