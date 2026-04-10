@@ -873,7 +873,7 @@ class chat {
       const resume = meta.description?.resume ?? meta.resume ?? '';
       const caption = (meta.caption ?? '') || (typeof text === 'string' && text.startsWith('{') ? '' : text);
       if (receiptFile) {
-        content = `<div class="bs-msg-media" data-resume="${resume}"><img data-receipt="${receiptFile}" alt="imagen"></div>${caption ? `<span>${caption}</span>` : ''}`;
+        content = `<div class="bs-msg-media" data-resume="${resume}"><img data-receipt="${receiptFile}" alt="imagen">${resume ? `<span class="bs-msg-ai-resume">🤖 ${resume}</span>` : ''}</div>${caption ? `<span>${caption}</span>` : ''}`;
       } else {
         const imgUrl = meta.image_url ?? '';
         content = imgUrl

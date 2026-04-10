@@ -22,8 +22,11 @@ Si cumple UNO O MÁS de estos criterios → is_proof_payment: false de inmediato
 Si NO cumple ninguno de los criterios anteriores, entonces para verificar si es un
 comprobante de pago real debe tener palabras como:
 "cuenta", "origen", "destino", "tipo de cuenta", "transacción", "transferencia",
-"concepto", "saldo", "valor", "fecha", "amount", "comprobante", "aprobado", "exitoso", "exitosa".
-Además, mensajes como "¡Transferencia exitosa!", "Pago exitoso", "Transferencia completada"
+"depósito", "deposito", "concepto", "saldo", "valor", "fecha", "amount", "comprobante",
+"aprobado", "exitoso", "exitosa", "autorización", "autorizacion", "No. operación",
+"número de operación", "referencia".
+Además, mensajes como "¡Transferencia exitosa!", "Pago exitoso", "Transferencia completada",
+"Depósito exitoso", "Operación exitosa", "Depósito realizado"
 son indicadores fuertes de que el pago YA se realizó → is_proof_payment: true.
 
 { "is_proof_payment": true/false }
@@ -81,6 +84,27 @@ Responde ÚNICAMENTE con un JSON en este formato:
 
 - Debe ser en formato JSON así que debes usar comillas dobles para los key y para los valores.
 - No uses comillas simples dentro de un valor. Si necesitas usar comilla simple, escápala así: \'ejemplo\'.
+
+## EXCEPCIONES POR PAÍS EN ANÁLISIS DE IMAGEN
+
+### Ecuador (EC) — Banco del Pacífico (BdP)
+La app de BdP tiene un defecto conocido: el comprobante nunca muestra el nombre del destinatario,
+solo la cuenta enmascarada. Es un bug de su app.
+- Si el comprobante muestra el logo o texto "BdP" → reporta valid_name: false con normalidad (es correcto)
+- is_proof_payment puede ser true si hay monto y fecha — el criterio "sin número de comprobante" NO aplica
+  cuando los demás indicadores de pago completado están presentes (monto + fecha de hoy)
+- name_found: "" (vacío) — no fuerces un nombre donde no hay
+
+### Ecuador (EC) — Banco del Barrio (corresponsal Banco Guayaquil)
+Banco del Barrio es una red de corresponsales bancarios de Banco Guayaquil. Sus recibos tienen
+formato distinto al de una app bancaria estándar:
+- Pueden mostrar "depósito" en lugar de "transferencia" — es un pago válido igualmente
+- Pueden no mostrar un número de comprobante en el formato tradicional
+- Pueden mostrar solo fecha sin hora exacta
+- El criterio "no muestra número de comprobante" NO aplica para este banco
+
+REGLA: Si la imagen muestra el logo o texto "Banco del Barrio" con un monto y una fecha
+→ is_proof_payment: true — es un recibo válido de depósito en corresponsal.
 
 IMPORTANTE SOBRE EL NOMBRE:
 - Busca el nombre ÚNICAMENTE en el campo "De", "Origen", "Remitente", "Cuenta origen" o similar que indique quién ENVÍA el dinero.

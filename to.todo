@@ -13,10 +13,14 @@ copy audio bienvenida: Si tiene alguna duda Duda, Escríbeme estoy aquí para ay
 
 
 URGENTE:
-- Lo de hotmart esta mal medido o algo asi porque esta tomando el valor de producto no el que te quedo fuera de la comusion
-de hotmart, el detalle que en el chat se veia que tenias $1 en lugar de 0.90 centavos.
+✔ 593987394908 este caso si envio el recibo de banco del pacifico pero el bot no lo estaba agarrando revisa por que @done(10-04-2026 11:32)
+  parec que con el cambio de abjao se soluciono... 
+✔ 593961866311 aqui en la cuenta de dannes, por alguna razon  el bot envio el producto con el recibo cuando antes si lo hacia. @done(10-04-2026 11:24)
 
+☐ Bot internacional multiples productos.
 RAPIDO:
+☐ 593962826987 Parece el el orde de los chats es por fecha y hora pero si en el mismo segundo hay 2 mensajes este esta que lo ordena No DESC por id o segundo
+porque no tiene un orden logico, 
 ☐ Modulo de Comentarios de fanpage para moderar los comentarios y responderlos desde el sistema.
 ☐ En la grafica de rendimiento esta todo mal
   ☐ agregar una nuea linea de impote gastado en esa hora para poder ver como jodio el presupuesto
@@ -29,6 +33,9 @@ esta prueba solo la puedes visuazar en la mañanas, porque en la tarde ya se hab
 ☐ En el copy de USA debes quitarle que hay actualizaciones gratis porque este es un order bump, analiza bien esto.
 ☐ Kit de portadas editables esta desde otro driver trata de absorverlo por si las dudas..
 ☐ en 100 citas un tipo queria ver la portada de la version padre e hija en mi cuenta caso 593995409632 es el mismo qiue dijo que habia transferido a otro.
+  ☐ aqui tambien queria fotos del libro 593986616567 creo que hay que hacer imagenes por producto para estos casos
+- Lo de hotmart esta mal medido o algo asi porque esta tomando el valor de producto no el que te quedo fuera de la comusion
+de hotmart, el detalle que en el chat se veia que tenias $1 en lugar de 0.90 centavos.
 Backend:
 ☐ Cambios de Fb 2026 https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
 https://i.imgur.com/IG8BZXz.png

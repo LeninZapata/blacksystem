@@ -812,6 +812,19 @@
     border-radius: 8px;
     background: #000;
   }
+  .bs-msg-ai-resume {
+    display: block;
+    margin-top: 4px;
+    padding: 3px 7px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: #8b7cf8;
+    background: rgba(139, 124, 248, 0.08);
+    border-left: 2px solid #8b7cf8;
+    border-radius: 0 4px 4px 0;
+    font-style: italic;
+    word-break: break-word;
+  }
 
   /* ── Mensajes utilitarios dentro del listado ──────────────────────────── */
   .bs-chat-loading,
